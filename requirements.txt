@@ -1,0 +1,6 @@
+requests
+
+# Testing & Linting
+pytest
+pytest-cov
+black
