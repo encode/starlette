@@ -1,6 +1,17 @@
-# Starlette
-
-**The little ASGI library that shines**
+<p align="center">
+    <h1>Starlette</h1>
+</p>
+<p align="center">
+    <em>The little ASGI library that shines.</em>
+</p>
+<p align="center">
+<a href="https://travis-ci.org/encode/starlette">
+    <img src="https://travis-ci.org/encode/starlette.svg?branch=master" alt="Build Status">
+</a>
+<a href="https://pypi.org/project/starlette/">
+    <img src="https://badge.fury.io/py/starlette.svg" alt="Package version">
+</a>
+</p>
 
 ```python
 from starlette import Response
