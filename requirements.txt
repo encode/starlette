@@ -1,6 +1,5 @@
 requests
 
-# Testing & Linting
+# Testing
 pytest
 pytest-cov
-black
