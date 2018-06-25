@@ -62,6 +62,9 @@ Signature: `Response(content=b'', status_code=200, headers=None, media_type=None
 * `headers` - A dictionary of strings or list of pairs of strings.
 * `media_type` - A string giving the content type.
 
+Starlette will automatically include a content-length header. It will also
+set the content-type header, including a charset for text types.
+
 ```python
 class App:
     def __init__(self, scope):
