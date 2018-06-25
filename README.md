@@ -1,6 +1,6 @@
-<h1 align="center">
-    Starlette
-</h1>
+<p align="center">
+    <strong><em>✨ Starlette ✨</em></strong>
+</p>
 <p align="center">
     <em>The little ASGI library that shines.</em>
 </p>
