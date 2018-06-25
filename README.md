@@ -23,6 +23,10 @@ Starlette is a small library for working with ASGI.
 It gives you `Request` and `Response` classes, a test client, and a
 decorator for writing super-minimal applications.
 
+**Requirements:**
+
+Python 3.6+
+
 **Installation:**
 
 ```shell
