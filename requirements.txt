@@ -1,5 +1,7 @@
 requests
 
 # Testing
+black
+codecov
 pytest
 pytest-cov
