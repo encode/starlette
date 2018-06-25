@@ -8,8 +8,12 @@ python:
 
 install:
     - pip install -r requirements.txt
+    - pip install codecov
     - if [[ $TRAVIS_PYTHON_VERSION != '3.5' ]]; then pip install black; fi
 
 script:
     - scripts/test
     - if [[ $TRAVIS_PYTHON_VERSION != '3.5' ]]; then scripts/lint; fi
+
+after_script:
+    - codecov
