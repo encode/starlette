@@ -13,6 +13,10 @@
 </a>
 </p>
 
+<p align="center">&mdash; ⭐️ &mdash;</p>
+
+Starlette is a small library for
+
 ```python
 from starlette import Response
 
@@ -108,6 +112,8 @@ class App:
         await response(receive, send)
 ```
 
+<p align="center">&mdash; ⭐️ &mdash;</p>
+
 ## Requests
 
 Starlette includes a `Request` class that gives you a nicer interface onto
@@ -133,7 +139,7 @@ class App:
 
 The request method is accessed as `request.method`.
 
-### URL
+#### URL
 
 The request URL is accessed as `request.url`.
 
@@ -142,25 +148,27 @@ components that can be parsed out of the URL.
 
 For example: `request.url.path`, `request.url.port`, `request.url.scheme`.
 
-### Headers
+#### Headers
 
 Headers are exposed as an immutable, case-insensitive, multi-dict.
 
 For example: `request.headers['content-type']`
 
-### Query Parameters
+#### Query Parameters
 
 Headers are exposed as an immutable multi-dict.
 
 For example: `request.query_params['abc']`
 
-### Body
+#### Body
 
 There are two interfaces for returning the body of the request:
 
 The request body as bytes: `await request.body()`
 
 The request body, parsed as JSON: `await request.json()`
+
+<p align="center">&mdash; ⭐️ &mdash;</p>
 
 ## Test Client
 
@@ -186,6 +194,8 @@ def test_app():
     assert response.status_code == 200
 ```
 
+<p align="center">&mdash; ⭐️ &mdash;</p>
+
 ## Decorators
 
 The `asgi_application` decorator turns an `async` function into an ASGI application.
@@ -203,4 +213,4 @@ async def app(request):
 
 ---
 
-<p align="center"><i>API Star is <a href="https://github.com/tomchristie/apistar/blob/master/LICENSE.md">BSD licensed</a> code.<br/>Designed & built in Brighton, England.</i><br/>&mdash; ⭐️ &mdash;</p>
+<p align="center"><i>API Star is <a href="https://github.com/tomchristie/apistar/blob/master/LICENSE.md">BSD licensed</a> code.<br/>Designed & built in Brighton, England.</i></p>
