@@ -18,7 +18,7 @@
 
 ---
 
-Starlette is a small library for working with ASGI.
+Starlette is a small library for working with [ASGI](https://asgi.readthedocs.io/en/latest/).
 
 It gives you `Request` and `Response` classes, a test client, and a
 decorator for writing super-minimal applications.
@@ -68,6 +68,9 @@ Signature: `Response(content=b'', status_code=200, headers=None, media_type=None
 
 Starlette will automatically include a content-length header. It will also
 set the content-type header, including a charset for text types.
+
+Once you've instantiated a response, you can send it by calling it as an
+ASGI application instance.
 
 ```python
 class App:
