@@ -3,7 +3,6 @@ language: python
 cache: pip
 
 python:
-    - "pypy3.5"
     - "3.5"
     - "3.6"
 
@@ -11,5 +10,5 @@ install:
     - pip install -r requirements.txt
 
 script:
-    - scripts/lint
+    - if [[ $TRAVIS_PYTHON_VERSION != '3.5' ]]; then scripts/lint; fi
     - scripts/test
