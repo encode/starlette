@@ -13,9 +13,20 @@
 </a>
 </p>
 
-<p align="center">&mdash; ⭐️ &mdash;</p>
+---
 
-Starlette is a small library for
+Starlette is a small library for working with ASGI.
+
+It gives you `Request` and `Response` classes, a test client, and a
+decorator for writing super-minimal applications.
+
+**Installation:**
+
+```shell
+pip3 install starlette
+```
+
+**Example:**
 
 ```python
 from starlette import Response
@@ -112,7 +123,7 @@ class App:
         await response(receive, send)
 ```
 
-<p align="center">&mdash; ⭐️ &mdash;</p>
+---
 
 ## Requests
 
@@ -168,7 +179,7 @@ The request body as bytes: `await request.body()`
 
 The request body, parsed as JSON: `await request.json()`
 
-<p align="center">&mdash; ⭐️ &mdash;</p>
+---
 
 ## Test Client
 
@@ -194,7 +205,7 @@ def test_app():
     assert response.status_code == 200
 ```
 
-<p align="center">&mdash; ⭐️ &mdash;</p>
+---
 
 ## Decorators
 
@@ -213,4 +224,4 @@ async def app(request):
 
 ---
 
-<p align="center"><i>API Star is <a href="https://github.com/tomchristie/apistar/blob/master/LICENSE.md">BSD licensed</a> code.<br/>Designed & built in Brighton, England.</i></p>
+<p align="center"><i>API Star is <a href="https://github.com/tomchristie/apistar/blob/master/LICENSE.md">BSD licensed</a> code.<br/>Designed & built in Brighton, England.</i><br/>&mdash; ⭐️ &mdash;</p>
