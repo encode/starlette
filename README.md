@@ -1,5 +1,5 @@
 <p align="center">
-    <strong><em>✨ Starlette ✨</em></strong>
+    <h1 align="center">Starlette</h1>
 </p>
 <p align="center">
     <em>The little ASGI library that shines.</em>
