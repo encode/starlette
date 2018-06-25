@@ -55,7 +55,12 @@ appropriate ASGI messages on the `send` channel.
 
 ### Response
 
-Signature: `Response(content, status_code, headers, media_type)`
+Signature: `Response(content=b'', status_code=200, headers=None, media_type=None)`
+
+* `content` - A string or bytestring.
+* `status_code` - An integer HTTP status code.
+* `headers` - A dictionary of strings or list of pairs of strings.
+* `media_type` - A string giving the content type.
 
 ```python
 class App:
