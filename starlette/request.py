@@ -6,6 +6,7 @@ class Request:
     def __init__(self, scope, receive):
         self._scope = scope
         self._receive = receive
+        self._stream_consumed = False
 
     @property
     def method(self):
@@ -48,15 +49,27 @@ class Request:
             self._query_params = QueryParams(query_string)
         return self._query_params
 
+    async def stream(self):
+        if hasattr(self, "_body"):
+            yield self._body
+            return
+
+        if self._stream_consumed:
+            raise RuntimeError("Stream consumed")
+
+        self._stream_consumed = True
+        while True:
+            message = await self._receive()
+            if message["type"] == "http.request":
+                yield message.get("body", b"")
+                if not message.get("more_body", False):
+                    break
+
     async def body(self):
         if not hasattr(self, "_body"):
             body = b""
-            while True:
-                message = await self._receive()
-                if message["type"] == "http.request":
-                    body += message.get("body", b"")
-                    if not message.get("more_body", False):
-                        break
+            async for chunk in self.stream():
+                body += chunk
             self._body = body
         return self._body
 

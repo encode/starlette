@@ -79,6 +79,71 @@ def test_request_body():
     assert response.json() == {"body": "abc"}
 
 
+def test_request_stream():
+    def app(scope):
+        async def asgi(receive, send):
+            request = Request(scope, receive)
+            body = b""
+            async for chunk in request.stream():
+                body += chunk
+            response = JSONResponse({"body": body.decode()})
+            await response(receive, send)
+
+        return asgi
+
+    client = TestClient(app)
+
+    response = client.get("/")
+    assert response.json() == {"body": ""}
+
+    response = client.post("/", json={"a": "123"})
+    assert response.json() == {"body": '{"a": "123"}'}
+
+    response = client.post("/", data="abc")
+    assert response.json() == {"body": "abc"}
+
+
+def test_request_body_then_stream():
+    def app(scope):
+        async def asgi(receive, send):
+            request = Request(scope, receive)
+            body = await request.body()
+            chunks = b""
+            async for chunk in request.stream():
+                chunks += chunk
+            response = JSONResponse({"body": body.decode(), "stream": chunks.decode()})
+            await response(receive, send)
+
+        return asgi
+
+    client = TestClient(app)
+
+    response = client.post("/", data="abc")
+    assert response.json() == {"body": "abc", "stream": "abc"}
+
+
+def test_request_stream_then_body():
+    def app(scope):
+        async def asgi(receive, send):
+            request = Request(scope, receive)
+            chunks = b""
+            async for chunk in request.stream():
+                chunks += chunk
+            try:
+                body = await request.body()
+            except RuntimeError:
+                body = b"<stream consumed>"
+            response = JSONResponse({"body": body.decode(), "stream": chunks.decode()})
+            await response(receive, send)
+
+        return asgi
+
+    client = TestClient(app)
+
+    response = client.post("/", data="abc")
+    assert response.json() == {"body": "<stream consumed>", "stream": "abc"}
+
+
 def test_request_json():
     def app(scope):
         async def asgi(receive, send):

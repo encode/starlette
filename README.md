@@ -166,7 +166,7 @@ class App:
         await response(receive, send)
 ```
 
-### Method
+#### Method
 
 The request method is accessed as `request.method`.
 
@@ -198,6 +198,26 @@ There are two interfaces for returning the body of the request:
 The request body as bytes: `await request.body()`
 
 The request body, parsed as JSON: `await request.json()`
+
+You can also access the request body as a stream, using the `async for` syntax:
+
+```python
+class App:
+    def __init__(self, scope):
+        self.scope = scope
+
+    async def __call__(self, receive, send):
+        request = Request(self.scope, receive)
+        body = b''
+        async for chunk in request.stream():
+            body += chunk
+        response = Response(content, media_type='text/plain')
+        await response(receive, send)
+```
+
+If you access `.stream()` then the byte chunks are provided without storing
+the entire body to memory. Any subsequent calls to `.body()` and `.json()` will
+raise an error.
 
 ---
 
