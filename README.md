@@ -1,6 +1,6 @@
-<p align="center">
-    <h1>Starlette</h1>
-</p>
+<h1 align="center">
+    Starlette
+</h1>
 <p align="center">
     <em>The little ASGI library that shines.</em>
 </p>
@@ -25,6 +25,8 @@ class App:
         response = Response('Hello, world!', media_type='text/plain')
         await response(receive, send)
 ```
+
+<p align="center">&mdash; ⭐️ &mdash;</p>
 
 ## Responses
 
