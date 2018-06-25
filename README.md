@@ -193,7 +193,7 @@ For example: `request.query_params['abc']`
 
 #### Body
 
-There are two interfaces for returning the body of the request:
+There are a few different interfaces for returning the body of the request:
 
 The request body as bytes: `await request.body()`
 
