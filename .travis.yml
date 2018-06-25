@@ -11,7 +11,7 @@ install:
 
 script:
     - scripts/test
-    - scripts/lint
+    - if [[ $TRAVIS_PYTHON_VERSION == '3.6' ]]; then scripts/lint; fi
 
 after_script:
     - codecov
