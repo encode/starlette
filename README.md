@@ -2,7 +2,7 @@
     <h1 align="center">Starlette</h1>
 </p>
 <p align="center">
-    <em>The little ASGI library that shines.</em>
+    <em>✨ The little ASGI library that shines. ✨</em>
 </p>
 <p align="center">
 <a href="https://travis-ci.org/encode/starlette">
