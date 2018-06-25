@@ -1,1 +1,5 @@
 *.pyc
+.coverage
+.pytest_cache/
+starlette.egg-info/
+venv/
