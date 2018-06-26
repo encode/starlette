@@ -13,7 +13,9 @@ class Route:
 
 
 class Path(Route):
-    def __init__(self, path: str, app: ASGIApp, methods: typing.Sequence[str]=()) -> None:
+    def __init__(
+        self, path: str, app: ASGIApp, methods: typing.Sequence[str] = ()
+    ) -> None:
         self.path = path
         self.app = app
         self.methods = methods
@@ -32,13 +34,15 @@ class Path(Route):
         return False, {}
 
     def __call__(self, scope: Scope) -> ASGIInstance:
-        if self.methods and scope['method'] not in self.methods:
+        if self.methods and scope["method"] not in self.methods:
             return Response("Method not allowed", 406, media_type="text/plain")
         return self.app(scope)
 
 
 class PathPrefix(Route):
-    def __init__(self, path: str, app: ASGIApp, methods: typing.Sequence[str]=()) -> None:
+    def __init__(
+        self, path: str, app: ASGIApp, methods: typing.Sequence[str] = ()
+    ) -> None:
         self.path = path
         self.app = app
         self.methods = methods
@@ -59,13 +63,13 @@ class PathPrefix(Route):
         return False, {}
 
     def __call__(self, scope: Scope) -> ASGIInstance:
-        if self.methods and scope['method'] not in self.methods:
+        if self.methods and scope["method"] not in self.methods:
             return Response("Method not allowed", 406, media_type="text/plain")
         return self.app(scope)
 
 
 class Router:
-    def __init__(self, routes: typing.List[Route], default: ASGIApp=None) -> None:
+    def __init__(self, routes: typing.List[Route], default: ASGIApp = None) -> None:
         self.routes = routes
         self.default = self.not_found if default is None else default
 
