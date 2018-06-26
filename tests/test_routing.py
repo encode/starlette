@@ -14,11 +14,18 @@ def user(scope):
     return Response(content, media_type="text/plain")
 
 
+def staticfiles(scope):
+    return Response("xxxxx", media_type="image/png")
+
+
 app = Router(
     [
-        Path("/", app=homepage),
+        Path("/", app=homepage, methods=['GET']),
         PathPrefix(
             "/users", app=Router([Path("", app=users), Path("/{username}", app=user)])
+        ),
+        PathPrefix(
+            "/static", app=staticfiles, methods=['GET']
         ),
     ]
 )
@@ -31,6 +38,10 @@ def test_router():
     assert response.status_code == 200
     assert response.text == "Hello, world"
 
+    response = client.post("/")
+    assert response.status_code == 406
+    assert response.text == "Method not allowed"
+
     response = client.get("/foo")
     assert response.status_code == 404
     assert response.text == "Not found"
@@ -42,3 +53,11 @@ def test_router():
     response = client.get("/users/tomchristie")
     assert response.status_code == 200
     assert response.text == "User tomchristie"
+
+    response = client.get("/static/123")
+    assert response.status_code == 200
+    assert response.text == "xxxxx"
+
+    response = client.post("/static/123")
+    assert response.status_code == 406
+    assert response.text == "Method not allowed"

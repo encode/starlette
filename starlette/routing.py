@@ -20,7 +20,7 @@ class Path(Route):
         self.app = app
         self.methods = methods
         regex = "^" + path + "$"
-        regex = re.sub("{([a-zA-Z_][a-zA-Z0-9_]*)}", r"(?P<\1>[^/]*)", regex)
+        regex = re.sub("{([a-zA-Z_][a-zA-Z0-9_]*)}", r"(?P<\1>[^/]+)", regex)
         self.path_regex = re.compile(regex)
 
     def matches(self, scope: Scope) -> typing.Tuple[bool, Scope]:
