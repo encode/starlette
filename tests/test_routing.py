@@ -20,13 +20,11 @@ def staticfiles(scope):
 
 app = Router(
     [
-        Path("/", app=homepage, methods=['GET']),
+        Path("/", app=homepage, methods=["GET"]),
         PathPrefix(
             "/users", app=Router([Path("", app=users), Path("/{username}", app=user)])
         ),
-        PathPrefix(
-            "/static", app=staticfiles, methods=['GET']
-        ),
+        PathPrefix("/static", app=staticfiles, methods=["GET"]),
     ]
 )
 
