@@ -287,7 +287,7 @@ app = Router([
 The router will respond with "404 Not found" or "406 Method not allowed"
 responses for requests which do not match.
 
-Additionally, the router offers a convenience decorator method for defining ASGI application routes.
+Additionally, the router offers a convenience method for defining ASGI application routes.
 
 ```python
 from starlette import Router, Response
