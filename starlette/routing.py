@@ -69,7 +69,9 @@ class PathPrefix(Route):
 
 
 class Router:
-    def __init__(self, routes: typing.List[Route] = [], default: ASGIApp = None) -> None:
+    def __init__(
+        self, routes: typing.List[Route] = [], default: ASGIApp = None
+    ) -> None:
         self.routes = routes
         self.default = self.not_found if default is None else default
 
@@ -88,4 +90,5 @@ class Router:
             route = Path(path=path, app=app, methods=methods)
             self.routes.append(route)
             return app
+
         return _route
