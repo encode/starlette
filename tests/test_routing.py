@@ -29,6 +29,17 @@ app = Router(
 )
 
 
+@app.route("/decorated", methods=["GET"])
+def decorated_app(scope):
+    return Response("Hello, world", media_type="text/plain")
+
+
+@app.route("/decorated/{username}", methods=["GET"])
+def decorated_app(scope):
+    content = "User " + scope["kwargs"]["username"]
+    return Response(content, media_type="text/plain")
+
+
 def test_router():
     client = TestClient(app)
 
@@ -59,3 +70,15 @@ def test_router():
     response = client.post("/static/123")
     assert response.status_code == 406
     assert response.text == "Method not allowed"
+
+    response = client.get("/decorated")
+    assert response.status_code == 200
+    assert response.text == "Hello, world"
+
+    response = client.post("/decorated")
+    assert response.status_code == 406
+    assert response.text == "Method not allowed"
+
+    response = client.get("/decorated/tomchristie")
+    assert response.status_code == 200
+    assert response.text == "User tomchristie"
