@@ -30,12 +30,12 @@ app = Router(
 
 
 @app.route("/decorated", methods=["GET"])
-def decorated_app(scope):
+def decorated_homepage(scope):
     return Response("Hello, world", media_type="text/plain")
 
 
 @app.route("/decorated/{username}", methods=["GET"])
-def decorated_app(scope):
+def decorated_user(scope):
     content = "User " + scope["kwargs"]["username"]
     return Response(content, media_type="text/plain")
 
