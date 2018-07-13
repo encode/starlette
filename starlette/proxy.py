@@ -1,28 +1,20 @@
 from starlette.request import Request
-from starlette.response import StreamingResponse
+from starlette.response import Response
 from urllib.parse import unquote
 import asyncio
 import aiohttp
 
 
 class Proxy:
-    def __init__(self, base_url):
+    def __init__(self, base_url, max_concurrency=20):
         self.base_url = base_url
         self.session = None
-        self.semaphore = asyncio.Semaphore(20)
+        self.semaphore = asyncio.Semaphore(max_concurrency)
 
     def __call__(self, scope):
         if self.session is None:
             self.session = aiohttp.ClientSession()
         return _ProxyResponder(scope, self.base_url, self.session, self.semaphore)
-
-
-async def _stream_response_body(response, chunk_size=4096):
-    while True:
-        chunk = await response.content.read(chunk_size)
-        if not chunk:
-            return
-        yield chunk
 
 
 class _ProxyResponder:
@@ -38,9 +30,10 @@ class _ProxyResponder:
         url = self.base_url + request.relative_url
         headers = request.headers.mutablecopy()
         del headers['host']
-        data = request.stream()
+        headers['connection'] = 'keep-alive'
         async with self.semaphore:
+            data = await request.body()
             response = await self.session.request(method, url, data=data, headers=headers)
-            content_iterator = _stream_response_body(response)
-            response = StreamingResponse(content_iterator, status_code=response.status, headers=response.headers)
+            body = await response.read()
+            response = Response(body, status_code=response.status, headers=response.headers)
             await response(receive, send)
