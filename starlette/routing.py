@@ -69,7 +69,9 @@ class PathPrefix(Route):
 
 
 class Router:
-    def __init__(self, routes: typing.List[Route], default: ASGIApp = None) -> None:
+    def __init__(
+        self, routes: typing.List[Route] = [], default: ASGIApp = None
+    ) -> None:
         self.routes = routes
         self.default = self.not_found if default is None else default
 
@@ -82,3 +84,11 @@ class Router:
 
     def not_found(self, scope: Scope) -> ASGIInstance:
         return Response("Not found", 404, media_type="text/plain")
+
+    def route(self, path: str, methods: typing.Sequence[str] = ()) -> None:
+        def _route(app: ASGIApp) -> ASGIApp:
+            route = Path(path=path, app=app, methods=methods)
+            self.routes.append(route)
+            return app
+
+        return _route

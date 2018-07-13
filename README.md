@@ -321,6 +321,20 @@ app = Router([
 The router will respond with "404 Not found" or "406 Method not allowed"
 responses for requests which do not match.
 
+Additionally, the router offers a convenience method for defining ASGI application routes.
+
+```python
+from starlette import Router, Response
+
+
+app = Router()
+
+
+@app.route('/', methods=['GET'])
+def homepage(scope):
+    return Response('Hello, world', media_type='text/plain')
+```
+
 ---
 
 ## Static Files
