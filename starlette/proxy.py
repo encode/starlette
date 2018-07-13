@@ -31,13 +31,10 @@ class _ProxyResponder:
         headers = request.headers.mutablecopy()
         del headers["host"]
         headers["connection"] = "keep-alive"
+        data = await request.body()
+        kwargs = {"method": method, "url": url, "data": data, "headers": headers}
         async with self.semaphore:
-            data = await request.body()
-            response = await self.session.request(
-                method, url, data=data, headers=headers
-            )
-            body = await response.read()
-            response = Response(
-                body, status_code=response.status, headers=response.headers
-            )
-            await response(receive, send)
+            original = await self.session.request(**kwargs)
+            body = await original.read()
+        response = Response(body, status_code=original.status, headers=original.headers)
+        await response(receive, send)
