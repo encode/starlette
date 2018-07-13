@@ -29,11 +29,15 @@ class _ProxyResponder:
         method = request.method
         url = self.base_url + request.relative_url
         headers = request.headers.mutablecopy()
-        del headers['host']
-        headers['connection'] = 'keep-alive'
+        del headers["host"]
+        headers["connection"] = "keep-alive"
         async with self.semaphore:
             data = await request.body()
-            response = await self.session.request(method, url, data=data, headers=headers)
+            response = await self.session.request(
+                method, url, data=data, headers=headers
+            )
             body = await response.read()
-            response = Response(body, status_code=response.status, headers=response.headers)
+            response = Response(
+                body, status_code=response.status, headers=response.headers
+            )
             await response(receive, send)
