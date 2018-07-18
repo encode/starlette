@@ -1,4 +1,6 @@
 from starlette.datastructures import URL, Headers, QueryParams
+from starlette.multipart import MultiPartParser
+from starlette.parse_headers import get_content_length, parse_options_header
 from collections.abc import Mapping
 from urllib.parse import unquote
 import json
@@ -106,3 +108,14 @@ class Request(Mapping):
             body = await self.body()
             self._json = json.loads(body)
         return self._json
+
+    async def form(self):
+        if not hasattr(self, "_form"):
+            stream = self.stream()
+            content_length = get_content_length(self.headers)
+            content_type = self.headers['content-type']
+            mimetype, options = parse_options_header(content_type)
+            boundary = options['boundary'].encode('ascii')
+            parser = MultiPartParser()
+            self._form = await parser.parse(stream, boundary, content_length)
+        return self._form
