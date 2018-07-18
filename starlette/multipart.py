@@ -36,8 +36,8 @@ class FileStorage:
         self.stream = stream
         self.name = name
 
-    def read(self):
-        return self.stream.read()
+    def read(self, count=None):
+        return self.stream.read(count)
 
 
 class MultiPartParser:
