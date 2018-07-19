@@ -1,10 +1,18 @@
 #!/bin/sh -e
 
-export PREFIX=""
+PREFIX=""
+VENV_DIR=""
+
 if [ -d 'venv' ] ; then
-    export PREFIX="venv/bin/"
+    VENV_DIR='venv'
+elif [ -d '.venv' ] ; then
+    VENV_DIR='.venv'
+fi
+
+if [[ -n $VENV_DIR ]]; then
+    PREFIX="${VENV_DIR}/bin/"
 fi
 
 set -x
 
-PYTHONPATH=. ${PREFIX}pytest --ignore venv --cov=starlette --cov=tests --cov-fail-under=100 --cov-report=term-missing ${@}
+PYTHONPATH=. ${PREFIX}pytest --ignore ${VENV_DIR} --cov=starlette --cov=tests --cov-fail-under=100 --cov-report=term-missing ${@}
