@@ -214,10 +214,12 @@ class WebSocket(object):
 
     async def send_json(self,
                         data: typing.Union[dict, list],
-                        dumps: typing.Callable = None) -> None:
+                        dumps: typing.Callable = None,
+                        **kwargs
+                        ) -> None:
         jdumps = dumps or encode_json
 
-        await self.send(jdumps(data))
+        await self.send(jdumps(data, **kwargs))
 
     async def close(self, code: int = status.WS_1000_OK) -> None:
         if self._state == WSState.CLOSED:

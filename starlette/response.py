@@ -119,7 +119,7 @@ class JSONResponse(Response):
     media_type = "application/json"
 
     def render(self, content: typing.Any) -> bytes:
-        return encode_json(content)
+        return encode_json(content).encode("utf-8")
 
 
 class StreamingResponse(Response):

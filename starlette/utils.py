@@ -12,4 +12,4 @@ def encode_json(content: typing.Any, **kwargs) -> bytes:
 
     options.update(kwargs)
 
-    return json.dumps(content, **options).encode("utf-8")
+    return json.dumps(content, **options)
