@@ -2,9 +2,8 @@ import enum
 import typing
 import json
 
-from apistar.exceptions import WebSocketDisconnect, WebSocketNotConnected, WebSocketProtocolError
-from apistar.utils import encode_json
-from apistar import http
+from starlette.exceptions import WebSocketDisconnect, WebSocketNotConnected, WebSocketProtocolError
+from starlette.utils import encode_json
 
 
 class Status():
@@ -101,22 +100,22 @@ class WebSocket(object):
     https://github.com/django/asgiref/blob/master/specs/www.rst
     """
     def __init__(self,
-                 asgi_scope: dict,
-                 asgi_send: typing.Callable,
+                 request,
                  asgi_receive: typing.Callable,
+                 asgi_send: typing.Callable,
                  ) -> None:
 
-        if asgi_scope.get('type') != 'websocket':
+        if request.get('type') != 'websocket':
             raise WebSocketProtocolError(detail="Not a websocket scope")
 
-        self._scope = asgi_scope
+        self.request = request
         self._asgi_send = asgi_send
         self._asgi_receive = asgi_receive
         self._state = WSState.CLOSED
 
     @property
     def subprotocols(self) -> list:
-        return self._scope.get('subprotocols', [])
+        return self.request.get('subprotocols', [])
 
     @property
     def connected(self):
@@ -218,10 +217,7 @@ class WebSocket(object):
                         dumps: typing.Callable = None) -> None:
         jdumps = dumps or encode_json
 
-        await self.send_msg({
-            'type': 'websocket.send',
-            'bytes': jdumps(data)
-        })
+        await self.send(jdumps(data))
 
     async def close(self, code: int = status.WS_1000_OK) -> None:
         if self._state == WSState.CLOSED:
@@ -239,45 +235,44 @@ class WebSocket(object):
         return "<WebSocket state:%s>" % (self._state)
 
 
-class WebSocketRequest:
-    def __init__(self,
-                 method: http.Method,
-                 url: http.URL,
-                 headers: http.Headers=None) -> None:
-        self.method = method
-        self.url = url
-        self.headers = http.Headers() if (headers is None) else headers
+#  class WebSocketRequest:
+#      def __init__(self,
+#                   method: http.Method,
+#                   url: http.URL,
+#                   headers: http.Headers=None) -> None:
+#          self.method = method
+#          self.url = url
+#          self.headers = http.Headers() if (headers is None) else headers
 
 
-class WebSocketResponse():
-    def __init__(self,
-                 content: typing.Union[str, bytes]=None,
-                 status_code: int=1000,
-                 exc_info=None) -> None:
+#  class WebSocketResponse():
+#      def __init__(self,
+#                   content: typing.Union[str, bytes]=None,
+#                   status_code: int=1000,
+#                   exc_info=None) -> None:
 
-        self.content = self.render(content)
-        self.status_code = status_code
-        self.exc_info = exc_info
+#          self.content = self.render(content)
+#          self.status_code = status_code
+#          self.exc_info = exc_info
 
-    def render(self, content: typing.Any) -> typing.Union[str, bytes, None]:
-        if content is None or isinstance(content, (bytes, str)):
-            return content
+#      def render(self, content: typing.Any) -> typing.Union[str, bytes, None]:
+#          if content is None or isinstance(content, (bytes, str)):
+#              return content
 
-        raise RuntimeError(
-            "%s content must be string or bytes. Got %s." %
-            (self.__class__.__name__, type(content).__name__)
-        )
+#          raise RuntimeError(
+#              "%s content must be string or bytes. Got %s." %
+#              (self.__class__.__name__, type(content).__name__)
+#          )
 
 
-class WebSocketJSONResponse(WebSocketResponse):
-    charset = None
-    options = {
-        'ensure_ascii': False,
-        'allow_nan': False,
-        'indent': None,
-        'separators': (',', ':'),
-    }
+#  class WebSocketJSONResponse(WebSocketResponse):
+#      charset = None
+#      options = {
+#          'ensure_ascii': False,
+#          'allow_nan': False,
+#          'indent': None,
+#          'separators': (',', ':'),
+#      }
 
-    def render(self, content: typing.Any) -> bytes:
-        return encode_json(content)
-
+#      def render(self, content: typing.Any) -> bytes:
+#          return encode_json(content)
