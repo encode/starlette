@@ -271,6 +271,48 @@ If you access `.stream()` then the byte chunks are provided without storing
 the entire body to memory. Any subsequent calls to `.body()` and `.json()` will
 raise an error.
 
+
+---
+
+## WebSocket
+
+```python
+from starlette import Response, Request
+from starlette.websocket import WebSocket
+
+
+class App:
+    def __init__(self, scope):
+        self.scope = scope
+
+    async def __call__(self, receive, send):
+        request = Request(self.scope, receive)
+
+        if request['type'] == 'websocket':
+            ws = WebSocket(request, receive, send)
+
+            # Accept the connection
+            await ws.connect()
+
+            # Recive data
+            name await ws.receive()
+
+            # Send text
+            await ws.send('hello %s!' % name)
+
+            # Send bytes
+            await ws.send(b'hello world!')
+
+            # Send JSON
+            await ws.send_json({'data': 'hello world!', 'name': name})
+
+            # Close the socket
+            await ws.close()
+        else:
+            response = Response('Hello world! %s' % request.url.path, media_type='text/plain')
+            await response(receive, send)
+```
+
 ---
 
 ## Routing
