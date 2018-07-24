@@ -7,7 +7,8 @@ from starlette.response import (
     PlainTextResponse,
     StreamingResponse,
 )
-from starlette.request import Request, WebSocketRequest
+from starlette.request import Request
+from starlette.websocket import WebSocket
 from starlette.testclient import TestClient
 
 

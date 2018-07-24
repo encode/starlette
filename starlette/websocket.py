@@ -2,6 +2,7 @@ import enum
 import typing
 import json
 
+from starlette.request import Request
 from starlette.exceptions import WebSocketDisconnect, WebSocketNotConnected, WebSocketProtocolError
 from starlette.utils import encode_json
 
@@ -100,15 +101,15 @@ class WebSocket(object):
     https://github.com/django/asgiref/blob/master/specs/www.rst
     """
     def __init__(self,
-                 request,
+                 scope: dict,
                  asgi_receive: typing.Callable,
                  asgi_send: typing.Callable,
                  ) -> None:
 
-        if request.get('type') != 'websocket':
+        if scope.get('type') != 'websocket':
             raise WebSocketProtocolError(detail="Not a websocket scope")
 
-        self.request = request
+        self.request = Request(scope)
         self._asgi_send = asgi_send
         self._asgi_receive = asgi_receive
         self._state = WSState.CLOSED

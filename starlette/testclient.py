@@ -25,6 +25,29 @@ class _MockOriginalResponse(object):
         return self.closed
 
 
+class ASGIDataFaker():
+    """
+    Prime and save receive and send messages, respectively, for ASGI test
+    data.
+    """
+    def __init__(self, msgs: list = None):
+        self.rq = asyncio.Queue()
+        self.sq = asyncio.Queue()
+
+        if msgs:
+            [self.rq.put_nowait(m) for m in msgs]
+
+    async def receive(self):
+        return await self.rq.get()
+
+    async def send(self, msg):
+        return await self.sq.put(msg)
+
+    @property
+    def send_q(self):
+        return self.sq
+
+
 class _ASGIAdapter(requests.adapters.HTTPAdapter):
     def __init__(self, app: typing.Callable) -> None:
         self.app = app
