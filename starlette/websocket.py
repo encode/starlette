@@ -29,7 +29,7 @@ class Status():
         return 1001
 
     @property
-    def WS_1002_PROT_ERROR(self):
+    def WS_1002_PROTOCOL_ERROR(self):
         """
         1002 indicates that an endpoint is terminating the connection due
         to a protocol error.
@@ -236,46 +236,3 @@ class WebSocket(object):
 
     def __repr__(self) -> str:
         return "<WebSocket state:%s>" % (self._state)
-
-
-#  class WebSocketRequest:
-#      def __init__(self,
-#                   method: http.Method,
-#                   url: http.URL,
-#                   headers: http.Headers=None) -> None:
-#          self.method = method
-#          self.url = url
-#          self.headers = http.Headers() if (headers is None) else headers
-
-
-#  class WebSocketResponse():
-#      def __init__(self,
-#                   content: typing.Union[str, bytes]=None,
-#                   status_code: int=1000,
-#                   exc_info=None) -> None:
-
-#          self.content = self.render(content)
-#          self.status_code = status_code
-#          self.exc_info = exc_info
-
-#      def render(self, content: typing.Any) -> typing.Union[str, bytes, None]:
-#          if content is None or isinstance(content, (bytes, str)):
-#              return content
-
-#          raise RuntimeError(
-#              "%s content must be string or bytes. Got %s." %
-#              (self.__class__.__name__, type(content).__name__)
-#          )
-
-
-#  class WebSocketJSONResponse(WebSocketResponse):
-#      charset = None
-#      options = {
-#          'ensure_ascii': False,
-#          'allow_nan': False,
-#          'indent': None,
-#          'separators': (',', ':'),
-#      }
-
-#      def render(self, content: typing.Any) -> bytes:
-#          return encode_json(content)

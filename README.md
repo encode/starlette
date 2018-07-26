@@ -276,9 +276,10 @@ raise an error.
 
 ## WebSocket
 
+Signature: `WebSocket(scope, recieve, send)`
+
 ```python
-from starlette import Response, Request
-from starlette.websocket import WebSocket
+from starlette import WebSocket
 
 
 class App:
@@ -286,32 +287,80 @@ class App:
         self.scope = scope
 
     async def __call__(self, receive, send):
-        request = Request(self.scope, receive)
+        ws = WebSocket(self.scope, receive, send)
 
-        if request['type'] == 'websocket':
-            ws = WebSocket(request, receive, send)
+        # Accept the connection
+        await ws.connect()
 
-            # Accept the connection
-            await ws.connect()
+        # Recive data
+        name = await ws.receive()
 
-            # Recive data
-            name await ws.receive()
+        # Send text
+        await ws.send('hello %s!' % name)
 
-            # Send text
-            await ws.send('hello %s!' % name)
+        # Send bytes
+        await ws.send(b'hello world!')
 
-            # Send bytes
-            await ws.send(b'hello world!')
+        # Send JSON (as text)
+        await ws.send_json({'data': 'hello world!', 'name': name})
 
-            # Send JSON
-            await ws.send_json({'data': 'hello world!', 'name': name})
-
-            # Close the socket
-            await ws.close()
-        else:
-            response = Response('Hello world! %s' % request.url.path, media_type='text/plain')
-            await response(receive, send)
+        # Close the socket
+        await ws.close()
 ```
+
+Starlette includes a `WebSocket` class that gives you an interface
+to incoming websocket connections, rather than accessing the ASGI scope, receive and send channels directly.
+
+#### Request
+
+The originating HTTP upgrade `Request` is accessed as `websocket.request`.
+
+#### Subprotocols
+
+The requested subprotocols parsed into a list are accessed as `websocket.Subprotocols`
+
+#### State
+
+The `WebSocket`'s state can be queried with the boolean attributes:  
+`websocket.connected`  
+`websocket.connecting`  
+`websocket.closed`  
+
+
+#### Accept
+
+#### Connect
+
+#### Receive
+
+#### Receive_json
+
+#### Send_msg
+
+#### Send
+
+#### Send_json
+
+#### Close
+
+#### Status Codes
+
+Status codes are available in the `status` object int the `websocket` module:  
+
+```python
+from starlette.websocket import status
+# Available status code:
+status.WS_1000_OK
+status.WS_1001_LEAVING
+status.WS_1002_PROTOCOL_ERROR
+status.WS_1003_UNSUPPORTED_TYPE
+status.WS_1007_INALID_DATA
+status.WS_1008_POLICY_VIOLATION
+status.WS_1009_TOO_BIG
+status.WS_1010_TLS_FAIL
+```
+
+
 
 ---
 
