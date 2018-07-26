@@ -11,6 +11,7 @@ from starlette.exceptions import (
     WebSocketDisconnect
 )
 from starlette.testclient import TestClient, ASGIDataFaker
+from starlette.utils import encode_json
 
 
 default_scope = {
@@ -34,17 +35,7 @@ def ws_run(func, *args, **kwargs):
     return loop.run_until_complete(func(*args, **kwargs))
 
 
-#  def app(scope):
-#      async def asgi(receive, send):
-#          request = Request(scope, receive)
-#          data = {"method": request.method, "url": request.url}
-#          response = JSONResponse(data)
-#          await response(receive, send)
-
-#      return asgi
-
-
-### WebSocket instance tests ###
+# ### WebSocket instance tests ###
 def test_bad_scope():
     asgi = ASGIDataFaker()
 
@@ -108,17 +99,6 @@ def test_connect_close_with_code():
     assert asgi.sq.get_nowait() == {
         'type': 'websocket.close',
         'code': status.WS_1001_LEAVING,
-    }
-
-
-def test_connect_accept():
-    asgi, ws = ws_setup(msgs=[{'type': 'websocket.connect'}])
-
-    ws_run(ws.connect)
-
-    assert ws.connected
-    assert asgi.sq.get_nowait() == {
-        'type': 'websocket.accept',
     }
 
 
@@ -323,179 +303,12 @@ def test_close_codes():
             assert ws.closed
 
 
-# ## Client Tests ###
-#  async def client_connect_accept(ws: WebSocket, request: WebSocketRequest):
-#      assert request.method == 'GET'
-#      assert request.url == 'ws://testserver/connect/accept/'
-#      assert request.headers['connection'] == 'upgrade'
-#      assert request.headers['upgrade'] == 'websocket'
-#      assert request.headers['sec-websocket-protocol'] == 'v1.test.encode.io'
-#      assert request.headers['sec-websocket-key']
-
-#      await ws.connect()
-#      assert ws.connected
-
-
-#  async def client_connect_accept_sub_proto(ws: WebSocket):
-#      await ws.connect(subprotocol='test1.encode.io')
-#      assert ws.connected
-
-
-#  async def client_connect_deny(ws: WebSocket):
-#      # Explicitly connect and close connection
-#      await ws.connect(close=True)
-#      assert ws.closed
-
-
-#  async def client_disconnect(ws: WebSocket):
-#      await ws.connect()
-#      assert ws.connected
-
-#      with pytest.raises(WebSocketDisconnect) as e:
-#          await ws.receive()
-
-#      assert e.value.status_code == status.WS_1001_LEAVING
-#      assert 'WebSocket has been disconnected' in e.value.detail
-#      assert ws.closed
-
-
-async def client_ping_pong(ws: WebSocket):
-    await ws.connect()
-    assert ws.connected
-
-    assert await ws.receive() == 'ping'
-
-    await ws.send('pong')
-    assert ws.connected
-
-    await ws.close()
-    assert ws.closed
-
-
-async def client_ping_pong_response(ws: WebSocket):
-    await ws.connect()
-    assert ws.connected
-
-    assert await ws.receive() == 'ping'
-
-    return 'pong'
-
-
-async def client_ping_pong_kong(ws: WebSocket):
-    await ws.connect()
-    assert ws.connected
-
-    assert await ws.receive() == 'ping'
-
-    await ws.send('pong')
-    assert ws.connected
-
-    await ws.send('kong')
-    assert ws.connected
-
-
-async def client_ping_pong_kong_response(ws: WebSocket):
-    await ws.connect()
-    assert ws.connected
-
-    assert await ws.receive() == 'ping'
-
-    await ws.send('pong')
-    assert ws.connected
-
-    return 'kong'
-
-
-async def client_ping_pong_kong_json(ws: WebSocket):
-    await ws.connect()
-    assert ws.connected
-
-    assert await ws.receive_json() == {"play": "ping"}
-
-    await ws.send_json({"play": "pong"})
-    assert ws.connected
-
-    await ws.send_json({"play": "kong"})
-    assert ws.connected
-
-
-async def client_ping_pong_kong_json_response(ws: WebSocket):
-    await ws.connect()
-    assert ws.connected
-
-    assert await ws.receive_json() == {"play": "ping"}
-
-    await ws.send_json({"play": "pong"})
-    assert ws.connected
-
-    return {"play": "kong"}
-
-
-async def client_somebytes_response(ws: WebSocket):
-    await ws.connect()
-    assert ws.connected
-
-    return b'somebytes'
-
-
-async def client_astring_response(ws: WebSocket):
-    await ws.connect()
-    assert ws.connected
-
-    return 'astring'
-
-
-async def client_anarray_json_response(ws: WebSocket):
-    await ws.connect()
-    assert ws.connected
-
-    return ['a', 'b', {'c': 'value'}]
-
-
-async def client_invalid_response(ws: WebSocket):
-    await ws.connect()
-    assert ws.connected
-
-    return WebSocket
-
-
-#  routes = [
-#      Route('/connect/accept/', 'GET', client_connect_accept),
-#      Route('/connect/accept/sub/proto/', 'GET', client_connect_accept_sub_proto),
-#      Route('/connect/deny/', 'GET', client_connect_deny),
-#      Route('/disconnect/', 'GET', client_disconnect),
-#      Route('/ping/pong/', 'GET', client_ping_pong),
-#      Route('/ping/pong/response/', 'GET', client_ping_pong_response),
-#      Route('/ping/pong/kong/', 'GET', client_ping_pong_kong),
-#      Route('/ping/pong/kong/response/', 'GET', client_ping_pong_kong_response),
-#      Route('/ping/pong/kong/json', 'GET', client_ping_pong_kong_json),
-#      Route('/ping/pong/kong/json/response/', 'GET', client_ping_pong_kong_json_response),
-#      Route('/somebytes/response/', 'GET', client_somebytes_response),
-#      Route('/astring/response/', 'GET', client_astring_response),
-#      Route('/anarray/json/response/', 'GET', client_anarray_json_response),
-#      Route('/invalid/response/', 'GET', client_invalid_response),
-#  ]
-
-
+# Some ASGI TestClient level tests
 ws_headers = {
     'Upgrade': 'websocket',
     'Connection': 'upgrade',
     'Sec-WebSocket-Protocol': 'v1.test.encode.io',
 }
-
-
-#  @pytest.fixture(scope='module')
-#  def client():
-#      def asgi_client(msgs: list = None):
-#          app = ASyncApp(routes=routes)
-#          asgi_faker = None
-
-#          if msgs:
-#              asgi_faker = test.ASGIDataFaker(msgs)
-
-#          return test.TestClient(app, scheme='ws', asgi_faker=asgi_faker), asgi_faker
-
-#      return asgi_client
 
 
 def get_headers(client_headers=None):
@@ -508,7 +321,6 @@ def get_headers(client_headers=None):
     return headers
 
 
-# Some basic ASGI level tests
 def test_connect_accept():
     def app(scope):
         async def asgi(receive, send):
@@ -518,10 +330,13 @@ def test_connect_accept():
 
         return asgi
 
-    client = TestClient(app)
-    response = client.get("ws://connect/accept", headers=get_headers())
+    asgi_faker = ASGIDataFaker()
+    client = TestClient(app, asgi_faker=asgi_faker)
+    client.get("ws://connect/accept", headers=get_headers())
 
-    assert response.text == ''
+    assert asgi_faker.sq.get_nowait() == {
+        'type': 'websocket.accept',
+    }
 
 
 def test_connect_accept_sub_proto():
@@ -585,143 +400,92 @@ def test_client_disconnect():
     client.get('ws://disconnect/', headers=get_headers())
 
 
-#  def test_client_ping_pong(client):
-#      headers = get_headers()
+def test_ping_pong():
+    def app(scope):
+        async def asgi(receive, send):
+            ws = WebSocket(scope, receive, send)
+            await ws.connect()
+            assert ws.connected
 
-#      cl, faker = client([
-#          {'type': 'websocket.connect'},
-#          {'type': 'websocket.receive', 'text': 'ping'}
-#      ])
-#      cl.get('/ping/pong/', headers=headers)
+            assert await ws.receive() == 'ping'
 
-#      assert faker.send_q.get_nowait() == {'type': 'websocket.accept'}
-#      assert faker.send_q.get_nowait() == {'type': 'websocket.send', 'text': 'pong'}
+            await ws.send('pong')
+            assert ws.connected
 
+            await ws.close()
+            assert ws.closed
 
-#  def test_client_ping_pong_response(client):
-#      headers = get_headers()
+        return asgi
 
-#      cl, faker = client([
-#          {'type': 'websocket.connect'},
-#          {'type': 'websocket.receive', 'text': 'ping'}
-#      ])
-#      cl.get('/ping/pong/response/', headers=headers)
+    asgi_faker = ASGIDataFaker([
+        {'type': 'websocket.connect'},
+        {'type': 'websocket.receive', 'text': 'ping'}
+    ])
 
-#      assert faker.send_q.get_nowait() == {'type': 'websocket.accept'}
-#      assert faker.send_q.get_nowait() == {'type': 'websocket.send', 'text': 'pong'}
+    client = TestClient(app, asgi_faker=asgi_faker)
+    client.get('ws://ping/pong/', headers=get_headers())
 
-
-#  def test_client_ping_pong_kong(client):
-#      headers = get_headers()
-
-#      cl, faker = client([
-#          {'type': 'websocket.connect'},
-#          {'type': 'websocket.receive', 'text': 'ping'}
-#      ])
-#      cl.get('/ping/pong/kong/', headers=headers)
-
-#      assert faker.send_q.get_nowait() == {'type': 'websocket.accept'}
-#      assert faker.send_q.get_nowait() == {'type': 'websocket.send', 'text': 'pong'}
-#      assert faker.send_q.get_nowait() == {'type': 'websocket.send', 'text': 'kong'}
+    assert asgi_faker.send_q.get_nowait() == {'type': 'websocket.accept'}
+    assert asgi_faker.send_q.get_nowait() == {'type': 'websocket.send', 'text': 'pong'}
 
 
-#  def test_client_ping_pong_kong_response(client):
-#      headers = get_headers()
+def test_ping_pong_kong():
+    def app(scope):
+        async def asgi(receive, send):
+            ws = WebSocket(scope, receive, send)
+            await ws.connect()
+            assert ws.connected
 
-#      cl, faker = client([
-#          {'type': 'websocket.connect'},
-#          {'type': 'websocket.receive', 'text': 'ping'}
-#      ])
-#      cl.get('/ping/pong/kong/response/', headers=headers)
+            assert await ws.receive() == 'ping'
 
-#      assert faker.send_q.get_nowait() == {'type': 'websocket.accept'}
-#      assert faker.send_q.get_nowait() == {'type': 'websocket.send', 'text': 'pong'}
-#      assert faker.send_q.get_nowait() == {'type': 'websocket.send', 'text': 'kong'}
+            await ws.send('pong')
+            assert ws.connected
 
+            await ws.send('kong')
+            assert ws.connected
 
-#  def test_client_ping_pong_kong_json(client):
-#      headers = get_headers()
+        return asgi
 
-#      cl, faker = client([
-#          {'type': 'websocket.connect'},
-#          {'type': 'websocket.receive', 'text': encode_json({"play": "ping"})}
-#      ])
-#      cl.get('/ping/pong/kong/json', headers=headers)
+    asgi_faker = ASGIDataFaker([
+        {'type': 'websocket.connect'},
+        {'type': 'websocket.receive', 'text': 'ping'}
+    ])
 
-#      assert faker.send_q.get_nowait() == {'type': 'websocket.accept'}
-#      assert faker.send_q.get_nowait() == {
-#          'type': 'websocket.send',
-#          'bytes': b'{"play":"pong"}',
-#      }
-#      assert faker.send_q.get_nowait() == {
-#          'type': 'websocket.send',
-#          'bytes': b'{"play":"kong"}',
-#      }
+    client = TestClient(app, asgi_faker=asgi_faker)
+    client.get('ws://ping/pong/kong', headers=get_headers())
+
+    assert asgi_faker.send_q.get_nowait() == {'type': 'websocket.accept'}
+    assert asgi_faker.send_q.get_nowait() == {'type': 'websocket.send', 'text': 'pong'}
+    assert asgi_faker.send_q.get_nowait() == {'type': 'websocket.send', 'text': 'kong'}
 
 
-#  def test_client_ping_pong_kong_json_response(client):
-#      headers = get_headers()
+def test_ping_pong_kong_json():
+    def app(scope):
+        async def asgi(receive, send):
+            ws = WebSocket(scope, receive, send)
+            await ws.connect()
+            assert ws.connected
 
-#      cl, faker = client([
-#          {'type': 'websocket.connect'},
-#          {'type': 'websocket.receive', 'text': encode_json({"play": "ping"})}
-#      ])
-#      cl.get('/ping/pong/kong/json/response/', headers=headers)
+            assert await ws.receive_json() == {"play": "ping"}
 
-#      assert faker.send_q.get_nowait() == {'type': 'websocket.accept'}
-#      assert faker.send_q.get_nowait() == {
-#          'type': 'websocket.send',
-#          'bytes': b'{"play":"pong"}',
-#      }
-#      assert faker.send_q.get_nowait() == {
-#          'type': 'websocket.send',
-#          'bytes': b'{"play":"kong"}',
-#      }
+            await ws.send_json({"play": "pong"})
+            assert ws.connected
 
+            await ws.send_json({"play": "kong"})
+            assert ws.connected
 
-#  def test_somebytes_response(client):
-#      cl, faker = client([
-#          {'type': 'websocket.connect'},
-#      ])
-#      cl.get('/somebytes/response/', headers=get_headers())
+        return asgi
 
-#      assert faker.send_q.get_nowait() == {'type': 'websocket.accept'}
-#      assert faker.send_q.get_nowait() == {
-#          'type': 'websocket.send',
-#          'bytes': b'somebytes',
-#      }
+    asgi_faker = ASGIDataFaker([
+        {'type': 'websocket.connect'},
+        {'type': 'websocket.receive', 'text': encode_json({"play": "ping"})}
+    ])
 
+    client = TestClient(app, asgi_faker=asgi_faker)
+    client.get('ws://ping/pong/kong/json', headers=get_headers())
 
-#  def test_astring_response(client):
-#      cl, faker = client([
-#          {'type': 'websocket.connect'},
-#      ])
-#      cl.get('/astring/response/', headers=get_headers())
-
-#      assert faker.send_q.get_nowait() == {'type': 'websocket.accept'}
-#      assert faker.send_q.get_nowait() == {
-#          'type': 'websocket.send',
-#          'text': 'astring',
-#      }
-
-
-#  def test_anarray_json_response(client):
-#      cl, faker = client([
-#          {'type': 'websocket.connect'},
-#      ])
-#      cl.get('/anarray/json/response/', headers=get_headers())
-
-#      assert faker.send_q.get_nowait() == {'type': 'websocket.accept'}
-#      assert faker.send_q.get_nowait() == {
-#          'type': 'websocket.send',
-#          'bytes': b'["a","b",{"c":"value"}]',
-#      }
-
-
-#  def test_invalid_response(client):
-#      cl, faker = client([
-#          {'type': 'websocket.connect'},
-#      ])
-
-#      with pytest.raises(KeyError):
-#          cl.get('/invalid/response/', headers=get_headers())
+    assert asgi_faker.send_q.get_nowait() == {'type': 'websocket.accept'}
+    assert asgi_faker.send_q.get_nowait() == {
+        'type': 'websocket.send',
+        'text': '{"play":"pong"}',
+    }
