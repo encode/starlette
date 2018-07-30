@@ -1,10 +1,10 @@
-import typing
 from functools import update_wrapper
 from starlette.decorators import make_asgi
+from starlette.types import ASGIApp, ASGIInstance, Scope
 
 
 class View:
-    def dispatch(self, scope):
+    def dispatch(self, scope: Scope) -> ASGIInstance:
         request_method = scope["method"] if scope["method"] != "HEAD" else "GET"
         func = getattr(self, request_method.lower(), None)
         if func is None:
@@ -14,13 +14,12 @@ class View:
         return make_asgi(func)(scope)
 
     @classmethod
-    def as_view(cls) -> typing.Callable:
-        def view(scope):
+    def as_view(cls) -> ASGIApp:
+        def view(scope: Scope):
             self = cls()
             return self.dispatch(scope)
 
         view.view_class = cls
         update_wrapper(view, cls, updated=())
         update_wrapper(view, cls.dispatch, assigned=())
-
         return view
