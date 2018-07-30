@@ -1,10 +1,9 @@
 import asyncio
 from starlette.request import Request
-from starlette.response import Response
 from starlette.types import ASGIInstance, Receive, Send, Scope
 
 
-def asgi_application(func):
+def make_asgi(func):
     is_coroutine = asyncio.iscoroutinefunction(func)
 
     def app(scope: Scope) -> ASGIInstance:
