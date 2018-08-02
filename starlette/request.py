@@ -5,10 +5,11 @@ from urllib.parse import unquote
 import json
 
 
-class BaseRequest(Mapping):
+class Request(Mapping):
     def __init__(self, scope, receive=None):
         self._scope = scope
         self._receive = receive
+        self._stream_consumed = False
 
     def __getitem__(self, key):
         return self._scope[key]
@@ -18,10 +19,6 @@ class BaseRequest(Mapping):
 
     def __len__(self):
         return len(self._scope)
-
-    @property
-    def type(self) -> str:
-        return self._scope["type"]
 
     @property
     def method(self) -> str:
@@ -71,12 +68,6 @@ class BaseRequest(Mapping):
             self._query_params = QueryParams(query_string)
         return self._query_params
 
-
-class Request(BaseRequest):
-    def __init__(self, scope, receive=None):
-        super().__init__(scope, receive)
-        self._stream_consumed = False
-
     async def stream(self):
         if hasattr(self, "_body"):
             yield self._body
@@ -111,7 +102,3 @@ class Request(BaseRequest):
             body = await self.body()
             self._json = json.loads(body)
         return self._json
-
-
-class WebSocketRequest(BaseRequest):
-    pass
