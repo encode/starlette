@@ -328,22 +328,37 @@ The `WebSocket`'s state can be queried with the boolean attributes:
 
 
 #### Accept
+Signature: `websocket.accept(subprotocol=None)`
 
 #### Connect
+Signature: `websocket.connect(subprotocol=None, close=False, close_code=status.WS_1000_OK)`
 
 #### Receive
+Signature: `websocket.receive()`
 
 #### Receive_json
-
-#### Send_msg
+Signature: `websocket.receive(loads=None)`
 
 #### Send
+Signature: `websocket.send(data)`
 
 #### Send_json
+Signature: `websocket.send_json(data, dumps=None, **kwargs)`
 
 #### Close
+Signature: `websocket.close(code=status.WS_1000_OK)`
 
 #### Status Codes
+`websocket.status.WS_1000_OK`
+`websocket.status.WS_1001_LEAVING`
+`websocket.status.WS_1002_PROTOCOL_ERROR`
+`websocket.status.WS_1003_UNSUPPORTED_TYPE`
+`websocket.status.WS_1007_INALID_DATA`
+`websocket.status.WS_1008_POLICY_VIOLATION`
+`websocket.status.WS_1009_TOO_BIG`
+`websocket.status.WS_1010_TLS_FAIL`
+`websocket.status.WS_1010_TLS_FAIL`
+
 
 Status codes are available in the `status` object int the `websocket` module:  
 
