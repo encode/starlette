@@ -3,11 +3,15 @@ import typing
 import json
 
 from starlette.request import Request
-from starlette.exceptions import WebSocketDisconnect, WebSocketNotConnected, WebSocketProtocolError
+from starlette.exceptions import (
+    WebSocketDisconnect,
+    WebSocketNotConnected,
+    WebSocketProtocolError,
+)
 from starlette.utils import encode_json
 
 
-class Status():
+class Status:
     """
     https://tools.ietf.org/html/rfc6455#page-45
     """
@@ -100,13 +104,12 @@ class WebSocket(object):
     """
     https://github.com/django/asgiref/blob/master/specs/www.rst
     """
-    def __init__(self,
-                 scope: dict,
-                 asgi_receive: typing.Callable,
-                 asgi_send: typing.Callable,
-                 ) -> None:
 
-        if scope.get('type') != 'websocket':
+    def __init__(
+        self, scope: dict, asgi_receive: typing.Callable, asgi_send: typing.Callable
+    ) -> None:
+
+        if scope.get("type") != "websocket":
             raise WebSocketProtocolError(detail="Not a websocket scope")
 
         self.request = Request(scope)
@@ -116,7 +119,7 @@ class WebSocket(object):
 
     @property
     def subprotocols(self) -> list:
-        return self.request.get('subprotocols', [])
+        return self.request.get("subprotocols", [])
 
     @property
     def connected(self):
@@ -130,10 +133,12 @@ class WebSocket(object):
     def closed(self):
         return self._state == WSState.CLOSED
 
-    async def connect(self,
-                      subprotocol: str = None,
-                      close: bool = False,
-                      close_code: int = status.WS_1000_OK) -> None:
+    async def connect(
+        self,
+        subprotocol: str = None,
+        close: bool = False,
+        close_code: int = status.WS_1000_OK,
+    ) -> None:
 
         # Accept or Refuse an incoming connection
         if self._state != WSState.CLOSED:
@@ -141,15 +146,16 @@ class WebSocket(object):
             await self.close(code=status.WS_1001_LEAVING)
 
             raise WebSocketProtocolError(
-                detail="Attempting to connect a WebSocket that is not closed: %s" % self._state
+                detail="Attempting to connect a WebSocket that is not closed: %s"
+                % self._state
             )
 
         # Expecting a connect message
         msg = await self._asgi_receive()
 
-        if msg['type'] != 'websocket.connect':
+        if msg["type"] != "websocket.connect":
             raise WebSocketProtocolError(
-                'Expected WebSocket `connection` but got: %s' % msg['type']
+                "Expected WebSocket `connection` but got: %s" % msg["type"]
             )
 
         self._state = WSState.CONNECTING
@@ -167,14 +173,16 @@ class WebSocket(object):
                 detail="Attempting to accept a WebSocket that is not connecting"
             )
 
-        msg = {'type': 'websocket.accept'}
+        msg = {"type": "websocket.accept"}
         if subprotocol:
-            msg['subprotocol'] = subprotocol
+            msg["subprotocol"] = subprotocol
 
         await self._asgi_send(msg)
         self._state = WSState.CONNECTED
 
-    async def receive_json(self, loads: typing.Callable = None) -> typing.Union[dict, list]:
+    async def receive_json(
+        self, loads: typing.Callable = None
+    ) -> typing.Union[dict, list]:
         jloads = loads or json.loads
         return jloads(await self.receive())
 
@@ -184,25 +192,23 @@ class WebSocket(object):
 
         msg = await self._asgi_receive()
 
-        if msg['type'] == 'websocket.disconnect':
+        if msg["type"] == "websocket.disconnect":
             self._state = WSState.CLOSED
-            raise WebSocketDisconnect(status_code=msg.get('code', status.WS_1000_OK))
+            raise WebSocketDisconnect(status_code=msg.get("code", status.WS_1000_OK))
 
-        return msg.get('text', msg.get('bytes'))
+        return msg.get("text", msg.get("bytes"))
 
     async def send(self, data: typing.Union[str, bytes]) -> None:
         if self._state != WSState.CONNECTED:
             raise WebSocketNotConnected()
 
-        msg = {
-            'type': 'websocket.send',
-        }
+        msg = {"type": "websocket.send"}
 
         if data:
             if isinstance(data, bytes):
-                msg['bytes'] = data
+                msg["bytes"] = data
             else:
-                msg['text'] = data
+                msg["text"] = data
 
         try:
             await self._asgi_send(msg)
@@ -210,11 +216,9 @@ class WebSocket(object):
             self._state = WSState.CLOSED
             raise WebSocketDisconnect(str(e))
 
-    async def send_json(self,
-                        data: typing.Union[dict, list],
-                        dumps: typing.Callable = None,
-                        **kwargs
-                        ) -> None:
+    async def send_json(
+        self, data: typing.Union[dict, list], dumps: typing.Callable = None, **kwargs
+    ) -> None:
         jdumps = dumps or encode_json
 
         await self.send(jdumps(data, **kwargs))
@@ -223,10 +227,7 @@ class WebSocket(object):
         if self._state == WSState.CLOSED:
             raise WebSocketNotConnected()
 
-        message = {
-            'type': 'websocket.close',
-            'code': code,
-        }
+        message = {"type": "websocket.close", "code": code}
 
         await self._asgi_send(message)
         self._state = WSState.CLOSED

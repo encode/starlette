@@ -8,16 +8,13 @@ from starlette.websocket import WebSocket, WSState, status
 from starlette.exceptions import (
     WebSocketProtocolError,
     WebSocketNotConnected,
-    WebSocketDisconnect
+    WebSocketDisconnect,
 )
 from starlette.testclient import TestClient, ASGIDataFaker
 from starlette.utils import encode_json
 
 
-default_scope = {
-    'type': 'websocket',
-    'subprotocols': [],
-}
+default_scope = {"type": "websocket", "subprotocols": []}
 
 
 def ws_setup(state=None, msgs=None):
@@ -65,52 +62,54 @@ def test_connect_not_closed():
         ws_run(ws.connect)
 
     assert ws.closed
-    assert 'is not closed' in e.value.detail
+    assert "is not closed" in e.value.detail
 
 
 def test_connect_not_connect():
     # Connect doesn't get a connect message
-    _, ws = ws_setup(msgs=[{'type': 'websocket.receive'}])
+    _, ws = ws_setup(msgs=[{"type": "websocket.receive"}])
 
     with pytest.raises(WebSocketProtocolError) as e:
         ws_run(ws.connect)
 
     assert ws.closed
-    assert 'Expected WebSocket `connection` but got: websocket.receive' in e.value.detail
+    assert (
+        "Expected WebSocket `connection` but got: websocket.receive" in e.value.detail
+    )
 
 
 def test_connect_close():
-    asgi, ws = ws_setup(msgs=[{'type': 'websocket.connect'}])
+    asgi, ws = ws_setup(msgs=[{"type": "websocket.connect"}])
 
     ws_run(ws.connect, close=True)
 
     assert ws.closed
     assert asgi.sq.get_nowait() == {
-        'type': 'websocket.close',
-        'code': status.WS_1000_OK,
+        "type": "websocket.close",
+        "code": status.WS_1000_OK,
     }
 
 
 def test_connect_close_with_code():
-    asgi, ws = ws_setup(msgs=[{'type': 'websocket.connect'}])
+    asgi, ws = ws_setup(msgs=[{"type": "websocket.connect"}])
 
     ws_run(ws.connect, close=True, close_code=status.WS_1001_LEAVING)
 
     assert ws.closed
     assert asgi.sq.get_nowait() == {
-        'type': 'websocket.close',
-        'code': status.WS_1001_LEAVING,
+        "type": "websocket.close",
+        "code": status.WS_1001_LEAVING,
     }
 
 
 def test_connect_accept_subprotocol():
-    asgi, ws = ws_setup(msgs=[{'type': 'websocket.connect'}])
+    asgi, ws = ws_setup(msgs=[{"type": "websocket.connect"}])
 
-    ws_run(ws.connect, subprotocol='v1.test.encode.io')
+    ws_run(ws.connect, subprotocol="v1.test.encode.io")
 
     assert asgi.sq.get_nowait() == {
-        'type': 'websocket.accept',
-        'subprotocol': 'v1.test.encode.io',
+        "type": "websocket.accept",
+        "subprotocol": "v1.test.encode.io",
     }
 
 
@@ -120,7 +119,7 @@ def test_accept():
     ws_run(ws.accept)
 
     assert ws.connected
-    assert asgi.sq.get_nowait() == {'type': 'websocket.accept'}
+    assert asgi.sq.get_nowait() == {"type": "websocket.accept"}
 
 
 def test_accept_not_connecting():
@@ -131,40 +130,42 @@ def test_accept_not_connecting():
             ws_run(ws.accept)
 
         assert ws._state == state
-        assert 'Attempting to accept a WebSocket that is not connecting' in e.value.detail
+        assert (
+            "Attempting to accept a WebSocket that is not connecting" in e.value.detail
+        )
 
 
 def test_send_not_connected():
     _, ws = ws_setup(state=WSState.CLOSED)
 
     with pytest.raises(WebSocketNotConnected) as e:
-        ws_run(ws.send, '')
+        ws_run(ws.send, "")
 
     assert ws.closed
-    assert 'WebSocket is not connected or open' in e.value.detail
+    assert "WebSocket is not connected or open" in e.value.detail
 
     _, ws = ws_setup(state=WSState.CONNECTING)
 
     with pytest.raises(WebSocketNotConnected) as e:
-        ws_run(ws.send, '')
+        ws_run(ws.send, "")
 
     assert ws.connecting
-    assert 'WebSocket is not connected or open' in e.value.detail
+    assert "WebSocket is not connected or open" in e.value.detail
 
 
 def test_send_exception():
     def send(self, *args):
-        raise Exception('websocket error')
+        raise Exception("websocket error")
 
     ws = WebSocket(default_scope, send, send)
 
     ws._state = WSState.CONNECTED
 
     with pytest.raises(WebSocketDisconnect) as e:
-        ws_run(ws.send, '')
+        ws_run(ws.send, "")
 
     assert ws.closed
-    assert 'websocket error' in e.value.detail
+    assert "websocket error" in e.value.detail
 
 
 def test_send_text():
@@ -174,8 +175,8 @@ def test_send_text():
 
     assert ws.connected
     assert asgi.sq.get_nowait() == {
-        'type': 'websocket.send',
-        'text':  '{"json": "message"}',
+        "type": "websocket.send",
+        "text": '{"json": "message"}',
     }
 
 
@@ -186,8 +187,8 @@ def test_send_bytes():
 
     assert ws.connected
     assert asgi.sq.get_nowait() == {
-        'type': 'websocket.send',
-        'bytes':  b'{"json": "message"}',
+        "type": "websocket.send",
+        "bytes": b'{"json": "message"}',
     }
 
 
@@ -198,8 +199,8 @@ def test_send_json():
 
     assert ws.connected
     assert asgi.sq.get_nowait() == {
-        'type': 'websocket.send',
-        'text': '{"message":"payload"}'
+        "type": "websocket.send",
+        "text": '{"message":"payload"}',
     }
 
 
@@ -211,32 +212,28 @@ def test_receive_not_connected():
             ws_run(ws.receive)
 
         assert ws._state == state
-        assert 'WebSocket is not connected or open' in e.value.detail
+        assert "WebSocket is not connected or open" in e.value.detail
 
 
 def test_receive_disconnect():
     _, ws = ws_setup(
         state=WSState.CONNECTED,
-        msgs=[{
-            'type': 'websocket.disconnect',
-            'code': status.WS_1001_LEAVING,
-        }])
+        msgs=[{"type": "websocket.disconnect", "code": status.WS_1001_LEAVING}],
+    )
 
     with pytest.raises(WebSocketDisconnect) as e:
         ws_run(ws.receive)
 
     assert ws.closed
     assert e.value.status_code == status.WS_1001_LEAVING
-    assert 'WebSocket has been disconnected' in e.value.detail
+    assert "WebSocket has been disconnected" in e.value.detail
 
 
 def test_receive_text():
     _, ws = ws_setup(
         state=WSState.CONNECTED,
-        msgs=[{
-            'type': 'websocket.receive',
-            'text':  '{"json": "message"}',
-        }])
+        msgs=[{"type": "websocket.receive", "text": '{"json": "message"}'}],
+    )
 
     resp = ws_run(ws.receive)
 
@@ -247,10 +244,8 @@ def test_receive_text():
 def test_receive_bytes():
     _, ws = ws_setup(
         state=WSState.CONNECTED,
-        msgs=[{
-            'type': 'websocket.receive',
-            'text':  b'{"json": "message"}',
-        }])
+        msgs=[{"type": "websocket.receive", "text": b'{"json": "message"}'}],
+    )
 
     resp = ws_run(ws.receive)
 
@@ -261,10 +256,10 @@ def test_receive_bytes():
 def test_receive_json():
     _, ws = ws_setup(
         state=WSState.CONNECTED,
-        msgs=[{
-            'type': 'websocket.receive',
-            'text':  json.dumps({"message": "payload"}),
-        }])
+        msgs=[
+            {"type": "websocket.receive", "text": json.dumps({"message": "payload"})}
+        ],
+    )
 
     resp = ws_run(ws.receive_json)
 
@@ -279,7 +274,7 @@ def test_close_closed():
         ws_run(ws.close)
 
     assert ws.closed
-    assert 'WebSocket is not connected or open' in e.value.detail
+    assert "WebSocket is not connected or open" in e.value.detail
 
 
 def test_close():
@@ -287,10 +282,7 @@ def test_close():
         asgi, ws = ws_setup(state=state)
 
         ws_run(ws.close)
-        asgi.sq.get_nowait() == {
-            'type': 'websocket.close',
-            'code': status.WS_1000_OK,
-        }
+        asgi.sq.get_nowait() == {"type": "websocket.close", "code": status.WS_1000_OK}
 
         assert ws.closed
 
@@ -311,25 +303,22 @@ def test_close_codes():
             asgi, ws = ws_setup(state=state)
 
             ws_run(ws.close, code)
-            asgi.sq.get_nowait() == {
-                'type': 'websocket.close',
-                'code': code,
-            }
+            asgi.sq.get_nowait() == {"type": "websocket.close", "code": code}
 
             assert ws.closed
 
 
 # Now some ASGI TestClient tests
 ws_headers = {
-    'Upgrade': 'websocket',
-    'Connection': 'upgrade',
-    'Sec-WebSocket-Protocol': 'v1.test.encode.io',
+    "Upgrade": "websocket",
+    "Connection": "upgrade",
+    "Sec-WebSocket-Protocol": "v1.test.encode.io",
 }
 
 
 def get_headers(client_headers=None):
     headers = ws_headers.copy()
-    headers['Sec-WebSocket-Key'] = uuid4().hex
+    headers["Sec-WebSocket-Key"] = uuid4().hex
 
     if client_headers:
         headers.update(client_headers)
@@ -346,32 +335,31 @@ def test_connect_accept():
 
         return asgi
 
-    asgi_faker = ASGIDataFaker([{'type': 'websocket.connect'}])
+    asgi_faker = ASGIDataFaker([{"type": "websocket.connect"}])
     client = TestClient(app, asgi_faker=asgi_faker)
     client.get("ws://connect/accept", headers=get_headers())
 
-    assert asgi_faker.sq.get_nowait() == {
-        'type': 'websocket.accept',
-    }
+    assert asgi_faker.sq.get_nowait() == {"type": "websocket.accept"}
 
 
 def test_connect_accept_sub_proto():
     def app(scope):
         async def asgi(receive, send):
             ws = WebSocket(scope, receive, send)
-            await ws.connect(subprotocol='test1.encode.io')
+            await ws.connect(subprotocol="test1.encode.io")
             assert ws.connected
-            assert ws.request['subprotocols'] == ['test1.encode.io']
-            assert ws.subprotocols == ['test1.encode.io']
+            assert ws.request["subprotocols"] == ["test1.encode.io"]
+            assert ws.subprotocols == ["test1.encode.io"]
 
         return asgi
 
     client = TestClient(app)
-    response = client.get("ws://connect/accept/sub/proto/", headers=get_headers({
-            'Sec-WebSocket-Protocol': 'test1.encode.io'
-        }))
+    response = client.get(
+        "ws://connect/accept/sub/proto/",
+        headers=get_headers({"Sec-WebSocket-Protocol": "test1.encode.io"}),
+    )
 
-    assert response.text == ''
+    assert response.text == ""
 
 
 def test_connect_deny():
@@ -384,9 +372,9 @@ def test_connect_deny():
         return asgi
 
     client = TestClient(app)
-    response = client.get('ws://connect/deny/', headers=get_headers())
-    assert response.text == ''
-    assert(response.status_code == 403)
+    response = client.get("ws://connect/deny/", headers=get_headers())
+    assert response.text == ""
+    assert response.status_code == 403
 
 
 def test_client_disconnect():
@@ -400,20 +388,22 @@ def test_client_disconnect():
                 await ws.receive()
 
             assert e.value.status_code == status.WS_1001_LEAVING
-            assert 'WebSocket has been disconnected' in e.value.detail
+            assert "WebSocket has been disconnected" in e.value.detail
             assert ws.closed
 
         return asgi
 
     client = TestClient(
         app,
-        asgi_faker=ASGIDataFaker([
-            {'type': 'websocket.connect'},
-            {'type': 'websocket.disconnect', 'code': status.WS_1001_LEAVING},
-        ])
+        asgi_faker=ASGIDataFaker(
+            [
+                {"type": "websocket.connect"},
+                {"type": "websocket.disconnect", "code": status.WS_1001_LEAVING},
+            ]
+        ),
     )
 
-    client.get('ws://disconnect/', headers=get_headers())
+    client.get("ws://disconnect/", headers=get_headers())
 
 
 def test_send_before_connect():
@@ -422,16 +412,16 @@ def test_send_before_connect():
         async def asgi(receive, send):
             ws = WebSocket(scope, receive, send)
             ws._state = WSState.CONNECTED
-            await ws.send('pong')
+            await ws.send("pong")
 
         return asgi
 
     client = TestClient(app)
 
     with pytest.raises(Exception) as e:
-        client.get('ws://send/before/connect', headers=get_headers())
+        client.get("ws://send/before/connect", headers=get_headers())
 
-    assert 'WebSocket not connected, it is' in str(e.value)
+    assert "WebSocket not connected, it is" in str(e.value)
 
 
 def test_close_when_closed():
@@ -447,9 +437,9 @@ def test_close_when_closed():
     client = TestClient(app)
 
     with pytest.raises(Exception) as e:
-        client.get('ws://close/when/closed', headers=get_headers())
+        client.get("ws://close/when/closed", headers=get_headers())
 
-    assert 'Closing a closed websocket' in str(e.value)
+    assert "Closing a closed websocket" in str(e.value)
 
 
 def test_accept_when_not_connecting():
@@ -465,9 +455,9 @@ def test_accept_when_not_connecting():
     client = TestClient(app)
 
     with pytest.raises(Exception) as e:
-        client.get('ws://accept/when/not/connecting', headers=get_headers())
+        client.get("ws://accept/when/not/connecting", headers=get_headers())
 
-    assert 'Sent accept when WebSocket is not connecting, it is' in str(e.value)
+    assert "Sent accept when WebSocket is not connecting, it is" in str(e.value)
 
 
 def test_ping_pong():
@@ -477,9 +467,9 @@ def test_ping_pong():
             await ws.connect()
             assert ws.connected
 
-            assert await ws.receive() == 'ping'
+            assert await ws.receive() == "ping"
 
-            await ws.send('pong')
+            await ws.send("pong")
             assert ws.connected
 
             await ws.close()
@@ -487,16 +477,15 @@ def test_ping_pong():
 
         return asgi
 
-    asgi_faker = ASGIDataFaker([
-        {'type': 'websocket.connect'},
-        {'type': 'websocket.receive', 'text': 'ping'}
-    ])
+    asgi_faker = ASGIDataFaker(
+        [{"type": "websocket.connect"}, {"type": "websocket.receive", "text": "ping"}]
+    )
 
     client = TestClient(app, asgi_faker=asgi_faker)
-    client.get('ws://ping/pong/', headers=get_headers())
+    client.get("ws://ping/pong/", headers=get_headers())
 
-    assert asgi_faker.send_q.get_nowait() == {'type': 'websocket.accept'}
-    assert asgi_faker.send_q.get_nowait() == {'type': 'websocket.send', 'text': 'pong'}
+    assert asgi_faker.send_q.get_nowait() == {"type": "websocket.accept"}
+    assert asgi_faker.send_q.get_nowait() == {"type": "websocket.send", "text": "pong"}
 
 
 def test_ping_pong_kong():
@@ -506,27 +495,26 @@ def test_ping_pong_kong():
             await ws.connect()
             assert ws.connected
 
-            assert await ws.receive() == 'ping'
+            assert await ws.receive() == "ping"
 
-            await ws.send('pong')
+            await ws.send("pong")
             assert ws.connected
 
-            await ws.send('kong')
+            await ws.send("kong")
             assert ws.connected
 
         return asgi
 
-    asgi_faker = ASGIDataFaker([
-        {'type': 'websocket.connect'},
-        {'type': 'websocket.receive', 'text': 'ping'}
-    ])
+    asgi_faker = ASGIDataFaker(
+        [{"type": "websocket.connect"}, {"type": "websocket.receive", "text": "ping"}]
+    )
 
     client = TestClient(app, asgi_faker=asgi_faker)
-    client.get('ws://ping/pong/kong', headers=get_headers())
+    client.get("ws://ping/pong/kong", headers=get_headers())
 
-    assert asgi_faker.send_q.get_nowait() == {'type': 'websocket.accept'}
-    assert asgi_faker.send_q.get_nowait() == {'type': 'websocket.send', 'text': 'pong'}
-    assert asgi_faker.send_q.get_nowait() == {'type': 'websocket.send', 'text': 'kong'}
+    assert asgi_faker.send_q.get_nowait() == {"type": "websocket.accept"}
+    assert asgi_faker.send_q.get_nowait() == {"type": "websocket.send", "text": "pong"}
+    assert asgi_faker.send_q.get_nowait() == {"type": "websocket.send", "text": "kong"}
 
 
 def test_ping_pong_kong_json():
@@ -546,16 +534,18 @@ def test_ping_pong_kong_json():
 
         return asgi
 
-    asgi_faker = ASGIDataFaker([
-        {'type': 'websocket.connect'},
-        {'type': 'websocket.receive', 'text': encode_json({"play": "ping"})}
-    ])
+    asgi_faker = ASGIDataFaker(
+        [
+            {"type": "websocket.connect"},
+            {"type": "websocket.receive", "text": encode_json({"play": "ping"})},
+        ]
+    )
 
     client = TestClient(app, asgi_faker=asgi_faker)
-    client.get('ws://ping/pong/kong/json', headers=get_headers())
+    client.get("ws://ping/pong/kong/json", headers=get_headers())
 
-    assert asgi_faker.send_q.get_nowait() == {'type': 'websocket.accept'}
+    assert asgi_faker.send_q.get_nowait() == {"type": "websocket.accept"}
     assert asgi_faker.send_q.get_nowait() == {
-        'type': 'websocket.send',
-        'text': '{"play":"pong"}',
+        "type": "websocket.send",
+        "text": '{"play":"pong"}',
     }
