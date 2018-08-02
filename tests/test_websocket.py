@@ -284,7 +284,7 @@ def test_close_codes():
         for code in (
             status.WS_1000_OK,
             status.WS_1001_LEAVING,
-            status.WS_1002_PROT_ERROR,
+            status.WS_1002_PROTOCOL_ERROR,
             status.WS_1003_UNSUPPORTED_TYPE,
             status.WS_1007_INALID_DATA,
             status.WS_1008_POLICY_VIOLATION,
@@ -294,7 +294,7 @@ def test_close_codes():
 
             asgi, ws = ws_setup(state=state)
 
-            ws_run(ws.close)
+            ws_run(ws.close, code)
             asgi.sq.get_nowait() == {
                 'type': 'websocket.close',
                 'code': code,
