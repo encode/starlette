@@ -55,7 +55,7 @@ def test_initial_state():
     assert ws._state == WSState.CLOSED
     assert ws.closed
     assert ws.subprotocols == []
-    assert str(ws) == "<WebSocket state:closed>"
+    assert str(ws) == "<WebSocket state:WSState.CLOSED>"
 
 
 def test_connect_not_closed():
