@@ -55,6 +55,7 @@ def test_initial_state():
     assert ws._state == WSState.CLOSED
     assert ws.closed
     assert ws.subprotocols == []
+    assert str(ws) == "<WebSocket state:closed>"
 
 
 def test_connect_not_closed():
@@ -149,6 +150,21 @@ def test_send_not_connected():
 
     assert ws.connecting
     assert 'WebSocket is not connected or open' in e.value.detail
+
+
+def test_send_exception():
+    def send(self, *args):
+        raise Exception('websocket error')
+
+    ws = WebSocket(default_scope, send, send)
+
+    ws._state = WSState.CONNECTED
+
+    with pytest.raises(WebSocketDisconnect) as e:
+        ws_run(ws.send, '')
+
+    assert ws.closed
+    assert 'websocket error' in e.value.detail
 
 
 def test_send_text():
@@ -303,7 +319,7 @@ def test_close_codes():
             assert ws.closed
 
 
-# Some ASGI TestClient level tests
+# Now some ASGI TestClient tests
 ws_headers = {
     'Upgrade': 'websocket',
     'Connection': 'upgrade',
@@ -330,7 +346,7 @@ def test_connect_accept():
 
         return asgi
 
-    asgi_faker = ASGIDataFaker()
+    asgi_faker = ASGIDataFaker([{'type': 'websocket.connect'}])
     client = TestClient(app, asgi_faker=asgi_faker)
     client.get("ws://connect/accept", headers=get_headers())
 
@@ -398,6 +414,60 @@ def test_client_disconnect():
     )
 
     client.get('ws://disconnect/', headers=get_headers())
+
+
+def test_send_before_connect():
+    # This tests the test client's websocket state
+    def app(scope):
+        async def asgi(receive, send):
+            ws = WebSocket(scope, receive, send)
+            ws._state = WSState.CONNECTED
+            await ws.send('pong')
+
+        return asgi
+
+    client = TestClient(app)
+
+    with pytest.raises(Exception) as e:
+        client.get('ws://send/before/connect', headers=get_headers())
+
+    assert 'WebSocket not connected, it is' in str(e.value)
+
+
+def test_close_when_closed():
+    # This tests the test client's websocket state
+    def app(scope):
+        async def asgi(receive, send):
+            ws = WebSocket(scope, receive, send)
+            ws._state = WSState.CONNECTED
+            await ws.close()
+
+        return asgi
+
+    client = TestClient(app)
+
+    with pytest.raises(Exception) as e:
+        client.get('ws://close/when/closed', headers=get_headers())
+
+    assert 'Closing a closed websocket' in str(e.value)
+
+
+def test_accept_when_not_connecting():
+    # This tests the test client's websocket state
+    def app(scope):
+        async def asgi(receive, send):
+            ws = WebSocket(scope, receive, send)
+            ws._state = WSState.CONNECTING
+            await ws.accept()
+
+        return asgi
+
+    client = TestClient(app)
+
+    with pytest.raises(Exception) as e:
+        client.get('ws://accept/when/not/connecting', headers=get_headers())
+
+    assert 'Sent accept when WebSocket is not connecting, it is' in str(e.value)
 
 
 def test_ping_pong():

@@ -64,6 +64,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
         else:
             host = netloc
             port = {'http': 80, 'https': 443, 'ws': 80, 'wss': 443}[scheme]
+
         type_ = {'http': 'http', 'https': 'http', 'ws': 'websocket', 'wss': 'websocket'}[scheme]
 
         # Include the 'host' header.
@@ -95,6 +96,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
 
         if type_ == 'websocket' and 'Sec-WebSocket-Protocol' in request.headers:
             scope['subprotocols'] = request.headers['Sec-WebSocket-Protocol'].split(',')
+
         async def receive():
             # If a faker is present, use it's message data.
             if self.asgi_faker:
@@ -107,6 +109,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                         self.websocket_state = 'closed'
 
                 return msg
+
             body = request.body
             if isinstance(body, str):
                 body_bytes = body.encode("utf-8")  # type: bytes

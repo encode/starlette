@@ -158,7 +158,7 @@ class WebSocket(object):
             await self.close(code=close_code)
             return
 
-        # Try to accept and upgrade the websocket
+        # Accept and upgrade the websocket
         await self.accept(subprotocol)
 
     async def accept(self, subprotocol: str = None) -> None:
@@ -190,17 +190,10 @@ class WebSocket(object):
 
         return msg.get('text', msg.get('bytes'))
 
-    async def send_msg(self, msg: dict) -> None:
+    async def send(self, data: typing.Union[str, bytes]) -> None:
         if self._state != WSState.CONNECTED:
             raise WebSocketNotConnected()
 
-        try:
-            await self._asgi_send(msg)
-        except Exception as e:
-            self._state = WSState.CLOSED
-            raise WebSocketDisconnect(str(e))
-
-    async def send(self, data: typing.Union[str, bytes]) -> None:
         msg = {
             'type': 'websocket.send',
         }
@@ -211,7 +204,11 @@ class WebSocket(object):
             else:
                 msg['text'] = data
 
-        await self.send_msg(msg)
+        try:
+            await self._asgi_send(msg)
+        except Exception as e:
+            self._state = WSState.CLOSED
+            raise WebSocketDisconnect(str(e))
 
     async def send_json(self,
                         data: typing.Union[dict, list],

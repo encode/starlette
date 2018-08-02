@@ -76,37 +76,6 @@ class Response:
         await send({"type": "http.response.body", "body": self.body})
 
 
-#  class WebSocketResponse(Response):
-#      """
-#      WebSocketResponse is used only when a WebSocket handler has finished.
-#      Usually, there is no content and the socket may need to be closed by the app
-#      if handlers are not required to close the socket.
-
-#      WebSocket responses are always text, bytes or nothing.
-
-#      NOTE: Only supporting None for now until the behavior is formalized.
-#      Need to decide if a final payload returned from a handler is supported or not.
-#      """
-#      def render(self, content: None) -> None:
-#          if content is None:
-#              return content
-
-#          raise RuntimeError(
-#              "%s content must be None. Got %s." %
-#              (self.__class__.__name__, type(content).__name__)
-#          )
-
-    # If final payloads are supported
-    #  def render(self, content: typing.Any) -> typing.Union[str, bytes, None]:
-    #      if content is None or isinstance(content, (bytes, str)):
-    #          return content
-
-    #      raise RuntimeError(
-    #          "%s content must be string or bytes. Got %s." %
-    #          (self.__class__.__name__, type(content).__name__)
-    #      )
-
-
 class HTMLResponse(Response):
     media_type = "text/html"
 
