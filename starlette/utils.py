@@ -8,7 +8,7 @@ def encode_json(content: typing.Any, **kwargs) -> bytes:
         "allow_nan": False,
         "indent": None,
         "separators": (",", ":"),
-    }  # type: typing.Dict[str, typing.Any]
+    }
 
     options.update(kwargs)
 
