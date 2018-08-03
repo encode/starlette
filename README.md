@@ -52,6 +52,22 @@ You can run the application with any ASGI server, including [uvicorn](http://www
 
 <p align="center">&mdash; ⭐️ &mdash;</p>
 
+* [Responses](#responses)
+    * [Response](#response)
+    * [HTMLResponse](#htmlresponse)
+    * [PlainTextResponse](#plaintextresponse)
+    * [JSONResponse](#jsonresponse)
+    * [StreamingResponse](#streamingresponse)
+    * [FileResponse](#fileresponse)
+* [Requests](#requests)
+    * [Request](#request)
+* [WebSocket](#websocket)
+* [Routing](#routing)
+* [Static Files](#static-files)
+* [Test Client](#test-client)
+* [Debugging](#debugging)
+* [Decorators](#decorators)
+
 ## Responses
 
 Starlette includes a few response classes that handle sending back the
@@ -326,45 +342,52 @@ The `WebSocket`'s state can be queried with the boolean attributes:
 `websocket.connecting`  
 `websocket.closed`  
 
-
-#### Accept
-Signature: `websocket.accept(subprotocol=None)`
-
 #### Connect
 Signature: `websocket.connect(subprotocol=None, close=False, close_code=status.WS_1000_OK)`
+
+Accept or reject an incoming WebSocket connection.  
+Use `websocket.connect()` to accept a WebSocket connection request and set accepted
+subprotocols(optional). You can easily reject a connection request using the `close=True` parameter
+and send a specific close code with the `close_code` parameter.
 
 #### Receive
 Signature: `websocket.receive()`
 
+Retreives the next WebSocket message. The result will be a string or byte array.
+
 #### Receive_json
 Signature: `websocket.receive(loads=None)`
+
+Retreives the next WebSocket message and parses it as JSON. The result will be the parsed JSON as
+native types.  
+A user provided JSON parser function can provided with the `loads` parameter.
 
 #### Send
 Signature: `websocket.send(data)`
 
+Send a WebSocket message. Accepted data types are `str` or `bytes`.
+
 #### Send_json
 Signature: `websocket.send_json(data, dumps=None, **kwargs)`
+
+Send Python data as a WebSocket message encoded as a JSON string. This will create a `str` websocket message.  
+A user provided JSON dump function can be provided with the `dumps` parameter and all extra
+`**kwargs` will be passed to the `dumps` function.
 
 #### Close
 Signature: `websocket.close(code=status.WS_1000_OK)`
 
-#### Status Codes
-`websocket.status.WS_1000_OK`
-`websocket.status.WS_1001_LEAVING`
-`websocket.status.WS_1002_PROTOCOL_ERROR`
-`websocket.status.WS_1003_UNSUPPORTED_TYPE`
-`websocket.status.WS_1007_INALID_DATA`
-`websocket.status.WS_1008_POLICY_VIOLATION`
-`websocket.status.WS_1009_TOO_BIG`
-`websocket.status.WS_1010_TLS_FAIL`
-`websocket.status.WS_1010_TLS_FAIL`
+Close the WebSocket and optionally specifiy a status code, default is WS_1000_OK, to send with the
+close message.
 
+
+#### Status Codes
 
 Status codes are available in the `status` object int the `websocket` module:  
 
 ```python
 from starlette.websocket import status
-# Available status code:
+# Available status codes:
 status.WS_1000_OK
 status.WS_1001_LEAVING
 status.WS_1002_PROTOCOL_ERROR
@@ -374,8 +397,6 @@ status.WS_1008_POLICY_VIOLATION
 status.WS_1009_TOO_BIG
 status.WS_1010_TLS_FAIL
 ```
-
-
 
 ---
 

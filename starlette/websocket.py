@@ -139,7 +139,6 @@ class WebSocket(object):
         close: bool = False,
         close_code: int = status.WS_1000_OK,
     ) -> None:
-
         # Accept or Refuse an incoming connection
         if self._state != WSState.CLOSED:
             # Try to send a close and be friendly to the otherside before raising
