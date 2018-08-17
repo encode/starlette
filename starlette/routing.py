@@ -89,5 +89,5 @@ class ProtocolRouter:
         self.protocols = protocols
 
     def __call__(self, scope: Scope) -> ASGIInstance:
-        app = self.protocols[scope['type']]
+        app = self.protocols[scope["type"]]
         return app(scope)

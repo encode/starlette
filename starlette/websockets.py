@@ -19,7 +19,7 @@ class WebSocketDisconnect(Exception):
 
 class WebSocketSession(Mapping):
     def __init__(self, scope, receive=None, send=None):
-        assert scope['type'] == 'websocket'
+        assert scope["type"] == "websocket"
         self._scope = scope
         self._receive = receive
         self._send = send
@@ -73,36 +73,38 @@ class WebSocketSession(Mapping):
         """
         if self.client_state == WebSocketState.CONNECTING:
             message = await self._receive()
-            message_type = message['type']
-            assert message_type == 'websocket.connect'
+            message_type = message["type"]
+            assert message_type == "websocket.connect"
             self.client_state = WebSocketState.CONNECTED
             return message
         elif self.client_state == WebSocketState.CONNECTED:
             message = await self._receive()
-            message_type = message['type']
-            assert message_type in {'websocket.receive', 'websocket.disconnect'}
-            if message_type == 'websocket.disconnect':
+            message_type = message["type"]
+            assert message_type in {"websocket.receive", "websocket.disconnect"}
+            if message_type == "websocket.disconnect":
                 self.client_state = WebSocketState.DISCONNECTED
             return message
         else:
-            raise RuntimeError('Cannot call "receive" once a disconnect message has been received.')
+            raise RuntimeError(
+                'Cannot call "receive" once a disconnect message has been received.'
+            )
 
     async def send(self, message):
         """
         Send ASGI websocket messages, ensuring valid state transitions.
         """
         if self.application_state == WebSocketState.CONNECTING:
-            message_type = message['type']
-            assert message_type in {'websocket.accept', 'websocket.close'}
-            if message_type == 'websocket.close':
+            message_type = message["type"]
+            assert message_type in {"websocket.accept", "websocket.close"}
+            if message_type == "websocket.close":
                 self.application_state = WebSocketState.DISCONNECTED
             else:
                 self.application_state = WebSocketState.CONNECTED
             await self._send(message)
         elif self.application_state == WebSocketState.CONNECTED:
-            message_type = message['type']
-            assert message_type in {'websocket.send', 'websocket.close'}
-            if message_type == 'websocket.close':
+            message_type = message["type"]
+            assert message_type in {"websocket.send", "websocket.close"}
+            if message_type == "websocket.close":
                 self.application_state = WebSocketState.DISCONNECTED
             await self._send(message)
         else:
@@ -112,10 +114,7 @@ class WebSocketSession(Mapping):
         if self.client_state == WebSocketState.CONNECTING:
             # If we haven't yet seen the 'connect' message, then wait for it first.
             await self.receive()
-        await self.send({
-            "type": "websocket.accept",
-            "subprotocol": subprotocol
-        })
+        await self.send({"type": "websocket.accept", "subprotocol": subprotocol})
 
     def _raise_on_disconnect(self, message):
         if message["type"] == "websocket.disconnect":
@@ -138,29 +137,17 @@ class WebSocketSession(Mapping):
         message = await self.receive()
         self._raise_on_disconnect(message)
         encoded = message["bytes"]
-        return json.loads(encoded.decode('utf-8'))
+        return json.loads(encoded.decode("utf-8"))
 
     async def send_text(self, data):
-        await self.send({
-            "type": "websocket.send",
-            "text": data
-        })
+        await self.send({"type": "websocket.send", "text": data})
 
     async def send_bytes(self, data):
-        await self.send({
-            "type": "websocket.send",
-            "bytes": data
-        })
+        await self.send({"type": "websocket.send", "bytes": data})
 
     async def send_json(self, data):
-        encoded = json.dumps(data).encode('utf-8')
-        await self.send({
-            "type": "websocket.send",
-            "bytes": encoded
-        })
+        encoded = json.dumps(data).encode("utf-8")
+        await self.send({"type": "websocket.send", "bytes": encoded})
 
     async def close(self, code=1000):
-        await self.send({
-            "type": "websocket.close",
-            "code": code
-        })
+        await self.send({"type": "websocket.close", "code": code})

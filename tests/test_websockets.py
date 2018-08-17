@@ -10,6 +10,7 @@ def test_session_url():
             await session.accept()
             await session.send_json({"url": session.url})
             await session.close()
+
         return asgi
 
     client = TestClient(app)
@@ -26,6 +27,7 @@ def test_session_query_params():
             await session.accept()
             await session.send_json({"params": query_params})
             await session.close()
+
         return asgi
 
     client = TestClient(app)
@@ -42,21 +44,22 @@ def test_session_headers():
             await session.accept()
             await session.send_json({"headers": headers})
             await session.close()
+
         return asgi
 
     client = TestClient(app)
     with client.wsconnect("/") as session:
         expected_headers = {
-            'accept': '*/*',
-            'accept-encoding': 'gzip, deflate',
-            'connection': 'upgrade',
-            'host': 'testserver',
-            'user-agent': 'testclient',
-            'sec-websocket-key': 'testserver==',
-            'sec-websocket-version': '13',
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate",
+            "connection": "upgrade",
+            "host": "testserver",
+            "user-agent": "testclient",
+            "sec-websocket-key": "testserver==",
+            "sec-websocket-version": "13",
         }
         data = session.receive_json()
-        assert data == {'headers': expected_headers}
+        assert data == {"headers": expected_headers}
 
 
 def test_session_port():
@@ -66,6 +69,7 @@ def test_session_port():
             await session.accept()
             await session.send_json({"port": session.url.port})
             await session.close()
+
         return asgi
 
     client = TestClient(app)
@@ -80,15 +84,16 @@ def test_session_send_and_receive_text():
             session = WebSocketSession(scope, receive, send)
             await session.accept()
             data = await session.receive_text()
-            await session.send_text('Message was: ' + data)
+            await session.send_text("Message was: " + data)
             await session.close()
+
         return asgi
 
     client = TestClient(app)
     with client.wsconnect("/") as session:
-        session.send_text('Hello, world!')
+        session.send_text("Hello, world!")
         data = session.receive_text()
-        assert data == 'Message was: Hello, world!'
+        assert data == "Message was: Hello, world!"
 
 
 def test_session_send_and_receive_bytes():
@@ -97,15 +102,16 @@ def test_session_send_and_receive_bytes():
             session = WebSocketSession(scope, receive, send)
             await session.accept()
             data = await session.receive_bytes()
-            await session.send_bytes(b'Message was: ' + data)
+            await session.send_bytes(b"Message was: " + data)
             await session.close()
+
         return asgi
 
     client = TestClient(app)
     with client.wsconnect("/") as session:
-        session.send_bytes(b'Hello, world!')
+        session.send_bytes(b"Hello, world!")
         data = session.receive_bytes()
-        assert data == b'Message was: Hello, world!'
+        assert data == b"Message was: Hello, world!"
 
 
 def test_session_send_and_receive_json():
@@ -116,6 +122,7 @@ def test_session_send_and_receive_json():
             data = await session.receive_json()
             await session.send_json({"message": data})
             await session.close()
+
         return asgi
 
     client = TestClient(app)
@@ -137,6 +144,7 @@ def test_client_close():
                 data = await session.receive_text()
             except WebSocketDisconnect as exc:
                 close_code = exc.code
+
         return asgi
 
     client = TestClient(app)
@@ -151,6 +159,7 @@ def test_application_close():
             session = WebSocketSession(scope, receive, send)
             await session.accept()
             await session.close(1001)
+
         return asgi
 
     client = TestClient(app)
@@ -165,6 +174,7 @@ def test_rejected_connection():
         async def asgi(receive, send):
             session = WebSocketSession(scope, receive, send)
             await session.close(1001)
+
         return asgi
 
     client = TestClient(app)
@@ -177,9 +187,10 @@ def test_subprotocol():
     def app(scope):
         async def asgi(receive, send):
             session = WebSocketSession(scope, receive, send)
-            assert session['subprotocols'] == ["soap", "wamp"]
+            assert session["subprotocols"] == ["soap", "wamp"]
             await session.accept(subprotocol="wamp")
             await session.close()
+
         return asgi
 
     client = TestClient(app)
@@ -191,6 +202,7 @@ def test_session_exception():
     def app(scope):
         async def asgi(receive, send):
             assert False
+
         return asgi
 
     client = TestClient(app)
@@ -205,6 +217,7 @@ def test_duplicate_close():
             await session.accept()
             await session.close()
             await session.close()
+
         return asgi
 
     client = TestClient(app)
@@ -219,8 +232,9 @@ def test_duplicate_disconnect():
             session = WebSocketSession(scope, receive, send)
             await session.accept()
             message = await session.receive()
-            assert message['type'] == 'websocket.disconnect'
+            assert message["type"] == "websocket.disconnect"
             message = await session.receive()
+
         return asgi
 
     client = TestClient(app)

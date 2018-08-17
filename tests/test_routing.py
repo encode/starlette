@@ -73,13 +73,13 @@ def websocket_endpoint(scope):
         await session.accept()
         await session.send_json({"hello": "world"})
         await session.close()
+
     return asgi
 
 
-mixed_protocol_app = ProtocolRouter({
-    "http": http_endpoint,
-    "websocket": websocket_endpoint
-})
+mixed_protocol_app = ProtocolRouter(
+    {"http": http_endpoint, "websocket": websocket_endpoint}
+)
 
 
 def test_protocol_switch():
