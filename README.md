@@ -527,9 +527,9 @@ always raised by the test client.
 
 #### Receiving data
 
-* `.receive_text()`
-* `.receive_bytes()`
-* `.receive_json()`
+* `.receive_text()` - Wait for incoming text sent by the application and return it.
+* `.receive_bytes()` - Wait for incoming bytestring sent by the application and return it.
+* `.receive_json()` - Wait for incoming json data sent by the application and return it.
 
 May raise `starlette.websockets.Disconnect`.
 
