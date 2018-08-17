@@ -1,9 +1,13 @@
-from functools import update_wrapper
-from starlette.decorators import make_asgi
-from starlette.types import ASGIApp, ASGIInstance, Scope
+import asyncio
+
+from starlette.request import Request
+from starlette.types import ASGIApp, ASGIInstance, Receive, Send, Scope
 
 
 class View:
+    def __call__(self, scope: Scope) -> ASGIApp:
+        return self.dispatch(scope)
+
     def dispatch(self, scope: Scope) -> ASGIInstance:
         request_method = scope["method"] if scope["method"] != "HEAD" else "GET"
         func = getattr(self, request_method.lower(), None)
@@ -11,15 +15,14 @@ class View:
             raise Exception(
                 f"Method {request_method} is not implemented for this view."
             )
-        return make_asgi(func)(scope)
+        is_coroutine = asyncio.iscoroutinefunction(func)
 
-    @classmethod
-    def as_view(cls) -> ASGIApp:
-        def view(scope: Scope):
-            self = cls()
-            return self.dispatch(scope)
+        async def awaitable(receive: Receive, send: Send) -> None:
+            request = Request(scope, receive)
+            if is_coroutine:
+                response = await func(request)
+            else:
+                response = func(request)
+            await response(receive, send)
 
-        view.view_class = cls
-        update_wrapper(view, cls, updated=())
-        update_wrapper(view, cls.dispatch, assigned=())
-        return view
+        return awaitable
