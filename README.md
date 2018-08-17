@@ -346,6 +346,16 @@ May raise `starlette.websockets.Disconnect()`.
 
 * `await session.close(code=1000)`
 
+### Sending and receiving messages
+
+If you need to send or receive raw ASGI messages then you should use
+`session.send()` and `session.receive()` rather than using the raw `send` and
+`receive` callables. This will ensure that the session's state is kept
+correctly updated.
+
+* `await session.send(message)`
+* `await session.receive()`
+
 ---
 
 ## Routing
