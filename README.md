@@ -525,6 +525,8 @@ always raised by the test client.
 
 * `.wsconnect(url, subprotocols=None, **options)` - Takes the same set of arguments as `requests.get()`.
 
+May raise `starlette.websockets.Disconnect` if the application does not accept the websocket connection.
+
 #### Receiving data
 
 * `.receive_text()` - Wait for incoming text sent by the application and return it.
