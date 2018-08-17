@@ -11,7 +11,7 @@ class ClientDisconnect(Exception):
 
 class Request(Mapping):
     def __init__(self, scope, receive=None):
-        assert scope['type'] == 'http'
+        assert scope["type"] == "http"
         self._scope = scope
         self._receive = receive
         self._stream_consumed = False
