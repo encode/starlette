@@ -38,17 +38,18 @@ def test_bytes_response():
 def test_redirect_response():
     def app(scope):
         async def asgi(receive, send):
-            if scope["path"] == "/redirected":
+            if scope["path"] == "/":
                 response = Response("hello, world", media_type="text/plain")
             else:
-                response = RedirectResponse("/redirected")
+                response = RedirectResponse("/")
             await response(receive, send)
 
         return asgi
 
     client = TestClient(app)
-    response = client.get("/")
+    response = client.get("/redirect")
     assert response.text == "hello, world"
+    assert response.url == "http://testserver/"
 
 
 def test_streaming_response():
