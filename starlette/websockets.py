@@ -1,5 +1,4 @@
 from collections.abc import Mapping
-from enum import Enum
 from starlette.datastructures import URL, Headers, QueryParams
 from urllib.parse import unquote
 import enum
