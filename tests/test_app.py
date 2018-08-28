@@ -1,10 +1,11 @@
 from starlette import App
 from starlette.response import PlainTextResponse
+from starlette.staticfiles import StaticFiles
 from starlette.testclient import TestClient
+import os
 
 
 app = App()
-
 
 @app.route("/func")
 def func_homepage(request):
@@ -58,3 +59,16 @@ def test_websocket_route():
 def test_400():
     response = client.get("/404")
     assert response.status_code == 404
+
+
+def test_app_mount(tmpdir):
+    path = os.path.join(tmpdir, "example.txt")
+    with open(path, "w") as file:
+        file.write("<file content>")
+
+    app = App()
+    app.mount('/static', StaticFiles(directory=tmpdir))
+    client = TestClient(app)
+    response = client.get("/static/example.txt")
+    assert response.status_code == 200
+    assert response.text == "<file content>"

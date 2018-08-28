@@ -14,23 +14,25 @@ class Route:
 
 class Path(Route):
     def __init__(
-        self, path: str, app: ASGIApp, methods: typing.Sequence[str] = ()
+        self, path: str, app: ASGIApp, methods: typing.Sequence[str] = (), protocol: str=None
     ) -> None:
         self.path = path
         self.app = app
+        self.protocol = protocol
         self.methods = methods
         regex = "^" + path + "$"
         regex = re.sub("{([a-zA-Z_][a-zA-Z0-9_]*)}", r"(?P<\1>[^/]+)", regex)
         self.path_regex = re.compile(regex)
 
     def matches(self, scope: Scope) -> typing.Tuple[bool, Scope]:
-        match = self.path_regex.match(scope["path"])
-        if match:
-            kwargs = dict(scope.get("kwargs", {}))
-            kwargs.update(match.groupdict())
-            child_scope = dict(scope)
-            child_scope["kwargs"] = kwargs
-            return True, child_scope
+        if self.protocol is None or scope['type'] == self.protocol:
+            match = self.path_regex.match(scope["path"])
+            if match:
+                kwargs = dict(scope.get("kwargs", {}))
+                kwargs.update(match.groupdict())
+                child_scope = dict(scope)
+                child_scope["kwargs"] = kwargs
+                return True, child_scope
         return False, {}
 
     def __call__(self, scope: Scope) -> ASGIInstance:

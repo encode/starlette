@@ -1,11 +1,15 @@
 from starlette.request import Request
-from starlette.routing import Path, ProtocolRouter, Router
-from starlette.types import ASGIInstance, Receive, Scope, Send
+from starlette.routing import Path, PathPrefix, Router
+from starlette.types import ASGIApp, ASGIInstance, Receive, Scope, Send
 from starlette.websockets import WebSocketSession
 import asyncio
 
 
 def request_response(func):
+    """
+    Taks a function or coroutine `func(request, **kwargs) -> response`,
+    and returns an ASGI application.
+    """
     is_coroutine = asyncio.iscoroutinefunction(func)
 
     def app(scope: Scope) -> ASGIInstance:
@@ -24,6 +28,9 @@ def request_response(func):
 
 
 def websocket_session(func):
+    """
+    Takes a coroutine `func(session, **kwargs)`, and returns an ASGI application.
+    """
     def app(scope: Scope) -> ASGIInstance:
         async def awaitable(receive: Receive, send: Send) -> None:
             session = WebSocketSession(scope, receive=receive, send=send)
@@ -37,19 +44,21 @@ def websocket_session(func):
 
 class App:
     def __init__(self) -> None:
-        self.http_router = Router(routes=[])
-        self.websocket_router = Router(routes=[])
-        self.router = ProtocolRouter(
-            {"http": self.http_router, "websocket": self.websocket_router}
-        )
+        self.router = Router(routes=[])
 
-    def add_route(self, path: str, route) -> None:
-        instance = Path(path, request_response(route))
-        self.http_router.routes.append(instance)
+    def mount(self, path: str, app: ASGIApp):
+        prefix = PathPrefix(path, app=app)
+        self.router.routes.append(prefix)
+
+    def add_route(self, path: str, route, methods=None) -> None:
+        if methods is None:
+            methods = ["GET"]
+        instance = Path(path, request_response(route), protocol="http", methods=methods)
+        self.router.routes.append(instance)
 
     def add_websocket_route(self, path: str, route) -> None:
-        instance = Path(path, websocket_session(route))
-        self.websocket_router.routes.append(instance)
+        instance = Path(path, websocket_session(route), protocol="websocket")
+        self.router.routes.append(instance)
 
     def route(self, path: str):
         def decorator(func):
