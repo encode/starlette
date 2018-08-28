@@ -14,7 +14,11 @@ class Route:
 
 class Path(Route):
     def __init__(
-        self, path: str, app: ASGIApp, methods: typing.Sequence[str] = (), protocol: str=None
+        self,
+        path: str,
+        app: ASGIApp,
+        methods: typing.Sequence[str] = (),
+        protocol: str = None,
     ) -> None:
         self.path = path
         self.app = app
@@ -25,7 +29,7 @@ class Path(Route):
         self.path_regex = re.compile(regex)
 
     def matches(self, scope: Scope) -> typing.Tuple[bool, Scope]:
-        if self.protocol is None or scope['type'] == self.protocol:
+        if self.protocol is None or scope["type"] == self.protocol:
             match = self.path_regex.match(scope["path"])
             if match:
                 kwargs = dict(scope.get("kwargs", {}))

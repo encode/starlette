@@ -31,6 +31,7 @@ def websocket_session(func):
     """
     Takes a coroutine `func(session, **kwargs)`, and returns an ASGI application.
     """
+
     def app(scope: Scope) -> ASGIInstance:
         async def awaitable(receive: Receive, send: Send) -> None:
             session = WebSocketSession(scope, receive=receive, send=send)
