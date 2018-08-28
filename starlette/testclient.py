@@ -140,11 +140,11 @@ class WebSocketTestSession:
         self._receive_queue = queue.Queue()
         self._send_queue = queue.Queue()
         self._thread = threading.Thread(target=self._run)
-        self._receive_queue.put({"type": "websocket.connect"})
+        self.send({"type": "websocket.connect"})
         self._thread.start()
         message = self.receive()
         self._raise_on_close(message)
-        self.accepted_subprotocol = message["subprotocol"]
+        self.accepted_subprotocol = message.get("subprotocol", None)
 
     def __enter__(self):
         return self
@@ -192,7 +192,7 @@ class WebSocketTestSession:
         self.send({"type": "websocket.receive", "bytes": encoded})
 
     def close(self, code=1000):
-        self._receive_queue.put({"type": "websocket.disconnect", "code": code})
+        self.send({"type": "websocket.disconnect", "code": code})
 
     def receive(self):
         message = self._send_queue.get()
