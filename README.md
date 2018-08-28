@@ -20,8 +20,8 @@
 
 Starlette is a small library for working with [ASGI](https://asgi.readthedocs.io/en/latest/).
 
-It gives you `Request` and `Response` classes, request routing, static files support,
-a test client, and a decorator for writing super-minimal applications.
+It gives you `Request` and `Response` classes, websocket support, routing,
+static files support, and a test client.
 
 **Requirements:**
 
@@ -36,7 +36,7 @@ pip3 install starlette
 **Example:**
 
 ```python
-from starlette import Response
+from starlette.response import Response
 
 
 class App:
@@ -52,21 +52,29 @@ You can run the application with any ASGI server, including [uvicorn](http://www
 
 <p align="center">&mdash; ⭐️ &mdash;</p>
 
+---
+
+## Contents
+
 * [Responses](#responses)
     * [Response](#response)
     * [HTMLResponse](#htmlresponse)
     * [PlainTextResponse](#plaintextresponse)
     * [JSONResponse](#jsonresponse)
+    * [RedirectResponse](#redirectresponse)
     * [StreamingResponse](#streamingresponse)
     * [FileResponse](#fileresponse)
 * [Requests](#requests)
     * [Request](#request)
-* [WebSocket](#websocket)
+* [WebSockets](#websockets)
+    * [WebSocketSession](#websocketsession)
 * [Routing](#routing)
 * [Static Files](#static-files)
 * [Test Client](#test-client)
 * [Debugging](#debugging)
-* [Decorators](#decorators)
+* [Applications](#applications)
+
+---
 
 ## Responses
 
@@ -104,7 +112,7 @@ class App:
 Takes some text or bytes and returns an HTML response.
 
 ```python
-from starlette import HTMLResponse
+from starlette.response import HTMLResponse
 
 
 class App:
@@ -121,7 +129,7 @@ class App:
 Takes some text or bytes and returns an plain text response.
 
 ```python
-from starlette import PlainTextResponse
+from starlette.response import PlainTextResponse
 
 
 class App:
@@ -138,7 +146,7 @@ class App:
 Takes some data and returns an `application/json` encoded response.
 
 ```python
-from starlette import JSONResponse
+from starlette.response import JSONResponse
 
 
 class App:
@@ -150,12 +158,33 @@ class App:
         await response(receive, send)
 ```
 
+### RedirectResponse
+
+Returns an HTTP redirect. Uses a 302 status code by default.
+
+```python
+from starlette.response import PlainTextResponse, RedirectResponse
+
+
+class App:
+    def __init__(self, scope):
+        self.scope = scope
+
+    async def __call__(self, receive, send):
+        if self.scope['path'] != '/':
+            response = RedirectResponse(url='/')
+        else:
+            response = PlainTextResponse('Hello, world!')
+        await response(receive, send)
+```
+
 ### StreamingResponse
 
 Takes an async generator and streams the response body.
 
 ```python
-from starlette import Request, StreamingResponse
+from starlette.request import Request
+from starlette.response import StreamingResponse
 import asyncio
 
 
@@ -191,7 +220,7 @@ Takes a different set of arguments to instantiate than the other response types:
 File responses will include appropriate `Content-Length`, `Last-Modified` and `ETag` headers.
 
 ```python
-from starlette import FileResponse
+from starlette.response import FileResponse
 
 
 class App:
@@ -598,7 +627,8 @@ The test client allows you to make requests against your ASGI application,
 using the `requests` library.
 
 ```python
-from starlette import HTMLResponse, TestClient
+from starlette.response import HTMLResponse
+from starlette.testclient import TestClient
 
 
 class App:
@@ -646,7 +676,7 @@ class App:
 
 def test_app():
     client = TestClient(App)
-    with client.wsconnect('/') as session:
+    with client.websocket_connect('/') as session:
         data = session.receive_text()
         assert data == 'Hello, world!'
 ```
@@ -660,9 +690,15 @@ always raised by the test client.
 
 #### Establishing a test session
 
-* `.wsconnect(url, subprotocols=None, **options)` - Takes the same set of arguments as `requests.get()`.
+* `.websocket_connect(url, subprotocols=None, **options)` - Takes the same set of arguments as `requests.get()`.
 
 May raise `starlette.websockets.Disconnect` if the application does not accept the websocket connection.
+
+#### Sending data
+
+* `.send_text(data)` - Send the given text to the application.
+* `.send_bytes(data)` - Send the given bytes to the application.
+* `.send_json(data)` - Send the given data to the application.
 
 #### Receiving data
 
@@ -699,24 +735,47 @@ app = DebugMiddleware(App)
 
 ---
 
-## Decorators
+## Applications
 
-The `asgi_application` decorator takes a request/response function and turns
-it into an ASGI application.
-
-The function must take a single `request` argument, and return a response.
-
-The decorator can be applied to either `async` functions, or to standard
-functions.
+Starlette also includes an `App` class that nicely ties together all of
+its other functionality.
 
 ```python
-from starlette import asgi_application, HTMLResponse
+from starlette.app import App
+from starlette.response import PlainTextResponse
+from starlette.staticfiles import StaticFiles
 
 
-@asgi_application
-async def app(request):
-    return HTMLResponse('<html><body>Hello, world!</body></html>')
+app = App()
+app.mount("/static", StaticFiles(directory="static"))
+
+
+@app.route('/')
+def homepage(request):
+    return PlainTextResponse('Hello, world!')
+
+
+@app.route('/user/{username}')
+def user(request, username):
+    return PlainTextResponse('Hello, %s!' % username)
+
+
+@app.websocket_route('/ws')
+async def websocket_endpoint(session):
+    await session.accept()
+    await session.send_text('Hello, websocket!')
+    await session.close()
 ```
+
+### Adding routes to the application
+
+You can use any of the following to add handled routes to the application:
+
+* `.add_route(path, func, methods=["GET"])` - Add an HTTP route. The function may be either a coroutine or a regular function, with a signature like `func(request **kwargs) -> response`.
+* `.add_websocket_route(path, func)` - Add a websocket session route. The function must be a coroutine, with a signature like `func(session, **kwargs)`.
+* `.mount(prefix, app)` - Include an ASGI app, mounted under the given path prefix
+* `.route(path)` - Add an HTTP route, decorator style.
+* `.websocket_route(path)` - Add a WebSocket route, decorator style.
 
 ---
 

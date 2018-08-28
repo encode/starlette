@@ -4,6 +4,7 @@ from mimetypes import guess_type
 from starlette.datastructures import MutableHeaders
 from starlette.types import Receive, Send
 from starlette.utils import encode_json
+from urllib.parse import quote_plus
 import aiofiles
 import hashlib
 import os
@@ -89,6 +90,12 @@ class JSONResponse(Response):
 
     def render(self, content: typing.Any) -> bytes:
         return encode_json(content).encode("utf-8")
+
+
+class RedirectResponse(Response):
+    def __init__(self, url: str, status_code: int = 302, headers: dict = None) -> None:
+        super().__init__(content=b"", status_code=status_code, headers=headers)
+        self.headers["location"] = quote_plus(url, safe=":/#?&=@[]!$&'()*+,;")
 
 
 class StreamingResponse(Response):
