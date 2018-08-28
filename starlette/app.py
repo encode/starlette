@@ -48,11 +48,13 @@ class App:
     def route(self, path: str):
         def decorator(func):
             self.add_route(path, func)
+
         return decorator
 
     def websocket_route(self, path: str):
         def decorator(func):
             self.add_websocket_route(path, func)
+
         return decorator
 
     def __call__(self, scope: Scope) -> ASGIInstance:
