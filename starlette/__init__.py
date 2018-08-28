@@ -9,7 +9,7 @@ from starlette.response import (
 )
 from starlette.request import Request
 from starlette.testclient import TestClient
-import status
+import starlette.status
 
 
 __all__ = (
