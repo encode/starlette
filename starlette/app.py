@@ -11,7 +11,7 @@ def request_response(func):
     def app(scope: Scope) -> ASGIInstance:
         async def awaitable(receive: Receive, send: Send) -> None:
             request = Request(scope, receive=receive)
-            kwargs = scope.get('kwargs', {})
+            kwargs = scope.get("kwargs", {})
             if is_coroutine:
                 response = await func(request, **kwargs)
             else:
@@ -27,7 +27,7 @@ def websocket_session(func):
     def app(scope: Scope) -> ASGIInstance:
         async def awaitable(receive: Receive, send: Send) -> None:
             session = WebSocketSession(scope, receive=receive, send=send)
-            kwargs = scope.get('kwargs', {})
+            kwargs = scope.get("kwargs", {})
             await func(session, **kwargs)
 
         return awaitable
