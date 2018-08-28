@@ -81,6 +81,12 @@ class Router:
         return self.not_found(scope)
 
     def not_found(self, scope: Scope) -> ASGIInstance:
+        if scope["type"] == "websocket":
+
+            async def close(receive, send):
+                await send({"type": "websocket.close"})
+
+            return close
         return Response("Not found", 404, media_type="text/plain")
 
 
