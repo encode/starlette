@@ -9,6 +9,7 @@ from starlette.response import (
 )
 from starlette.request import Request
 from starlette.testclient import TestClient
+import status
 
 
 __all__ = (
@@ -21,5 +22,6 @@ __all__ = (
     "StreamingResponse",
     "Request",
     "TestClient",
+    "status",
 )
 __version__ = "0.1.17"
