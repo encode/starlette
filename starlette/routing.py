@@ -1,4 +1,4 @@
-from starlette import Response
+from starlette.response import Response
 from starlette.types import Scope, ASGIApp, ASGIInstance
 import re
 import typing
