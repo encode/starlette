@@ -7,6 +7,7 @@ import os
 
 app = App()
 
+
 @app.route("/func")
 def func_homepage(request):
     return PlainTextResponse("Hello, world!")
@@ -67,7 +68,7 @@ def test_app_mount(tmpdir):
         file.write("<file content>")
 
     app = App()
-    app.mount('/static', StaticFiles(directory=tmpdir))
+    app.mount("/static", StaticFiles(directory=tmpdir))
     client = TestClient(app)
     response = client.get("/static/example.txt")
     assert response.status_code == 200
