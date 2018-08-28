@@ -9,6 +9,7 @@ from starlette.response import (
     StreamingResponse,
 )
 from starlette.request import Request
+from starlette.websocket import WebSocket
 from starlette.testclient import TestClient
 
 

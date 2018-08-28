@@ -3,12 +3,11 @@ from email.utils import formatdate
 from mimetypes import guess_type
 from starlette.datastructures import MutableHeaders
 from starlette.types import Receive, Send
+from starlette.utils import encode_json
 from urllib.parse import quote_plus
 import aiofiles
-import json
 import hashlib
 import os
-import stat
 import typing
 
 
@@ -88,15 +87,9 @@ class PlainTextResponse(Response):
 
 class JSONResponse(Response):
     media_type = "application/json"
-    options = {
-        "ensure_ascii": False,
-        "allow_nan": False,
-        "indent": None,
-        "separators": (",", ":"),
-    }  # type: typing.Dict[str, typing.Any]
 
     def render(self, content: typing.Any) -> bytes:
-        return json.dumps(content, **self.options).encode("utf-8")
+        return encode_json(content).encode("utf-8")
 
 
 class RedirectResponse(Response):

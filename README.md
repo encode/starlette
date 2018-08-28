@@ -316,6 +316,117 @@ If you access `.stream()` then the byte chunks are provided without storing
 the entire body to memory. Any subsequent calls to `.body()` and `.json()` will
 raise an error.
 
+
+---
+
+## WebSocket
+
+Signature: `WebSocket(scope, recieve, send)`
+
+```python
+from starlette import WebSocket
+
+
+class App:
+    def __init__(self, scope):
+        self.scope = scope
+
+    async def __call__(self, receive, send):
+        ws = WebSocket(self.scope, receive, send)
+
+        # Accept the connection
+        await ws.connect()
+
+        # Recive data
+        name = await ws.receive()
+
+        # Send text
+        await ws.send('hello %s!' % name)
+
+        # Send bytes
+        await ws.send(b'hello world!')
+
+        # Send JSON (as text)
+        await ws.send_json({'data': 'hello world!', 'name': name})
+
+        # Close the socket
+        await ws.close()
+```
+
+Starlette includes a `WebSocket` class that gives you an interface
+to incoming websocket connections, rather than accessing the ASGI scope, receive and send channels directly.
+
+#### Request
+
+The originating HTTP upgrade `Request` is accessed as `websocket.request`.
+
+#### Subprotocols
+
+The requested subprotocols parsed into a list are accessed as `websocket.Subprotocols`
+
+#### State
+
+The `WebSocket`'s state can be queried with the boolean attributes:  
+`websocket.connected`  
+`websocket.connecting`  
+`websocket.closed`  
+
+#### Connect
+Signature: `websocket.connect(subprotocol=None, close=False, close_code=status.WS_1000_OK)`
+
+Accept or reject an incoming WebSocket connection.  
+Use `websocket.connect()` to accept a WebSocket connection request and set accepted
+subprotocols(optional). You can easily reject a connection request using the `close=True` parameter
+and send a specific close code with the `close_code` parameter.
+
+#### Receive
+Signature: `websocket.receive()`
+
+Retreives the next WebSocket message. The result will be a string or byte array.
+
+#### Receive_json
+Signature: `websocket.receive(loads=None)`
+
+Retreives the next WebSocket message and parses it as JSON. The result will be the parsed JSON as
+native types.  
+A user provided JSON parser function can provided with the `loads` parameter.
+
+#### Send
+Signature: `websocket.send(data)`
+
+Send a WebSocket message. Accepted data types are `str` or `bytes`.
+
+#### Send_json
+Signature: `websocket.send_json(data, dumps=None, **kwargs)`
+
+Send Python data as a WebSocket message encoded as a JSON string. This will create a `str` websocket message.  
+A user provided JSON dump function can be provided with the `dumps` parameter and all extra
+`**kwargs` will be passed to the `dumps` function.
+
+#### Close
+Signature: `websocket.close(code=status.WS_1000_OK)`
+
+Close the WebSocket and optionally specifiy a status code, default is WS_1000_OK, to send with the
+close message.
+
+
+#### Status Codes
+
+Status codes are available in the `status` object int the `websocket` module:  
+
+```python
+from starlette.websocket import status
+# Available status codes:
+status.WS_1000_OK
+status.WS_1001_LEAVING
+status.WS_1002_PROTOCOL_ERROR
+status.WS_1003_UNSUPPORTED_TYPE
+status.WS_1007_INALID_DATA
+status.WS_1008_POLICY_VIOLATION
+status.WS_1009_TOO_BIG
+status.WS_1010_TLS_FAIL
+```
+
 ---
 
 ## WebSockets

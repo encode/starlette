@@ -1,12 +1,8 @@
 from starlette.datastructures import URL, Headers, QueryParams
+from starlette.exceptions import ClientDisconnect
 from collections.abc import Mapping
 from urllib.parse import unquote
 import json
-import typing
-
-
-class ClientDisconnect(Exception):
-    pass
 
 
 class Request(Mapping):
