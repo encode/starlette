@@ -16,6 +16,11 @@ async def async_homepage(request):
     return PlainTextResponse("Hello, world!")
 
 
+@app.route("/user/{username}")
+def user_page(request, username):
+    return PlainTextResponse("Hello, %s!" % username)
+
+
 @app.websocket_route("/ws")
 async def websocket_endpoint(session):
     await session.accept()
@@ -36,6 +41,12 @@ def test_async_route():
     response = client.get("/async")
     assert response.status_code == 200
     assert response.text == "Hello, world!"
+
+
+def test_route_kwargs():
+    response = client.get("/user/tomchristie")
+    assert response.status_code == 200
+    assert response.text == "Hello, tomchristie!"
 
 
 def test_websocket_route():
