@@ -1,5 +1,5 @@
 from starlette.request import Request
-from starlette.routing import Router, Path
+from starlette.routing import Path, ProtocolRouter, Router
 from starlette.types import ASGIInstance, Receive, Scope, Send
 from starlette.websockets import WebSocketSession
 import asyncio
@@ -37,15 +37,19 @@ def websocket_session(func):
 
 class App:
     def __init__(self) -> None:
-        self.router = Router(routes=[])
+        self.http_router = Router(routes=[])
+        self.websocket_router = Router(routes=[])
+        self.router = ProtocolRouter(
+            {"http": self.http_router, "websocket": self.websocket_router}
+        )
 
     def add_route(self, path: str, route) -> None:
         instance = Path(path, request_response(route))
-        self.router.routes.append(instance)
+        self.http_router.routes.append(instance)
 
     def add_websocket_route(self, path: str, route) -> None:
         instance = Path(path, websocket_session(route))
-        self.router.routes.append(instance)
+        self.websocket_router.routes.append(instance)
 
     def route(self, path: str):
         def decorator(func):
