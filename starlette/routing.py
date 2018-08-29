@@ -75,9 +75,7 @@ class PathPrefix(Route):
 
 
 class Router:
-    def __init__(
-        self, routes: typing.List[Route] = [], default: ASGIApp = None
-    ) -> None:
+    def __init__(self, routes: typing.List[Route], default: ASGIApp = None) -> None:
         self.routes = routes
         self.default = self.not_found if default is None else default
 
@@ -87,12 +85,6 @@ class Router:
             if matched:
                 return route(child_scope)
         return self.not_found(scope)
-
-    def add_route(
-        self, path: str, *, app: ASGIApp, methods: typing.Sequence[str] = ()
-    ) -> None:
-        route = Path(path=path, app=app, methods=methods)
-        self.routes.append(route)
 
     def not_found(self, scope: Scope) -> ASGIInstance:
         if scope["type"] == "websocket":
