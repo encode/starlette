@@ -1,21 +1,22 @@
 from starlette.request import Request
-from starlette.response import Response
-from starlette.types import ASGIApp, ASGIInstance, Receive, Send, Scope
+from starlette.response import Response, PlainTextResponse
+from starlette.types import Receive, Send, Scope
 
 
 class View:
-    def __call__(self, scope: Scope, **kwargs) -> ASGIApp:
-        return self.dispatch(scope, **kwargs)
+    def __init__(self, scope: Scope):
+        self.scope = scope
 
-    def dispatch(self, scope: Scope, **kwargs) -> ASGIInstance:
-        request_method = scope["method"] if scope["method"] != "HEAD" else "GET"
-        func = getattr(self, request_method.lower(), None)
-        if func is None:
-            return Response("Not found", 404, media_type="text/plain")
+    async def __call__(self, receive: Receive, send: Send):
+        request = Request(self.scope, receive=receive)
+        kwargs = self.scope.get("kwargs", {})
+        response = await self.dispatch(request, **kwargs)
+        await response(receive, send)
 
-        async def awaitable(receive: Receive, send: Send) -> None:
-            request = Request(scope, receive)
-            response = await func(request, **kwargs)
-            await response(receive, send)
+    async def dispatch(self, request: Request, **kwargs) -> Response:
+        handler_name = "get" if request.method == "HEAD" else request.method.lower()
+        handler = getattr(self, handler_name, self.method_not_allowed)
+        return await handler(request, **kwargs)
 
-        return awaitable
+    async def method_not_allowed(self, request: Request, **kwargs) -> Response:
+        return PlainTextResponse("Method not allowed", 406)
