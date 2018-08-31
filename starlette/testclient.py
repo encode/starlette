@@ -35,8 +35,9 @@ class _Upgrade(Exception):
 
 
 class _ASGIAdapter(requests.adapters.HTTPAdapter):
-    def __init__(self, app: typing.Callable) -> None:
+    def __init__(self, app: typing.Callable, raise_exceptions=True) -> None:
         self.app = app
+        self.raise_exceptions = raise_exceptions
 
     def send(self, request, *args, **kwargs):
         scheme, netloc, path, params, query, fragement = urlparse(request.url)
@@ -105,6 +106,8 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             return {"type": "http.request", "body": body_bytes}
 
         async def send(message):
+            nonlocal raw_kwargs, seen_response
+
             if message["type"] == "http.response.start":
                 raw_kwargs["version"] = 11
                 raw_kwargs["status"] = message["status"]
@@ -121,12 +124,19 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 raw_kwargs["body"].write(body)
                 if not more_body:
                     raw_kwargs["body"].seek(0)
+                    seen_response = True
 
+        seen_response = False
         raw_kwargs = {"body": io.BytesIO()}
-        connection = self.app(scope)
 
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(connection(receive, send))
+
+        try:
+            connection = self.app(scope)
+            loop.run_until_complete(connection(receive, send))
+        except BaseException as exc:
+            if self.raise_exceptions or not seen_response:
+                raise exc from None
 
         raw = requests.packages.urllib3.HTTPResponse(**raw_kwargs)
         return self.build_response(request, raw)
@@ -218,9 +228,9 @@ class WebSocketTestSession:
 
 
 class _TestClient(requests.Session):
-    def __init__(self, app: typing.Callable, base_url: str) -> None:
+    def __init__(self, app: typing.Callable, base_url: str, raise_exceptions=True) -> None:
         super(_TestClient, self).__init__()
-        adapter = _ASGIAdapter(app)
+        adapter = _ASGIAdapter(app, raise_exceptions=raise_exceptions)
         self.mount("http://", adapter)
         self.mount("https://", adapter)
         self.mount("ws://", adapter)
@@ -250,10 +260,10 @@ class _TestClient(requests.Session):
 
 
 def TestClient(
-    app: typing.Callable, base_url: str = "http://testserver"
+    app: typing.Callable, base_url: str = "http://testserver", raise_exceptions=True
 ) -> _TestClient:
     """
     We have to work around py.test discovery attempting to pick up
     the `TestClient` class, by declaring this as a function.
     """
-    return _TestClient(app, base_url)
+    return _TestClient(app, base_url, raise_exceptions=raise_exceptions)
