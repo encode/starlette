@@ -19,7 +19,7 @@ class ExceptionMiddleware:
         self.handlers.setdefault(HTTPException, self.http_exception)
 
     def __call__(self, scope):
-        if scope['type'] != 'http':
+        if scope["type"] != "http":
             return self.app(scope)
 
         async def app(receive, send):
@@ -40,6 +40,7 @@ class ExceptionMiddleware:
                 response = await self.error_handler(request, exc)
                 await response(receive, send)
                 raise
+
         return app
 
     async def http_exception(self, request, exc):

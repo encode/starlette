@@ -228,7 +228,9 @@ class WebSocketTestSession:
 
 
 class _TestClient(requests.Session):
-    def __init__(self, app: typing.Callable, base_url: str, raise_exceptions=True) -> None:
+    def __init__(
+        self, app: typing.Callable, base_url: str, raise_exceptions=True
+    ) -> None:
         super(_TestClient, self).__init__()
         adapter = _ASGIAdapter(app, raise_exceptions=raise_exceptions)
         self.mount("http://", adapter)
