@@ -45,7 +45,7 @@ def websocket_session(func):
     return app
 
 
-class App:
+class Starlette:
     def __init__(self, debug=False) -> None:
         self.router = Router(routes=[])
         self.exception_middleware = ExceptionMiddleware(self.router, debug=debug)

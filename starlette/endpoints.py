@@ -5,7 +5,7 @@ from starlette.types import Receive, Send, Scope
 import asyncio
 
 
-class View:
+class HTTPEndpoint:
     def __init__(self, scope: Scope):
         self.scope = scope
 

@@ -1,13 +1,13 @@
-Starlette also includes an `App` class that nicely ties together all of
+Starlette also includes an app class `Starlette` that nicely ties together all of
 its other functionality.
 
 ```python
-from starlette.app import App
+from starlette.app import Starlette
 from starlette.response import PlainTextResponse
 from starlette.staticfiles import StaticFiles
 
 
-app = App()
+app = Starlette()
 app.debug = True
 app.mount("/static", StaticFiles(directory="static"))
 
