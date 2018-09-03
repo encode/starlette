@@ -19,10 +19,20 @@ def raise_http_exception(scope):
     return asgi
 
 
+def handled_exc_after_response(scope):
+    async def asgi(receive, send):
+        response = PlainTextResponse("OK", status_code=200)
+        await response(receive, send)
+        raise HTTPException(406)
+
+    return asgi
+
+
 app = Router(
     routes=[
         Path("/runtime_error", app=raise_runtime_error),
         Path("/not_acceptable", app=raise_http_exception),
+        Path("/handled_exc_after_response", app=handled_exc_after_response),
     ]
 )
 
@@ -46,3 +56,13 @@ def test_not_acceptable():
 def test_websockets_should_raise():
     with pytest.raises(RuntimeError):
         client.websocket_connect("/runtime_error")
+
+
+def test_handled_exc_after_response():
+    response = client.get("/handled_exc_after_response")
+    assert response.status_code == 200
+    assert response.text == "OK"
+
+    raising_client = TestClient(app)
+    with pytest.raises(RuntimeError):
+        raising_client.get("/handled_exc_after_response")

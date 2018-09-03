@@ -25,33 +25,62 @@ class ExceptionMiddleware:
     def add_handler(self, exc_class, handler):
         self.handlers[exc_class] = handler
 
+    def lookup_handler(self, exc):
+        for cls, handler in self.handlers.items():
+            if isinstance(exc, cls):
+                return handler
+        return None
+
     def __call__(self, scope):
         if scope["type"] != "http":
             return self.app(scope)
 
         async def app(receive, send):
+            response_started = False
+
+            async def sender(message):
+                nonlocal response_started
+
+                if message["type"] == "http.response.start":
+                    response_started = True
+                await send(message)
+
             try:
                 try:
                     instance = self.app(scope)
-                    await instance(receive, send)
+                    await instance(receive, sender)
                 except BaseException as exc:
+                    # Exception handling is applied to any registed exception
+                    # class or subclass that occurs within the application.
+                    handler = self.lookup_handler(exc)
+                    if handler is None:
+                        # Any unhandled cases get raised to the error handler.
+                        raise exc from None
+
+                    if response_started:
+                        msg = "Caught handled exception, but response already started."
+                        raise RuntimeError(msg) from exc
+
                     request = Request(scope, receive=receive)
-                    for cls, handler in self.handlers.items():
-                        if isinstance(exc, cls):
-                            if asyncio.iscoroutinefunction(handler):
-                                response = await handler(request, exc)
-                            else:
-                                response = handler(request, exc)
-                            await response(receive, send)
-                            return
-                    raise exc from None
+                    if asyncio.iscoroutinefunction(handler):
+                        response = await handler(request, exc)
+                    else:
+                        response = handler(request, exc)
+                    await response(receive, sender)
+
             except BaseException as exc:
+                # Error handling is applied to any unhandled exceptions occuring
+                # within either the application or within the exception handlers.
                 request = Request(scope, receive=receive)
-                if asyncio.iscoroutinefunction(handler):
+                if asyncio.iscoroutinefunction(self.error_handler):
                     response = await self.error_handler(request, exc)
                 else:
                     response = self.error_handler(request, exc)
-                await response(receive, send)
+                if not response_started:
+                    await response(receive, send)
+                # We always raise the exception up to the server so that it
+                # is notified too. Typically this will mean that it'll log
+                # the exception.
                 raise
 
         return app
