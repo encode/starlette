@@ -13,21 +13,21 @@ class HTTPException(Exception):
 
 
 class ExceptionMiddleware:
-    def __init__(self, app, handlers=None, error_handler=None):
+    def __init__(self, app, exception_handlers=None, error_handler=None):
         self.app = app
-        self.handlers = handlers or {}
+        self.exception_handlers = exception_handlers or {}
+        self.exception_handlers.setdefault(HTTPException, self.http_exception)
         self.error_handler = error_handler or self.server_error
-        self.handlers.setdefault(HTTPException, self.http_exception)
 
     def set_error_handler(self, handler):
         self.error_handler = handler
 
     def add_exception_handler(self, exc_class, handler):
-        self.handlers[exc_class] = handler
+        self.exception_handlers[exc_class] = handler
 
     def lookup_exception_handler(self, exc):
         for cls in type(exc).__mro__:
-            handler = self.handlers.get(cls)
+            handler = self.exception_handlers.get(cls)
             if handler is not None:
                 return handler
         return None
