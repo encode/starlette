@@ -10,7 +10,7 @@ import os
 app = App()
 
 
-@app.error_handler()
+@app.exception_handler(Exception)
 async def error_500(request, exc):
     return JSONResponse({"detail": "Server Error"}, status_code=500)
 

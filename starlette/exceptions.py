@@ -13,24 +13,22 @@ class HTTPException(Exception):
 
 
 class ExceptionMiddleware:
-    def __init__(self, app, exception_handlers=None, error_handler=None):
+    def __init__(self, app):
         self.app = app
-        self.exception_handlers = exception_handlers or {}
-        self.exception_handlers.setdefault(HTTPException, self.http_exception)
-        self.error_handler = error_handler or self.server_error
-
-    def set_error_handler(self, handler):
-        self.error_handler = handler
+        self._exception_handlers = {
+            Exception: self.server_error,
+            HTTPException: self.http_exception,
+        }
 
     def add_exception_handler(self, exc_class, handler):
-        self.exception_handlers[exc_class] = handler
+        assert issubclass(exc_class, Exception)
+        self._exception_handlers[exc_class] = handler
 
-    def lookup_exception_handler(self, exc):
+    def _lookup_exception_handler(self, exc):
         for cls in type(exc).__mro__:
-            handler = self.exception_handlers.get(cls)
+            handler = self._exception_handlers.get(cls)
             if handler is not None:
-                return handler
-        return None
+                return handler, cls
 
     def __call__(self, scope):
         if scope["type"] != "http":
@@ -53,9 +51,10 @@ class ExceptionMiddleware:
                 except BaseException as exc:
                     # Exception handling is applied to any registed exception
                     # class or subclass that occurs within the application.
-                    handler = self.lookup_exception_handler(exc)
-                    if handler is None:
-                        # Any unhandled cases get raised to the error handler.
+                    handler, cls = self._lookup_exception_handler(exc)
+
+                    # Note that we always handle `Exception` in the outermost block.
+                    if cls is Exception:
                         raise exc from None
 
                     if response_started:
@@ -69,16 +68,18 @@ class ExceptionMiddleware:
                         response = handler(request, exc)
                     await response(receive, sender)
 
-            except BaseException as exc:
-                # Error handling is applied to any unhandled exceptions occuring
-                # within either the application or within the exception handlers.
+            except Exception as exc:
+                # The 'Exception' case always wraps everything else, and
+                # provides a last-ditch handler for dealing with server errors.
+                handler = self._exception_handlers[Exception]
                 request = Request(scope, receive=receive)
-                if asyncio.iscoroutinefunction(self.error_handler):
-                    response = await self.error_handler(request, exc)
+                if asyncio.iscoroutinefunction(handler):
+                    response = await handler(request, exc)
                 else:
-                    response = self.error_handler(request, exc)
+                    response = handler(request, exc)
                 if not response_started:
                     await response(receive, send)
+
                 # We always raise the exception up to the server so that it
                 # is notified too. Typically this will mean that it'll log
                 # the exception.

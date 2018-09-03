@@ -54,9 +54,6 @@ class App:
         prefix = PathPrefix(path, app=app, methods=methods)
         self.router.routes.append(prefix)
 
-    def set_error_handler(self, handler) -> None:
-        self.exception_middleware.set_error_handler(handler)
-
     def add_exception_handler(self, exc_class: type, handler) -> None:
         self.exception_middleware.add_exception_handler(exc_class, handler)
 
@@ -75,13 +72,6 @@ class App:
 
         instance = Path(path, route, protocol="websocket")
         self.router.routes.append(instance)
-
-    def error_handler(self):
-        def decorator(func):
-            self.set_error_handler(func)
-            return func
-
-        return decorator
 
     def exception_handler(self, exc_class: type):
         def decorator(func):
