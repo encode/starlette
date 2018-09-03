@@ -38,11 +38,15 @@ app = Router(
 
 
 app = ExceptionMiddleware(app)
-client = TestClient(app, raise_exceptions=False)
+client = TestClient(app)
 
 
 def test_server_error():
-    response = client.get("/runtime_error")
+    with pytest.raises(RuntimeError):
+        response = client.get("/runtime_error")
+
+    allow_500_client = TestClient(app, raise_exceptions=False)
+    response = allow_500_client.get("/runtime_error")
     assert response.status_code == 500
     assert response.text == "Server Error"
 
@@ -59,10 +63,10 @@ def test_websockets_should_raise():
 
 
 def test_handled_exc_after_response():
-    response = client.get("/handled_exc_after_response")
+    with pytest.raises(RuntimeError):
+        client.get("/handled_exc_after_response")
+
+    allow_200_client = TestClient(app, raise_exceptions=False)
+    response = allow_200_client.get("/handled_exc_after_response")
     assert response.status_code == 200
     assert response.text == "OK"
-
-    raising_client = TestClient(app)
-    with pytest.raises(RuntimeError):
-        raising_client.get("/handled_exc_after_response")
