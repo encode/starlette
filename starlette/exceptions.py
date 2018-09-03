@@ -22,12 +22,13 @@ class ExceptionMiddleware:
     def set_error_handler(self, handler):
         self.error_handler = handler
 
-    def add_handler(self, exc_class, handler):
+    def add_exception_handler(self, exc_class, handler):
         self.handlers[exc_class] = handler
 
-    def lookup_handler(self, exc):
-        for cls, handler in self.handlers.items():
-            if isinstance(exc, cls):
+    def lookup_exception_handler(self, exc):
+        for cls in type(exc).__mro__:
+            handler = self.handlers.get(cls)
+            if handler is not None:
                 return handler
         return None
 
@@ -52,7 +53,7 @@ class ExceptionMiddleware:
                 except BaseException as exc:
                     # Exception handling is applied to any registed exception
                     # class or subclass that occurs within the application.
-                    handler = self.lookup_handler(exc)
+                    handler = self.lookup_exception_handler(exc)
                     if handler is None:
                         # Any unhandled cases get raised to the error handler.
                         raise exc from None

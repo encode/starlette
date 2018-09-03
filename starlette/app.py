@@ -58,7 +58,7 @@ class App:
         self.exception_middleware.set_error_handler(handler)
 
     def add_exception_handler(self, exc_class: type, handler) -> None:
-        self.exception_middleware.add_handler(exc_class, handler)
+        self.exception_middleware.add_exception_handler(exc_class, handler)
 
     def add_route(self, path: str, route, methods=None) -> None:
         if not inspect.isclass(route):
