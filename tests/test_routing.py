@@ -31,7 +31,6 @@ app = Router(
         PathPrefix("/static", app=staticfiles, methods=["GET"]),
     ]
 )
-app = ExceptionMiddleware(app)
 
 
 def test_router():

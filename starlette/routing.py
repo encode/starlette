@@ -1,5 +1,5 @@
 from starlette.exceptions import HTTPException
-from starlette.response import Response
+from starlette.response import PlainTextResponse
 from starlette.types import Scope, ASGIApp, ASGIInstance
 import re
 import typing
@@ -42,7 +42,9 @@ class Path(Route):
 
     def __call__(self, scope: Scope) -> ASGIInstance:
         if self.methods and scope["method"] not in self.methods:
-            raise HTTPException(status_code=405, detail="Method Not Allowed")
+            if "app" in scope:
+                raise HTTPException(status_code=405)
+            return PlainTextResponse("Method Not Allowed", status_code=405)
         return self.app(scope)
 
 
@@ -71,7 +73,9 @@ class PathPrefix(Route):
 
     def __call__(self, scope: Scope) -> ASGIInstance:
         if self.methods and scope["method"] not in self.methods:
-            raise HTTPException(status_code=405, detail="Method Not Allowed")
+            if "app" in scope:
+                raise HTTPException(status_code=405)
+            return PlainTextResponse("Method Not Allowed", status_code=405)
         return self.app(scope)
 
 
@@ -94,7 +98,13 @@ class Router:
                 await send({"type": "websocket.close"})
 
             return close
-        raise HTTPException(status_code=404, detail="Not Found")
+
+        # If we're running inside a starlette application then raise an
+        # exception, so that the configurable exception handler can deal with
+        # returning the response. For plain ASGI apps, just return the response.
+        if "app" in scope:
+            raise HTTPException(status_code=404)
+        return PlainTextResponse("Not Found", status_code=404)
 
 
 class ProtocolRouter:

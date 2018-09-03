@@ -3,6 +3,7 @@ from starlette.exceptions import HTTPException
 from starlette.response import JSONResponse, PlainTextResponse
 from starlette.staticfiles import StaticFiles
 from starlette.testclient import TestClient
+from starlette.views import View
 import os
 
 
@@ -29,6 +30,12 @@ async def async_homepage(request):
     return PlainTextResponse("Hello, world!")
 
 
+@app.route("/class")
+class Homepage(View):
+    def get(self, request):
+        return PlainTextResponse("Hello, world!")
+
+
 @app.route("/user/{username}")
 def user_page(request, username):
     return PlainTextResponse("Hello, %s!" % username)
@@ -46,7 +53,7 @@ async def websocket_endpoint(session):
     await session.close()
 
 
-client = TestClient(app, raise_exceptions=False)
+client = TestClient(app)
 
 
 def test_func_route():
@@ -57,6 +64,12 @@ def test_func_route():
 
 def test_async_route():
     response = client.get("/async")
+    assert response.status_code == 200
+    assert response.text == "Hello, world!"
+
+
+def test_class_route():
+    response = client.get("/class")
     assert response.status_code == 200
     assert response.text == "Hello, world!"
 
@@ -79,7 +92,18 @@ def test_400():
     assert response.json() == {"detail": "Not Found"}
 
 
+def test_405():
+    response = client.post("/func")
+    assert response.status_code == 405
+    assert response.json() == {"detail": "Method Not Allowed"}
+
+    response = client.post("/class")
+    assert response.status_code == 405
+    assert response.json() == {"detail": "Method Not Allowed"}
+
+
 def test_500():
+    client = TestClient(app, raise_exceptions=False)
     response = client.get("/500")
     assert response.status_code == 500
     assert response.json() == {"detail": "Server Error"}
@@ -91,8 +115,13 @@ def test_app_mount(tmpdir):
         file.write("<file content>")
 
     app = App()
-    app.mount("/static", StaticFiles(directory=tmpdir))
+    app.mount("/static", StaticFiles(directory=tmpdir), methods=["GET", "HEAD"])
     client = TestClient(app)
+
     response = client.get("/static/example.txt")
     assert response.status_code == 200
     assert response.text == "<file content>"
+
+    response = client.post("/static/example.txt")
+    assert response.status_code == 405
+    assert response.text == "Method Not Allowed"

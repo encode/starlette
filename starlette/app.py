@@ -50,8 +50,8 @@ class App:
         self.router = Router(routes=[])
         self.exception_middleware = ExceptionMiddleware(self.router)
 
-    def mount(self, path: str, app: ASGIApp):
-        prefix = PathPrefix(path, app=app)
+    def mount(self, path: str, app: ASGIApp, methods=None):
+        prefix = PathPrefix(path, app=app, methods=methods)
         self.router.routes.append(prefix)
 
     def set_error_handler(self, handler) -> None:
@@ -105,4 +105,5 @@ class App:
         return decorator
 
     def __call__(self, scope: Scope) -> ASGIInstance:
+        scope["app"] = self
         return self.exception_middleware(scope)
