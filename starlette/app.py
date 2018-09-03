@@ -1,3 +1,4 @@
+from starlette.exceptions import ExceptionMiddleware
 from starlette.request import Request
 from starlette.routing import Path, PathPrefix, Router
 from starlette.types import ASGIApp, ASGIInstance, Receive, Scope, Send
@@ -47,10 +48,17 @@ def websocket_session(func):
 class App:
     def __init__(self) -> None:
         self.router = Router(routes=[])
+        self.exception_middleware = ExceptionMiddleware(self.router)
 
     def mount(self, path: str, app: ASGIApp):
         prefix = PathPrefix(path, app=app)
         self.router.routes.append(prefix)
+
+    def set_error_handler(self, handler) -> None:
+        self.exception_middleware.set_error_handler(handler)
+
+    def add_exception_handler(self, exc_class: type, handler) -> None:
+        self.exception_middleware.add_handler(exc_class, handler)
 
     def add_route(self, path: str, route, methods=None) -> None:
         if not inspect.isclass(route):
@@ -68,6 +76,20 @@ class App:
         instance = Path(path, route, protocol="websocket")
         self.router.routes.append(instance)
 
+    def error_handler(self):
+        def decorator(func):
+            self.set_error_handler(func)
+            return func
+
+        return decorator
+
+    def exception_handler(self, exc_class: type):
+        def decorator(func):
+            self.add_exception_handler(exc_class, func)
+            return func
+
+        return decorator
+
     def route(self, path: str):
         def decorator(func):
             self.add_route(path, func)
@@ -83,4 +105,4 @@ class App:
         return decorator
 
     def __call__(self, scope: Scope) -> ASGIInstance:
-        return self.router(scope)
+        return self.exception_middleware(scope)

@@ -1,3 +1,4 @@
+from starlette.exceptions import HTTPException
 from starlette.request import Request
 from starlette.response import Response, PlainTextResponse
 from starlette.types import Receive, Send, Scope
@@ -19,4 +20,4 @@ class View:
         return await handler(request, **kwargs)
 
     async def method_not_allowed(self, request: Request, **kwargs) -> Response:
-        return PlainTextResponse("Method not allowed", 405)
+        raise HTTPException(status_code=405, detail="Method Not Allowed")

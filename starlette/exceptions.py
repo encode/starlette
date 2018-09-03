@@ -1,5 +1,6 @@
 from starlette.request import Request
 from starlette.response import PlainTextResponse
+import asyncio
 import http
 
 
@@ -18,6 +19,12 @@ class ExceptionMiddleware:
         self.error_handler = error_handler or self.server_error
         self.handlers.setdefault(HTTPException, self.http_exception)
 
+    def set_error_handler(self, handler):
+        self.error_handler = handler
+
+    def add_handler(self, exc_class, handler):
+        self.handlers[exc_class] = handler
+
     def __call__(self, scope):
         if scope["type"] != "http":
             return self.app(scope)
@@ -31,20 +38,26 @@ class ExceptionMiddleware:
                     request = Request(scope, receive=receive)
                     for cls, handler in self.handlers.items():
                         if isinstance(exc, cls):
-                            response = await handler(request, exc)
+                            if asyncio.iscoroutinefunction(handler):
+                                response = await handler(request, exc)
+                            else:
+                                response = handler(request, exc)
                             await response(receive, send)
                             return
                     raise exc from None
             except BaseException as exc:
                 request = Request(scope, receive=receive)
-                response = await self.error_handler(request, exc)
+                if asyncio.iscoroutinefunction(handler):
+                    response = await self.error_handler(request, exc)
+                else:
+                    response = self.error_handler(request, exc)
                 await response(receive, send)
                 raise
 
         return app
 
-    async def http_exception(self, request, exc):
+    def http_exception(self, request, exc):
         return PlainTextResponse(exc.detail, status_code=exc.status_code)
 
-    async def server_error(self, request, exc):
+    def server_error(self, request, exc):
         return PlainTextResponse("Server Error", status_code=500)

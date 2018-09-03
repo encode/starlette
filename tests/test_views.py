@@ -35,4 +35,4 @@ def test_route_kwargs():
 def test_route_method():
     response = client.post("/")
     assert response.status_code == 405
-    assert response.text == "Method not allowed"
+    assert response.text == "Method Not Allowed"

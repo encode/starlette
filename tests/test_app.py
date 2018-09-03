@@ -1,11 +1,22 @@
 from starlette import App
-from starlette.response import PlainTextResponse
+from starlette.exceptions import HTTPException
+from starlette.response import JSONResponse, PlainTextResponse
 from starlette.staticfiles import StaticFiles
 from starlette.testclient import TestClient
 import os
 
 
 app = App()
+
+
+@app.error_handler()
+async def error_500(request, exc):
+    return JSONResponse({"detail": "Server Error"}, status_code=500)
+
+
+@app.exception_handler(HTTPException)
+async def handler(request, exc):
+    return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
 
 
 @app.route("/func")
@@ -23,6 +34,11 @@ def user_page(request, username):
     return PlainTextResponse("Hello, %s!" % username)
 
 
+@app.route("/500")
+def func_homepage(request):
+    raise RuntimeError()
+
+
 @app.websocket_route("/ws")
 async def websocket_endpoint(session):
     await session.accept()
@@ -30,7 +46,7 @@ async def websocket_endpoint(session):
     await session.close()
 
 
-client = TestClient(app)
+client = TestClient(app, raise_exceptions=False)
 
 
 def test_func_route():
@@ -60,6 +76,13 @@ def test_websocket_route():
 def test_400():
     response = client.get("/404")
     assert response.status_code == 404
+    assert response.json() == {"detail": "Not Found"}
+
+
+def test_500():
+    response = client.get("/500")
+    assert response.status_code == 500
+    assert response.json() == {"detail": "Server Error"}
 
 
 def test_app_mount(tmpdir):

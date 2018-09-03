@@ -1,3 +1,4 @@
+from starlette.exceptions import HTTPException
 from starlette.response import Response
 from starlette.types import Scope, ASGIApp, ASGIInstance
 import re
@@ -41,7 +42,7 @@ class Path(Route):
 
     def __call__(self, scope: Scope) -> ASGIInstance:
         if self.methods and scope["method"] not in self.methods:
-            return Response("Method not allowed", 405, media_type="text/plain")
+            raise HTTPException(status_code=405, detail="Method Not Allowed")
         return self.app(scope)
 
 
@@ -70,7 +71,7 @@ class PathPrefix(Route):
 
     def __call__(self, scope: Scope) -> ASGIInstance:
         if self.methods and scope["method"] not in self.methods:
-            return Response("Method not allowed", 405, media_type="text/plain")
+            raise HTTPException(status_code=405, detail="Method Not Allowed")
         return self.app(scope)
 
 
@@ -93,7 +94,7 @@ class Router:
                 await send({"type": "websocket.close"})
 
             return close
-        return Response("Not found", 404, media_type="text/plain")
+        raise HTTPException(status_code=404, detail="Not Found")
 
 
 class ProtocolRouter:
