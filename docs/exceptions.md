@@ -10,7 +10,7 @@ from starlette.exceptions import ExceptionMiddleware, HTTPException
 
 class App:
     def __init__(self, scope):
-        raise HTTPException(403)
+        raise HTTPException(status_code=403)
 
 
 app = ExceptionMiddleware(App)
@@ -31,7 +31,7 @@ from starlette.response import JSONResponse
 
 class App:
     def __init__(self, scope):
-        raise HTTPException(403)
+        raise HTTPException(status_code=403)
 
 
 def handler(request, exc):
