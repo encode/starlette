@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://www.starlette.io/"><img width="320" height="192" src="https://raw.githubusercontent.com/encode/starlette/master/docs/starlette.png" alt='starlette'></a>
+  <img width="320" height="192" src="https://raw.githubusercontent.com/encode/starlette/master/docs/starlette.png" alt='starlette'>
 </p>
 <p align="center">
     <em>✨ The little ASGI library that shines. ✨</em>
@@ -18,9 +18,8 @@
 
 ---
 
-**Documentation**: [https://www.starlette.io/](https://www.starlette.io/)
 
----
+# Introduction
 
 Starlette is a small library for working with [ASGI](https://asgi.readthedocs.io/en/latest/).
 

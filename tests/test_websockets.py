@@ -15,7 +15,7 @@ def test_session_url():
         return asgi
 
     client = TestClient(app)
-    with client.wsconnect("/123?a=abc") as session:
+    with client.websocket_connect("/123?a=abc") as session:
         data = session.receive_json()
         assert data == {"url": "ws://testserver/123?a=abc"}
 
@@ -32,7 +32,7 @@ def test_session_query_params():
         return asgi
 
     client = TestClient(app)
-    with client.wsconnect("/?a=abc&b=456") as session:
+    with client.websocket_connect("/?a=abc&b=456") as session:
         data = session.receive_json()
         assert data == {"params": {"a": "abc", "b": "456"}}
 
@@ -49,7 +49,7 @@ def test_session_headers():
         return asgi
 
     client = TestClient(app)
-    with client.wsconnect("/") as session:
+    with client.websocket_connect("/") as session:
         expected_headers = {
             "accept": "*/*",
             "accept-encoding": "gzip, deflate",
@@ -74,7 +74,7 @@ def test_session_port():
         return asgi
 
     client = TestClient(app)
-    with client.wsconnect("ws://example.com:123/123?a=abc") as session:
+    with client.websocket_connect("ws://example.com:123/123?a=abc") as session:
         data = session.receive_json()
         assert data == {"port": 123}
 
@@ -91,7 +91,7 @@ def test_session_send_and_receive_text():
         return asgi
 
     client = TestClient(app)
-    with client.wsconnect("/") as session:
+    with client.websocket_connect("/") as session:
         session.send_text("Hello, world!")
         data = session.receive_text()
         assert data == "Message was: Hello, world!"
@@ -109,7 +109,7 @@ def test_session_send_and_receive_bytes():
         return asgi
 
     client = TestClient(app)
-    with client.wsconnect("/") as session:
+    with client.websocket_connect("/") as session:
         session.send_bytes(b"Hello, world!")
         data = session.receive_bytes()
         assert data == b"Message was: Hello, world!"
@@ -127,7 +127,7 @@ def test_session_send_and_receive_json():
         return asgi
 
     client = TestClient(app)
-    with client.wsconnect("/") as session:
+    with client.websocket_connect("/") as session:
         session.send_json({"hello": "world"})
         data = session.receive_json()
         assert data == {"message": {"hello": "world"}}
@@ -164,7 +164,7 @@ def test_application_close():
         return asgi
 
     client = TestClient(app)
-    with client.wsconnect("/") as session:
+    with client.websocket_connect("/") as session:
         with pytest.raises(WebSocketDisconnect) as exc:
             session.receive_text()
         assert exc.value.code == status.WS_1001_LEAVING
@@ -195,7 +195,7 @@ def test_subprotocol():
         return asgi
 
     client = TestClient(app)
-    with client.wsconnect("/", subprotocols=["soap", "wamp"]) as session:
+    with client.websocket_connect("/", subprotocols=["soap", "wamp"]) as session:
         assert session.accepted_subprotocol == "wamp"
 
 
@@ -208,7 +208,7 @@ def test_session_exception():
 
     client = TestClient(app)
     with pytest.raises(AssertionError):
-        client.wsconnect("/123?a=abc")
+        client.websocket_connect("/123?a=abc")
 
 
 def test_duplicate_close():
@@ -223,7 +223,7 @@ def test_duplicate_close():
 
     client = TestClient(app)
     with pytest.raises(RuntimeError):
-        with client.wsconnect("/") as session:
+        with client.websocket_connect("/") as session:
             pass
 
 
@@ -240,7 +240,7 @@ def test_duplicate_disconnect():
 
     client = TestClient(app)
     with pytest.raises(RuntimeError):
-        with client.wsconnect("/") as session:
+        with client.websocket_connect("/") as session:
             session.close()
 
 

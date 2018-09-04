@@ -1,0 +1,26 @@
+site_name: Starlette
+site_description: The little ASGI library that shines.
+
+theme:
+    name: 'material'
+
+repo_name: encode/starlette
+repo_url: https://github.com/encode/starlette
+edit_uri: ""
+
+nav:
+    - Introduction: 'index.md'
+    - Responses: 'responses.md'
+    - Requests: 'requests.md'
+    - WebSockets: 'websockets.md'
+    - Routing: 'routing.md'
+    - Exceptions: 'exceptions.md'
+    - Static Files: 'staticfiles.md'
+    - Applications: 'applications.md'
+    - Test Client: 'test_client.md'
+    - Debugging: 'debugging.md'
+    - Views: 'views.md'
+
+markdown_extensions:
+  - markdown.extensions.codehilite:
+      guess_lang: false

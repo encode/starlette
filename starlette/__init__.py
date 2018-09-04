@@ -1,3 +1,4 @@
+from starlette.app import App
 from starlette.response import (
     FileResponse,
     HTMLResponse,
@@ -13,6 +14,7 @@ import starlette.status
 
 
 __all__ = (
+    "App",
     "FileResponse",
     "HTMLResponse",
     "JSONResponse",
@@ -24,4 +26,4 @@ __all__ = (
     "TestClient",
     "status",
 )
-__version__ = "0.1.17"
+__version__ = "0.2.3"
