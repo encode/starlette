@@ -125,3 +125,18 @@ def test_app_mount(tmpdir):
     response = client.post("/static/example.txt")
     assert response.status_code == 405
     assert response.text == "Method Not Allowed"
+
+
+def test_app_debug():
+    app = App()
+    app.debug = True
+
+    @app.route("/")
+    async def homepage(request):
+        raise RuntimeError()
+
+    client = TestClient(app, raise_server_exceptions=False)
+    response = client.get("/")
+    assert response.status_code == 500
+    assert "RuntimeError" in response.text
+    assert app.debug

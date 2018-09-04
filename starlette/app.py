@@ -50,7 +50,15 @@ class App:
         self.router = Router(routes=[])
         self.exception_middleware = ExceptionMiddleware(self.router, debug=debug)
 
-    def mount(self, path: str, app: ASGIApp, methods=None):
+    @property
+    def debug(self) -> bool:
+        return self.exception_middleware.debug
+
+    @debug.setter
+    def debug(self, value: bool) -> None:
+        self.exception_middleware.debug = value
+
+    def mount(self, path: str, app: ASGIApp, methods=None) -> None:
         prefix = PathPrefix(path, app=app, methods=methods)
         self.router.routes.append(prefix)
 
