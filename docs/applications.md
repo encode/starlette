@@ -29,6 +29,10 @@ async def websocket_endpoint(session):
     await session.close()
 ```
 
+### Instantiating the application
+
+* `App(debug=False)` - Create a new Starlette application.
+
 ### Adding routes to the application
 
 You can use any of the following to add handled routes to the application:

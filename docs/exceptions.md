@@ -62,6 +62,10 @@ app = ExceptionMiddleware(App, debug=True)
 
 This uses the same error tracebacks as the more minimal [`DebugMiddleware`](../debugging).
 
+The exception handler currently only catches and deals with exceptions within
+HTTP requests. Any websocket exceptions will simply be raised to the server
+and result in an error log.
+
 ## ExceptionMiddleware
 
 The exception middleware catches and handles the exceptions, returning
