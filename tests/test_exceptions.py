@@ -48,7 +48,7 @@ def test_server_error():
     allow_500_client = TestClient(app, raise_server_exceptions=False)
     response = allow_500_client.get("/runtime_error")
     assert response.status_code == 500
-    assert response.text == "Server Error"
+    assert response.text == "Internal Server Error"
 
 
 def test_not_acceptable():

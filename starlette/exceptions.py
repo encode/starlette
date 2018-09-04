@@ -91,4 +91,4 @@ class ExceptionMiddleware:
         return PlainTextResponse(exc.detail, status_code=exc.status_code)
 
     def server_error(self, request, exc):
-        return PlainTextResponse("Server Error", status_code=500)
+        return PlainTextResponse("Internal Server Error", status_code=500)
