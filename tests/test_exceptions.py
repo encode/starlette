@@ -45,7 +45,7 @@ def test_server_error():
     with pytest.raises(RuntimeError):
         response = client.get("/runtime_error")
 
-    allow_500_client = TestClient(app, raise_exceptions=False)
+    allow_500_client = TestClient(app, raise_server_exceptions=False)
     response = allow_500_client.get("/runtime_error")
     assert response.status_code == 500
     assert response.text == "Server Error"
@@ -63,10 +63,24 @@ def test_websockets_should_raise():
 
 
 def test_handled_exc_after_response():
+    # A 406 HttpException is raised *after* the response has already been sent.
+    # The exception middleware should raise a RuntimeError.
     with pytest.raises(RuntimeError):
         client.get("/handled_exc_after_response")
 
-    allow_200_client = TestClient(app, raise_exceptions=False)
+    # If `raise_server_exceptions=False` then the test client will still allow
+    # us to see the response as it will have been seen by the client.
+    allow_200_client = TestClient(app, raise_server_exceptions=False)
     response = allow_200_client.get("/handled_exc_after_response")
     assert response.status_code == 200
     assert response.text == "OK"
+
+
+def test_force_500_response():
+    def app(scope):
+        raise RuntimeError()
+
+    force_500_client = TestClient(app, raise_server_exceptions=False)
+    response = force_500_client.get("/")
+    assert response.status_code == 500
+    assert response.text == ""

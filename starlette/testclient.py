@@ -35,9 +35,9 @@ class _Upgrade(Exception):
 
 
 class _ASGIAdapter(requests.adapters.HTTPAdapter):
-    def __init__(self, app: typing.Callable, raise_exceptions=True) -> None:
+    def __init__(self, app: typing.Callable, raise_server_exceptions=True) -> None:
         self.app = app
-        self.raise_exceptions = raise_exceptions
+        self.raise_server_exceptions = raise_server_exceptions
 
     def send(self, request, *args, **kwargs):
         scheme, netloc, path, params, query, fragement = urlparse(request.url)
@@ -106,7 +106,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             return {"type": "http.request", "body": body_bytes}
 
         async def send(message):
-            nonlocal raw_kwargs, seen_response
+            nonlocal raw_kwargs, response_started
 
             if message["type"] == "http.response.start":
                 raw_kwargs["version"] = 11
@@ -118,15 +118,15 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 raw_kwargs["original_response"] = _MockOriginalResponse(
                     raw_kwargs["headers"]
                 )
+                response_started = True
             elif message["type"] == "http.response.body":
                 body = message.get("body", b"")
                 more_body = message.get("more_body", False)
                 raw_kwargs["body"].write(body)
                 if not more_body:
                     raw_kwargs["body"].seek(0)
-                    seen_response = True
 
-        seen_response = False
+        response_started = False
         raw_kwargs = {"body": io.BytesIO()}
 
         loop = asyncio.get_event_loop()
@@ -135,8 +135,17 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             connection = self.app(scope)
             loop.run_until_complete(connection(receive, send))
         except BaseException as exc:
-            if self.raise_exceptions or not seen_response:
+            if self.raise_server_exceptions:
                 raise exc from None
+            if not response_started:
+                raw_kwargs = {
+                    "version": 11,
+                    "status": 500,
+                    "headers": [],
+                    "preload_content": False,
+                    "original_response": _MockOriginalResponse([]),
+                    "body": io.BytesIO(),
+                }
 
         raw = requests.packages.urllib3.HTTPResponse(**raw_kwargs)
         return self.build_response(request, raw)
@@ -229,10 +238,10 @@ class WebSocketTestSession:
 
 class _TestClient(requests.Session):
     def __init__(
-        self, app: typing.Callable, base_url: str, raise_exceptions=True
+        self, app: typing.Callable, base_url: str, raise_server_exceptions=True
     ) -> None:
         super(_TestClient, self).__init__()
-        adapter = _ASGIAdapter(app, raise_exceptions=raise_exceptions)
+        adapter = _ASGIAdapter(app, raise_server_exceptions=raise_server_exceptions)
         self.mount("http://", adapter)
         self.mount("https://", adapter)
         self.mount("ws://", adapter)
@@ -262,10 +271,12 @@ class _TestClient(requests.Session):
 
 
 def TestClient(
-    app: typing.Callable, base_url: str = "http://testserver", raise_exceptions=True
+    app: typing.Callable,
+    base_url: str = "http://testserver",
+    raise_server_exceptions=True,
 ) -> _TestClient:
     """
     We have to work around py.test discovery attempting to pick up
     the `TestClient` class, by declaring this as a function.
     """
-    return _TestClient(app, base_url, raise_exceptions=raise_exceptions)
+    return _TestClient(app, base_url, raise_server_exceptions=raise_server_exceptions)

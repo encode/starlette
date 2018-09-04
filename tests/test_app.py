@@ -103,7 +103,7 @@ def test_405():
 
 
 def test_500():
-    client = TestClient(app, raise_exceptions=False)
+    client = TestClient(app, raise_server_exceptions=False)
     response = client.get("/500")
     assert response.status_code == 500
     assert response.json() == {"detail": "Server Error"}
