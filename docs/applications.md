@@ -23,15 +23,15 @@ def user(request, username):
 
 
 @app.websocket_route('/ws')
-async def websocket_endpoint(session):
-    await session.accept()
-    await session.send_text('Hello, websocket!')
-    await session.close()
+async def websocket_endpoint(websocket):
+    await websocket.accept()
+    await websocket.send_text('Hello, websocket!')
+    await websocket.close()
 ```
 
 ### Instantiating the application
 
-* `App(debug=False)` - Create a new Starlette application.
+* `Starlette(debug=False)` - Create a new Starlette application.
 
 ### Adding routes to the application
 

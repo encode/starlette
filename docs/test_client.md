@@ -22,7 +22,7 @@ def test_app():
     assert response.status_code == 200
 ```
 
-The test client exposes the same interface as any other `requests` session.
+The test client exposes the same interface as any other `requests` websocket.
 In particular, note that the calls to make a request are just standard
 function calls, not awaitables.
 
@@ -44,7 +44,7 @@ websocket testing.
 
 ```python
 from starlette.testclient import TestClient
-from starlette.websockets import WebSocketSession
+from starlette.websockets import WebSocket
 
 
 class App:
@@ -52,16 +52,16 @@ class App:
         self.scope = scope
 
     async def __call__(self, receive, send):
-        session = WebSocketSession(self.scope, receive=receive, send=send)
-        await session.accept()
-        await session.send_text('Hello, world!')
-        await session.close()
+        websocket = WebSocket(self.scope, receive=receive, send=send)
+        await websocket.accept()
+        await websocket.send_text('Hello, world!')
+        await websocket.close()
 
 
 def test_app():
     client = TestClient(App)
-    with client.websocket_connect('/') as session:
-        data = session.receive_text()
+    with client.websocket_connect('/') as websocket:
+        data = websocket.receive_text()
         assert data == 'Hello, world!'
 ```
 

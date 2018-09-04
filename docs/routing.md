@@ -53,7 +53,7 @@ class.
 ```python
 from starlette.responses import Response
 from starlette.routing import ProtocolRouter
-from starlette.websockets import WebSocketSession
+from starlette.websockets import WebSocket
 
 
 def http_endpoint(scope):
@@ -62,10 +62,10 @@ def http_endpoint(scope):
 
 def websocket_endpoint(scope):
     async def asgi(receive, send):
-        session = WebSocketSession(scope, receive, send)
-        await session.accept()
-        await session.send_json({"hello": "world"})
-        await session.close()
+        websocket = WebSocket(scope, receive, send)
+        await websocket.accept()
+        await websocket.send_json({"hello": "world"})
+        await websocket.close()
     return asgi
 
 

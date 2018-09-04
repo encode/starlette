@@ -2,7 +2,7 @@ from starlette.exceptions import ExceptionMiddleware
 from starlette.requests import Request
 from starlette.routing import Path, PathPrefix, Router
 from starlette.types import ASGIApp, ASGIInstance, Receive, Scope, Send
-from starlette.websockets import WebSocketSession
+from starlette.websockets import WebSocket
 import asyncio
 import inspect
 
@@ -36,7 +36,7 @@ def websocket_session(func):
 
     def app(scope: Scope) -> ASGIInstance:
         async def awaitable(receive: Receive, send: Send) -> None:
-            session = WebSocketSession(scope, receive=receive, send=send)
+            session = WebSocket(scope, receive=receive, send=send)
             kwargs = scope.get("kwargs", {})
             await func(session, **kwargs)
 
