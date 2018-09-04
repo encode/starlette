@@ -1,7 +1,17 @@
-from starlette.datastructures import Headers
+from starlette.request import Request
 from starlette.response import HTMLResponse, PlainTextResponse
 import html
 import traceback
+
+
+def get_debug_response(request):
+    accept =request.headers.get("accept", "")
+    if "text/html" in accept:
+        exc_html = html.escape(traceback.format_exc())
+        content = f"<html><body><h1>500 Server Error</h1><pre>{exc_html}</pre></body></html>"
+        return HTMLResponse(content, status_code=500)
+    content = traceback.format_exc()
+    return PlainTextResponse(content, status_code=500)
 
 
 class DebugMiddleware:
@@ -26,18 +36,11 @@ class _DebugResponder:
             asgi = self.app(self.scope)
             await asgi(receive, self.send)
         except:
-            if self.response_started:
-                raise
-            headers = Headers(self.scope.get("headers", []))
-            accept = headers.get("accept", "")
-            if "text/html" in accept:
-                exc_html = html.escape(traceback.format_exc())
-                content = f"<html><body><h1>500 Server Error</h1><pre>{exc_html}</pre></body></html>"
-                response = HTMLResponse(content, status_code=500)
-            else:
-                content = traceback.format_exc()
-                response = PlainTextResponse(content, status_code=500)
-            await response(receive, send)
+            if not self.response_started:
+                request = Request(self.scope)
+                response = get_debug_response(request)
+                await response(receive, send)
+            raise
 
     async def send(self, message):
         if message["type"] == "http.response.start":
