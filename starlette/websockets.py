@@ -154,8 +154,8 @@ class WebSocketSession(Mapping):
         assert self.application_state == WebSocketState.CONNECTED
         message = await self.receive()
         self._raise_on_disconnect(message)
-
-        return json.loads(message["text"])
+        encoded = message["bytes"]
+        return json.loads(encoded.decode("utf-8"))
 
     async def send_text(self, data):
         await self.send({"type": "websocket.send", "text": data})
