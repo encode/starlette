@@ -46,9 +46,9 @@ def websocket_session(func):
 
 
 class App:
-    def __init__(self) -> None:
+    def __init__(self, debug=False) -> None:
         self.router = Router(routes=[])
-        self.exception_middleware = ExceptionMiddleware(self.router)
+        self.exception_middleware = ExceptionMiddleware(self.router, debug=debug)
 
     def mount(self, path: str, app: ASGIApp, methods=None):
         prefix = PathPrefix(path, app=app, methods=methods)

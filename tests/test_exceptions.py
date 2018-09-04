@@ -35,7 +35,7 @@ def handled_exc_after_response(scope):
     return asgi
 
 
-app = Router(
+router = Router(
     routes=[
         Path("/runtime_error", app=raise_runtime_error),
         Path("/not_acceptable", app=not_acceptable),
@@ -45,7 +45,7 @@ app = Router(
 )
 
 
-app = ExceptionMiddleware(app)
+app = ExceptionMiddleware(router)
 client = TestClient(app)
 
 
@@ -57,6 +57,15 @@ def test_server_error():
     response = allow_500_client.get("/runtime_error")
     assert response.status_code == 500
     assert response.text == "Internal Server Error"
+
+
+def test_debug_enabled():
+    app = ExceptionMiddleware(router)
+    app.debug = True
+    allow_500_client = TestClient(app, raise_server_exceptions=False)
+    response = allow_500_client.get("/runtime_error")
+    assert response.status_code == 500
+    assert "RuntimeError" in response.text
 
 
 def test_not_acceptable():

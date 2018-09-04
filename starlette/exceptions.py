@@ -1,3 +1,4 @@
+from starlette.debug import get_debug_response
 from starlette.request import Request
 from starlette.response import PlainTextResponse, Response
 import asyncio
@@ -5,7 +6,7 @@ import http
 
 
 class HTTPException(Exception):
-    def __init__(self, status_code, detail=None):
+    def __init__(self, status_code: int, detail=None):
         if detail is None:
             detail = http.HTTPStatus(status_code).phrase
         self.status_code = status_code
@@ -13,8 +14,9 @@ class HTTPException(Exception):
 
 
 class ExceptionMiddleware:
-    def __init__(self, app):
+    def __init__(self, app, debug=False):
         self.app = app
+        self.debug = debug
         self._exception_handlers = {
             Exception: self.server_error,
             HTTPException: self.http_exception,
@@ -71,8 +73,11 @@ class ExceptionMiddleware:
             except Exception as exc:
                 # The 'Exception' case always wraps everything else, and
                 # provides a last-ditch handler for dealing with server errors.
-                handler = self._exception_handlers[Exception]
                 request = Request(scope, receive=receive)
+                if self.debug:
+                    handler = get_debug_response
+                else:
+                    handler = self._exception_handlers[Exception]
                 if asyncio.iscoroutinefunction(handler):
                     response = await handler(request, exc)
                 else:
@@ -87,10 +92,10 @@ class ExceptionMiddleware:
 
         return app
 
-    def http_exception(self, request, exc):
+    def http_exception(self, request: Request, exc: type) -> Response:
         if exc.status_code in {204, 304}:
             return Response(b"", status_code=exc.status_code)
         return PlainTextResponse(exc.detail, status_code=exc.status_code)
 
-    def server_error(self, request, exc):
+    def server_error(self, request: Request, exc: type) -> Response:
         return PlainTextResponse("Internal Server Error", status_code=500)

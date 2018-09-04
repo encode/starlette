@@ -4,15 +4,16 @@ import html
 import traceback
 
 
-def get_debug_response(request):
+def get_debug_response(request, exc):
     accept = request.headers.get("accept", "")
     if "text/html" in accept:
-        exc_html = html.escape(traceback.format_exc())
+        exc_html = "".join(traceback.format_tb(exc.__traceback__))
+        exc_html = html.escape(exc_html)
         content = (
             f"<html><body><h1>500 Server Error</h1><pre>{exc_html}</pre></body></html>"
         )
         return HTMLResponse(content, status_code=500)
-    content = traceback.format_exc()
+    content = "".join(traceback.format_tb(exc.__traceback__))
     return PlainTextResponse(content, status_code=500)
 
 
@@ -37,12 +38,12 @@ class _DebugResponder:
         try:
             asgi = self.app(self.scope)
             await asgi(receive, self.send)
-        except:
+        except Exception as exc:
             if not self.response_started:
                 request = Request(self.scope)
-                response = get_debug_response(request)
+                response = get_debug_response(request, exc)
                 await response(receive, send)
-            raise
+            raise exc from None
 
     async def send(self, message):
         if message["type"] == "http.response.start":
