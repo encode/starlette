@@ -5,10 +5,12 @@ import traceback
 
 
 def get_debug_response(request):
-    accept =request.headers.get("accept", "")
+    accept = request.headers.get("accept", "")
     if "text/html" in accept:
         exc_html = html.escape(traceback.format_exc())
-        content = f"<html><body><h1>500 Server Error</h1><pre>{exc_html}</pre></body></html>"
+        content = (
+            f"<html><body><h1>500 Server Error</h1><pre>{exc_html}</pre></body></html>"
+        )
         return HTMLResponse(content, status_code=500)
     content = traceback.format_exc()
     return PlainTextResponse(content, status_code=500)

@@ -64,6 +64,7 @@ def test_debug_not_http():
     """
     DebugMiddleware should just pass through any non-http messages as-is.
     """
+
     def app(scope):
         raise RuntimeError("Something went wrong")
 
