@@ -155,10 +155,6 @@ class WebSocketSession(Mapping):
         message = await self.receive()
         self._raise_on_disconnect(message)
 
-        if message.get("bytes"):
-            encoded = message["bytes"]
-            return json.loads(encoded.decode("utf-8"))
-
         return json.loads(message["text"])
 
     async def send_text(self, data):
