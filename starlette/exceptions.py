@@ -1,5 +1,5 @@
 from starlette.request import Request
-from starlette.response import PlainTextResponse
+from starlette.response import PlainTextResponse, Response
 import asyncio
 import http
 
@@ -88,6 +88,8 @@ class ExceptionMiddleware:
         return app
 
     def http_exception(self, request, exc):
+        if exc.status_code in {204, 304}:
+            return Response(b'', status_code=exc.status_code)
         return PlainTextResponse(exc.detail, status_code=exc.status_code)
 
     def server_error(self, request, exc):

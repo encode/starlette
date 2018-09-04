@@ -1,6 +1,7 @@
 from starlette.exceptions import HTTPException
 from starlette.response import PlainTextResponse
 from starlette.types import Scope, ASGIApp, ASGIInstance
+from starlette.websockets import WebSocketClose
 import re
 import typing
 
@@ -93,11 +94,7 @@ class Router:
 
     def not_found(self, scope: Scope) -> ASGIInstance:
         if scope["type"] == "websocket":
-
-            async def close(receive, send):
-                await send({"type": "websocket.close"})
-
-            return close
+            return WebSocketClose()
 
         # If we're running inside a starlette application then raise an
         # exception, so that the configurable exception handler can deal with

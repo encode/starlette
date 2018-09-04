@@ -12,9 +12,16 @@ def raise_runtime_error(scope):
     return asgi
 
 
-def raise_http_exception(scope):
+def not_acceptable(scope):
     async def asgi(receive, send):
-        raise HTTPException(406)
+        raise HTTPException(status_code=406)
+
+    return asgi
+
+
+def not_modified(scope):
+    async def asgi(receive, send):
+        raise HTTPException(status_code=304)
 
     return asgi
 
@@ -23,7 +30,7 @@ def handled_exc_after_response(scope):
     async def asgi(receive, send):
         response = PlainTextResponse("OK", status_code=200)
         await response(receive, send)
-        raise HTTPException(406)
+        raise HTTPException(status_code=406)
 
     return asgi
 
@@ -31,7 +38,8 @@ def handled_exc_after_response(scope):
 app = Router(
     routes=[
         Path("/runtime_error", app=raise_runtime_error),
-        Path("/not_acceptable", app=raise_http_exception),
+        Path("/not_acceptable", app=not_acceptable),
+        Path("/not_modified", app=not_modified),
         Path("/handled_exc_after_response", app=handled_exc_after_response),
     ]
 )
@@ -55,6 +63,12 @@ def test_not_acceptable():
     response = client.get("/not_acceptable")
     assert response.status_code == 406
     assert response.text == "Not Acceptable"
+
+
+def test_not_modified():
+    response = client.get("/not_modified")
+    assert response.status_code == 304
+    assert response.text == ""
 
 
 def test_websockets_should_raise():
