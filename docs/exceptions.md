@@ -45,18 +45,40 @@ app.add_exception_handler(HTTPException, handler)
 Now if we make a request to the application, we'll get back a JSON encoded
 HTTP response.
 
+By default two types of exceptions are caught and dealt with:
+
+* `HTTPException` - Used to raise standard HTTP error codes.
+* `Exception` - Used as a catch-all handler to deal with any `500 Internal
+Server Error` responses. The `Exception` case also wraps any other exception
+handling.
+
+The catch-all `Exception` case is used to return simple `500 Internal Server Error`
+responses. During development you might want to switch the behaviour so that
+it displays an error traceback in the browser:
+
+```
+app = ExceptionMiddleware(App, debug=True)
+```
+
+This uses the same error tracebacks as the more minimal [`DebugMiddleware`](../debugging).
+
 ## ExceptionMiddleware
 
 The exception middleware catches and handles the exceptions, returning
 appropriate HTTP responses.
 
-* `ExceptionMiddleware(app)` - Instantiate the exception handler, wrapping up
-it around an inner ASGI application.
+* `ExceptionMiddleware(app, debug=False)` - Instantiate the exception handler,
+wrapping up it around an inner ASGI application.
 
 Adding handlers:
 
 * `.add_exception_handler(exc_class, handler)` - Set a handler function to run
 for the given exception class.
+
+Enabling debug mode:
+
+* `.debug` - If set to `True`, then the catch-all handler for `Exception` will
+not be used, and error tracebacks will be sent as responses instead.
 
 ## HTTPException
 

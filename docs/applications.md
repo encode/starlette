@@ -8,6 +8,7 @@ from starlette.staticfiles import StaticFiles
 
 
 app = App()
+app.debug = True
 app.mount("/static", StaticFiles(directory="static"))
 
 
@@ -50,3 +51,4 @@ exceptions that occur within the application:
 
 * `app.add_exception_handler(exc_class, handler)` - Add an error handler. The handler function may be either a coroutine or a regular function, with a signature like `func(request, exc) -> response`.
 * `@app.exception_handler(exc_class)` - Add an error handler, decorator style.
+* `app.debug` - Enable or disable error tracebacks in the browser.
