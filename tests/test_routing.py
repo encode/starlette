@@ -1,4 +1,5 @@
-from starlette import Response, TestClient
+from starlette.responses import Response
+from starlette.testclient import TestClient
 from starlette.exceptions import ExceptionMiddleware
 from starlette.routing import Path, PathPrefix, Router, ProtocolRouter
 from starlette.websockets import WebSocket, WebSocketDisconnect

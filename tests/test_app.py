@@ -1,4 +1,4 @@
-from starlette import Starlette
+from starlette.app import Starlette
 from starlette.exceptions import HTTPException
 from starlette.responses import JSONResponse, PlainTextResponse
 from starlette.staticfiles import StaticFiles
