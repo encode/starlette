@@ -1,5 +1,5 @@
 from starlette import Request, JSONResponse, TestClient
-from starlette.request import ClientDisconnect
+from starlette.requests import ClientDisconnect
 import asyncio
 import pytest
 

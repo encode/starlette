@@ -1,6 +1,6 @@
 from starlette import Starlette
 from starlette.exceptions import HTTPException
-from starlette.response import JSONResponse, PlainTextResponse
+from starlette.responses import JSONResponse, PlainTextResponse
 from starlette.staticfiles import StaticFiles
 from starlette.testclient import TestClient
 from starlette.endpoints import HTTPEndpoint

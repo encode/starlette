@@ -3,7 +3,7 @@ its other functionality.
 
 ```python
 from starlette.app import Starlette
-from starlette.response import PlainTextResponse
+from starlette.responses import PlainTextResponse
 from starlette.staticfiles import StaticFiles
 
 

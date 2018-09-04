@@ -1,5 +1,5 @@
 from starlette.exceptions import ExceptionMiddleware
-from starlette.request import Request
+from starlette.requests import Request
 from starlette.routing import Path, PathPrefix, Router
 from starlette.types import ASGIApp, ASGIInstance, Receive, Scope, Send
 from starlette.websockets import WebSocketSession

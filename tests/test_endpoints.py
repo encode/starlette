@@ -1,5 +1,5 @@
 import pytest
-from starlette.response import PlainTextResponse
+from starlette.responses import PlainTextResponse
 from starlette.routing import Router, Path
 from starlette.testclient import TestClient
 from starlette.endpoints import HTTPEndpoint

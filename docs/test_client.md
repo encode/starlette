@@ -3,7 +3,7 @@ The test client allows you to make requests against your ASGI application,
 using the `requests` library.
 
 ```python
-from starlette.response import HTMLResponse
+from starlette.responses import HTMLResponse
 from starlette.testclient import TestClient
 
 

@@ -1,5 +1,5 @@
 from starlette.app import Starlette
-from starlette.response import (
+from starlette.responses import (
     FileResponse,
     HTMLResponse,
     JSONResponse,
@@ -8,7 +8,7 @@ from starlette.response import (
     PlainTextResponse,
     StreamingResponse,
 )
-from starlette.request import Request
+from starlette.requests import Request
 from starlette.testclient import TestClient
 
 

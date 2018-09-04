@@ -5,7 +5,7 @@ handles HTTP method dispatching.
 The `HTTPEndpoint` class can be used as an ASGI application:
 
 ```python
-from starlette.response import PlainTextResponse
+from starlette.responses import PlainTextResponse
 from starlette.endpoints import HTTPEndpoint
 
 
@@ -22,7 +22,7 @@ than to an instance of the class:
 ```python
 from starlette.app import Starlette
 from starlette.response import PlainTextResponse
-from starlette.views import HTTPEndpoint
+from starlette.endpoints import HTTPEndpoint
 
 
 app = Starlette()
