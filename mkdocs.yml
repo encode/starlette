@@ -10,16 +10,16 @@ edit_uri: ""
 
 nav:
     - Introduction: 'index.md'
-    - Responses: 'responses.md'
+    - Applications: 'applications.md'
     - Requests: 'requests.md'
+    - Responses: 'responses.md'
     - WebSockets: 'websockets.md'
     - Routing: 'routing.md'
-    - Exceptions: 'exceptions.md'
+    - Endpoints: 'endpoints.md'
     - Static Files: 'staticfiles.md'
-    - Applications: 'applications.md'
-    - Test Client: 'test_client.md'
-    - Debugging: 'debugging.md'
-    - Views: 'views.md'
+    - Exceptions: 'exceptions.md'
+    - Debug: 'debug.md'
+    - Test Client: 'testclient.md'
 
 markdown_extensions:
   - markdown.extensions.codehilite:
