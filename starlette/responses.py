@@ -18,11 +18,11 @@ except ImportError:  # pragma: nocover
 
 try:
     import ujson as json
-    JSON_DUMPS_OPTIONS = {
-        "ensure_ascii": False
-    }
+
+    JSON_DUMPS_OPTIONS = {"ensure_ascii": False}
 except ImportError:  # pragma: nocover
     import json
+
     JSON_DUMPS_OPTIONS = {
         "ensure_ascii": False,
         "allow_nan": False,
