@@ -22,7 +22,7 @@ def test_app():
     assert response.status_code == 200
 ```
 
-The test client exposes the same interface as any other `requests` websocket.
+The test client exposes the same interface as any other `requests` session.
 In particular, note that the calls to make a request are just standard
 function calls, not awaitables.
 
