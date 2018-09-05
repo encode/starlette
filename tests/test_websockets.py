@@ -180,7 +180,7 @@ def test_rejected_connection():
 
     client = TestClient(app)
     with pytest.raises(WebSocketDisconnect) as exc:
-        client.wsconnect("/")
+        client.websocket_connect("/")
     assert exc.value.code == status.WS_1001_LEAVING
 
 
