@@ -3,7 +3,7 @@ The test client allows you to make requests against your ASGI application,
 using the `requests` library.
 
 ```python
-from starlette.response import HTMLResponse
+from starlette.responses import HTMLResponse
 from starlette.testclient import TestClient
 
 
@@ -26,9 +26,17 @@ The test client exposes the same interface as any other `requests` session.
 In particular, note that the calls to make a request are just standard
 function calls, not awaitables.
 
-### Testing WebSocket applications
+You can use any of `requests` standard API, such as authentication, session
+cookies handling, or file uploads.
 
-You can also test websocket applications with the test client.
+By default the `TestClient` will raise any exceptions that occur in the
+application. Occasionally you might want to test the content of 500 error
+responses, rather than allowing client to raise the server exception. In this
+case you should use `client = TestClient(app, raise_server_exceptions=False)`.
+
+### Testing WebSocket sessions
+
+You can also test websocket sessions with the test client.
 
 The `requests` library will be used to build the initial handshake, meaning you
 can use the same authentication options and other headers between both http and
@@ -36,7 +44,7 @@ websocket testing.
 
 ```python
 from starlette.testclient import TestClient
-from starlette.websockets import WebSocketSession
+from starlette.websockets import WebSocket
 
 
 class App:
@@ -44,16 +52,16 @@ class App:
         self.scope = scope
 
     async def __call__(self, receive, send):
-        session = WebSocketSession(self.scope, receive=receive, send=send)
-        await session.accept()
-        await session.send_text('Hello, world!')
-        await session.close()
+        websocket = WebSocket(self.scope, receive=receive, send=send)
+        await websocket.accept()
+        await websocket.send_text('Hello, world!')
+        await websocket.close()
 
 
 def test_app():
     client = TestClient(App)
-    with client.websocket_connect('/') as session:
-        data = session.receive_text()
+    with client.websocket_connect('/') as websocket:
+        data = websocket.receive_text()
         assert data == 'Hello, world!'
 ```
 

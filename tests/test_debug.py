@@ -1,4 +1,5 @@
-from starlette import Request, Response, TestClient
+from starlette.responses import Response
+from starlette.testclient import TestClient
 from starlette.debug import DebugMiddleware
 import pytest
 
@@ -10,7 +11,8 @@ def test_debug_text():
 
         return asgi
 
-    client = TestClient(DebugMiddleware(app))
+    app = DebugMiddleware(app)
+    client = TestClient(app, raise_server_exceptions=False)
     response = client.get("/")
     assert response.status_code == 500
     assert response.headers["content-type"].startswith("text/plain")
@@ -24,7 +26,8 @@ def test_debug_html():
 
         return asgi
 
-    client = TestClient(DebugMiddleware(app))
+    app = DebugMiddleware(app)
+    client = TestClient(app, raise_server_exceptions=False)
     response = client.get("/", headers={"Accept": "text/html, */*"})
     assert response.status_code == 500
     assert response.headers["content-type"].startswith("text/html")
@@ -40,7 +43,8 @@ def test_debug_after_response_sent():
 
         return asgi
 
-    client = TestClient(DebugMiddleware(app))
+    app = DebugMiddleware(app)
+    client = TestClient(app)
     with pytest.raises(RuntimeError):
         response = client.get("/")
 
@@ -50,7 +54,7 @@ def test_debug_error_during_scope():
         raise RuntimeError("Something went wrong")
 
     app = DebugMiddleware(app)
-    client = TestClient(DebugMiddleware(app))
+    client = TestClient(app, raise_server_exceptions=False)
     response = client.get("/", headers={"Accept": "text/html, */*"})
     assert response.status_code == 500
     assert response.headers["content-type"].startswith("text/html")
@@ -58,6 +62,10 @@ def test_debug_error_during_scope():
 
 
 def test_debug_not_http():
+    """
+    DebugMiddleware should just pass through any non-http messages as-is.
+    """
+
     def app(scope):
         raise RuntimeError("Something went wrong")
 
