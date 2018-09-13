@@ -154,6 +154,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
 class WebSocketTestSession:
     def __init__(self, app, scope):
         self.accepted_subprotocol = None
+        self._connected = True
         self._loop = asyncio.new_event_loop()
         self._instance = app(scope)
         self._receive_queue = queue.Queue()
@@ -191,6 +192,9 @@ class WebSocketTestSession:
         return self._receive_queue.get()
 
     async def _asgi_send(self, message):
+        if not self._connected:
+            raise WebSocketDisconnect()
+
         self._send_queue.put(message)
 
     def _raise_on_close(self, message):
@@ -211,12 +215,14 @@ class WebSocketTestSession:
         self.send({"type": "websocket.receive", "bytes": encoded})
 
     def close(self, code=1000):
+        self._connected = False
         self.send({"type": "websocket.disconnect", "code": code})
 
     def receive(self):
         message = self._send_queue.get()
         if isinstance(message, BaseException):
             raise message
+
         return message
 
     def receive_text(self):
