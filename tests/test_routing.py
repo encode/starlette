@@ -1,6 +1,9 @@
-from starlette import Response, TestClient
+from starlette.responses import Response
+from starlette.testclient import TestClient
+from starlette.exceptions import ExceptionMiddleware
 from starlette.routing import Path, PathPrefix, Router, ProtocolRouter
-from starlette.websockets import WebSocketSession
+from starlette.websockets import WebSocket, WebSocketDisconnect
+import pytest
 
 
 def homepage(scope):
@@ -39,12 +42,12 @@ def test_router():
     assert response.text == "Hello, world"
 
     response = client.post("/")
-    assert response.status_code == 406
-    assert response.text == "Method not allowed"
+    assert response.status_code == 405
+    assert response.text == "Method Not Allowed"
 
     response = client.get("/foo")
     assert response.status_code == 404
-    assert response.text == "Not found"
+    assert response.text == "Not Found"
 
     response = client.get("/users")
     assert response.status_code == 200
@@ -59,8 +62,8 @@ def test_router():
     assert response.text == "xxxxx"
 
     response = client.post("/static/123")
-    assert response.status_code == 406
-    assert response.text == "Method not allowed"
+    assert response.status_code == 405
+    assert response.text == "Method Not Allowed"
 
 
 def http_endpoint(scope):
@@ -69,7 +72,7 @@ def http_endpoint(scope):
 
 def websocket_endpoint(scope):
     async def asgi(receive, send):
-        session = WebSocketSession(scope, receive, send)
+        session = WebSocket(scope, receive, send)
         await session.accept()
         await session.send_json({"hello": "world"})
         await session.close()
@@ -78,7 +81,10 @@ def websocket_endpoint(scope):
 
 
 mixed_protocol_app = ProtocolRouter(
-    {"http": http_endpoint, "websocket": websocket_endpoint}
+    {
+        "http": Router([Path("/", app=http_endpoint)]),
+        "websocket": Router([Path("/", app=websocket_endpoint)]),
+    }
 )
 
 
@@ -89,5 +95,8 @@ def test_protocol_switch():
     assert response.status_code == 200
     assert response.text == "Hello, world"
 
-    with client.wsconnect("/") as session:
+    with client.websocket_connect("/") as session:
         assert session.receive_json() == {"hello": "world"}
+
+    with pytest.raises(WebSocketDisconnect):
+        client.websocket_connect("/404")

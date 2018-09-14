@@ -35,8 +35,9 @@ class _Upgrade(Exception):
 
 
 class _ASGIAdapter(requests.adapters.HTTPAdapter):
-    def __init__(self, app: typing.Callable) -> None:
+    def __init__(self, app: typing.Callable, raise_server_exceptions=True) -> None:
         self.app = app
+        self.raise_server_exceptions = raise_server_exceptions
 
     def send(self, request, *args, **kwargs):
         scheme, netloc, path, params, query, fragement = urlparse(request.url)
@@ -105,6 +106,8 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             return {"type": "http.request", "body": body_bytes}
 
         async def send(message):
+            nonlocal raw_kwargs, response_started
+
             if message["type"] == "http.response.start":
                 raw_kwargs["version"] = 11
                 raw_kwargs["status"] = message["status"]
@@ -115,6 +118,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 raw_kwargs["original_response"] = _MockOriginalResponse(
                     raw_kwargs["headers"]
                 )
+                response_started = True
             elif message["type"] == "http.response.body":
                 body = message.get("body", b"")
                 more_body = message.get("more_body", False)
@@ -122,11 +126,26 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 if not more_body:
                     raw_kwargs["body"].seek(0)
 
+        response_started = False
         raw_kwargs = {"body": io.BytesIO()}
-        connection = self.app(scope)
 
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(connection(receive, send))
+
+        try:
+            connection = self.app(scope)
+            loop.run_until_complete(connection(receive, send))
+        except BaseException as exc:
+            if self.raise_server_exceptions:
+                raise exc from None
+            if not response_started:
+                raw_kwargs = {
+                    "version": 11,
+                    "status": 500,
+                    "headers": [],
+                    "preload_content": False,
+                    "original_response": _MockOriginalResponse([]),
+                    "body": io.BytesIO(),
+                }
 
         raw = requests.packages.urllib3.HTTPResponse(**raw_kwargs)
         return self.build_response(request, raw)
@@ -140,11 +159,11 @@ class WebSocketTestSession:
         self._receive_queue = queue.Queue()
         self._send_queue = queue.Queue()
         self._thread = threading.Thread(target=self._run)
-        self._receive_queue.put({"type": "websocket.connect"})
+        self.send({"type": "websocket.connect"})
         self._thread.start()
-        message = self._send_queue.get()
-        self._raise_on_close_or_exception(message)
-        self.accepted_subprotocol = message["subprotocol"]
+        message = self.receive()
+        self._raise_on_close(message)
+        self.accepted_subprotocol = message.get("subprotocol", None)
 
     def __enter__(self):
         return self
@@ -174,46 +193,55 @@ class WebSocketTestSession:
     async def _asgi_send(self, message):
         self._send_queue.put(message)
 
-    def _raise_on_close_or_exception(self, message):
-        if isinstance(message, BaseException):
-            raise message
+    def _raise_on_close(self, message):
         if message["type"] == "websocket.close":
-            raise WebSocketDisconnect(message["code"])
+            raise WebSocketDisconnect(message.get("code", 1000))
+
+    def send(self, message):
+        self._receive_queue.put(message)
 
     def send_text(self, data):
-        self._receive_queue.put({"type": "websocket.receive", "text": data})
+        self.send({"type": "websocket.receive", "text": data})
 
     def send_bytes(self, data):
-        self._receive_queue.put({"type": "websocket.receive", "bytes": data})
+        self.send({"type": "websocket.receive", "bytes": data})
 
     def send_json(self, data):
         encoded = json.dumps(data).encode("utf-8")
-        self._receive_queue.put({"type": "websocket.receive", "bytes": encoded})
+        self.send({"type": "websocket.receive", "bytes": encoded})
 
     def close(self, code=1000):
-        self._receive_queue.put({"type": "websocket.disconnect", "code": code})
+        self.send({"type": "websocket.disconnect", "code": code})
+
+    def receive(self):
+        message = self._send_queue.get()
+        if isinstance(message, BaseException):
+            raise message
+        return message
 
     def receive_text(self):
-        message = self._send_queue.get()
-        self._raise_on_close_or_exception(message)
+        message = self.receive()
+        self._raise_on_close(message)
         return message["text"]
 
     def receive_bytes(self):
-        message = self._send_queue.get()
-        self._raise_on_close_or_exception(message)
+        message = self.receive()
+        self._raise_on_close(message)
         return message["bytes"]
 
     def receive_json(self):
-        message = self._send_queue.get()
-        self._raise_on_close_or_exception(message)
+        message = self.receive()
+        self._raise_on_close(message)
         encoded = message["bytes"]
         return json.loads(encoded.decode("utf-8"))
 
 
 class _TestClient(requests.Session):
-    def __init__(self, app: typing.Callable, base_url: str) -> None:
+    def __init__(
+        self, app: typing.Callable, base_url: str, raise_server_exceptions=True
+    ) -> None:
         super(_TestClient, self).__init__()
-        adapter = _ASGIAdapter(app)
+        adapter = _ASGIAdapter(app, raise_server_exceptions=raise_server_exceptions)
         self.mount("http://", adapter)
         self.mount("https://", adapter)
         self.mount("ws://", adapter)
@@ -225,7 +253,9 @@ class _TestClient(requests.Session):
         url = urljoin(self.base_url, url)
         return super().request(method, url, **kwargs)
 
-    def wsconnect(self, url: str, subprotocols=None, **kwargs) -> WebSocketTestSession:
+    def websocket_connect(
+        self, url: str, subprotocols=None, **kwargs
+    ) -> WebSocketTestSession:
         url = urljoin("ws://testserver", url)
         headers = kwargs.get("headers", {})
         headers.setdefault("connection", "upgrade")
@@ -241,10 +271,12 @@ class _TestClient(requests.Session):
 
 
 def TestClient(
-    app: typing.Callable, base_url: str = "http://testserver"
+    app: typing.Callable,
+    base_url: str = "http://testserver",
+    raise_server_exceptions=True,
 ) -> _TestClient:
     """
     We have to work around py.test discovery attempting to pick up
     the `TestClient` class, by declaring this as a function.
     """
-    return _TestClient(app, base_url)
+    return _TestClient(app, base_url, raise_server_exceptions=raise_server_exceptions)

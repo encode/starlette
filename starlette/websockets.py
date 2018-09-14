@@ -17,7 +17,7 @@ class WebSocketDisconnect(Exception):
         self.code = code
 
 
-class WebSocketSession(Mapping):
+class WebSocket(Mapping):
     def __init__(self, scope, receive=None, send=None):
         assert scope["type"] == "websocket"
         self._scope = scope
@@ -151,3 +151,11 @@ class WebSocketSession(Mapping):
 
     async def close(self, code=1000):
         await self.send({"type": "websocket.close", "code": code})
+
+
+class WebSocketClose:
+    def __init__(self, code=1000):
+        self.code = code
+
+    async def __call__(self, receive, send):
+        await send({"type": "websocket.close", "code": self.code})
