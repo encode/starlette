@@ -222,7 +222,6 @@ class WebSocketTestSession:
         message = self._send_queue.get()
         if isinstance(message, BaseException):
             raise message
-
         return message
 
     def receive_text(self):
