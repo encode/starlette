@@ -108,11 +108,7 @@ class WebSocket(Mapping):
                 self.application_state = WebSocketState.DISCONNECTED
             else:
                 self.application_state = WebSocketState.CONNECTED
-            try:
-                await self._send(message)
-            except Exception as e:
-                self.application_state = WebSocketState.DISCONNECTED
-                raise WebSocketDisconnect(exc=e)
+            await self._send(message)
 
         elif self.application_state == WebSocketState.CONNECTED:
             message_type = message["type"]
