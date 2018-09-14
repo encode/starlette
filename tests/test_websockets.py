@@ -1,6 +1,6 @@
 import pytest
 from starlette.testclient import TestClient
-from starlette.websockets import WebSocketSession, WebSocketDisconnect
+from starlette.websockets import WebSocket, WebSocketDisconnect
 from starlette import status
 
 
