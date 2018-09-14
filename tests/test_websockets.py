@@ -1,43 +1,27 @@
 import pytest
-import asyncio
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 
-def test_websocket_send_to_closed_client():
+def test_websocket_send_to_closed_connected_client():
     def app(scope):
         async def asgi(receive, send):
             websocket = WebSocket(scope, receive, send)
             await websocket.accept()
 
-            asyncio.sleep(0.1)
+            with pytest.raises(WebSocketDisconnect) as exc:
+                while True:
+                    await websocket.send_json({"url": f"{websocket.url}0"})
 
-            with pytest.raises(Exception) as exc:
-                for idx in range(100):
-                    await websocket.send_json({"url": f"{websocket.url}{idx}"})
-                    asyncio.sleep(0.1)
-
-            print("EXC", exc)
             assert exc.value.code == 1000
-            #  except WebSocketDisconnect as e:
-            #      print("Client closed: %s", e)
-            #      await websocket.close()
 
         return asgi
 
     client = TestClient(app)
     with client.websocket_connect("/") as websocket:
         data = websocket.receive_json()
-        print("WS TEST RECIEV", data)
-        assert data == {"url": "ws://testserver/0"}
-
         websocket.close()
-
-        data = websocket.receive_json()
-        while data:
-            data = websocket.receive_json()
-
-    print("WS TEST RECIEV DONE")
+        assert data == {"url": "ws://testserver/0"}
 
 
 def test_websocket_url():
