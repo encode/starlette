@@ -5,24 +5,29 @@ import json
 import typing
 
 
+JSONType = typing.Union[typing.Dict[str, typing.Any], typing.List[typing.Any]]
+
+
 class ClientDisconnect(Exception):
     pass
 
 
 class Request(Mapping):
-    def __init__(self, scope, receive=None):
+    def __init__(
+        self, scope: typing.Mapping[str, typing.Any], receive: typing.Callable = None
+    ) -> None:
         assert scope["type"] == "http"
         self._scope = scope
         self._receive = receive
         self._stream_consumed = False
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> str:
         return self._scope[key]
 
-    def __iter__(self):
+    def __iter__(self) -> typing.Iterator[str]:
         return iter(self._scope)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._scope)
 
     @property
@@ -61,7 +66,7 @@ class Request(Mapping):
             self._query_params = QueryParams(query_string)
         return self._query_params
 
-    async def stream(self):
+    async def stream(self) -> typing.Union[typing.AsyncGenerator[bytes, None]]:
         if hasattr(self, "_body"):
             yield self._body
             return
@@ -82,7 +87,7 @@ class Request(Mapping):
             elif message["type"] == "http.disconnect":
                 raise ClientDisconnect()
 
-    async def body(self):
+    async def body(self) -> bytes:
         if not hasattr(self, "_body"):
             body = b""
             async for chunk in self.stream():
@@ -90,7 +95,7 @@ class Request(Mapping):
             self._body = body
         return self._body
 
-    async def json(self):
+    async def json(self) -> JSONType:
         if not hasattr(self, "_json"):
             body = await self.body()
             self._json = json.loads(body)

@@ -49,7 +49,7 @@ class URL(str):
     def port(self) -> typing.Union[None, int]:
         return self.components.port
 
-    def replace(self, **kwargs: typing.Any) -> 'URL':  # type: ignore
+    def replace(self, **kwargs: typing.Any) -> "URL":  # type: ignore
         components = self.components._replace(**kwargs)
         return URL(components.geturl())
 
@@ -103,13 +103,13 @@ class QueryParams(StrDict):
     def __contains__(self, key: typing.Any) -> bool:
         return key in self._dict
 
-    def __iter__(self) -> typing.Iterable[str]:  # type: ignore
-        return iter(self._list)  # type: ignore
+    def __iter__(self) -> typing.Iterator[typing.Any]:
+        return iter(self._list)
 
     def __len__(self) -> int:
         return len(self._list)
 
-    def __eq__(self, other: typing.Union[typing.Any, 'QueryParams']) -> bool:
+    def __eq__(self, other: typing.Union[typing.Any, "QueryParams"]) -> bool:
         if not isinstance(other, QueryParams):
             other = QueryParams(other)
         return sorted(self._list) == sorted(other._list)
@@ -159,7 +159,7 @@ class Headers(typing.Mapping[str, str]):
             if item_key == get_header_key
         ]
 
-    def mutablecopy(self) -> 'MutableHeaders':
+    def mutablecopy(self) -> "MutableHeaders":
         return MutableHeaders(self._list[:])
 
     def __getitem__(self, key: typing.Any) -> str:
@@ -176,13 +176,13 @@ class Headers(typing.Mapping[str, str]):
                 return True
         return False
 
-    def __iter__(self) -> typing.Iterable[str]:  # type: ignore
-        return iter(self.items())  # type: ignore
+    def __iter__(self) -> typing.Iterator[typing.Any]:
+        return iter(self.items())
 
     def __len__(self) -> int:
         return len(self._list)
 
-    def __eq__(self, other: typing.Union[typing.Any, 'Headers']) -> bool:
+    def __eq__(self, other: typing.Union[typing.Any, "Headers"]) -> bool:
         if not isinstance(other, Headers):
             return False
         return sorted(self._list) == sorted(other._list)
