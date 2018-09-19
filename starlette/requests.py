@@ -1,11 +1,10 @@
-from starlette.datastructures import URL, Headers, QueryParams
+import typing
+import json
 from collections.abc import Mapping
 from urllib.parse import unquote
-import json
-import typing
 
-
-JSONType = typing.Union[typing.Dict[str, typing.Any], typing.List[typing.Any]]
+from starlette.datastructures import URL, Headers, QueryParams
+from starlette.types import Scope, Receive
 
 
 class ClientDisconnect(Exception):
@@ -13,9 +12,7 @@ class ClientDisconnect(Exception):
 
 
 class Request(Mapping):
-    def __init__(
-        self, scope: typing.Mapping[str, typing.Any], receive: typing.Callable = None
-    ) -> None:
+    def __init__(self, scope: Scope, receive: Receive = None) -> None:
         assert scope["type"] == "http"
         self._scope = scope
         self._receive = receive
@@ -66,7 +63,7 @@ class Request(Mapping):
             self._query_params = QueryParams(query_string)
         return self._query_params
 
-    async def stream(self) -> typing.Union[typing.AsyncGenerator[bytes, None]]:
+    async def stream(self) -> typing.AsyncGenerator[bytes, None]:
         if hasattr(self, "_body"):
             yield self._body
             return
@@ -95,7 +92,7 @@ class Request(Mapping):
             self._body = body
         return self._body
 
-    async def json(self) -> JSONType:
+    async def json(self) -> typing.Any:
         if not hasattr(self, "_json"):
             body = await self.body()
             self._json = json.loads(body)

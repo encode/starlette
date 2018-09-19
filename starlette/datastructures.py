@@ -46,7 +46,7 @@ class URL(str):
         return self.components.hostname
 
     @property
-    def port(self) -> typing.Union[None, int]:
+    def port(self) -> typing.Optional[int]:
         return self.components.port
 
     def replace(self, **kwargs: typing.Any) -> "URL":  # type: ignore
@@ -56,6 +56,7 @@ class URL(str):
 
 # Type annotations for valid `__init__` values to QueryParams and Headers.
 StrPairs = typing.Sequence[typing.Tuple[str, str]]
+BytesPairs = typing.List[typing.Tuple[bytes, bytes]]
 StrDict = typing.Mapping[str, str]
 
 
@@ -109,7 +110,7 @@ class QueryParams(StrDict):
     def __len__(self) -> int:
         return len(self._list)
 
-    def __eq__(self, other: typing.Union[typing.Any, "QueryParams"]) -> bool:
+    def __eq__(self, other: typing.Any) -> bool:
         if not isinstance(other, QueryParams):
             other = QueryParams(other)
         return sorted(self._list) == sorted(other._list)
@@ -123,9 +124,9 @@ class Headers(typing.Mapping[str, str]):
     An immutable, case-insensitive multidict.
     """
 
-    def __init__(self, raw_headers: typing.Any = None) -> None:
+    def __init__(self, raw_headers: typing.Optional[BytesPairs] = None) -> None:
         if raw_headers is None:
-            self._list = []  # type: typing.List
+            self._list = []  # type: BytesPairs
         else:
             for header_key, header_value in raw_headers:
                 assert isinstance(header_key, bytes)
@@ -145,13 +146,13 @@ class Headers(typing.Mapping[str, str]):
             for key, value in self._list
         ]
 
-    def get(self, key: typing.Any, default: typing.Any = None) -> str:
+    def get(self, key: str, default: typing.Any = None) -> typing.Any:
         try:
             return self[key]
         except KeyError:
-            return default  # type: ignore
+            return default
 
-    def getlist(self, key: typing.Any) -> typing.List[str]:
+    def getlist(self, key: str) -> typing.List[str]:
         get_header_key = key.lower().encode("latin-1")
         return [
             item_value.decode("latin-1")
@@ -162,7 +163,7 @@ class Headers(typing.Mapping[str, str]):
     def mutablecopy(self) -> "MutableHeaders":
         return MutableHeaders(self._list[:])
 
-    def __getitem__(self, key: typing.Any) -> str:
+    def __getitem__(self, key: str) -> str:
         get_header_key = key.lower().encode("latin-1")
         for header_key, header_value in self._list:
             if header_key == get_header_key:
@@ -182,7 +183,7 @@ class Headers(typing.Mapping[str, str]):
     def __len__(self) -> int:
         return len(self._list)
 
-    def __eq__(self, other: typing.Union[typing.Any, "Headers"]) -> bool:
+    def __eq__(self, other: typing.Any) -> bool:
         if not isinstance(other, Headers):
             return False
         return sorted(self._list) == sorted(other._list)
