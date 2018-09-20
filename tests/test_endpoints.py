@@ -37,9 +37,9 @@ def test_http_endpoint_route_method():
 
 def test_websocket_endpoint_on_connect():
     class WebSocketApp(WebSocketEndpoint):
-        async def on_connect(self):
-            assert self.websocket["subprotocols"] == ["soap", "wamp"]
-            await self.websocket.accept(subprotocol="wamp")
+        async def on_connect(self, websocket, **kwargs):
+            assert websocket["subprotocols"] == ["soap", "wamp"]
+            await websocket.accept(subprotocol="wamp")
 
     client = TestClient(WebSocketApp)
     with client.websocket_connect("/ws", subprotocols=["soap", "wamp"]) as websocket:
@@ -48,13 +48,13 @@ def test_websocket_endpoint_on_connect():
 
 def test_websocket_endpoint_on_receive():
     class WebSocketApp(WebSocketEndpoint):
-        async def on_receive(self, **kwargs):
+        async def on_receive(self, websocket, **kwargs):
             _bytes = kwargs.get("bytes")
             if _bytes is not None:
-                await self.websocket.send_bytes(b"Message bytes was: " + _bytes)
+                await websocket.send_bytes(b"Message bytes was: " + _bytes)
             _text = kwargs.get("text")
             if _text is not None:
-                await self.websocket.send_text(f"Message text was: {_text}")
+                await websocket.send_text(f"Message text was: {_text}")
 
     client = TestClient(WebSocketApp)
     with client.websocket_connect("/ws") as websocket:
@@ -68,9 +68,9 @@ def test_websocket_endpoint_on_receive():
 
 def test_websocket_endpoint_on_disconnect():
     class WebSocketApp(WebSocketEndpoint):
-        async def on_disconnect(self):
-            assert self.close_code == 1001
-            await self.websocket.close(code=self.close_code)
+        async def on_disconnect(self, websocket, close_code):
+            assert close_code == 1001
+            await websocket.close(code=close_code)
 
     client = TestClient(WebSocketApp)
     with client.websocket_connect("/ws") as websocket:

@@ -1,6 +1,6 @@
 
-Starlette includes the classes `HTTPEndpoint` and `WebSocketEndpoint` that provide a class-based view pattern which
-handles HTTP method dispatching and WebSocket sessions.
+Starlette includes the classes `HTTPEndpoint` and `WebSocketEndpoint` that provide a class-based view pattern for
+handling HTTP method dispatching and WebSocket sessions.
 
 ### HTTPEndpoint
 
@@ -50,18 +50,13 @@ request methods which do not map to a corresponding handler.
 The `WebSocketEndpoint` class is an ASGI application that presents a wrapper around
 the functionality of a `WebSocket` instance. 
 
-The ASGI connection details are accessible on the endpoint instance:
-
-* `.scope` - The request scope.
-* `.websocket` - The `WebSocket` instance.
-* `.close_code` - The close code used when the websocket session is closed.
-* `.kwargs` - The `scope` kwargs.
+The ASGI connection scope is accessible on the endpoint instance via `.scope`.
 
 There are three overridable methods for handling specific ASGI websocket message types:
 
-* `async def on_connect(self)`
-* `async def on_receive(self, bytes=None, text=None)`
-* `async def on_disconnect(self)`
+* `async def on_connect(self, **kwargs)`
+* `async def on_receive(self, **kwargs)`
+* `async def on_disconnect(self, close_code)`
 
 ```python
 from starlette.endpoints import WebSocketEndpoint
@@ -99,21 +94,60 @@ class App(WebSocketEndpoint):
 The `WebSocketEndpoint` can also be used with the `Starlette` application class:
 
 ```python
+import uvicorn
 from starlette.applications import Starlette
-from starlette.responses import PlainTextResponse
-from starlette.endpoints import HTTPEndpoint, WebSocketEndpoint
-
+from starlette.endpoints import WebSocketEndpoint, HTTPEndpoint
+from starlette.responses import HTMLResponse
 
 app = Starlette()
 
+html = """
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Chat</title>
+    </head>
+    <body>
+        <h1>WebSocket Chat</h1>
+        <form action="" onsubmit="sendMessage(event)">
+            <input type="text" id="messageText" autocomplete="off"/>
+            <button>Send</button>
+        </form>
+        <ul id='messages'>
+        </ul>
+        <script>
+            var ws = new WebSocket("ws://localhost:8000/ws");
+            ws.onmessage = function(event) {
+                var messages = document.getElementById('messages')
+                var message = document.createElement('li')
+                var content = document.createTextNode(event.data)
+                message.appendChild(content)
+                messages.appendChild(message)
+            };
+            function sendMessage(event) {
+                var input = document.getElementById("messageText")
+                ws.send(input.value)
+                input.value = ''
+                event.preventDefault()
+            }
+        </script>
+    </body>
+</html>
+"""
+
 
 @app.route("/")
-class Homepage(HTTPEndpoint):
+class HTTPApp(HTTPEndpoint):
     async def get(self, request):
-        return PlainTextResponse(f"Hello, world!")
+        return HTMLResponse(html)
 
 
-@app.route("/ws")
-class WebSocketHandler(WebSocketEndpoint):
-    pass
+@app.websocket_route("/ws")
+class WebSocketEchoEndpoint(WebSocketEndpoint):
+    async def on_receive(self, websocket, **kwargs):
+        await websocket.send_text(f"Message text was: {kwargs['text']}")
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
 ```

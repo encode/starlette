@@ -37,35 +37,34 @@ class HTTPEndpoint:
 class WebSocketEndpoint:
     def __init__(self, scope: Scope):
         self.scope = scope
-        self.websocket = None
-        self.close_code = None
-        self.kwargs = None
 
     async def __call__(self, receive: Receive, send: Send):
-        self.websocket = WebSocket(self.scope, receive=receive, send=send)
-        self.kwargs = self.scope.get("kwargs", {})
-        await self.on_connect()
+        websocket = WebSocket(self.scope, receive=receive, send=send)
+        kwargs = self.scope.get("kwargs", {})
+        await self.on_connect(websocket, **kwargs)
+
+        close_code = None
 
         try:
             while True:
-                message = await self.websocket.receive()
+                message = await websocket.receive()
                 if message["type"] == "websocket.receive":
                     if "text" in message:
-                        await self.on_receive(text=message["text"])
+                        await self.on_receive(websocket, text=message["text"])
                     else:
-                        await self.on_receive(bytes=message["bytes"])
+                        await self.on_receive(websocket, bytes=message["bytes"])
                 elif message["type"] == "websocket.disconnect":
-                    self.close_code = message.get("code", 1000)
+                    close_code = message.get("code", 1000)
                     return
         finally:
-            await self.on_disconnect()
+            await self.on_disconnect(websocket, close_code)
 
-    async def on_connect(self):
+    async def on_connect(self, websocket, **kwargs):
         """Override to handle an incoming websocket connection"""
-        await self.websocket.accept()
+        await websocket.accept()
 
-    async def on_receive(self, bytes=None, text=None):
+    async def on_receive(self, websocket, bytes=None, text=None):
         """Override to handle an incoming websocket message"""
 
-    async def on_disconnect(self):
+    async def on_disconnect(self, websocket, close_code):
         """Override to handle a disconnecting websocket"""
