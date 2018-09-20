@@ -1,13 +1,13 @@
+import hashlib
+import os
+import typing
+
 from email.utils import formatdate
 from mimetypes import guess_type
 from starlette.datastructures import MutableHeaders
-from starlette.types import Receive, Send
+from starlette.types import Receive, Send, StrDict, BytesPairs
 from urllib.parse import quote_plus
-import json
-import hashlib
-import os
-import stat
-import typing
+
 
 try:
     import aiofiles
@@ -19,9 +19,9 @@ except ImportError:  # pragma: nocover
 try:
     import ujson as json
 
-    JSON_DUMPS_OPTIONS = {"ensure_ascii": False}
+    JSON_DUMPS_OPTIONS: typing.Dict[str, typing.Any] = {"ensure_ascii": False}
 except ImportError:  # pragma: nocover
-    import json
+    import json  # type: ignore
 
     JSON_DUMPS_OPTIONS = {
         "ensure_ascii": False,
@@ -39,8 +39,8 @@ class Response:
         self,
         content: typing.Any,
         status_code: int = 200,
-        headers: dict = None,
-        media_type: str = None,
+        headers: typing.Optional[StrDict] = None,
+        media_type: typing.Optional[str] = None,
     ) -> None:
         self.body = self.render(content)
         self.status_code = status_code
@@ -53,9 +53,9 @@ class Response:
             return content
         return content.encode(self.charset)
 
-    def init_headers(self, headers):
+    def init_headers(self, headers: typing.Optional[StrDict]) -> None:
         if headers is None:
-            raw_headers = []
+            raw_headers: BytesPairs = []
             populate_content_length = True
             populate_content_type = True
         else:
@@ -81,7 +81,7 @@ class Response:
         self.raw_headers = raw_headers
 
     @property
-    def headers(self):
+    def headers(self) -> MutableHeaders:
         if not hasattr(self, "_headers"):
             self._headers = MutableHeaders(self.raw_headers)
         return self._headers
@@ -172,7 +172,7 @@ class FileResponse(Response):
         if stat_result is not None:
             self.set_stat_headers(stat_result)
 
-    def set_stat_headers(self, stat_result):
+    def set_stat_headers(self, stat_result: aio_stat) -> None:
         content_length = str(stat_result.st_size)
         last_modified = formatdate(stat_result.st_mtime, usegmt=True)
         etag_base = str(stat_result.st_mtime) + "-" + str(stat_result.st_size)
