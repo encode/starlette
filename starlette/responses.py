@@ -102,6 +102,7 @@ class Response:
         if isinstance(self.background, BackgroundTask):
             await self.background()
 
+
 class HTMLResponse(Response):
     media_type = "text/html"
 

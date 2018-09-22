@@ -2,6 +2,7 @@ import uuid
 import asyncio
 import functools
 
+
 class BackgroundTask:
     def __init__(self, func, *args, **kwargs):
         self.func = func
@@ -26,4 +27,4 @@ class BackgroundTask:
 
     @property
     def result(self):
-        return getattr(self, '_result', None)
+        return getattr(self, "_result", None)
