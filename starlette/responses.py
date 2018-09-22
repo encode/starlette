@@ -1,6 +1,7 @@
 from email.utils import formatdate
 from mimetypes import guess_type
 from starlette.datastructures import MutableHeaders
+from starlette.tasks import BackgroundTask
 from starlette.types import Receive, Send
 from urllib.parse import quote_plus
 import json
@@ -41,11 +42,13 @@ class Response:
         status_code: int = 200,
         headers: dict = None,
         media_type: str = None,
+        background: BackgroundTask = None,
     ) -> None:
         self.body = self.render(content)
         self.status_code = status_code
         if media_type is not None:
             self.media_type = media_type
+        self.background = background
         self.init_headers(headers)
 
     def render(self, content: typing.Any) -> bytes:
@@ -96,6 +99,8 @@ class Response:
         )
         await send({"type": "http.response.body", "body": self.body})
 
+        if isinstance(self.background, BackgroundTask):
+            await self.background()
 
 class HTMLResponse(Response):
     media_type = "text/html"
