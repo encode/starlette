@@ -1,7 +1,7 @@
 from email.utils import formatdate
 from mimetypes import guess_type
+from starlette.background import BackgroundTask
 from starlette.datastructures import MutableHeaders
-from starlette.tasks import BackgroundTask
 from starlette.types import Receive, Send
 from urllib.parse import quote_plus
 import json
@@ -99,7 +99,7 @@ class Response:
         )
         await send({"type": "http.response.body", "body": self.body})
 
-        if isinstance(self.background, BackgroundTask):
+        if self.background is not None:
             await self.background()
 
 

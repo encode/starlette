@@ -1,5 +1,5 @@
 from starlette.responses import Response
-from starlette.tasks import BackgroundTask
+from starlette.background import BackgroundTask
 from starlette.testclient import TestClient
 import asyncio
 
@@ -24,11 +24,8 @@ def test_async_task():
         return asgi
 
     client = TestClient(app)
-    assert task.result == None
     response = client.get("/")
-    assert len(task.id) > 0
     assert response.text == "task initiated"
-    assert task.result == 3
 
 
 def test_sync_task():
@@ -51,8 +48,5 @@ def test_sync_task():
         return asgi
 
     client = TestClient(app)
-    assert task.result == None
     response = client.get("/")
-    assert len(task.id) > 0
     assert response.text == "task initiated"
-    assert task.result == 500
