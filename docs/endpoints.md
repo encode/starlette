@@ -50,13 +50,21 @@ request methods which do not map to a corresponding handler.
 The `WebSocketEndpoint` class is an ASGI application that presents a wrapper around
 the functionality of a `WebSocket` instance. 
 
-The ASGI connection scope is accessible on the endpoint instance via `.scope`.
+The ASGI connection scope is accessible on the endpoint instance via `.scope` and
+has an attribute `encoding` for validating the expected websocket data in the
+`on_receive` method.
+
+The encoding types are:
+
+* `json`
+* `bytes`
+* `text`
 
 There are three overridable methods for handling specific ASGI websocket message types:
 
-* `async def on_connect(self, **kwargs)`
-* `async def on_receive(self, **kwargs)`
-* `async def on_disconnect(self, close_code)`
+* `async def on_connect(websocket, **kwargs)`
+* `async def on_receive(websocket, data)`
+* `async def on_disconnect(websocket, close_code)`
 
 ```python
 from starlette.endpoints import WebSocketEndpoint
@@ -64,30 +72,27 @@ from starlette.endpoints import WebSocketEndpoint
 
 class App(WebSocketEndpoint):
 
-    async def on_connect(self):
+    encoding = 'bytes'
+
+    async def on_connect(self, websocket, **kwargs):
         """
         Override the default `on_connect` behaviour and manually handle websocket acceptance.
 
         For example, it is possible to retrieve the subprotocols available on the websocket instance
         and negotiate its accept behaviour.
 
-            async def on_connect(self):
-                subprotocols = self.websocket['subprotocols']
+            async def on_connect(self, websocket, **kwargs):
+                subprotocols = websocket['subprotocols']
                 ...
                 await self.websocket.accept(subprotocol=subprotocol)
         """
-        await self.websocket.accept()
+        await websocket.accept()
 
-    async def on_receive(self, **kwargs):
-        """Override `on_receive` to handle the message bytes or text sent over the websocket."""
-        _bytes = kwargs.get("bytes")
-        if _bytes is not None:
-            await self.websocket.send_text(b"Message: " + _bytes)
-        _text = kwargs.get("text")
-        if _text is not None:
-            await self.websocket.send_text(f"Message: {_text}")
+    async def on_receive(self, websocket, data):
+        """Override `on_receive` to handle the message data."""
+        await self.websocket.send_bytes(b"Message: " + data)
 
-    async def on_disconnect(self):
+    async def on_disconnect(self, websocket, close_code):
         """Override this method to perform any cleanup tasks after the websocket is closed."""
 ```
 
@@ -144,8 +149,11 @@ class HTTPApp(HTTPEndpoint):
 
 @app.websocket_route("/ws")
 class WebSocketEchoEndpoint(WebSocketEndpoint):
-    async def on_receive(self, websocket, **kwargs):
-        await websocket.send_text(f"Message text was: {kwargs['text']}")
+
+    encoding = "text"
+
+    async def on_receive(self, websocket, data):
+        await websocket.send_text(f"Message text was: {data}")
 
 
 if __name__ == "__main__":

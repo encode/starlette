@@ -4,6 +4,7 @@ from starlette.websockets import WebSocket
 from starlette.responses import Response, PlainTextResponse
 from starlette.types import Receive, Send, Scope
 import asyncio
+import json
 
 
 class HTTPEndpoint:
@@ -35,6 +36,9 @@ class HTTPEndpoint:
 
 
 class WebSocketEndpoint:
+
+    encoding = None  # May be "text", "bytes", or "json".
+
     def __init__(self, scope: Scope):
         self.scope = scope
 
@@ -49,21 +53,46 @@ class WebSocketEndpoint:
             while True:
                 message = await websocket.receive()
                 if message["type"] == "websocket.receive":
-                    if "text" in message:
-                        await self.on_receive(websocket, text=message["text"])
-                    else:
-                        await self.on_receive(websocket, bytes=message["bytes"])
+                    data = await self.decode(websocket, message)
+                    await self.on_receive(websocket, data)
                 elif message["type"] == "websocket.disconnect":
                     close_code = message.get("code", 1000)
                     return
         finally:
             await self.on_disconnect(websocket, close_code)
 
+    async def decode(self, websocket, message):
+
+        if self.encoding == "text":
+            if "text" not in message:
+                await websocket.close(code=1003)
+                raise RuntimeError("Expected text websocket messages, but got bytes")
+            return message["text"]
+
+        elif self.encoding == "bytes":
+            if "bytes" not in message:
+                await websocket.close(code=1003)
+                raise RuntimeError("Expected bytes websocket messages, but got text")
+            return message["bytes"]
+
+        elif self.encoding == "json":
+            if "bytes" not in message:
+                await websocket.close(code=1003)
+                raise RuntimeError(
+                    "Expected JSON to be transferred as bytes websocket messages, but got text"
+                )
+            return json.loads(message["bytes"].decode("utf-8"))
+
+        assert (
+            self.encoding is None
+        ), f"Unsupported 'encoding' attribute {self.encoding}"
+        return message["text"] if "text" in message else message["bytes"]
+
     async def on_connect(self, websocket, **kwargs):
         """Override to handle an incoming websocket connection"""
         await websocket.accept()
 
-    async def on_receive(self, websocket, bytes=None, text=None):
+    async def on_receive(self, websocket, data):
         """Override to handle an incoming websocket message"""
 
     async def on_disconnect(self, websocket, close_code):

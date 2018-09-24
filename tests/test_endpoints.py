@@ -46,21 +46,69 @@ def test_websocket_endpoint_on_connect():
         assert websocket.accepted_subprotocol == "wamp"
 
 
-def test_websocket_endpoint_on_receive():
+def test_websocket_endpoint_on_receive_bytes():
     class WebSocketApp(WebSocketEndpoint):
-        async def on_receive(self, websocket, **kwargs):
-            _bytes = kwargs.get("bytes")
-            if _bytes is not None:
-                await websocket.send_bytes(b"Message bytes was: " + _bytes)
-            _text = kwargs.get("text")
-            if _text is not None:
-                await websocket.send_text(f"Message text was: {_text}")
+        encoding = "bytes"
+
+        async def on_receive(self, websocket, data):
+            await websocket.send_bytes(b"Message bytes was: " + data)
 
     client = TestClient(WebSocketApp)
     with client.websocket_connect("/ws") as websocket:
         websocket.send_bytes(b"Hello, world!")
         _bytes = websocket.receive_bytes()
         assert _bytes == b"Message bytes was: Hello, world!"
+
+    with pytest.raises(RuntimeError):
+        with client.websocket_connect("/ws") as websocket:
+            websocket.send_text("Hello world")
+
+
+def test_websocket_endpoint_on_receive_json():
+    class WebSocketApp(WebSocketEndpoint):
+        encoding = "json"
+
+        async def on_receive(self, websocket, data):
+            await websocket.send_json({"message": data})
+
+    client = TestClient(WebSocketApp)
+    with client.websocket_connect("/ws") as websocket:
+        websocket.send_json({"hello": "world"})
+        data = websocket.receive_json()
+        assert data == {"message": {"hello": "world"}}
+
+    with pytest.raises(RuntimeError):
+        with client.websocket_connect("/ws") as websocket:
+            websocket.send_text("Hello world")
+
+
+def test_websocket_endpoint_on_receive_text():
+    class WebSocketApp(WebSocketEndpoint):
+        encoding = "text"
+
+        async def on_receive(self, websocket, data):
+            await websocket.send_text(f"Message text was: {data}")
+
+    client = TestClient(WebSocketApp)
+    with client.websocket_connect("/ws") as websocket:
+        websocket.send_text("Hello, world!")
+        _text = websocket.receive_text()
+        assert _text == "Message text was: Hello, world!"
+
+    with pytest.raises(RuntimeError):
+        with client.websocket_connect("/ws") as websocket:
+            websocket.send_bytes(b"Hello world")
+
+
+def test_websocket_endpoint_on_default():
+    class WebSocketApp(WebSocketEndpoint):
+        encoding = None
+
+        async def on_receive(self, websocket, data):
+            await websocket.send_text(f"Message text was: {data}")
+
+    client = TestClient(WebSocketApp)
+    with client.websocket_connect("/ws") as websocket:
         websocket.send_text("Hello, world!")
         _text = websocket.receive_text()
         assert _text == "Message text was: Hello, world!"
