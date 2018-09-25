@@ -1,5 +1,5 @@
 
-Starlette includes a `BackgroundTask` class to allow for long running tasks to be done in the background.
+Starlette includes a `BackgroundTask` class for tasks that do not need to be completed before the response is sent.
 
 ### Background Task
 
@@ -9,18 +9,23 @@ Signature: `BackgroundTask(func, *args, **kwargs)
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
 from starlette.background import BackgroundTask
+from email.mime.text import MIMEText
 
 app = Starlette()
 
-@app.route('/start_task/{arg}')
-def init_task(request, arg):
-    task = BackgroundTask(some_task, arg)
+@app.route('/user/signup', methods=['POST'])
+async def create_new_user(request):
+    user = await request.json()
+    # Do stuff here
+    task = BackgroundTask(send_welcome_email, user)
     return JSONResponse(
-        'Task was initiated',
-        202,
+        {'msg': 'User successfully created'},
         background=task
     )
 
-async def some_task(arg):
-    pass
+async def send_welcome_email(info):
+    # Do stuff here
+    message = MIMEText(f"Thank you for registering, {info['name']}")
+    message['To'] = info['email']
+    await send_message(message)
 ```
