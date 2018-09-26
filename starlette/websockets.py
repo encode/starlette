@@ -113,9 +113,7 @@ class WebSocket(Mapping):
         else:
             raise RuntimeError('Cannot call "send" once a close message has been sent.')
 
-    async def accept(
-        self, subprotocol: typing.Optional[typing.List[str]] = None
-    ) -> None:
+    async def accept(self, subprotocol: typing.List[str] = None) -> None:
         if self.client_state == WebSocketState.CONNECTING:
             # If we haven't yet seen the 'connect' message, then wait for it first.
             await self.receive()
