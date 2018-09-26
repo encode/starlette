@@ -1,5 +1,4 @@
 from collections.abc import Mapping
-from enum import Enum
 from starlette.datastructures import URL, Headers, QueryParams
 from urllib.parse import unquote
 import enum
@@ -13,8 +12,17 @@ class WebSocketState(enum.Enum):
 
 
 class WebSocketDisconnect(Exception):
-    def __init__(self, code=1000):
+    def __init__(self, code=1000, exc=None):
         self.code = code
+
+        if exc:
+            # We look for code and reason from a previous Exception
+            # because the popular `websockets` module, and maybe others,
+            # will provide them in a 'attempt send while connection closed'
+            # scenario
+            self.code = getattr(exc, "code", self.code)
+            self.reason = getattr(exc, "reason", "")
+            super().__init__(str(exc))
 
 
 class WebSocket(Mapping):
@@ -101,12 +109,18 @@ class WebSocket(Mapping):
             else:
                 self.application_state = WebSocketState.CONNECTED
             await self._send(message)
+
         elif self.application_state == WebSocketState.CONNECTED:
             message_type = message["type"]
             assert message_type in {"websocket.send", "websocket.close"}
             if message_type == "websocket.close":
                 self.application_state = WebSocketState.DISCONNECTED
-            await self._send(message)
+
+            try:
+                await self._send(message)
+            except Exception as e:
+                self.application_state = WebSocketState.DISCONNECTED
+                raise WebSocketDisconnect(exc=e)
         else:
             raise RuntimeError('Cannot call "send" once a close message has been sent.')
 

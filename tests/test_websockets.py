@@ -3,6 +3,27 @@ from starlette.testclient import TestClient
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 
+def test_websocket_send_to_closed_connected_client():
+    def app(scope):
+        async def asgi(receive, send):
+            websocket = WebSocket(scope, receive, send)
+            await websocket.accept()
+
+            with pytest.raises(WebSocketDisconnect) as exc:
+                while True:
+                    await websocket.send_json({"url": f"{websocket.url}0"})
+
+            assert exc.value.code == 1000
+
+        return asgi
+
+    client = TestClient(app)
+    with client.websocket_connect("/") as websocket:
+        data = websocket.receive_json()
+        websocket.close()
+        assert data == {"url": "ws://testserver/0"}
+
+
 def test_websocket_url():
     def app(scope):
         async def asgi(receive, send):
