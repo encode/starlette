@@ -3,13 +3,11 @@ import traceback
 import typing
 
 from starlette.requests import Request
-from starlette.responses import HTMLResponse, PlainTextResponse
-from starlette.types import Scope, Receive, Send
+from starlette.responses import HTMLResponse, PlainTextResponse, Response
+from starlette.types import Scope, Receive, Send, Message, ASGIApp, ASGIInstance
 
 
-def get_debug_response(
-    request: Request, exc: typing.Any
-) -> typing.Union[HTMLResponse, PlainTextResponse]:
+def get_debug_response(request: Request, exc: typing.Any) -> Response:
     accept = request.headers.get("accept", "")
     if "text/html" in accept:
         exc_html = "".join(traceback.format_tb(exc.__traceback__))
@@ -23,19 +21,17 @@ def get_debug_response(
 
 
 class DebugMiddleware:
-    def __init__(self, app: typing.Callable) -> None:
+    def __init__(self, app: ASGIApp) -> None:
         self.app = app
 
-    def __call__(
-        self, scope: Scope
-    ) -> typing.Union["_DebugResponder", typing.Callable]:
+    def __call__(self, scope: Scope) -> typing.Union["_DebugResponder", ASGIInstance]:
         if scope["type"] != "http":
             return self.app(scope)
         return _DebugResponder(self.app, scope)
 
 
 class _DebugResponder:
-    def __init__(self, app: typing.Callable, scope: Scope) -> None:
+    def __init__(self, app: ASGIApp, scope: Scope) -> None:
         self.app = app
         self.scope = scope
         self.response_started = False
@@ -52,7 +48,7 @@ class _DebugResponder:
                 await response(receive, send)
             raise exc from None
 
-    async def send(self, message: typing.Dict) -> None:
+    async def send(self, message: Message) -> None:
         if message["type"] == "http.response.start":
             self.response_started = True
         await self.raw_send(message)
