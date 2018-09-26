@@ -1,20 +1,17 @@
 import os
 import stat
-import typing
 
 from aiofiles.os import stat as aio_stat
 
-from starlette.responses import PlainTextResponse, FileResponse
-from starlette.types import Send, Receive, Scope
+from starlette.responses import PlainTextResponse, FileResponse, Response
+from starlette.types import Send, Receive, Scope, ASGIInstance
 
 
 class StaticFile:
     def __init__(self, *, path: str) -> None:
         self.path = path
 
-    def __call__(
-        self, scope: Scope
-    ) -> typing.Union[PlainTextResponse, "_StaticFileResponder"]:
+    def __call__(self, scope: Scope) -> ASGIInstance:
         if scope["method"] not in ("GET", "HEAD"):
             return PlainTextResponse("Method Not Allowed", status_code=405)
         return _StaticFileResponder(scope, path=self.path)
@@ -25,9 +22,7 @@ class StaticFiles:
         self.directory = directory
         self.config_checked = False
 
-    def __call__(
-        self, scope: Scope
-    ) -> typing.Union[PlainTextResponse, "_StaticFilesResponder"]:
+    def __call__(self, scope: Scope) -> ASGIInstance:
         if scope["method"] not in ("GET", "HEAD"):
             return PlainTextResponse("Method Not Allowed", status_code=405)
         path = os.path.normpath(os.path.join(*scope["path"].split("/")))
@@ -62,9 +57,7 @@ class _StaticFileResponder:
 
 
 class _StaticFilesResponder:
-    def __init__(
-        self, scope: Scope, path: str, check_directory: typing.Optional[str] = None
-    ) -> None:
+    def __init__(self, scope: Scope, path: str, check_directory: str = None) -> None:
         self.scope = scope
         self.path = path
         self.check_directory = check_directory
@@ -90,9 +83,7 @@ class _StaticFilesResponder:
         try:
             stat_result = await aio_stat(self.path)
         except FileNotFoundError:
-            response = PlainTextResponse(
-                "Not Found", status_code=404
-            )  # type: typing.Union[PlainTextResponse, FileResponse]
+            response = PlainTextResponse("Not Found", status_code=404)  # type: Response
         else:
             mode = stat_result.st_mode
 
