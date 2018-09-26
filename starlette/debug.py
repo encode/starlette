@@ -7,7 +7,9 @@ from starlette.responses import HTMLResponse, PlainTextResponse
 from starlette.types import Scope, Receive, Send
 
 
-def get_debug_response(request: Request, exc: typing.Any) -> typing.Union[HTMLResponse, PlainTextResponse]:
+def get_debug_response(
+    request: Request, exc: typing.Any
+) -> typing.Union[HTMLResponse, PlainTextResponse]:
     accept = request.headers.get("accept", "")
     if "text/html" in accept:
         exc_html = "".join(traceback.format_tb(exc.__traceback__))
@@ -24,7 +26,9 @@ class DebugMiddleware:
     def __init__(self, app: typing.Callable) -> None:
         self.app = app
 
-    def __call__(self, scope: Scope) -> typing.Union['_DebugResponder', typing.Callable]:
+    def __call__(
+        self, scope: Scope
+    ) -> typing.Union["_DebugResponder", typing.Callable]:
         if scope["type"] != "http":
             return self.app(scope)
         return _DebugResponder(self.app, scope)
