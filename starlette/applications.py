@@ -9,7 +9,7 @@ from starlette.types import ASGIApp, ASGIInstance, Receive, Scope, Send, Methods
 from starlette.websockets import WebSocket
 
 
-def request_response(func: typing.Callable) -> typing.Callable:
+def request_response(func: typing.Callable) -> ASGIApp:
     """
     Takes a function or coroutine `func(request, **kwargs) -> response`,
     and returns an ASGI application.
@@ -31,7 +31,7 @@ def request_response(func: typing.Callable) -> typing.Callable:
     return app
 
 
-def websocket_session(func: typing.Callable) -> typing.Callable:
+def websocket_session(func: typing.Callable) -> ASGIApp:
     """
     Takes a coroutine `func(session, **kwargs)`, and returns an ASGI application.
     """
