@@ -48,7 +48,7 @@ def websocket_session(func: typing.Callable) -> ASGIApp:
 
 
 class Starlette:
-    def __init__(self, debug: typing.Optional[bool] = False) -> None:
+    def __init__(self, debug: bool = False) -> None:
         self.router = Router(routes=[])
         self.exception_middleware = ExceptionMiddleware(self.router, debug=debug)
 
