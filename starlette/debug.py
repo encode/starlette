@@ -7,7 +7,7 @@ from starlette.responses import HTMLResponse, PlainTextResponse, Response
 from starlette.types import Scope, Receive, Send, Message, ASGIApp, ASGIInstance
 
 
-def get_debug_response(request: Request, exc: typing.Any) -> Response:
+def get_debug_response(request: Request, exc: Exception) -> Response:
     accept = request.headers.get("accept", "")
     if "text/html" in accept:
         exc_html = "".join(traceback.format_tb(exc.__traceback__))
