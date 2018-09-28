@@ -24,7 +24,7 @@ class DebugMiddleware:
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
 
-    def __call__(self, scope: Scope) -> typing.Union["_DebugResponder", ASGIInstance]:
+    def __call__(self, scope: Scope) -> ASGIInstance:
         if scope["type"] != "http":
             return self.app(scope)
         return _DebugResponder(self.app, scope)
