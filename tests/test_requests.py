@@ -69,6 +69,9 @@ def test_request_cookies():
             response = JSONResponse(
                 {morsel.key: morsel.value for key, morsel in cookies.items()}
             )
+
+            # For twice visits.
+            cookies = dict(request.cookies)
             await response(receive, send)
 
         return asgi
@@ -76,6 +79,10 @@ def test_request_cookies():
     client = TestClient(app)
     response = client.get("/", cookies={"cookie-1": "example.org", "cookie-2": "123"})
     assert response.json() == {"cookie-1": "example.org", "cookie-2": "123"}
+
+    # `?` is ilegal char in cookie name.
+    response = client.get("/", cookies={"cookie-1?": "example.org", "cookie-2": "123"})
+    assert response.json() == {}
 
 
 def test_request_body():

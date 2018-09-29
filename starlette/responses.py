@@ -91,9 +91,9 @@ class Response:
         self,
         name: str,
         value: str,
-        expires: str = "",
-        domain: str = None,
-        secure: str = False,
+        expires: int = -1,
+        domain: str = "",
+        secure: str = "false",
         httponly: bool = False,
         path: str = None,
     ):

@@ -133,8 +133,10 @@ def test_response_cookies():
     def app(scope):
         async def asgi(receive, send):
             response = Response("has cookie.", media_type="text/plain")
-            response.set_cookie("cookie-1", 123, path="/")
-            response.set_cookie("cookie-2", "456", expires=60)
+            response.set_cookie(
+                "cookie-1", 123, path="/", domain="localhost", secure="true"
+            )
+            response.set_cookie("cookie-2", "456", expires=60, httponly=True)
             await response(receive, send)
 
         return asgi
