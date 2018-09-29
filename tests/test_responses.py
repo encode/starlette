@@ -1,3 +1,4 @@
+from http.cookies import SimpleCookie
 from starlette.responses import (
     FileResponse,
     RedirectResponse,
@@ -126,3 +127,19 @@ def test_file_response(tmpdir):
     assert "content-length" in response.headers
     assert "last-modified" in response.headers
     assert "etag" in response.headers
+
+
+def test_response_cookies():
+    def app(scope):
+        async def asgi(receive, send):
+            response = Response("has cookie.", media_type="text/plain")
+            response.set_cookie("cookie-1", 123, path="/")
+            response.set_cookie("cookie-2", "456", expires=60)
+            await response(receive, send)
+
+        return asgi
+
+    client = TestClient(app)
+    response = client.get("/")
+    assert response.cookies["cookie-1"] == "123"
+    assert response.cookies["cookie-2"] == "456"

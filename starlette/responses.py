@@ -3,6 +3,7 @@ from mimetypes import guess_type
 from starlette.datastructures import MutableHeaders
 from starlette.types import Receive, Send
 from urllib.parse import quote_plus
+from http.cookies import Morsel
 import json
 import hashlib
 import os
@@ -85,6 +86,35 @@ class Response:
         if not hasattr(self, "_headers"):
             self._headers = MutableHeaders(self.raw_headers)
         return self._headers
+
+    def set_cookie(
+        self,
+        name: str,
+        value: str,
+        expires: str = "",
+        domain: str = None,
+        secure: str = False,
+        httponly: bool = False,
+        path: str = None,
+    ):
+        """Sets a cookie."""
+        morsel = Morsel()
+        name, value = str(name), str(value)
+        morsel.set(name, value, quote_plus(value))
+        if isinstance(expires, int) and expires < 0:
+            expires = -1000000000
+        morsel["expires"] = expires
+        morsel["path"] = path or "/"
+        if domain:
+            morsel["domain"] = domain
+        if secure:
+            morsel["secure"] = secure
+        value = morsel.OutputString()
+        if httponly:
+            value += "; httponly"
+        self.headers._list.append(
+            ("set-cookie".encode("latin-1"), value.encode("latin-1"))
+        )
 
     async def __call__(self, receive: Receive, send: Send) -> None:
         await send(

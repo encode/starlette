@@ -1,6 +1,7 @@
 from starlette.datastructures import URL, Headers, QueryParams
 from collections.abc import Mapping
 from urllib.parse import unquote
+from http.cookies import SimpleCookie, CookieError
 import json
 import typing
 
@@ -24,6 +25,16 @@ class Request(Mapping):
 
     def __len__(self):
         return len(self._scope)
+
+    @property
+    def cookies(self) -> SimpleCookie:
+        if not hasattr(self, "_cookies"):
+            self._cookies = SimpleCookie()
+            try:
+                self._cookies.load(self.headers["cookie"])
+            except CookieError:
+                pass
+        return self._cookies
 
     @property
     def method(self) -> str:
