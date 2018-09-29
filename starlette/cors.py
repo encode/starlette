@@ -1,3 +1,4 @@
+from starlette.types import ASGIApp, Scope, Message, Receive, Scope, Send
 import functools
 
 
@@ -21,18 +22,18 @@ DEFAULT = {
 
 
 class CORSMiddleware:
-    def __init__(self, app):
+    def __init__(self, app: ASGIApp) -> None:
         self.app = app
 
-    def __call__(self, scope):
+    def __call__(self, scope: Scope) -> ASGIApp:
         return functools.partial(self.handler, scope=scope)
 
-    async def handler(self, receive, send, scope=None):
+    async def handler(self, receive: Receive, send: Send, scope: Scope = None) -> None:
         sender = functools.partial(self.sender, send=send)
         inner = self.app(scope)
         await inner(receive, sender)
 
-    async def sender(self, message, send=None):
+    async def sender(self, message: Message, send: Send = None) -> None:
         if message["type"] == "http.response.start":
             headers = message["headers"]
             for header, value in zip(cors_headers, DEFAULT.values()):
