@@ -12,6 +12,7 @@ cors_headers = [
     "access-control-max-age",
 ]
 
+
 def test_cors_headers_exist():
     def app(scope):
         async def asgi(receive, send):
