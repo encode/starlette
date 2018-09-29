@@ -1,4 +1,4 @@
-from starlette.types import ASGIApp, Scope, Message, Receive, Scope, Send
+from starlette.types import ASGIApp, Scope, Message, Receive, Send
 import functools
 
 
