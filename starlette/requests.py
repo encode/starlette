@@ -2,7 +2,7 @@ from starlette.datastructures import URL, Headers, QueryParams
 from collections.abc import Mapping
 from urllib.parse import unquote
 import json
-import typing
+import http.cookies
 
 
 class ClientDisconnect(Exception):
@@ -15,6 +15,7 @@ class Request(Mapping):
         self._scope = scope
         self._receive = receive
         self._stream_consumed = False
+        self._cookies = None
 
     def __getitem__(self, key):
         return self._scope[key]
@@ -60,6 +61,21 @@ class Request(Mapping):
             query_string = self._scope["query_string"].decode()
             self._query_params = QueryParams(query_string)
         return self._query_params
+
+    @property
+    def cookies(self) -> dict:
+        if self._cookies is None:
+            self._cookies = {}
+            cookie_header = self.headers.get("cookie")
+            if cookie_header:
+                cookie = http.cookies.SimpleCookie()
+                cookie.load(cookie_header)
+                for key, morsel in cookie.items():
+                    self._cookies[key] = morsel.value
+        return self._cookies
+
+    def get_cookie(self, key):
+        return self.cookies.get(key, None)
 
     async def stream(self):
         if hasattr(self, "_body"):
