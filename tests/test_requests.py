@@ -65,13 +65,12 @@ def test_request_cookies():
     def app(scope):
         async def asgi(receive, send):
             request = Request(scope, receive)
-            cookies = dict(request.cookies)
             response = JSONResponse(
-                {morsel.key: morsel.value for key, morsel in cookies.items()}
+                {morsel.key: morsel.value for key, morsel in request.cookies.items()}
             )
 
-            # For twice visits.
-            cookies = dict(request.cookies)
+            if request.get_cookie("cookie-1"):
+                assert request.get_cookie("cookie-1").value == "example.org"
             await response(receive, send)
 
         return asgi
@@ -82,6 +81,7 @@ def test_request_cookies():
 
     # `?` is ilegal char in cookie name.
     response = client.get("/", cookies={"cookie-1?": "example.org", "cookie-2": "123"})
+
     assert response.json() == {}
 
 

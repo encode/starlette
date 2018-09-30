@@ -1,7 +1,7 @@
 from starlette.datastructures import URL, Headers, QueryParams
 from collections.abc import Mapping
 from urllib.parse import unquote
-from http.cookies import SimpleCookie, CookieError
+from http.cookies import SimpleCookie, CookieError, Morsel
 import json
 import typing
 
@@ -31,10 +31,16 @@ class Request(Mapping):
         if not hasattr(self, "_cookies"):
             self._cookies = SimpleCookie()
             try:
-                self._cookies.load(self.headers["cookie"])
+                for key, value in self._scope["headers"]:
+                    # Maybe has multiple cookie in headers.
+                    if key.lower() == b"cookie":
+                        self._cookies.load(value.decode("latin-1"))
             except CookieError:
                 pass
         return self._cookies
+
+    def get_cookie(self, key: str) -> Morsel:
+        return self.cookies.get(key, None)
 
     @property
     def method(self) -> str:

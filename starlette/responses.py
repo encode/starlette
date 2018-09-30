@@ -109,12 +109,14 @@ class Response:
             morsel["domain"] = domain
         if secure:
             morsel["secure"] = secure
-        value = morsel.OutputString()
         if httponly:
-            value += "; httponly"
+            morsel["httponly"] = httponly
         self.headers._list.append(
-            ("set-cookie".encode("latin-1"), value.encode("latin-1"))
+            ("set-cookie".encode("latin-1"), morsel.OutputString().encode("latin-1"))
         )
+
+    def delete_cookie(self, key: str, domain: str = None, path: str = "/") -> None:
+        self.set_cookie(key, "", expires=0, domain=domain, path=path)
 
     async def __call__(self, receive: Receive, send: Send) -> None:
         await send(
