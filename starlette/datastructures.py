@@ -49,11 +49,7 @@ class URL(str):
     def port(self) -> typing.Optional[int]:
         return self.components.port
 
-<<<<<<< HEAD
-    def replace(self, **kwargs: typing.Any) -> "URL":  # type: ignore
-=======
-    def replace_components(self, **kwargs: typing.Any) -> "URL":  # type: ignore
->>>>>>> bc66a872e9218118f32f4e6bf8ccd7d9dbfb1411
+    def replace_components(self, **kwargs: typing.Any) -> "URL":
         components = self.components._replace(**kwargs)
         return URL(components.geturl())
 

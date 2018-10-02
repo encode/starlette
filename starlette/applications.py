@@ -110,5 +110,5 @@ class Starlette:
         return decorator
 
     def __call__(self, scope: Scope) -> ASGIInstance:
-        scope["app"] = self  # type: ignore
+        scope["app"] = self
         return self.exception_middleware(scope)
