@@ -7,7 +7,7 @@ from starlette import status
 def test_websocket_url():
     def app(scope):
         async def asgi(receive, send):
-            websocket = WebSocket(scope, receive, send)
+            websocket = WebSocket(scope, receive=receive, send=send)
             await websocket.accept()
             await websocket.send_json({"url": websocket.url})
             await websocket.close()
@@ -23,7 +23,7 @@ def test_websocket_url():
 def test_websocket_query_params():
     def app(scope):
         async def asgi(receive, send):
-            websocket = WebSocket(scope, receive, send)
+            websocket = WebSocket(scope, receive=receive, send=send)
             query_params = dict(websocket.query_params)
             await websocket.accept()
             await websocket.send_json({"params": query_params})
@@ -40,7 +40,7 @@ def test_websocket_query_params():
 def test_websocket_headers():
     def app(scope):
         async def asgi(receive, send):
-            websocket = WebSocket(scope, receive, send)
+            websocket = WebSocket(scope, receive=receive, send=send)
             headers = dict(websocket.headers)
             await websocket.accept()
             await websocket.send_json({"headers": headers})
@@ -66,7 +66,7 @@ def test_websocket_headers():
 def test_websocket_port():
     def app(scope):
         async def asgi(receive, send):
-            websocket = WebSocket(scope, receive, send)
+            websocket = WebSocket(scope, receive=receive, send=send)
             await websocket.accept()
             await websocket.send_json({"port": websocket.url.port})
             await websocket.close()
@@ -82,7 +82,7 @@ def test_websocket_port():
 def test_websocket_send_and_receive_text():
     def app(scope):
         async def asgi(receive, send):
-            websocket = WebSocket(scope, receive, send)
+            websocket = WebSocket(scope, receive=receive, send=send)
             await websocket.accept()
             data = await websocket.receive_text()
             await websocket.send_text("Message was: " + data)
@@ -100,7 +100,7 @@ def test_websocket_send_and_receive_text():
 def test_websocket_send_and_receive_bytes():
     def app(scope):
         async def asgi(receive, send):
-            websocket = WebSocket(scope, receive, send)
+            websocket = WebSocket(scope, receive=receive, send=send)
             await websocket.accept()
             data = await websocket.receive_bytes()
             await websocket.send_bytes(b"Message was: " + data)
@@ -118,7 +118,7 @@ def test_websocket_send_and_receive_bytes():
 def test_websocket_send_and_receive_json():
     def app(scope):
         async def asgi(receive, send):
-            websocket = WebSocket(scope, receive, send)
+            websocket = WebSocket(scope, receive=receive, send=send)
             await websocket.accept()
             data = await websocket.receive_json()
             await websocket.send_json({"message": data})
@@ -139,10 +139,10 @@ def test_client_close():
     def app(scope):
         async def asgi(receive, send):
             nonlocal close_code
-            websocket = WebSocket(scope, receive, send)
+            websocket = WebSocket(scope, receive=receive, send=send)
             await websocket.accept()
             try:
-                data = await websocket.receive_text()
+                await websocket.receive_text()
             except WebSocketDisconnect as exc:
                 close_code = exc.code
 
@@ -157,7 +157,7 @@ def test_client_close():
 def test_application_close():
     def app(scope):
         async def asgi(receive, send):
-            websocket = WebSocket(scope, receive, send)
+            websocket = WebSocket(scope, receive=receive, send=send)
             await websocket.accept()
             await websocket.close(status.WS_1001_LEAVING)
 
@@ -173,7 +173,7 @@ def test_application_close():
 def test_rejected_connection():
     def app(scope):
         async def asgi(receive, send):
-            websocket = WebSocket(scope, receive, send)
+            websocket = WebSocket(scope, receive=receive, send=send)
             await websocket.close(status.WS_1001_LEAVING)
 
         return asgi
@@ -187,7 +187,7 @@ def test_rejected_connection():
 def test_subprotocol():
     def app(scope):
         async def asgi(receive, send):
-            websocket = WebSocket(scope, receive, send)
+            websocket = WebSocket(scope, receive=receive, send=send)
             assert websocket["subprotocols"] == ["soap", "wamp"]
             await websocket.accept(subprotocol="wamp")
             await websocket.close()
@@ -214,7 +214,7 @@ def test_websocket_exception():
 def test_duplicate_close():
     def app(scope):
         async def asgi(receive, send):
-            websocket = WebSocket(scope, receive, send)
+            websocket = WebSocket(scope, receive=receive, send=send)
             await websocket.accept()
             await websocket.close()
             await websocket.close()
@@ -223,14 +223,14 @@ def test_duplicate_close():
 
     client = TestClient(app)
     with pytest.raises(RuntimeError):
-        with client.websocket_connect("/") as websocket:
+        with client.websocket_connect("/"):
             pass
 
 
 def test_duplicate_disconnect():
     def app(scope):
         async def asgi(receive, send):
-            websocket = WebSocket(scope, receive, send)
+            websocket = WebSocket(scope, receive=receive, send=send)
             await websocket.accept()
             message = await websocket.receive()
             assert message["type"] == "websocket.disconnect"
@@ -249,7 +249,18 @@ def test_websocket_scope_interface():
     A WebSocket can be instantiated with a scope, and presents a `Mapping`
     interface.
     """
-    websocket = WebSocket({"type": "websocket", "path": "/abc/", "headers": []})
+
+    async def mock_receive():
+        pass  # pragma: no cover
+
+    async def mock_send(message):
+        pass  # pragma: no cover
+
+    websocket = WebSocket(
+        {"type": "websocket", "path": "/abc/", "headers": []},
+        receive=mock_receive,
+        send=mock_send,
+    )
     assert websocket["type"] == "websocket"
     assert dict(websocket) == {"type": "websocket", "path": "/abc/", "headers": []}
     assert len(websocket) == 3
