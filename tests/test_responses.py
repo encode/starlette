@@ -1,3 +1,4 @@
+from http.cookies import SimpleCookie, _getdate
 from starlette.responses import (
     FileResponse,
     RedirectResponse,
@@ -126,3 +127,34 @@ def test_file_response(tmpdir):
     assert "content-length" in response.headers
     assert "last-modified" in response.headers
     assert "etag" in response.headers
+
+
+def test_response_cookies():
+    def app(scope):
+        async def asgi(receive, send):
+            response = Response("has cookie.", media_type="text/plain")
+            response.set_cookie(
+                "cookie-1", 123, path="/", domain="localhost", secure="true"
+            )
+            response.set_cookie("cookie-2", "456", expires=60, httponly=True)
+            response.set_cookie("cookie-3", "789")
+            response.delete_cookie("cookie-3")
+            await response(receive, send)
+
+        return asgi
+
+    client = TestClient(app)
+    response = client.get("/")
+
+    # Requests has a bug.
+    # See https://github.com/requests/requests/issues/4520
+    cookies = SimpleCookie()
+    for cookie in response.raw.headers.getlist("Set-Cookie"):
+        cookies.load(cookie)
+    assert "cookie-1" in cookies and cookies["cookie-1"].value == "123"
+    assert cookies["cookie-1"]["path"] == "/"
+    assert cookies["cookie-1"]["domain"] == "localhost"
+    assert cookies["cookie-1"]["secure"] == True
+    assert "cookie-2" in cookies and cookies["cookie-2"].value == "456"
+    assert cookies["cookie-2"]["expires"] == _getdate(60)
+    assert "cookie-3" in cookies and cookies["cookie-3"]["expires"] == _getdate(0)
