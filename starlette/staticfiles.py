@@ -86,9 +86,9 @@ class _StaticFilesResponder:
             response = PlainTextResponse("Not Found", status_code=404)  # type: Response
         else:
             mode = stat_result.st_mode
-
-            response = FileResponse(self.path, stat_result=stat_result)
             if not stat.S_ISREG(mode):
                 response = PlainTextResponse("Not Found", status_code=404)
+            else:
+                response = FileResponse(self.path, stat_result=stat_result)
 
         await response(receive, send)
