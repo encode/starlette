@@ -9,7 +9,7 @@ import queue
 from urllib.parse import unquote, urlparse, urljoin
 
 from starlette.websockets import WebSocketDisconnect
-from starlette.types import Message, Scope, ASGIApp, Subprotocols
+from starlette.types import Message, Scope, ASGIApp, Subprotocols, BytesPairs
 
 
 class _HeaderDict(requests.packages.urllib3._collections.HTTPHeaderDict):
@@ -23,7 +23,7 @@ class _MockOriginalResponse(object):
     it was made using urllib3.
     """
 
-    def __init__(self, headers: typing.Sequence[str]) -> None:
+    def __init__(self, headers: BytesPairs) -> None:
         self.msg = _HeaderDict(headers)
         self.closed = False
 
@@ -36,7 +36,7 @@ class _Upgrade(Exception):
         self.session = session
 
 
-def _get_reason_phrase(status_code):
+def _get_reason_phrase(status_code: int) -> str:
     try:
         return http.HTTPStatus(status_code).phrase
     except ValueError:
@@ -44,20 +44,17 @@ def _get_reason_phrase(status_code):
 
 
 class _ASGIAdapter(requests.adapters.HTTPAdapter):
-    def __init__(
-        self,
-        app: typing.Callable,
-        raise_server_exceptions: typing.Optional[bool] = True,
-    ) -> None:
+    def __init__(self, app: ASGIApp, raise_server_exceptions: bool = True) -> None:
         self.app = app
         self.raise_server_exceptions = raise_server_exceptions
 
-    def send(
+    def send(  # type: ignore
         self, request: requests.PreparedRequest, *args: typing.Any, **kwargs: typing.Any
-    ) -> requests.Response:  # type: ignore
-        scheme, netloc, path, params, query, fragement = urlparse(
+    ) -> requests.Response:
+        scheme, netloc, path, params, query, fragement = urlparse(  # type: ignore
             request.url
-        )  # type: ignore
+        )
+
         if ":" in netloc:
             port: typing.Any
             host, port = netloc.split(":", 1)
@@ -244,7 +241,7 @@ class WebSocketTestSession:
         encoded = json.dumps(data).encode("utf-8")
         self.send({"type": "websocket.receive", "bytes": encoded})
 
-    def close(self, code: typing.Optional[int] = 1000) -> None:
+    def close(self, code: int = 1000) -> None:
         self.send({"type": "websocket.disconnect", "code": code})
 
     def receive(self) -> Message:
@@ -272,10 +269,7 @@ class WebSocketTestSession:
 
 class _TestClient(requests.Session):
     def __init__(
-        self,
-        app: typing.Callable,
-        base_url: str,
-        raise_server_exceptions: typing.Optional[bool] = True,
+        self, app: ASGIApp, base_url: str, raise_server_exceptions: bool = True
     ) -> None:
         super(_TestClient, self).__init__()
         adapter = _ASGIAdapter(app, raise_server_exceptions=raise_server_exceptions)
@@ -326,10 +320,7 @@ class _TestClient(requests.Session):
         )
 
     def websocket_connect(
-        self,
-        url: str,
-        subprotocols: typing.Optional[Subprotocols] = None,
-        **kwargs: typing.Any
+        self, url: str, subprotocols: Subprotocols = None, **kwargs: typing.Any
     ) -> typing.Any:
         url = urljoin("ws://testserver", url)
         headers = kwargs.get("headers", {})
@@ -350,9 +341,9 @@ class _TestClient(requests.Session):
 
 
 def TestClient(
-    app: typing.Callable,
+    app: ASGIApp,
     base_url: str = "http://testserver",
-    raise_server_exceptions: typing.Optional[bool] = True,
+    raise_server_exceptions: bool = True,
 ) -> _TestClient:
     """
     We have to work around py.test discovery attempting to pick up
