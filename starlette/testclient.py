@@ -9,7 +9,10 @@ import queue
 from urllib.parse import unquote, urlparse, urljoin
 
 from starlette.websockets import WebSocketDisconnect
-from starlette.types import Message, Scope, ASGIApp, Subprotocols, BytesPairs
+from starlette.types import Message, Scope, ASGIApp
+
+
+BytesPairs = typing.List[typing.Tuple[bytes, bytes]]
 
 
 class _HeaderDict(requests.packages.urllib3._collections.HTTPHeaderDict):
@@ -56,31 +59,30 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
         )
 
         if ":" in netloc:
-            port: typing.Any
-            host, port = netloc.split(":", 1)
-            port = int(port)
+            host, port_string = netloc.split(":", 1)
+            port = int(port_string)
         else:
             host = netloc
             port = {"http": 80, "ws": 80, "https": 443, "wss": 443}[scheme]
 
         # Include the 'host' header.
         if "host" in request.headers:
-            headers = []  # type: list
+            headers = []  # type: BytesPairs
         elif port == 80:
-            headers = [[b"host", host.encode()]]
+            headers = [(b"host", host.encode())]
         else:
-            headers = [[b"host", ("%s:%d" % (host, port)).encode()]]  # type: ignore
+            headers = [(b"host", ("%s:%d" % (host, port)).encode())]
 
         # Include other request headers.
         headers += [
-            [key.lower().encode(), value.encode()]
+            (key.lower().encode(), value.encode())
             for key, value in request.headers.items()
         ]
 
         if scheme in {"ws", "wss"}:
             subprotocol = request.headers.get("sec-websocket-protocol", None)
             if subprotocol is None:
-                subprotocols = []  # type: Subprotocols
+                subprotocols = []  # type: typing.Sequence[str]
             else:
                 subprotocols = [value.strip() for value in subprotocol.split(",")]
             scope = {
@@ -231,10 +233,10 @@ class WebSocketTestSession:
     def send(self, message: Message) -> None:
         self._receive_queue.put(message)
 
-    def send_text(self, data: typing.Any) -> None:
+    def send_text(self, data: str) -> None:
         self.send({"type": "websocket.receive", "text": data})
 
-    def send_bytes(self, data: typing.Any) -> None:
+    def send_bytes(self, data: bytes) -> None:
         self.send({"type": "websocket.receive", "bytes": data})
 
     def send_json(self, data: typing.Any) -> None:
@@ -320,7 +322,7 @@ class _TestClient(requests.Session):
         )
 
     def websocket_connect(
-        self, url: str, subprotocols: Subprotocols = None, **kwargs: typing.Any
+        self, url: str, subprotocols: typing.Sequence[str] = None, **kwargs: typing.Any
     ) -> typing.Any:
         url = urljoin("ws://testserver", url)
         headers = kwargs.get("headers", {})
