@@ -1,5 +1,5 @@
 from starlette.datastructures import Headers, MutableHeaders, URL
-from starlette.responses import Response
+from starlette.responses import PlainTextResponse
 from starlette.types import ASGIApp, ASGIInstance, Scope
 import functools
 import typing
@@ -13,9 +13,9 @@ class CORSMiddleware:
         self,
         app: ASGIApp,
         allow_origins: typing.Sequence[str] = (),
-        allow_credentials: bool = False,
-        allow_headers: typing.Sequence[str] = (),
         allow_methods: typing.Sequence[str] = ("GET",),
+        allow_headers: typing.Sequence[str] = (),
+        allow_credentials: bool = False,
         expose_headers: typing.Sequence[str] = (),
         max_age: int = 600,
     ):
@@ -34,6 +34,8 @@ class CORSMiddleware:
         preflight_headers = {}
         if "*" in allow_origins:
             preflight_headers["Access-Control-Allow-Origin"] = "*"
+        else:
+            preflight_headers["Vary"] = "Origin"
         preflight_headers.update(
             {
                 "Access-Control-Allow-Methods": ", ".join(allow_methods),
@@ -47,6 +49,8 @@ class CORSMiddleware:
 
         self.app = app
         self.allow_origins = allow_origins
+        self.allow_methods = allow_methods
+        self.allow_headers = allow_headers
         self.allow_all_origins = "*" in allow_origins
         self.allow_all_headers = "*" in allow_headers
         self.simple_headers = simple_headers
@@ -69,22 +73,42 @@ class CORSMiddleware:
         return self.app(scope)
 
     def preflight_response(self, request_headers):
-        requested_origin = request_headers["Origin"]
-        requested_headers = request_headers.get("Access-Control-Request-Headers")
+        requested_origin = request_headers["origin"]
+        requested_method = request_headers["access-control-request-method"]
+        requested_headers = request_headers.get("access-control-request-headers")
+        requested_cookie = "cookie" in request_headers
 
         headers = dict(self.preflight_headers)
+        failures = []
 
         # If we only allow specific origins, then we have to mirror back
         # the Origin header in the response.
-        if not self.allow_all_origins and requested_origin in self.allow_origins:
-            headers["Access-Control-Allow-Origin"] = requested_origin
+        if not self.allow_all_origins:
+            if requested_origin in self.allow_origins:
+                headers["Access-Control-Allow-Origin"] = requested_origin
+            else:
+                failures.append("origin")
+
+        if requested_method not in self.allow_methods:
+            failures.append("method")
 
         # If we allow all headers, then we have to mirror back any requested
         # headers in the response.
         if self.allow_all_headers and requested_headers is not None:
             headers["Access-Control-Allow-Headers"] = requested_headers
+        elif requested_headers is not None:
+            for header in requested_headers.split(","):
+                if header.strip() not in self.allow_headers:
+                    failures.append("headers")
 
-        return Response(content=b"", status_code=200, headers=headers)
+        # We don't strictly need to use 400 responses here, since its up to
+        # the browser to enforce the CORS policy, but its more informative
+        # if we do.
+        if failures:
+            failure_text = "Disallowed CORS " + ", ".join(failures)
+            return PlainTextResponse(failure_text, status_code=400, headers=headers)
+
+        return PlainTextResponse("OK", status_code=200, headers=headers)
 
     async def simple_response(self, receive, send, scope=None, origin=None):
         inner = self.app(scope)

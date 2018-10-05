@@ -69,7 +69,7 @@ def test_cors_allow_all():
     }
     response = client.options("/", headers=headers)
     assert response.status_code == 200
-    assert response.text == ""
+    assert response.text == "OK"
     assert response.headers["access-control-allow-origin"] == "*"
     assert response.headers["access-control-allow-headers"] == "X-Example"
 
@@ -111,7 +111,7 @@ def test_cors_allow_specific_origin():
     }
     response = client.options("/", headers=headers)
     assert response.status_code == 200
-    assert response.text == ""
+    assert response.text == "OK"
     assert response.headers["access-control-allow-origin"] == "https://example.org"
     assert response.headers["access-control-allow-headers"] == "X-Example"
 
@@ -127,3 +127,29 @@ def test_cors_allow_specific_origin():
     assert response.status_code == 200
     assert response.text == "Homepage"
     assert "access-control-allow-origin" not in response.headers
+
+
+def test_cors_disallowed_preflight():
+    app = Starlette()
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["https://example.org"],
+        allow_headers=["X-Example"],
+    )
+
+    @app.route("/")
+    def homepage(request):
+        pass  # pragma: no cover
+
+    client = TestClient(app)
+
+    # Test pre-flight response
+    headers = {
+        "Origin": "https://another.org",
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "X-Nope",
+    }
+    response = client.options("/", headers=headers)
+    assert response.status_code == 400
+    assert response.text == "Disallowed CORS origin, method, headers"
