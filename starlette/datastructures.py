@@ -4,7 +4,7 @@ from urllib.parse import parse_qsl, unquote, urlparse, ParseResult
 
 
 class URL:
-    def __init__(self, url: str = '', scope: Scope = None):
+    def __init__(self, url: str = "", scope: Scope = None):
         if scope is not None:
             assert not url, 'Cannot set both "url" and "scope".'
             scheme = scope["scheme"]
@@ -12,12 +12,7 @@ class URL:
             path = scope.get("root_path", "") + scope["path"]
             query_string = scope["query_string"]
 
-            default_port = {
-                "http": 80,
-                "https": 443,
-                "ws": 80,
-                "wss": 443,
-            }[scheme]
+            default_port = {"http": 80, "https": 443, "ws": 80, "wss": 443}[scheme]
             if port == default_port:
                 url = "%s://%s%s" % (scheme, host, path)
             else:
@@ -74,13 +69,13 @@ class URL:
         return self.components.port
 
     def replace(self, **kwargs: typing.Any) -> "URL":
-        if 'hostname' in kwargs or 'port' in kwargs:
-            hostname = kwargs.pop('hostname', self.hostname)
-            port = kwargs.pop('port', self.port)
+        if "hostname" in kwargs or "port" in kwargs:
+            hostname = kwargs.pop("hostname", self.hostname)
+            port = kwargs.pop("port", self.port)
             if port is None:
-                kwargs['netloc'] = hostname
+                kwargs["netloc"] = hostname
             else:
-                kwargs['netloc'] = '%s:%d' % (hostname, port)
+                kwargs["netloc"] = "%s:%d" % (hostname, port)
         components = self.components._replace(**kwargs)
         return URL(components.geturl())
 

@@ -22,9 +22,9 @@ def test_url():
     assert new == "https://example.org/path/to/somewhere?abc=123#anchor"
     assert new.port is None
 
-    new = u.replace(hostname='example.com')
+    new = u.replace(hostname="example.com")
     assert new == "https://example.com:123/path/to/somewhere?abc=123#anchor"
-    assert new.hostname == 'example.com'
+    assert new.hostname == "example.com"
 
 
 def test_headers():
