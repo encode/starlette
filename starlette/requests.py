@@ -1,8 +1,9 @@
-from starlette.datastructures import URL, Headers, QueryParams
-from collections.abc import Mapping
-from urllib.parse import unquote
+import typing
 import json
+from collections.abc import Mapping
 import http.cookies
+from starlette.datastructures import URL, Headers, QueryParams
+from starlette.types import Scope, Receive
 
 
 class ClientDisconnect(Exception):
@@ -10,20 +11,20 @@ class ClientDisconnect(Exception):
 
 
 class Request(Mapping):
-    def __init__(self, scope, receive=None):
+    def __init__(self, scope: Scope, receive: Receive = None) -> None:
         assert scope["type"] == "http"
         self._scope = scope
         self._receive = receive
         self._stream_consumed = False
         self._cookies = None
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> str:
         return self._scope[key]
 
-    def __iter__(self):
+    def __iter__(self) -> typing.Iterator[str]:
         return iter(self._scope)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._scope)
 
     @property
@@ -33,20 +34,7 @@ class Request(Mapping):
     @property
     def url(self) -> URL:
         if not hasattr(self, "_url"):
-            scheme = self._scope["scheme"]
-            host, port = self._scope["server"]
-            path = self._scope.get("root_path", "") + self._scope["path"]
-            query_string = self._scope["query_string"]
-
-            if (scheme == "http" and port != 80) or (scheme == "https" and port != 443):
-                url = "%s://%s:%s%s" % (scheme, host, port, path)
-            else:
-                url = "%s://%s%s" % (scheme, host, path)
-
-            if query_string:
-                url += "?" + unquote(query_string.decode())
-
-            self._url = URL(url)
+            self._url = URL(scope=self._scope)
         return self._url
 
     @property
@@ -63,7 +51,7 @@ class Request(Mapping):
         return self._query_params
 
     @property
-    def cookies(self) -> dict:
+    def cookies(self) -> typing.Dict[str, str]:
         if self._cookies is None:
             self._cookies = {}
             cookie_header = self.headers.get("cookie")
@@ -74,10 +62,10 @@ class Request(Mapping):
                     self._cookies[key] = morsel.value
         return self._cookies
 
-    def get_cookie(self, key):
+    def get_cookie(self, key) -> typing.Union[str, None]:
         return self.cookies.get(key, None)
 
-    async def stream(self):
+    async def stream(self) -> typing.AsyncGenerator[bytes, None]:
         if hasattr(self, "_body"):
             yield self._body
             return
@@ -98,7 +86,7 @@ class Request(Mapping):
             elif message["type"] == "http.disconnect":
                 raise ClientDisconnect()
 
-    async def body(self):
+    async def body(self) -> bytes:
         if not hasattr(self, "_body"):
             body = b""
             async for chunk in self.stream():
@@ -106,7 +94,7 @@ class Request(Mapping):
             self._body = body
         return self._body
 
-    async def json(self):
+    async def json(self) -> typing.Any:
         if not hasattr(self, "_json"):
             body = await self.body()
             self._json = json.loads(body)
