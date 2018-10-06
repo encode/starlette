@@ -62,9 +62,6 @@ class Request(Mapping):
                     self._cookies[key] = morsel.value
         return self._cookies
 
-    def get_cookie(self, key: str) -> typing.Union[str, None]:
-        return self.cookies.get(key, None)
-
     async def stream(self) -> typing.AsyncGenerator[bytes, None]:
         if hasattr(self, "_body"):
             yield self._body

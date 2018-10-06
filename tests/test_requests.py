@@ -225,7 +225,7 @@ def test_request_cookies():
     def app(scope):
         async def asgi(receive, send):
             request = Request(scope, receive)
-            mycookie = request.get_cookie("mycookie")
+            mycookie = request.cookies.get("mycookie")
             if mycookie:
                 response = Response(mycookie, media_type="text/plain")
             else:

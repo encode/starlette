@@ -158,7 +158,7 @@ def test_delete_cookie():
         async def asgi(receive, send):
             request = Request(scope, receive)
             response = Response("Hello, world!", media_type="text/plain")
-            if request.get_cookie("mycookie"):
+            if request.cookies.get("mycookie"):
                 response.delete_cookie("mycookie")
             else:
                 response.set_cookie("mycookie", "myvalue")
