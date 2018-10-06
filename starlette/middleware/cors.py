@@ -116,9 +116,6 @@ class CORSMiddleware:
         await inner(receive, send)
 
     async def send(self, message, send=None, origin=None):
-        if message["type"] != "http.response.start":
-            await send(message)
-
         message.setdefault("headers", [])
         headers = MutableHeaders(message["headers"])
 
