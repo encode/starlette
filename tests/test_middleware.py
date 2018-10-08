@@ -159,9 +159,7 @@ def test_cors_allow_origin_regex():
     app = Starlette()
 
     app.add_middleware(
-        CORSMiddleware,
-        allow_headers=["X-Example"],
-        allow_origin_regex="https://*",
+        CORSMiddleware, allow_headers=["X-Example"], allow_origin_regex="https://*"
     )
 
     @app.route("/")
