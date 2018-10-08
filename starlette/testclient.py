@@ -117,7 +117,9 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             nonlocal raw_kwargs, response_started, response_complete
 
             if message["type"] == "http.response.start":
-                assert not response_started, 'Received multiple "http.response.start" messages.'
+                assert (
+                    not response_started
+                ), 'Received multiple "http.response.start" messages.'
                 raw_kwargs["version"] = 11
                 raw_kwargs["status"] = message["status"]
                 raw_kwargs["reason"] = _get_reason_phrase(message["status"])
@@ -130,8 +132,12 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 )
                 response_started = True
             elif message["type"] == "http.response.body":
-                assert response_started, 'Received "http.response.body" without "http.response.start".'
-                assert not response_complete, 'Received "http.response.body" after response completed.'
+                assert (
+                    response_started
+                ), 'Received "http.response.body" without "http.response.start".'
+                assert (
+                    not response_complete
+                ), 'Received "http.response.body" after response completed.'
                 body = message.get("body", b"")
                 more_body = message.get("more_body", False)
                 raw_kwargs["body"].write(body)
@@ -153,7 +159,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 raise exc from None
 
         if self.raise_server_exceptions:
-            assert response_started, 'TestClient did not receive any response.'
+            assert response_started, "TestClient did not receive any response."
         elif not response_started:
             raw_kwargs = {
                 "version": 11,
