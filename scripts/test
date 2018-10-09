@@ -8,3 +8,4 @@ fi
 set -x
 
 PYTHONPATH=. ${PREFIX}pytest --ignore venv --cov=starlette --cov=tests --cov-fail-under=100 --cov-report=term-missing ${@}
+${PREFIX}black starlette tests --check
