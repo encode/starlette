@@ -73,10 +73,7 @@ class CORSMiddleware:
                 if method == "OPTIONS" and "access-control-request-method" in headers:
                     return self.preflight_response(request_headers=headers)
                 else:
-                    if (
-                        not self.is_allowed_origin(origin=origin)
-                        and not self.allow_all_origins
-                    ):
+                    if not self.is_allowed_origin(origin=origin):
                         return PlainTextResponse(
                             "Disallowed CORS origin", status_code=400
                         )
@@ -89,6 +86,9 @@ class CORSMiddleware:
     def is_allowed_origin(self, origin):
         if self.allow_origin_regex:
             return self.allow_origin_regex.match(origin)
+        if self.allow_all_origins:
+            return True
+
         return origin in self.allow_origins
 
     def preflight_response(self, request_headers):
