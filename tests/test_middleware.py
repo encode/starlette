@@ -176,6 +176,8 @@ def test_cors_allow_origin_regex():
     assert response.headers["access-control-allow-origin"] == "https://example.org"
 
     # Test diallowed standard response
+    # Note that enforcement is a browser concern. The disallowed-ness is reflected
+    # in the lack of an "access-control-allow-origin" header in the response.
     headers = {"Origin": "http://example.org"}
     response = client.get("/", headers=headers)
     assert response.status_code == 200
