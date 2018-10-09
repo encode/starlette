@@ -14,13 +14,14 @@ class LifespanHandler:
     def on_event(self, event_type: str):
         assert event_type in ("startup", "cleanup")
 
-        def func(handler):
+        def decorator(func):
             if event_type == "startup":
-                self.startup_handlers.append(handler)
+                self.startup_handlers.append(func)
             else:
-                self.cleanup_handlers.append(handler)
+                self.cleanup_handlers.append(func)
+            return func
 
-        return func
+        return decorator
 
     async def run_startup(self) -> None:
         for handler in self.startup_handlers:
