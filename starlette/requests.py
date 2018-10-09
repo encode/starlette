@@ -1,8 +1,7 @@
 import typing
 import json
 from collections.abc import Mapping
-from urllib.parse import unquote
-
+import http.cookies
 from starlette.datastructures import URL, Headers, QueryParams
 from starlette.types import Scope, Receive
 
@@ -34,20 +33,7 @@ class Request(Mapping):
     @property
     def url(self) -> URL:
         if not hasattr(self, "_url"):
-            scheme = self._scope["scheme"]
-            host, port = self._scope["server"]
-            path = self._scope.get("root_path", "") + self._scope["path"]
-            query_string = self._scope["query_string"]
-
-            if (scheme == "http" and port != 80) or (scheme == "https" and port != 443):
-                url = "%s://%s:%s%s" % (scheme, host, port, path)
-            else:
-                url = "%s://%s%s" % (scheme, host, path)
-
-            if query_string:
-                url += "?" + unquote(query_string.decode())
-
-            self._url = URL(url)
+            self._url = URL(scope=self._scope)
         return self._url
 
     @property
@@ -62,6 +48,19 @@ class Request(Mapping):
             query_string = self._scope["query_string"].decode()
             self._query_params = QueryParams(query_string)
         return self._query_params
+
+    @property
+    def cookies(self) -> typing.Dict[str, str]:
+        if not hasattr(self, "_cookies"):
+            cookies = {}
+            cookie_header = self.headers.get("cookie")
+            if cookie_header:
+                cookie = http.cookies.SimpleCookie()
+                cookie.load(cookie_header)
+                for key, morsel in cookie.items():
+                    cookies[key] = morsel.value
+            self._cookies = cookies
+        return self._cookies
 
     async def stream(self) -> typing.AsyncGenerator[bytes, None]:
         if hasattr(self, "_body"):
