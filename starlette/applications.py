@@ -5,7 +5,7 @@ import typing
 from starlette.exceptions import ExceptionMiddleware
 from starlette.requests import Request
 from starlette.routing import Path, PathPrefix, Router
-from starlette.types import ASGIApp, ASGIInstance, Receive, Scope, Send, Methods
+from starlette.types import ASGIApp, ASGIInstance, Receive, Scope, Send
 from starlette.websockets import WebSocket
 
 
@@ -60,7 +60,7 @@ class Starlette:
     def debug(self, value: bool) -> None:
         self.exception_middleware.debug = value
 
-    def mount(self, path: str, app: ASGIApp, methods: Methods) -> None:
+    def mount(self, path: str, app: ASGIApp, methods: typing.Sequence[str]) -> None:
         prefix = PathPrefix(path, app=app, methods=methods)
         self.router.routes.append(prefix)
 
@@ -71,14 +71,14 @@ class Starlette:
         self,
         path: str,
         route: typing.Callable,
-        methods: typing.Optional[Methods] = None,
+        methods: typing.Sequence[str] = ()
     ) -> None:
         if not inspect.isclass(route):
             route = request_response(route)
-            if methods is None:
-                methods = ["GET"]
+            if not methods:
+                methods = ("GET",)
 
-        instance = Path(path, route, protocol="http", methods=methods)  # type: ignore
+        instance = Path(path, route, protocol="http", methods=methods)
         self.router.routes.append(instance)
 
     def add_websocket_route(self, path: str, route: typing.Callable) -> None:
@@ -95,7 +95,7 @@ class Starlette:
 
         return decorator
 
-    def route(self, path: str, methods: Methods = None) -> typing.Callable:
+    def route(self, path: str, methods: typing.Sequence[str] = ()) -> typing.Callable:
         def decorator(func: typing.Callable) -> typing.Callable:
             self.add_route(path, func, methods=methods)
             return func
