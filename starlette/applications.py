@@ -8,9 +8,9 @@ from starlette.requests import Request
 from starlette.routing import Path, PathPrefix, Router
 from starlette.types import ASGIApp, ASGIInstance, Receive, Scope, Send
 from starlette.websockets import WebSocket
-import asyncio
-import inspect
-import typing
+
+
+Methods = typing.Sequence[str]
 
 
 def request_response(func: typing.Callable) -> ASGIApp:
@@ -66,21 +66,21 @@ class Starlette:
     def debug(self, value: bool) -> None:
         self.exception_middleware.debug = value
 
-    def on_event(self, event_type: str):
+    def on_event(self, event_type: str) -> typing.Callable:
         return self.lifespan_handler.on_event(event_type)
 
-    def mount(self, path: str, app: ASGIApp, methods=None) -> None:
+    def mount(self, path: str, app: ASGIApp, methods: Methods = ()) -> None:
         prefix = PathPrefix(path, app=app, methods=methods)
         self.router.routes.append(prefix)
 
     def add_middleware(self, middleware_class: type, **kwargs: typing.Any) -> None:
         self.exception_middleware.app = middleware_class(self.app, **kwargs)
 
-    def add_exception_handler(self, exc_class: type, handler) -> None:
+    def add_exception_handler(self, exc_class: type, handler: typing.Callable) -> None:
         self.exception_middleware.add_exception_handler(exc_class, handler)
 
     def add_route(
-        self, path: str, route: typing.Callable, methods: typing.Sequence[str] = ()
+        self, path: str, route: typing.Callable, methods: Methods = ()
     ) -> None:
         if not inspect.isclass(route):
             route = request_response(route)
@@ -104,7 +104,7 @@ class Starlette:
 
         return decorator
 
-    def route(self, path: str, methods: typing.Sequence[str] = ()) -> typing.Callable:
+    def route(self, path: str, methods: Methods = ()) -> typing.Callable:
         def decorator(func: typing.Callable) -> typing.Callable:
             self.add_route(path, func, methods=methods)
             return func
