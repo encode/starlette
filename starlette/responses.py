@@ -1,14 +1,34 @@
-from aiofiles.os import stat as aio_stat
 from email.utils import formatdate
 from mimetypes import guess_type
-from starlette.datastructures import MutableHeaders
+from starlette.background import BackgroundTask
+from starlette.datastructures import MutableHeaders, URL
 from starlette.types import Receive, Send
-import aiofiles
-import json
+from urllib.parse import quote_plus
 import hashlib
 import os
-import stat
 import typing
+import http.cookies
+
+try:
+    import aiofiles
+    from aiofiles.os import stat as aio_stat
+except ImportError:  # pragma: nocover
+    aiofiles = None
+    aio_stat = None
+
+try:
+    import ujson as json
+
+    JSON_DUMPS_OPTIONS = {"ensure_ascii": False}
+except ImportError:  # pragma: nocover
+    import json
+
+    JSON_DUMPS_OPTIONS = {
+        "ensure_ascii": False,
+        "allow_nan": False,
+        "indent": None,
+        "separators": (",", ":"),
+    }
 
 
 class Response:
@@ -21,11 +41,13 @@ class Response:
         status_code: int = 200,
         headers: dict = None,
         media_type: str = None,
+        background: BackgroundTask = None,
     ) -> None:
         self.body = self.render(content)
         self.status_code = status_code
         if media_type is not None:
             self.media_type = media_type
+        self.background = background
         self.init_headers(headers)
 
     def render(self, content: typing.Any) -> bytes:
@@ -33,7 +55,7 @@ class Response:
             return content
         return content.encode(self.charset)
 
-    def init_headers(self, headers):
+    def init_headers(self, headers) -> None:
         if headers is None:
             raw_headers = []
             populate_content_length = True
@@ -61,10 +83,41 @@ class Response:
         self.raw_headers = raw_headers
 
     @property
-    def headers(self):
+    def headers(self) -> MutableHeaders:
         if not hasattr(self, "_headers"):
             self._headers = MutableHeaders(self.raw_headers)
         return self._headers
+
+    def set_cookie(
+        self,
+        key: str,
+        value: str = "",
+        max_age: int = None,
+        expires: int = None,
+        path: str = "/",
+        domain: str = None,
+        secure: bool = False,
+        httponly: bool = False,
+    ) -> None:
+        cookie = http.cookies.SimpleCookie()
+        cookie[key] = value
+        if max_age is not None:
+            cookie[key]["max-age"] = max_age
+        if expires is not None:
+            cookie[key]["expires"] = expires
+        if path is not None:
+            cookie[key]["path"] = path
+        if domain is not None:
+            cookie[key]["domain"] = domain
+        if secure:
+            cookie[key]["secure"] = True
+        if httponly:
+            cookie[key]["httponly"] = True
+        cookie_val = cookie.output(header="")
+        self.raw_headers.append((b"set-cookie", cookie_val.encode("latin-1")))
+
+    def delete_cookie(self, key: str, path: str = "/", domain: str = None) -> None:
+        self.set_cookie(key, expires=0, max_age=0, path=path, domain=domain)
 
     async def __call__(self, receive: Receive, send: Send) -> None:
         await send(
@@ -75,6 +128,9 @@ class Response:
             }
         )
         await send({"type": "http.response.body", "body": self.body})
+
+        if self.background is not None:
+            await self.background()
 
 
 class HTMLResponse(Response):
@@ -87,15 +143,17 @@ class PlainTextResponse(Response):
 
 class JSONResponse(Response):
     media_type = "application/json"
-    options = {
-        "ensure_ascii": False,
-        "allow_nan": False,
-        "indent": None,
-        "separators": (",", ":"),
-    }  # type: typing.Dict[str, typing.Any]
 
     def render(self, content: typing.Any) -> bytes:
-        return json.dumps(content, **self.options).encode("utf-8")
+        return json.dumps(content, **JSON_DUMPS_OPTIONS).encode("utf-8")
+
+
+class RedirectResponse(Response):
+    def __init__(
+        self, url: typing.Union[str, URL], status_code: int = 302, headers: dict = None
+    ) -> None:
+        super().__init__(content=b"", status_code=status_code, headers=headers)
+        self.headers["location"] = quote_plus(str(url), safe=":/#?&=@[]!$&'()*+,;")
 
 
 class StreamingResponse(Response):
@@ -137,6 +195,7 @@ class FileResponse(Response):
         filename: str = None,
         stat_result: os.stat_result = None,
     ) -> None:
+        assert aiofiles is not None, "'aiofiles' must be installed to use FileResponse"
         self.path = path
         self.status_code = 200
         self.filename = filename
@@ -177,5 +236,9 @@ class FileResponse(Response):
                 chunk = await file.read(self.chunk_size)
                 more_body = len(chunk) == self.chunk_size
                 await send(
-                    {"type": "http.response.body", "body": chunk, "more_body": False}
+                    {
+                        "type": "http.response.body",
+                        "body": chunk,
+                        "more_body": more_body,
+                    }
                 )

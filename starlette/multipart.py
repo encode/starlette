@@ -9,8 +9,9 @@ _cont = "cont"
 _end = "end"
 
 
-def default_stream_factory(total_content_length, filename, content_type,
-                           content_length=None):
+def default_stream_factory(
+    total_content_length, filename, content_type, content_length=None
+):
     """The stream factory that is used per default."""
     # max_size = 1024 * 500
     # if SpooledTemporaryFile is not None:
@@ -24,9 +25,9 @@ def _line_parse(line):
     """Removes line ending characters and returns a tuple (`stripped_line`,
     `is_terminated`).
     """
-    if line[-2:] in ['\r\n', b'\r\n']:
+    if line[-2:] in ["\r\n", b"\r\n"]:
         return line[:-2], True
-    elif line[-1:] in ['\r', '\n', b'\r', b'\n']:
+    elif line[-1:] in ["\r", "\n", b"\r", b"\n"]:
         return line[:-1], True
     return line, False
 
@@ -265,7 +266,9 @@ class MultiPartParser:
             else:
                 parts = line.split(b":", 1)
                 if len(parts) == 2:
-                    self._raw_headers.append((parts[0].strip().lower(), parts[1].strip()))
+                    self._raw_headers.append(
+                        (parts[0].strip().lower(), parts[1].strip())
+                    )
                 else:
                     raise ValueError("Malformed header")
             return self._state_headers

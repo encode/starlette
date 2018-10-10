@@ -1,7 +1,8 @@
-from starlette import TestClient
-from starlette.staticfiles import StaticFile, StaticFiles
 import os
 import pytest
+
+from starlette.testclient import TestClient
+from starlette.staticfiles import StaticFile, StaticFiles
 
 
 def test_staticfile(tmpdir):
@@ -16,6 +17,21 @@ def test_staticfile(tmpdir):
     assert response.text == "<file content>"
 
 
+def test_large_staticfile(tmpdir):
+    path = os.path.join(tmpdir, "example.txt")
+    content = "this is a lot of content" * 200
+    print("content len = ", len(content))
+    with open(path, "w") as file:
+        file.write(content)
+
+    app = StaticFile(path=path)
+    client = TestClient(app)
+    response = client.get("/")
+    assert response.status_code == 200
+    assert len(content) == len(response.text)
+    assert content == response.text
+
+
 def test_staticfile_post(tmpdir):
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
@@ -24,15 +40,15 @@ def test_staticfile_post(tmpdir):
     app = StaticFile(path=path)
     client = TestClient(app)
     response = client.post("/")
-    assert response.status_code == 406
-    assert response.text == "Method not allowed"
+    assert response.status_code == 405
+    assert response.text == "Method Not Allowed"
 
 
 def test_staticfile_with_directory_raises_error(tmpdir):
     app = StaticFile(path=tmpdir)
     client = TestClient(app)
     with pytest.raises(RuntimeError) as exc:
-        response = client.get("/")
+        client.get("/")
     assert "is not a file" in str(exc)
 
 
@@ -41,7 +57,7 @@ def test_staticfile_with_missing_file_raises_error(tmpdir):
     app = StaticFile(path=path)
     client = TestClient(app)
     with pytest.raises(RuntimeError) as exc:
-        response = client.get("/")
+        client.get("/")
     assert "does not exist" in str(exc)
 
 
@@ -65,8 +81,8 @@ def test_staticfiles_post(tmpdir):
     app = StaticFiles(directory=tmpdir)
     client = TestClient(app)
     response = client.post("/example.txt")
-    assert response.status_code == 406
-    assert response.text == "Method not allowed"
+    assert response.status_code == 405
+    assert response.text == "Method Not Allowed"
 
 
 def test_staticfiles_with_directory_returns_404(tmpdir):
@@ -78,7 +94,7 @@ def test_staticfiles_with_directory_returns_404(tmpdir):
     client = TestClient(app)
     response = client.get("/")
     assert response.status_code == 404
-    assert response.text == "Not found"
+    assert response.text == "Not Found"
 
 
 def test_staticfiles_with_missing_file_returns_404(tmpdir):
@@ -90,7 +106,7 @@ def test_staticfiles_with_missing_file_returns_404(tmpdir):
     client = TestClient(app)
     response = client.get("/404.txt")
     assert response.status_code == 404
-    assert response.text == "Not found"
+    assert response.text == "Not Found"
 
 
 def test_staticfiles_configured_with_missing_directory(tmpdir):
@@ -98,7 +114,7 @@ def test_staticfiles_configured_with_missing_directory(tmpdir):
     app = StaticFiles(directory=path)
     client = TestClient(app)
     with pytest.raises(RuntimeError) as exc:
-        response = client.get("/example.txt")
+        client.get("/example.txt")
     assert "does not exist" in str(exc)
 
 
@@ -110,7 +126,7 @@ def test_staticfiles_configured_with_file_instead_of_directory(tmpdir):
     app = StaticFiles(directory=path)
     client = TestClient(app)
     with pytest.raises(RuntimeError) as exc:
-        response = client.get("/example.txt")
+        client.get("/example.txt")
     assert "is not a directory" in str(exc)
 
 
@@ -118,9 +134,9 @@ def test_staticfiles_config_check_occurs_only_once(tmpdir):
     app = StaticFiles(directory=tmpdir)
     client = TestClient(app)
     assert not app.config_checked
-    response = client.get("/")
+    client.get("/")
     assert app.config_checked
-    response = client.get("/")
+    client.get("/")
     assert app.config_checked
 
 
@@ -134,6 +150,6 @@ def test_staticfiles_prevents_breaking_out_of_directory(tmpdir):
 
     app = StaticFiles(directory=directory)
     # We can't test this with 'requests', so we call the app directly here.
-    response = app({"method": "GET", "path": "/../example.txt"})
+    response = app({"type": "http", "method": "GET", "path": "/../example.txt"})
     assert response.status_code == 404
-    assert response.body == b"Not found"
+    assert response.body == b"Not Found"

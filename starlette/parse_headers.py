@@ -2,7 +2,8 @@ from urllib.parse import unquote_to_bytes as _unquote
 import re
 
 
-_option_header_piece_re = re.compile(r'''
+_option_header_piece_re = re.compile(
+    r"""
     ;\s*
     (?P<key>
         "[^"\\]*(?:\\.[^"\\]*)*"  # quoted string
@@ -25,8 +26,10 @@ _option_header_piece_re = re.compile(r'''
         )?
     )?
     \s*
-''', flags=re.VERBOSE)
-_option_header_start_mime_type = re.compile(r',\s*([^;,\s]+)([;,]\s*.+)?')
+""",
+    flags=re.VERBOSE,
+)
+_option_header_start_mime_type = re.compile(r",\s*([^;,\s]+)([;,]\s*.+)?")
 
 
 def unquote_header_value(value, is_filename=False):
@@ -48,8 +51,8 @@ def unquote_header_value(value, is_filename=False):
         # replace sequence below on a UNC path has the effect of turning
         # the leading double slash into a single slash and then
         # _fix_ie_filename() doesn't work correctly.  See #458.
-        if not is_filename or value[:2] != '\\\\':
-            return value.replace('\\\\', '\\').replace('\\"', '"')
+        if not is_filename or value[:2] != "\\\\":
+            return value.replace("\\\\", "\\").replace('\\"', '"')
     return value
 
 
@@ -60,10 +63,10 @@ def get_content_length(headers):
     .. versionadded:: 0.9
     :param environ: the WSGI environ to fetch the content length from.
     """
-    if headers.get('Transfer-Encoding', '') == 'chunked':
+    if headers.get("Transfer-Encoding", "") == "chunked":
         return None
 
-    content_length = headers.get('Content-Length')
+    content_length = headers.get("Content-Length")
     if content_length is not None:
         try:
             return max(0, int(content_length))
@@ -86,7 +89,7 @@ def parse_options_header(value, multiple=False):
              if multiple=True
     """
     if not value:
-        return '', {}
+        return "", {}
 
     result = []
 
@@ -106,16 +109,14 @@ def parse_options_header(value, multiple=False):
             option, encoding, _, option_value = optmatch.groups()
             option = unquote_header_value(option)
             if option_value is not None:
-                option_value = unquote_header_value(
-                    option_value,
-                    option == 'filename')
+                option_value = unquote_header_value(option_value, option == "filename")
                 if encoding is not None:
                     option_value = _unquote(option_value).decode(encoding)
             options[option] = option_value
-            rest = rest[optmatch.end():]
+            rest = rest[optmatch.end() :]
         result.append(options)
         if multiple is False:
             return tuple(result)
         value = rest
 
-    return tuple(result) if result else ('', {})
+    return tuple(result) if result else ("", {})

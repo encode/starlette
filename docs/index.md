@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://www.starlette.io/"><img width="320" height="192" src="https://raw.githubusercontent.com/encode/starlette/master/docs/starlette.png" alt='starlette'></a>
+  <img width="320" height="192" src="https://raw.githubusercontent.com/encode/starlette/master/docs/starlette.png" alt='starlette'>
 </p>
 <p align="center">
     <em>✨ The little ASGI framework that shines. ✨</em>
@@ -18,9 +18,8 @@
 
 ---
 
-**Documentation**: [https://www.starlette.io/](https://www.starlette.io/)
 
----
+# Introduction
 
 Starlette is a lightweight [ASGI](https://asgi.readthedocs.io/en/latest/) framework/toolkit.
 
@@ -107,8 +106,9 @@ in isolation.
 
 ## Performance
 
-Independent TechEmpower benchmarks show Starlette applications running under Uvicorn
-as [one of the fastest Python frameworks available](https://www.techempower.com/benchmarks/#section=test&runid=14a815b6-93c1-4207-96bb-3960c29719e2&hw=ph&test=fortune&l=zijw1r-1&d=e3). *(\*)*
+Our testing shows that Starlette applications running under Uvicorn as one of
+the fastest Python frameworks available. As an example, application performance
+should roughly equal or out-perform Sanic.
 
 For high throughput loads you should:
 
@@ -120,8 +120,6 @@ so you can also run under `PyPy` if your application code has parts that are
 CPU constrained.
 
 Eg. `uvicorn.run(..., http='h11', loop='asyncio')`
-
-*(\*) TechEmpower [continuous benchmarking results](https://tfb-status.techempower.com/), from 13th Sept 2018. Filtered to JavaScript, Python, and Ruby frameworks backed by Postgres, for comparision against similar candidates. To be updated to Round 17 once available.*
 
 <p align="center">&mdash; ⭐️ &mdash;</p>
 <p align="center"><i>Starlette is <a href="https://github.com/tomchristie/starlette/blob/master/LICENSE.md">BSD licensed</a> code. Designed & built in Brighton, England.</i></p>
