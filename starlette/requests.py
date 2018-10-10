@@ -4,8 +4,7 @@ from collections.abc import Mapping
 from urllib.parse import unquote
 import http.cookies
 from starlette.datastructures import URL, Headers, QueryParams
-from starlette.multipart import MultiPartParser
-from starlette.parse_headers import get_content_length, parse_options_header
+from starlette.formparsers import MultiPartParser
 from starlette.types import Scope, Receive
 
 
@@ -102,11 +101,12 @@ class Request(Mapping):
 
     async def form(self):
         if not hasattr(self, "_form"):
-            stream = self.stream()
-            content_length = get_content_length(self.headers)
-            content_type = self.headers["content-type"]
-            mimetype, options = parse_options_header(content_type)
-            boundary = options["boundary"].encode("ascii")
-            parser = MultiPartParser()
-            self._form = await parser.parse(stream, boundary, content_length)
+            parser = MultiPartParser(self.headers, self.stream)
+            self._form = await parser.parse()
         return self._form
+
+    async def close(self):
+        if hasattr(self, "_form"):
+            for item in self._form.values():
+                if hasattr(item, "close"):
+                    await item.close()
