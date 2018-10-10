@@ -121,7 +121,9 @@ class MultiPartParser:
         # Feed the parser with data from the request.
         async for chunk in self.stream():
             parser.write(chunk)
-            for message_type, message_bytes in self.messages:
+            messages = list(self.messages)
+            self.messages.clear()
+            for message_type, message_bytes in messages:
                 if message_type == MessageType.PART_BEGIN:
                     raw_headers = []
                     data = b""
