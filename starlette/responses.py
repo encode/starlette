@@ -1,34 +1,27 @@
 import hashlib
 import os
 import typing
+import json
 
 from email.utils import formatdate
 from mimetypes import guess_type
-from starlette.datastructures import MutableHeaders
-from starlette.types import Receive, Send, StrDict, BytesPairs
+from starlette.background import BackgroundTask
+from starlette.datastructures import MutableHeaders, URL
+from starlette.types import Receive, Send
 from urllib.parse import quote_plus
-
+import http.cookies
 
 try:
     import aiofiles
     from aiofiles.os import stat as aio_stat
 except ImportError:  # pragma: nocover
-    aiofiles = None
-    aio_stat = None
+    aiofiles = None  # type: ignore
+    aio_stat = None  # type: ignore
 
 try:
-    import ujson as json
-
-    JSON_DUMPS_OPTIONS: typing.Dict[str, typing.Any] = {"ensure_ascii": False}
+    import ujson
 except ImportError:  # pragma: nocover
-    import json  # type: ignore
-
-    JSON_DUMPS_OPTIONS = {
-        "ensure_ascii": False,
-        "allow_nan": False,
-        "indent": None,
-        "separators": (",", ":"),
-    }
+    ujson = None  # type: ignore
 
 
 class Response:
@@ -39,13 +32,15 @@ class Response:
         self,
         content: typing.Any,
         status_code: int = 200,
-        headers: typing.Optional[StrDict] = None,
-        media_type: typing.Optional[str] = None,
+        headers: dict = None,
+        media_type: str = None,
+        background: BackgroundTask = None,
     ) -> None:
         self.body = self.render(content)
         self.status_code = status_code
         if media_type is not None:
             self.media_type = media_type
+        self.background = background
         self.init_headers(headers)
 
     def render(self, content: typing.Any) -> bytes:
@@ -53,9 +48,9 @@ class Response:
             return content
         return content.encode(self.charset)
 
-    def init_headers(self, headers: typing.Optional[StrDict]) -> None:
+    def init_headers(self, headers) -> None:
         if headers is None:
-            raw_headers: BytesPairs = []
+            raw_headers = []  # type: typing.List[typing.Tuple[bytes, bytes]]
             populate_content_length = True
             populate_content_type = True
         else:
@@ -86,6 +81,37 @@ class Response:
             self._headers = MutableHeaders(self.raw_headers)
         return self._headers
 
+    def set_cookie(
+        self,
+        key: str,
+        value: str = "",
+        max_age: int = None,
+        expires: int = None,
+        path: str = "/",
+        domain: str = None,
+        secure: bool = False,
+        httponly: bool = False,
+    ) -> None:
+        cookie = http.cookies.SimpleCookie()
+        cookie[key] = value
+        if max_age is not None:
+            cookie[key]["max-age"] = max_age  # type: ignore
+        if expires is not None:
+            cookie[key]["expires"] = expires  # type: ignore
+        if path is not None:
+            cookie[key]["path"] = path
+        if domain is not None:
+            cookie[key]["domain"] = domain
+        if secure:
+            cookie[key]["secure"] = True  # type: ignore
+        if httponly:
+            cookie[key]["httponly"] = True  # type: ignore
+        cookie_val = cookie.output(header="")
+        self.raw_headers.append((b"set-cookie", cookie_val.encode("latin-1")))
+
+    def delete_cookie(self, key: str, path: str = "/", domain: str = None) -> None:
+        self.set_cookie(key, expires=0, max_age=0, path=path, domain=domain)
+
     async def __call__(self, receive: Receive, send: Send) -> None:
         await send(
             {
@@ -95,6 +121,9 @@ class Response:
             }
         )
         await send({"type": "http.response.body", "body": self.body})
+
+        if self.background is not None:
+            await self.background()
 
 
 class HTMLResponse(Response):
@@ -109,13 +138,28 @@ class JSONResponse(Response):
     media_type = "application/json"
 
     def render(self, content: typing.Any) -> bytes:
-        return json.dumps(content, **JSON_DUMPS_OPTIONS).encode("utf-8")
+        return json.dumps(
+            content,
+            ensure_ascii=False,
+            allow_nan=False,
+            indent=None,
+            separators=(",", ":"),
+        ).encode("utf-8")
+
+
+class UJSONResponse(JSONResponse):
+    media_type = "application/json"
+
+    def render(self, content: typing.Any) -> bytes:
+        return ujson.dumps(content, ensure_ascii=False).encode("utf-8")
 
 
 class RedirectResponse(Response):
-    def __init__(self, url: str, status_code: int = 302, headers: dict = None) -> None:
+    def __init__(
+        self, url: typing.Union[str, URL], status_code: int = 302, headers: dict = None
+    ) -> None:
         super().__init__(content=b"", status_code=status_code, headers=headers)
-        self.headers["location"] = quote_plus(url, safe=":/#?&=@[]!$&'()*+,;")
+        self.headers["location"] = quote_plus(str(url), safe=":/#?&=@[]!$&'()*+,;")
 
 
 class StreamingResponse(Response):

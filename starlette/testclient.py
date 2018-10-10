@@ -114,9 +114,12 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             return {"type": "http.request", "body": body_bytes}
 
         async def send(message):
-            nonlocal raw_kwargs, response_started
+            nonlocal raw_kwargs, response_started, response_complete
 
             if message["type"] == "http.response.start":
+                assert (
+                    not response_started
+                ), 'Received multiple "http.response.start" messages.'
                 raw_kwargs["version"] = 11
                 raw_kwargs["status"] = message["status"]
                 raw_kwargs["reason"] = _get_reason_phrase(message["status"])
@@ -129,13 +132,21 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 )
                 response_started = True
             elif message["type"] == "http.response.body":
+                assert (
+                    response_started
+                ), 'Received "http.response.body" without "http.response.start".'
+                assert (
+                    not response_complete
+                ), 'Received "http.response.body" after response completed.'
                 body = message.get("body", b"")
                 more_body = message.get("more_body", False)
                 raw_kwargs["body"].write(body)
                 if not more_body:
                     raw_kwargs["body"].seek(0)
+                    response_complete = True
 
         response_started = False
+        response_complete = False
         raw_kwargs = {"body": io.BytesIO()}
 
         loop = asyncio.get_event_loop()
@@ -146,16 +157,19 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
         except BaseException as exc:
             if self.raise_server_exceptions:
                 raise exc from None
-            if not response_started:
-                raw_kwargs = {
-                    "version": 11,
-                    "status": 500,
-                    "reason": "Internal Server Error",
-                    "headers": [],
-                    "preload_content": False,
-                    "original_response": _MockOriginalResponse([]),
-                    "body": io.BytesIO(),
-                }
+
+        if self.raise_server_exceptions:
+            assert response_started, "TestClient did not receive any response."
+        elif not response_started:
+            raw_kwargs = {
+                "version": 11,
+                "status": 500,
+                "reason": "Internal Server Error",
+                "headers": [],
+                "preload_content": False,
+                "original_response": _MockOriginalResponse([]),
+                "body": io.BytesIO(),
+            }
 
         raw = requests.packages.urllib3.HTTPResponse(**raw_kwargs)
         return self.build_response(request, raw)
@@ -259,9 +273,44 @@ class _TestClient(requests.Session):
         self.headers.update({"user-agent": "testclient"})
         self.base_url = base_url
 
-    def request(self, method: str, url: str, **kwargs) -> requests.Response:
+    def request(
+        self,
+        method: str,
+        url: str,
+        params=None,
+        data=None,
+        headers=None,
+        cookies=None,
+        files=None,
+        auth=None,
+        timeout=None,
+        allow_redirects=True,
+        proxies=None,
+        hooks=None,
+        stream=None,
+        verify=None,
+        cert=None,
+        json=None,
+    ) -> requests.Response:
         url = urljoin(self.base_url, url)
-        return super().request(method, url, **kwargs)
+        return super().request(
+            method,
+            url,
+            params=params,
+            data=data,
+            headers=headers,
+            cookies=cookies,
+            files=files,
+            auth=auth,
+            timeout=timeout,
+            allow_redirects=allow_redirects,
+            proxies=proxies,
+            hooks=hooks,
+            stream=stream,
+            verify=verify,
+            cert=cert,
+            json=json,
+        )
 
     def websocket_connect(
         self, url: str, subprotocols=None, **kwargs
@@ -277,7 +326,11 @@ class _TestClient(requests.Session):
         try:
             super().request("GET", url, **kwargs)
         except _Upgrade as exc:
-            return exc.session
+            session = exc.session
+        else:
+            raise RuntimeError("Expected WebSocket upgrade")  # pragma: no cover
+
+        return session
 
 
 def TestClient(
