@@ -23,6 +23,8 @@ try:
 except ImportError:  # pragma: nocover
     ujson = None  # type: ignore
 
+StrDict = typing.Mapping[str, str]
+
 
 class Response:
     media_type = None
@@ -48,7 +50,7 @@ class Response:
             return content
         return content.encode(self.charset)
 
-    def init_headers(self, headers) -> None:
+    def init_headers(self, headers: typing.Optional[StrDict]) -> None:
         if headers is None:
             raw_headers = []  # type: typing.List[typing.Tuple[bytes, bytes]]
             populate_content_length = True
