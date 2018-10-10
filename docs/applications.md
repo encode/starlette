@@ -1,3 +1,4 @@
+
 Starlette includes an application class `Starlette` that nicely ties together all of
 its other functionality.
 
@@ -9,7 +10,7 @@ from starlette.staticfiles import StaticFiles
 
 app = Starlette()
 app.debug = True
-app.mount("/static", StaticFiles(directory="static"))
+app.mount('/static', StaticFiles(directory="static"))
 
 
 @app.route('/')
@@ -27,6 +28,11 @@ async def websocket_endpoint(websocket):
     await websocket.accept()
     await websocket.send_text('Hello, websocket!')
     await websocket.close()
+
+
+@app.on_event('startup')
+def startup():
+    print('Ready to go')
 ```
 
 ### Instantiating the application

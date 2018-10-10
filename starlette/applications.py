@@ -3,10 +3,14 @@ import inspect
 import typing
 
 from starlette.exceptions import ExceptionMiddleware
+from starlette.lifespan import LifespanHandler
 from starlette.requests import Request
 from starlette.routing import Path, PathPrefix, Router
 from starlette.types import ASGIApp, ASGIInstance, Receive, Scope, Send
 from starlette.websockets import WebSocket
+import asyncio
+import inspect
+import typing
 
 
 def request_response(func: typing.Callable) -> ASGIApp:
@@ -50,6 +54,8 @@ def websocket_session(func: typing.Callable) -> ASGIApp:
 class Starlette:
     def __init__(self, debug: bool = False) -> None:
         self.router = Router(routes=[])
+        self.lifespan_handler = LifespanHandler()
+        self.app = self.router
         self.exception_middleware = ExceptionMiddleware(self.router, debug=debug)
 
     @property
@@ -60,18 +66,21 @@ class Starlette:
     def debug(self, value: bool) -> None:
         self.exception_middleware.debug = value
 
-    def mount(self, path: str, app: ASGIApp, methods: typing.Sequence[str]) -> None:
+    def on_event(self, event_type: str):
+        return self.lifespan_handler.on_event(event_type)
+
+    def mount(self, path: str, app: ASGIApp, methods=None) -> None:
         prefix = PathPrefix(path, app=app, methods=methods)
         self.router.routes.append(prefix)
 
-    def add_exception_handler(self, exc_class: type, handler: typing.Callable) -> None:
+    def add_middleware(self, middleware_class: type, **kwargs: typing.Any) -> None:
+        self.exception_middleware.app = middleware_class(self.app, **kwargs)
+
+    def add_exception_handler(self, exc_class: type, handler) -> None:
         self.exception_middleware.add_exception_handler(exc_class, handler)
 
     def add_route(
-        self,
-        path: str,
-        route: typing.Callable,
-        methods: typing.Sequence[str] = ()
+        self, path: str, route: typing.Callable, methods: typing.Sequence[str] = ()
     ) -> None:
         if not inspect.isclass(route):
             route = request_response(route)
@@ -110,5 +119,7 @@ class Starlette:
         return decorator
 
     def __call__(self, scope: Scope) -> ASGIInstance:
+        if scope["type"] == "lifespan":
+            return self.lifespan_handler(scope)
         scope["app"] = self
         return self.exception_middleware(scope)
