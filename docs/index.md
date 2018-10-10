@@ -66,7 +66,7 @@ Starlette does not have any hard dependencies, but the following are optional:
 * `requests` - Required if you want to use the `TestClient`.
 * `aiofiles` - Required if you want to use `FileResponse` or `StaticFiles`.
 * `python-multipart` - Required if you want to support form parsing, with `request.form()`.
-* `ujson` - Optionally used for `JSONResponse`.
+* `ujson` - Required if you want to use `UJSONResponse`.
 
 You can install all of these with `pip3 install starlette[full]`.
 
@@ -113,7 +113,7 @@ should roughly equal or out-perform Sanic.
 
 For high throughput loads you should:
 
-* Make sure to install `ujson`.
+* Make sure to install `ujson` and use `UJSONResponse`.
 * Run using `uvicorn`, with access logging disabled.
 
 Several of the ASGI servers also have pure Python implementations available,
