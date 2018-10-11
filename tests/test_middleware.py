@@ -206,3 +206,22 @@ def test_cors_allow_origin_regex():
     assert response.status_code == 400
     assert response.text == "Disallowed CORS origin"
     assert "access-control-allow-origin" not in response.headers
+
+
+def test_cors_credentialed_requests_return_specific_origin():
+    app = Starlette()
+
+    app.add_middleware(CORSMiddleware, allow_origins=["*"])
+
+    @app.route("/")
+    def homepage(request):
+        return PlainTextResponse("Homepage", status_code=200)
+
+    client = TestClient(app)
+
+    # Test credentialed request
+    headers = {"Origin": "https://example.org", "Cookie": "star_cookie=sugar"}
+    response = client.get("/", headers=headers)
+    assert response.status_code == 200
+    assert response.text == "Homepage"
+    assert response.headers["access-control-allow-origin"] == "https://example.org"
