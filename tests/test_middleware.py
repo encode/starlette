@@ -225,3 +225,41 @@ def test_cors_credentialed_requests_return_specific_origin():
     assert response.status_code == 200
     assert response.text == "Homepage"
     assert response.headers["access-control-allow-origin"] == "https://example.org"
+
+
+def test_cors_vary_header_defaults_to_origin():
+    app = Starlette()
+
+    app.add_middleware(CORSMiddleware, allow_origins=["https://example.org"])
+
+    headers = {"Origin": "https://example.org"}
+
+    @app.route("/")
+    def homepage(request):
+        return PlainTextResponse("Homepage", status_code=200)
+
+    client = TestClient(app)
+
+    response = client.get("/", headers=headers)
+    assert response.status_code == 200
+    assert response.headers["vary"] == "Origin"
+
+
+def test_cors_vary_header_is_properly_set():
+    app = Starlette()
+
+    app.add_middleware(CORSMiddleware, allow_origins=["https://example.org"])
+
+    headers = {"Origin": "https://example.org"}
+
+    @app.route("/")
+    def homepage(request):
+        return PlainTextResponse(
+            "Homepage", status_code=200, headers={"Vary": "Accept-Encoding"}
+        )
+
+    client = TestClient(app)
+
+    response = client.get("/", headers=headers)
+    assert response.status_code == 200
+    assert response.headers["vary"] == "Accept-Encoding, Origin"
