@@ -69,7 +69,7 @@ class Starlette:
     def on_event(self, event_type: str) -> typing.Callable:
         return self.lifespan_handler.on_event(event_type)
 
-    def mount(self, path: str, app: ASGIApp, methods: Methods = ()) -> None:
+    def mount(self, path: str, app: ASGIApp, methods: Methods = None) -> None:
         prefix = PathPrefix(path, app=app, methods=methods)
         self.router.routes.append(prefix)
 
@@ -80,11 +80,11 @@ class Starlette:
         self.exception_middleware.add_exception_handler(exc_class, handler)
 
     def add_route(
-        self, path: str, route: typing.Callable, methods: Methods = ()
+        self, path: str, route: typing.Callable, methods: Methods = None
     ) -> None:
         if not inspect.isclass(route):
             route = request_response(route)
-            if not methods:
+            if methods is None:
                 methods = ("GET",)
 
         instance = Path(path, route, protocol="http", methods=methods)
@@ -104,7 +104,7 @@ class Starlette:
 
         return decorator
 
-    def route(self, path: str, methods: Methods = ()) -> typing.Callable:
+    def route(self, path: str, methods: Methods = None) -> typing.Callable:
         def decorator(func: typing.Callable) -> typing.Callable:
             self.add_route(path, func, methods=methods)
             return func
