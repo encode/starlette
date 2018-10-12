@@ -12,7 +12,15 @@ except ImportError:  # pragma: nocover
     multipart = None  # type: ignore
 
 
-class MessageType(Enum):
+class FormMessage(Enum):
+    FIELD_START = 1
+    FIELD_NAME = 2
+    FIELD_DATA = 3
+    FIELD_END = 4
+    END = 5
+
+
+class MultiPartMessage(Enum):
     PART_BEGIN = 1
     PART_DATA = 2
     PART_END = 3
@@ -47,6 +55,83 @@ class UploadFile:
         await self._loop.run_in_executor(None, self._file.close)
 
 
+class FormParser:
+    def __init__(
+        self, headers: Headers, stream: typing.AsyncGenerator[bytes, None]
+    ) -> None:
+        assert (
+            multipart is not None
+        ), "The `python-multipart` library must be installed to use form parsing."
+        self.headers = headers
+        self.stream = stream
+        self.messages = []  # type: typing.List[typing.Tuple[MultiPartMessage, bytes]]
+
+    def on_field_start(self) -> None:
+        print("on_field_start")
+        message = (FormMessage.FIELD_START, b"")
+        self.messages.append(message)
+
+    def on_field_name(self, data: bytes, start: int, end: int) -> None:
+        print("on_field_name")
+        message = (FormMessage.FIELD_NAME, data[start:end])
+        self.messages.append(message)
+
+    def on_field_data(self, data: bytes, start: int, end: int) -> None:
+        print("on_field_data")
+        message = (FormMessage.FIELD_DATA, data[start:end])
+        self.messages.append(message)
+
+    def on_field_end(self) -> None:
+        print("on_field_end")
+        message = (FormMessage.FIELD_END, b"")
+        self.messages.append(message)
+
+    def on_end(self) -> None:
+        print("on_end")
+        message = (FormMessage.END, b"")
+        self.messages.append(message)
+
+    async def parse(self) -> typing.Dict[str, typing.Union[str, UploadFile]]:
+        # Callbacks dictionary.
+        callbacks = {
+            "on_field_start": self.on_field_start,
+            "on_field_name": self.on_field_name,
+            "on_field_data": self.on_field_data,
+            "on_field_end": self.on_field_end,
+            "on_end": self.on_end,
+        }
+
+        # Create the parser.
+        parser = multipart.QuerystringParser(callbacks)
+        field_name = b""
+        field_value = b""
+
+        result = {}  # type: typing.Dict[str, typing.Union[str, UploadFile]]
+
+        # Feed the parser with data from the request.
+        async for chunk in self.stream():
+            if chunk:
+                parser.write(chunk)
+            else:
+                parser.finalize()
+            messages = list(self.messages)
+            self.messages.clear()
+            for message_type, message_bytes in messages:
+                if message_type == FormMessage.FIELD_START:
+                    field_name = b""
+                    field_value = b""
+                elif message_type == FormMessage.FIELD_NAME:
+                    field_name += message_bytes
+                elif message_type == FormMessage.FIELD_DATA:
+                    field_value += message_bytes
+                elif message_type == FormMessage.FIELD_END:
+                    result[field_name.decode("latin-1")] = field_value.decode("latin-1")
+                elif message_type == FormMessage.END:
+                    pass
+
+        return result
+
+
 class MultiPartParser:
     def __init__(
         self, headers: Headers, stream: typing.AsyncGenerator[bytes, None]
@@ -56,38 +141,38 @@ class MultiPartParser:
         ), "The `python-multipart` library must be installed to use form parsing."
         self.headers = headers
         self.stream = stream
-        self.messages = []  # type: typing.List[typing.Tuple[MessageType, bytes]]
+        self.messages = []  # type: typing.List[typing.Tuple[MultiPartMessage, bytes]]
 
     def on_part_begin(self) -> None:
-        message = (MessageType.PART_BEGIN, b"")
+        message = (MultiPartMessage.PART_BEGIN, b"")
         self.messages.append(message)
 
     def on_part_data(self, data: bytes, start: int, end: int) -> None:
-        message = (MessageType.PART_DATA, data[start:end])
+        message = (MultiPartMessage.PART_DATA, data[start:end])
         self.messages.append(message)
 
     def on_part_end(self) -> None:
-        message = (MessageType.PART_END, b"")
+        message = (MultiPartMessage.PART_END, b"")
         self.messages.append(message)
 
     def on_header_field(self, data: bytes, start: int, end: int) -> None:
-        message = (MessageType.HEADER_FIELD, data[start:end])
+        message = (MultiPartMessage.HEADER_FIELD, data[start:end])
         self.messages.append(message)
 
     def on_header_value(self, data: bytes, start: int, end: int) -> None:
-        message = (MessageType.HEADER_VALUE, data[start:end])
+        message = (MultiPartMessage.HEADER_VALUE, data[start:end])
         self.messages.append(message)
 
     def on_header_end(self) -> None:
-        message = (MessageType.HEADER_END, b"")
+        message = (MultiPartMessage.HEADER_END, b"")
         self.messages.append(message)
 
     def on_headers_finished(self) -> None:
-        message = (MessageType.HEADERS_FINISHED, b"")
+        message = (MultiPartMessage.HEADERS_FINISHED, b"")
         self.messages.append(message)
 
     def on_end(self) -> None:
-        message = (MessageType.END, b"")
+        message = (MultiPartMessage.END, b"")
         self.messages.append(message)
 
     async def parse(self) -> typing.Dict[str, typing.Union[str, UploadFile]]:
@@ -124,18 +209,18 @@ class MultiPartParser:
             messages = list(self.messages)
             self.messages.clear()
             for message_type, message_bytes in messages:
-                if message_type == MessageType.PART_BEGIN:
+                if message_type == MultiPartMessage.PART_BEGIN:
                     raw_headers = []
                     data = b""
-                elif message_type == MessageType.HEADER_FIELD:
+                elif message_type == MultiPartMessage.HEADER_FIELD:
                     header_field += message_bytes
-                elif message_type == MessageType.HEADER_VALUE:
+                elif message_type == MultiPartMessage.HEADER_VALUE:
                     header_value += message_bytes
-                elif message_type == MessageType.HEADER_END:
+                elif message_type == MultiPartMessage.HEADER_END:
                     raw_headers.append((header_field.lower(), header_value))
                     header_field = b""
                     header_value = b""
-                elif message_type == MessageType.HEADERS_FINISHED:
+                elif message_type == MultiPartMessage.HEADERS_FINISHED:
                     headers = Headers(raw_headers)
                     content_disposition = headers.get("Content-Disposition")
                     disposition, options = parse_options_header(content_disposition)
@@ -144,18 +229,19 @@ class MultiPartParser:
                         filename = options[b"filename"].decode("latin-1")
                         file = UploadFile(filename=filename)
                         await file.setup()
-                elif message_type == MessageType.PART_DATA:
+                elif message_type == MultiPartMessage.PART_DATA:
                     if file is None:
                         data += message_bytes
                     else:
                         await file.write(message_bytes)
-                elif message_type == MessageType.PART_END:
+                elif message_type == MultiPartMessage.PART_END:
                     if file is None:
                         result[field_name] = data.decode("latin-1")
                     else:
                         await file.seek(0)
                         result[field_name] = file
-                elif message_type == MessageType.END:
+                elif message_type == MultiPartMessage.END:
                     pass
 
+        parser.finalize()
         return result

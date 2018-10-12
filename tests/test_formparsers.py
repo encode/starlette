@@ -48,3 +48,15 @@ def test_multipart_request_files(tmpdir):
     assert response.json() == {
         "test": {"filename": "test.txt", "content": "<file content>"}
     }
+
+
+def test_urlencoded_request_data(tmpdir):
+    client = TestClient(app)
+    response = client.post("/", data={"some": "data"})
+    assert response.json() == {"some": "data"}
+
+
+def test_no_request_data(tmpdir):
+    client = TestClient(app)
+    response = client.post("/")
+    assert response.json() == {}
