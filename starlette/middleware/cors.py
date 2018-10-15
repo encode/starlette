@@ -74,7 +74,7 @@ class CORSMiddleware:
                     return self.preflight_response(request_headers=headers)
                 else:
                     return functools.partial(
-                        self.simple_response, scope=scope, origin=origin
+                        self.simple_response, scope=scope, request_headers=headers
                     )
 
         return self.app(scope)
@@ -130,22 +130,32 @@ class CORSMiddleware:
 
         return PlainTextResponse("OK", status_code=200, headers=headers)
 
-    async def simple_response(self, receive, send, scope=None, origin=None):
+    async def simple_response(self, receive, send, scope=None, request_headers=None):
         inner = self.app(scope)
-        send = functools.partial(self.send, send=send, origin=origin)
+        send = functools.partial(self.send, send=send, request_headers=request_headers)
         await inner(receive, send)
 
-    async def send(self, message, send=None, origin=None):
+    async def send(self, message, send=None, request_headers=None):
         if message["type"] != "http.response.start":
             await send(message)
             return
 
+        print(message)
         message.setdefault("headers", [])
         headers = MutableHeaders(message["headers"])
+        origin = request_headers["Origin"]
+        has_cookie = "cookie" in request_headers
+
+        # If request includes any cookie headers, then we must respond
+        # with the specific origin instead of '*'.
+        if self.allow_all_origins and has_cookie:
+            self.simple_headers["Access-Control-Allow-Origin"] = origin
 
         # If we only allow specific origins, then we have to mirror back
         # the Origin header in the response.
-        if not self.allow_all_origins and self.is_allowed_origin(origin=origin):
+        elif not self.allow_all_origins and self.is_allowed_origin(origin=origin):
             headers["Access-Control-Allow-Origin"] = origin
+            headers.add_vary_header("Origin")
+            print(headers)
         headers.update(self.simple_headers)
         await send(message)

@@ -1,46 +1,7 @@
 from starlette.applications import Starlette
 from starlette.middleware.cors import CORSMiddleware
-from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
-from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.responses import PlainTextResponse
 from starlette.testclient import TestClient
-
-
-def test_trusted_host_middleware():
-    app = Starlette()
-
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["testserver"])
-
-    @app.route("/")
-    def homepage(request):
-        return PlainTextResponse("OK", status_code=200)
-
-    client = TestClient(app)
-    response = client.get("/")
-    assert response.status_code == 200
-
-    client = TestClient(app, base_url="http://invalidhost")
-    response = client.get("/")
-    assert response.status_code == 400
-
-
-def test_https_redirect_middleware():
-    app = Starlette()
-
-    app.add_middleware(HTTPSRedirectMiddleware)
-
-    @app.route("/")
-    def homepage(request):
-        return PlainTextResponse("OK", status_code=200)
-
-    client = TestClient(app, base_url="https://testserver")
-    response = client.get("/")
-    assert response.status_code == 200
-
-    client = TestClient(app)
-    response = client.get("/", allow_redirects=False)
-    assert response.status_code == 301
-    assert response.headers["location"] == "https://testserver/"
 
 
 def test_cors_allow_all():
@@ -206,3 +167,60 @@ def test_cors_allow_origin_regex():
     assert response.status_code == 400
     assert response.text == "Disallowed CORS origin"
     assert "access-control-allow-origin" not in response.headers
+
+
+def test_cors_credentialed_requests_return_specific_origin():
+    app = Starlette()
+
+    app.add_middleware(CORSMiddleware, allow_origins=["*"])
+
+    @app.route("/")
+    def homepage(request):
+        return PlainTextResponse("Homepage", status_code=200)
+
+    client = TestClient(app)
+
+    # Test credentialed request
+    headers = {"Origin": "https://example.org", "Cookie": "star_cookie=sugar"}
+    response = client.get("/", headers=headers)
+    assert response.status_code == 200
+    assert response.text == "Homepage"
+    assert response.headers["access-control-allow-origin"] == "https://example.org"
+
+
+def test_cors_vary_header_defaults_to_origin():
+    app = Starlette()
+
+    app.add_middleware(CORSMiddleware, allow_origins=["https://example.org"])
+
+    headers = {"Origin": "https://example.org"}
+
+    @app.route("/")
+    def homepage(request):
+        return PlainTextResponse("Homepage", status_code=200)
+
+    client = TestClient(app)
+
+    response = client.get("/", headers=headers)
+    assert response.status_code == 200
+    assert response.headers["vary"] == "Origin"
+
+
+def test_cors_vary_header_is_properly_set():
+    app = Starlette()
+
+    app.add_middleware(CORSMiddleware, allow_origins=["https://example.org"])
+
+    headers = {"Origin": "https://example.org"}
+
+    @app.route("/")
+    def homepage(request):
+        return PlainTextResponse(
+            "Homepage", status_code=200, headers={"Vary": "Accept-Encoding"}
+        )
+
+    client = TestClient(app)
+
+    response = client.get("/", headers=headers)
+    assert response.status_code == 200
+    assert response.headers["vary"] == "Accept-Encoding, Origin"
