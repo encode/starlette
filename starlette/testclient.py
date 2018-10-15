@@ -14,11 +14,9 @@ from starlette.types import Message, Scope, ASGIApp
 
 BytesPairs = typing.List[typing.Tuple[bytes, bytes]]
 Cookies = typing.Union[
-    typing.MutableMapping[str, str],
-    requests.cookies.RequestsCookieJar
+    typing.MutableMapping[str, str], requests.cookies.RequestsCookieJar
 ]
 
-Cert = typing.Union[str, typing.Tuple[str, bytes]]
 Params = typing.Union[bytes, typing.MutableMapping[str, str]]
 DataType = typing.Union[bytes, typing.MutableMapping[str, str], typing.IO]
 TimeOut = typing.Union[float, typing.Tuple[float, float]]
@@ -26,7 +24,7 @@ FileType = typing.MutableMapping[str, typing.IO]
 AuthType = typing.Union[
     typing.Tuple[str, str],
     requests.auth.AuthBase,
-    typing.Callable[[requests.Request], requests.Request]
+    typing.Callable[[requests.Request], requests.Request],
 ]
 
 
@@ -66,7 +64,9 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
         self.app = app
         self.raise_server_exceptions = raise_server_exceptions
 
-    def send(self, request: requests.PreparedRequest, stream: bool = False, timeout: TimeOut = None, verify: bool = True, cert: Cert = None, proxies: typing.MutableMapping[str, str] = None) -> requests.Response:
+    def send(  # type: ignore
+        self, request: requests.PreparedRequest, *args: typing.Any, **kwargs: typing.Any
+    ) -> requests.Response:
         scheme, netloc, path, params, query, fragement = urlparse(  # type: ignore
             request.url
         )
@@ -295,12 +295,25 @@ class _TestClient(requests.Session):
         self.headers.update({"user-agent": "testclient"})
         self.base_url = base_url
 
-    def request(self, method: str, url: str,
-            params: Params = None, data: DataType = None, headers: typing.MutableMapping[str, str] = None,
-            cookies: Cookies = None, files: FileType = None, auth: AuthType = None,
-            timeout: TimeOut = None, allow_redirects: bool = None, proxies: typing.MutableMapping[str, str] = None,
-            hooks: typing.Any = None, stream: bool = None, verify: typing.Union[bool, str] = None,
-            cert: typing.Union[str, typing.Tuple[str, str]] = None, json: typing.Any = None) -> requests.Response:
+    def request(
+        self,
+        method: str,
+        url: str,
+        params: Params = None,
+        data: DataType = None,
+        headers: typing.MutableMapping[str, str] = None,
+        cookies: Cookies = None,
+        files: FileType = None,
+        auth: AuthType = None,
+        timeout: TimeOut = None,
+        allow_redirects: bool = None,
+        proxies: typing.MutableMapping[str, str] = None,
+        hooks: typing.Any = None,
+        stream: bool = None,
+        verify: typing.Union[bool, str] = None,
+        cert: typing.Union[str, typing.Tuple[str, str]] = None,
+        json: typing.Any = None,
+    ) -> requests.Response:
         url = urljoin(self.base_url, url)
         return super().request(
             method,
@@ -318,7 +331,7 @@ class _TestClient(requests.Session):
             stream=stream,
             verify=verify,
             cert=cert,
-            json=json
+            json=json,
         )
 
     def websocket_connect(
