@@ -163,7 +163,7 @@ class Headers(typing.Mapping[str, str]):
     An immutable, case-insensitive multidict.
     """
 
-    def __init__(self, raw_headers: typing.Optional[BytesPairs] = None) -> None:
+    def __init__(self, raw_headers: BytesPairs = None) -> None:
         if raw_headers is None:
             self._list = []  # type: BytesPairs
         else:
