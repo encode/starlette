@@ -12,11 +12,10 @@ from starlette.websockets import WebSocketDisconnect
 from starlette.types import Message, Scope, ASGIApp
 
 
-BytesPairs = typing.List[typing.Tuple[bytes, bytes]]
+# Annotations for `Session.request()`
 Cookies = typing.Union[
     typing.MutableMapping[str, str], requests.cookies.RequestsCookieJar
 ]
-
 Params = typing.Union[bytes, typing.MutableMapping[str, str]]
 DataType = typing.Union[bytes, typing.MutableMapping[str, str], typing.IO]
 TimeOut = typing.Union[float, typing.Tuple[float, float]]
@@ -33,13 +32,13 @@ class _HeaderDict(requests.packages.urllib3._collections.HTTPHeaderDict):
         return self.getheaders(key)
 
 
-class _MockOriginalResponse(object):
+class _MockOriginalResponse:
     """
     We have to jump through some hoops to present the response as if
     it was made using urllib3.
     """
 
-    def __init__(self, headers: BytesPairs) -> None:
+    def __init__(self, headers: typing.List[typing.Tuple[bytes, bytes]]) -> None:
         self.msg = _HeaderDict(headers)
         self.closed = False
 
@@ -80,7 +79,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
 
         # Include the 'host' header.
         if "host" in request.headers:
-            headers = []  # type: BytesPairs
+            headers = []  # type: typing.List[typing.Tuple[bytes, bytes]]
         elif port == 80:
             headers = [(b"host", host.encode())]
         else:
