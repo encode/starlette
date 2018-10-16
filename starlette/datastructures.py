@@ -89,7 +89,7 @@ class URL:
     def __str__(self) -> str:
         return self._url
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "%s(%s)" % (self.__class__.__name__, repr(self._url))
 
 
@@ -286,7 +286,7 @@ class MutableHeaders(Headers):
         for key, val in other.items():
             self[key] = val
 
-    def add_vary_header(self, vary):
+    def add_vary_header(self, vary: str) -> None:
         existing = self.get("vary")
         if existing is not None:
             vary = ", ".join([existing, vary])
