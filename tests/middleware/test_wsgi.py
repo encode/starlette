@@ -1,8 +1,8 @@
 import io
 import pytest
 import sys
-from tests.client import TestClient
 from starlette.middleware.wsgi import WSGIMiddleware, build_environ
+from starlette.testclient import TestClient
 
 
 def hello_world(environ, start_response):
