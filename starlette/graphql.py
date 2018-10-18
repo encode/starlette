@@ -8,13 +8,17 @@ import typing
 
 try:
     import graphene
+    from graphql.execution.executors.asyncio import AsyncioExecutor
 except ImportError:  # pragma: nocover
     graphene = None  # type: ignore
+    AsyncioExecutor = None  # type: ignore
 
 
 class GraphQLApp:
-    def __init__(self, schema: "graphene.Schema") -> None:
+    def __init__(self, schema: "graphene.Schema", executor: typing.Any = None) -> None:
         self.schema = schema
+        self.executor = executor
+        self.is_async = isinstance(executor, AsyncioExecutor)
 
     def __call__(self, scope: Scope) -> ASGIInstance:
         return functools.partial(self.asgi, scope=scope)
@@ -61,7 +65,6 @@ class GraphQLApp:
             )
 
         result = await self.execute(query, variables)
-        # result = self.schema.execute(query, variables)
         response_data = {"data": result.data, "errors": result.errors}
         status_code = (
             status.HTTP_400_BAD_REQUEST if result.errors else status.HTTP_200_OK
@@ -69,8 +72,17 @@ class GraphQLApp:
         return JSONResponse(response_data, status_code=status_code)
 
     async def execute(self, query, variables=None, operation_name=None):  # type: ignore
-        func = functools.partial(
-            self.schema.execute, variables=variables, operation_name=operation_name
-        )
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, func, query)
+        if self.is_async:
+            return await self.schema.execute(
+                query,
+                variables=variables,
+                operation_name=operation_name,
+                executor=self.executor,
+                return_promise=True,
+            )
+        else:
+            func = functools.partial(
+                self.schema.execute, variables=variables, operation_name=operation_name
+            )
+            loop = asyncio.get_event_loop()
+            return await loop.run_in_executor(None, func, query)

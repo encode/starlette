@@ -1,3 +1,4 @@
+from graphql.execution.executors.asyncio import AsyncioExecutor
 from starlette.graphql import GraphQLApp
 from starlette.testclient import TestClient
 import graphene
@@ -57,3 +58,21 @@ def test_graphql_no_query():
     response = client.get("/")
     assert response.status_code == 400
     assert response.text == "No GraphQL query found in the request"
+
+
+class ASyncQuery(graphene.ObjectType):
+    hello = graphene.String(name=graphene.String(default_value="stranger"))
+
+    async def resolve_hello(self, info, name):
+        return "Hello " + name
+
+
+async_schema = graphene.Schema(query=ASyncQuery)
+async_app = GraphQLApp(schema=async_schema, executor=AsyncioExecutor())
+
+
+def test_graphql_async():
+    client = TestClient(async_app)
+    response = client.get("/?query={ hello }")
+    assert response.status_code == 200
+    assert response.json() == {"data": {"hello": "Hello stranger"}, "errors": None}
