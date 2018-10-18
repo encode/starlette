@@ -54,7 +54,7 @@ You can use any of the following to add handled routes to the application:
 There are two ways to add lifespan events:
 
 * `@app.on_event(event_type)` - Add an event, decorator style
-* `app.add_event_handler(event_type, func)` - Add an event through a regular function interface.
+* `app.add_event_handler(event_type, func)` - Add an event through a function call.
 
 `event_type` must be specified as either `'startup'` or `'cleanup'`.
 
