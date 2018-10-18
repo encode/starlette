@@ -1,20 +1,19 @@
 from starlette import status
-from starlette.responses import PlainTextResponse, JSONResponse
+from starlette.responses import PlainTextResponse, Response, JSONResponse
 from starlette.requests import Request
 from starlette.types import ASGIInstance, Receive, Scope, Send
+import asyncio
 import functools
 import typing
 
 try:
     import graphene
-    GrapheneSchema = graphene.Schema
 except ImportError:  # pragma: nocover
     graphene = None  # type: ignore
-    GrapheneSchema = typing.Any
 
 
 class GraphQLApp:
-    def __init__(self, schema: GrapheneSchema) -> None:
+    def __init__(self, schema: "graphene.Schema") -> None:
         self.schema = schema
 
     def __call__(self, scope: Scope) -> ASGIInstance:
@@ -25,7 +24,7 @@ class GraphQLApp:
         response = await self.handler(request)
         await response(receive, send)
 
-    async def handler(self, request) -> None:
+    async def handler(self, request: Request) -> Response:
         if request.method == "GET":
             data = request.query_params  # type: typing.Mapping[str, typing.Any]
 
@@ -35,7 +34,9 @@ class GraphQLApp:
             if "application/json" in content_type:
                 data = await request.json()
             elif "application/graphql" in content_type:
-                data = {"query": await request.body()}
+                body = await request.body()
+                text = body.decode()
+                data = {"query": text}
             elif "query" in request.query_params:
                 data = request.query_params
             else:
@@ -54,10 +55,11 @@ class GraphQLApp:
             variables = data.get("variables")
         except KeyError:
             return PlainTextResponse(
-                "No GraphQL query found in the request.",
+                "No GraphQL query found in the request",
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
 
+        # result = await self.execute(query, variables)
         result = self.schema.execute(query, variables)
         response_data = {"data": result.data, "errors": result.errors}
         status_code = (
@@ -65,7 +67,7 @@ class GraphQLApp:
         )
         return JSONResponse(response_data, status_code=status_code)
 
-    async def execute(self, query, variables=None):
-        func = functools.partial(self.schema.execute, query=query, variables=variables)
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(func)
+    # async def execute(self, query, variables=None):
+    #     func = functools.partial(self.schema.execute, query=query, variables=variables)
+    #     loop = asyncio.get_event_loop()
+    #     return await loop.run_in_executor(None, func)
