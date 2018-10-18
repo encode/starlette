@@ -53,21 +53,24 @@ class GraphQLApp:
         try:
             query = data["query"]
             variables = data.get("variables")
+            operation_name = data.get("operationName")
         except KeyError:
             return PlainTextResponse(
                 "No GraphQL query found in the request",
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
 
-        # result = await self.execute(query, variables)
-        result = self.schema.execute(query, variables)
+        result = await self.execute(query, variables)
+        # result = self.schema.execute(query, variables)
         response_data = {"data": result.data, "errors": result.errors}
         status_code = (
             status.HTTP_400_BAD_REQUEST if result.errors else status.HTTP_200_OK
         )
         return JSONResponse(response_data, status_code=status_code)
 
-    # async def execute(self, query, variables=None):
-    #     func = functools.partial(self.schema.execute, query=query, variables=variables)
-    #     loop = asyncio.get_event_loop()
-    #     return await loop.run_in_executor(None, func)
+    async def execute(self, query, variables=None, operation_name=None):  # type: ignore
+        func = functools.partial(
+            self.schema.execute, variables=variables, operation_name=operation_name
+        )
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, func, query)
