@@ -60,6 +60,20 @@ def test_graphql_no_query():
     assert response.text == "No GraphQL query found in the request"
 
 
+def test_graphql_invalid_field():
+    response = client.post("/", json={"query": "{ dummy }"})
+    assert response.status_code == 400
+    assert response.json() == {
+        "data": None,
+        "errors": [
+            {
+                "locations": [{"column": 3, "line": 1}],
+                "message": 'Cannot query field "dummy" on type "Query".',
+            }
+        ],
+    }
+
+
 class ASyncQuery(graphene.ObjectType):
     hello = graphene.String(name=graphene.String(default_value="stranger"))
 

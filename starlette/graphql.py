@@ -9,9 +9,13 @@ import typing
 try:
     import graphene
     from graphql.execution.executors.asyncio import AsyncioExecutor
+    from graphql.error import format_error as format_graphql_error
+    from graphql.error import GraphQLError
 except ImportError:  # pragma: nocover
     graphene = None  # type: ignore
     AsyncioExecutor = None  # type: ignore
+    format_graphql_error = None  # type: ignore
+    GraphQLError = None  # type: ignore
 
 
 class GraphQLApp:
@@ -65,7 +69,12 @@ class GraphQLApp:
             )
 
         result = await self.execute(query, variables)
-        response_data = {"data": result.data, "errors": result.errors}
+        error_data = (
+            [format_graphql_error(err) for err in result.errors]
+            if result.errors
+            else None
+        )
+        response_data = {"data": result.data, "errors": error_data}
         status_code = (
             status.HTTP_400_BAD_REQUEST if result.errors else status.HTTP_200_OK
         )
