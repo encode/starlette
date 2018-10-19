@@ -8,7 +8,7 @@ is shutting down.
 These event handlers can either be `async` coroutines, or regular syncronous
 functions.
 
-The event handlers are registered like so:
+The event handlers are registered with a decorator syntax, like so:
 
 ```python
 from starlette.applications import Starlette
@@ -16,7 +16,6 @@ from starlette.applications import Starlette
 
 app = Starlette()
 
-# with decorator syntax
 @app.on_event('startup')
 async def open_database_connection_pool():
     ...
@@ -24,9 +23,21 @@ async def open_database_connection_pool():
 @app.on_event('cleanup')
 async def close_database_connection_pool():
     ...
+```
+Or through a regular function interface:
+
+```python
+from starlette.applications import Starlette
 
 
-# or as function call
+app = Starlette()
+
+async def open_database_connection_pool():
+    ...
+
+async def close_database_connection_pool():
+    ...
+
 app.add_event_handler('startup', open_database_connection_pool)
 app.add_event_handler('cleanup', close_database_connection_pool)
 
