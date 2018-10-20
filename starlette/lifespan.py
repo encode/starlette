@@ -62,7 +62,7 @@ class LifespanHandler:
             await send({"type": "lifespan.shutdown.complete"})
 
         if message["type"] == "lifespan.cleanup":
-            await send({"type": "lifespan.shutdown.complete"})
+            await send({"type": "lifespan.cleanup.complete"})
 
 
 class LifespanContext:
