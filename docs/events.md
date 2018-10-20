@@ -20,7 +20,7 @@ app = Starlette()
 async def open_database_connection_pool():
     ...
 
-@app.on_event('cleanup')
+@app.on_event('shutdown')
 async def close_database_connection_pool():
     ...
 
@@ -29,7 +29,7 @@ async def close_database_connection_pool():
 Starlette will not start serving any incoming requests until all of the
 registered startup handlers have completed.
 
-The cleanup handlers will run once all connections have been closed, and
+The shutdown handlers will run once all connections have been closed, and
 any in-process background tasks have completed.
 
 **Note**: The ASGI lifespan protocol has only recently been added to the spec,
@@ -57,5 +57,5 @@ def test_homepage():
         response = client.get("/")
         assert response.status_code == 200
 
-    # Application 'cleanup' handlers are called on exiting the block.
+    # Application 'shutdown' handlers are called on exiting the block.
 ```
