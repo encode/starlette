@@ -103,7 +103,7 @@ class LifespanContext:
             assert not self.shutdown_event.is_set(), STATE_TRANSITION_ERROR
             self.startup_event.set()
         else:
-            assert message['type'] == "lifespan.shutdown.complete"
+            assert message["type"] == "lifespan.shutdown.complete"
             assert self.startup_event.is_set(), STATE_TRANSITION_ERROR
             assert not self.shutdown_event.is_set(), STATE_TRANSITION_ERROR
             self.shutdown_event.set()
