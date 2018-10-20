@@ -22,7 +22,7 @@ class LifespanHandler:
         return decorator
 
     def add_event_handler(self, event_type: str, func: typing.Callable) -> None:
-        assert event_type in ("startup", "shutdown")
+        assert event_type in ("startup", "shutdown", "cleanup")
 
         if event_type == "startup":
             self.startup_handlers.append(func)
