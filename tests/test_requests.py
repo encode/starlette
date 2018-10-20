@@ -160,6 +160,10 @@ def test_request_json():
         return asgi
 
     client = TestClient(app)
+
+    response = client.post("/")
+    assert response.json() == {"json": {}}
+
     response = client.post("/", json={"a": "123"})
     assert response.json() == {"json": {"a": "123"}}
 

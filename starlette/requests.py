@@ -103,6 +103,8 @@ class Request(Mapping):
     async def json(self) -> typing.Any:
         if not hasattr(self, "_json"):
             body = await self.body()
+            if not body:
+                body = b"{}"
             self._json = json.loads(body)
         return self._json
 
