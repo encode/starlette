@@ -39,7 +39,7 @@ async def close_database_connection_pool():
     ...
 
 app.add_event_handler('startup', open_database_connection_pool)
-app.add_event_handler('cleanup', close_database_connection_pool)
+app.add_event_handler('shutdown', close_database_connection_pool)
 
 ```
 
