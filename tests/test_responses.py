@@ -4,6 +4,7 @@ from starlette.responses import (
     Response,
     StreamingResponse,
     UJSONResponse,
+    PlainTextResponse
 )
 from starlette.requests import Request
 from starlette.testclient import TestClient
@@ -50,6 +51,52 @@ def test_ujson_response():
     client = TestClient(app)
     response = client.get("/")
     assert response.json() == {"hello": "world"}
+    assert response.headers['content-type'] == "application/json"
+
+
+def test_plaintext_response():
+    def app(scope):
+        async def asgi(receive, send):
+            response = PlainTextResponse("Hello, world!")
+            await response(receive, send)
+
+        return asgi
+
+    client = TestClient(app)
+    response = client.get("/")
+    assert response.text == "Hello, world!"
+    assert response.headers['content-type'] == "text/plain; charset=utf-8"
+    assert response.status_code == status.HTTP_200_OK
+
+
+def test_plaintext_response_status_as_content():
+    def app(scope):
+        async def asgi(receive, send):
+            response = PlainTextResponse(status.HTTP_404_NOT_FOUND)
+            await response(receive, send)
+
+        return asgi
+
+    client = TestClient(app)
+    response = client.get("/")
+    assert response.text == "Not Found"
+    assert response.headers['content-type'] == "text/plain; charset=utf-8"
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_plaintext_response_non_status_integer():
+    def app(scope):
+        async def asgi(receive, send):
+            response = PlainTextResponse(123456789)
+            await response(receive, send)
+
+        return asgi
+
+    client = TestClient(app)
+    response = client.get("/")
+    assert response.text == "123456789"
+    assert response.headers['content-type'].startswith("text/plain")
+    assert response.status_code == status.HTTP_200_OK
 
 
 def test_redirect_response():

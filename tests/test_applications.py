@@ -122,19 +122,13 @@ def test_mounted_route_path_params():
     assert response.text == "Hello, tomchristie!"
 
 
-def test_route_kwargs():
-    response = client.get("/user/tomchristie")
-    assert response.status_code == status.HTTP_200_OK
-    assert response.text == "Hello, tomchristie!"
-
-
 def test_websocket_route():
     with client.websocket_connect("/ws") as session:
         text = session.receive_text()
         assert text == "Hello, world!"
 
 
-def test_400():
+def test_404():
     response = client.get("/404")
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json() == {"detail": "Not Found"}

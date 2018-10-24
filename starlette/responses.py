@@ -15,6 +15,7 @@ from starlette import status
 
 from urllib.parse import quote_plus
 import http.cookies
+from http import HTTPStatus
 
 try:
     import aiofiles
@@ -137,6 +138,22 @@ class HTMLResponse(Response):
 
 class PlainTextResponse(Response):
     media_type = "text/plain"
+
+    def __init__(
+        self,
+        content: typing.Any,
+        status_code: int = status.HTTP_200_OK,
+        **kwargs
+    ) -> None:
+        if isinstance(content, int):
+            try:
+                status_code = HTTPStatus(content)
+            except ValueError:
+                content = str(content)
+            else:
+                content = status_code.phrase
+                status_code = status_code.value
+        super().__init__(content, status_code=status_code, **kwargs)
 
 
 class JSONResponse(Response):
