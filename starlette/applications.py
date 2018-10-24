@@ -8,7 +8,7 @@ from starlette.types import ASGIApp, ASGIInstance, Scope
 
 class Starlette:
     def __init__(self, debug: bool = False) -> None:
-        self.router = Router(routes=[])
+        self.router = Router()
         self.lifespan_handler = LifespanHandler()
         self.app = self.router
         self.exception_middleware = ExceptionMiddleware(self.router, debug=debug)
