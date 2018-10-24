@@ -2,6 +2,7 @@ from starlette.applications import Starlette
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.responses import PlainTextResponse
 from starlette.testclient import TestClient
+from starlette import status
 
 
 def test_trusted_host_middleware():
@@ -13,11 +14,11 @@ def test_trusted_host_middleware():
 
     @app.route("/")
     def homepage(request):
-        return PlainTextResponse("OK", status_code=200)
+        return PlainTextResponse("OK", status_code=status.HTTP_200_OK)
 
     client = TestClient(app)
     response = client.get("/")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
 
     client = TestClient(app, base_url="http://subdomain.testserver")
     response = client.get("/")
@@ -25,4 +26,4 @@ def test_trusted_host_middleware():
 
     client = TestClient(app, base_url="http://invalidhost")
     response = client.get("/")
-    assert response.status_code == 400
+    assert response.status_code == status.HTTP_400_BAD_REQUEST

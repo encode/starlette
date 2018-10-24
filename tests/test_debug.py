@@ -1,6 +1,7 @@
 from starlette.responses import Response
 from starlette.testclient import TestClient
 from starlette.debug import DebugMiddleware
+from starlette import status
 import pytest
 
 
@@ -14,7 +15,7 @@ def test_debug_text():
     app = DebugMiddleware(app)
     client = TestClient(app, raise_server_exceptions=False)
     response = client.get("/")
-    assert response.status_code == 500
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert response.headers["content-type"].startswith("text/plain")
     assert "RuntimeError" in response.text
 
@@ -29,7 +30,7 @@ def test_debug_html():
     app = DebugMiddleware(app)
     client = TestClient(app, raise_server_exceptions=False)
     response = client.get("/", headers={"Accept": "text/html, */*"})
-    assert response.status_code == 500
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert response.headers["content-type"].startswith("text/html")
     assert "RuntimeError" in response.text
 
@@ -37,7 +38,7 @@ def test_debug_html():
 def test_debug_after_response_sent():
     def app(scope):
         async def asgi(receive, send):
-            response = Response(b"", status_code=204)
+            response = Response(b"", status_code=status.HTTP_204_NO_CONTENT)
             await response(receive, send)
             raise RuntimeError("Something went wrong")
 
@@ -56,7 +57,7 @@ def test_debug_error_during_scope():
     app = DebugMiddleware(app)
     client = TestClient(app, raise_server_exceptions=False)
     response = client.get("/", headers={"Accept": "text/html, */*"})
-    assert response.status_code == 500
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert response.headers["content-type"].startswith("text/html")
     assert "RuntimeError" in response.text
 

@@ -2,6 +2,8 @@ from starlette.exceptions import ExceptionMiddleware, HTTPException
 from starlette.responses import PlainTextResponse
 from starlette.routing import Router, Route, WebSocketRoute
 from starlette.testclient import TestClient
+from starlette import status
+
 import pytest
 
 
@@ -10,11 +12,11 @@ def raise_runtime_error(request):
 
 
 def not_acceptable(request):
-    raise HTTPException(status_code=406)
+    raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE)
 
 
 def not_modified(request):
-    raise HTTPException(status_code=304)
+    raise HTTPException(status_code=status.HTTP_304_NOT_MODIFIED)
 
 
 class HandledExcAfterResponse:
@@ -22,9 +24,9 @@ class HandledExcAfterResponse:
         pass
 
     async def __call__(self, receive, send):
-        response = PlainTextResponse("OK", status_code=200)
+        response = PlainTextResponse("OK", status_code=status.HTTP_200_OK)
         await response(receive, send)
-        raise HTTPException(status_code=406)
+        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE)
 
 
 router = Router(
@@ -48,7 +50,7 @@ def test_server_error():
 
     allow_500_client = TestClient(app, raise_server_exceptions=False)
     response = allow_500_client.get("/runtime_error")
-    assert response.status_code == 500
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert response.text == "Internal Server Error"
 
 
@@ -57,19 +59,19 @@ def test_debug_enabled():
     app.debug = True
     allow_500_client = TestClient(app, raise_server_exceptions=False)
     response = allow_500_client.get("/runtime_error")
-    assert response.status_code == 500
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert "RuntimeError" in response.text
 
 
 def test_not_acceptable():
     response = client.get("/not_acceptable")
-    assert response.status_code == 406
+    assert response.status_code == status.HTTP_406_NOT_ACCEPTABLE
     assert response.text == "Not Acceptable"
 
 
 def test_not_modified():
     response = client.get("/not_modified")
-    assert response.status_code == 304
+    assert response.status_code == status.HTTP_304_NOT_MODIFIED
     assert response.text == ""
 
 
@@ -88,7 +90,7 @@ def test_handled_exc_after_response():
     # us to see the response as it will have been seen by the client.
     allow_200_client = TestClient(app, raise_server_exceptions=False)
     response = allow_200_client.get("/handled_exc_after_response")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.text == "OK"
 
 
@@ -98,5 +100,5 @@ def test_force_500_response():
 
     force_500_client = TestClient(app, raise_server_exceptions=False)
     response = force_500_client.get("/")
-    assert response.status_code == 500
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert response.text == ""

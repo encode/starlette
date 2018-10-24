@@ -5,6 +5,7 @@ from aiofiles.os import stat as aio_stat
 
 from starlette.responses import PlainTextResponse, FileResponse, Response
 from starlette.types import Send, Receive, Scope, ASGIInstance
+from starlette import status
 
 
 class StaticFiles:
@@ -15,10 +16,10 @@ class StaticFiles:
     def __call__(self, scope: Scope) -> ASGIInstance:
         assert scope["type"] == "http"
         if scope["method"] not in ("GET", "HEAD"):
-            return PlainTextResponse("Method Not Allowed", status_code=405)
+            return PlainTextResponse("Method Not Allowed", status_code=status.HTTP_405_METHOD_NOT_ALLOWED)
         path = os.path.normpath(os.path.join(*scope["path"].split("/")))
         if path.startswith(".."):
-            return PlainTextResponse("Not Found", status_code=404)
+            return PlainTextResponse("Not Found", status_code=status.HTTP_404_NOT_FOUND)
         path = os.path.join(self.directory, path)
         if self.config_checked:
             check_directory = None
@@ -55,11 +56,11 @@ class _StaticFilesResponder:
         try:
             stat_result = await aio_stat(self.path)
         except FileNotFoundError:
-            response = PlainTextResponse("Not Found", status_code=404)  # type: Response
+            response = PlainTextResponse("Not Found", status_code=status.HTTP_404_NOT_FOUND)  # type: Response
         else:
             mode = stat_result.st_mode
             if not stat.S_ISREG(mode):
-                response = PlainTextResponse("Not Found", status_code=404)
+                response = PlainTextResponse("Not Found", status_code=status.HTTP_404_NOT_FOUND)
             else:
                 response = FileResponse(self.path, stat_result=stat_result)
 

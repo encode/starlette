@@ -3,6 +3,8 @@ from starlette.testclient import TestClient
 from starlette.exceptions import ExceptionMiddleware
 from starlette.routing import Route, Mount, NoMatchFound, Router, WebSocketRoute
 from starlette.websockets import WebSocket, WebSocketDisconnect
+from starlette import status
+
 import pytest
 
 
@@ -61,27 +63,27 @@ client = TestClient(app)
 
 def test_router():
     response = client.get("/")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.text == "Hello, world"
 
     response = client.post("/")
-    assert response.status_code == 405
+    assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
     assert response.text == "Method Not Allowed"
 
     response = client.get("/foo")
-    assert response.status_code == 404
+    assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.text == "Not Found"
 
     response = client.get("/users")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.text == "All users"
 
     response = client.get("/users/tomchristie")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.text == "User tomchristie"
 
     response = client.get("/static/123")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.text == "xxxxx"
 
 
@@ -95,7 +97,7 @@ def test_url_path_for():
 
 def test_router_add_route():
     response = client.get("/func")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.text == "Hello, world!"
 
 
@@ -137,8 +139,8 @@ def test_protocol_switch():
     client = TestClient(mixed_protocol_app)
 
     response = client.get("/")
-    assert response.status_code == 200
-    assert response.text == "URL: http://testserver/"
+    assert response.status_code == status.HTTP_200_OK
+    assert response.text == "Hello, world"
 
     with client.websocket_connect("/") as session:
         assert session.receive_json() == {"URL": "ws://testserver/"}

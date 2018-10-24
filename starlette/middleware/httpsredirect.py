@@ -1,6 +1,7 @@
 from starlette.datastructures import URL
 from starlette.responses import RedirectResponse
 from starlette.types import ASGIApp, ASGIInstance, Scope
+from starlette import status
 
 
 class HTTPSRedirectMiddleware:
@@ -12,6 +13,6 @@ class HTTPSRedirectMiddleware:
             redirect_scheme = {"http": "https", "ws": "wss"}[scope["scheme"]]
             url = URL(scope=scope)
             url = url.replace(scheme=redirect_scheme, netloc=url.hostname)
-            return RedirectResponse(url, status_code=301)
+            return RedirectResponse(url, status_code=status.HTTP_301_MOVED_PERMANENTLY)
 
         return self.app(scope)

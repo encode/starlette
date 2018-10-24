@@ -2,6 +2,7 @@ from starlette.applications import Starlette
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import PlainTextResponse
 from starlette.testclient import TestClient
+from starlette import status
 
 
 def test_cors_allow_all():
@@ -18,7 +19,7 @@ def test_cors_allow_all():
 
     @app.route("/")
     def homepage(request):
-        return PlainTextResponse("Homepage", status_code=200)
+        return PlainTextResponse("Homepage", status_code=status.HTTP_200_OK)
 
     client = TestClient(app)
 
@@ -29,7 +30,7 @@ def test_cors_allow_all():
         "Access-Control-Request-Headers": "X-Example",
     }
     response = client.options("/", headers=headers)
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.text == "OK"
     assert response.headers["access-control-allow-origin"] == "*"
     assert response.headers["access-control-allow-headers"] == "X-Example"
@@ -37,14 +38,14 @@ def test_cors_allow_all():
     # Test standard response
     headers = {"Origin": "https://example.org"}
     response = client.get("/", headers=headers)
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.text == "Homepage"
     assert response.headers["access-control-allow-origin"] == "*"
     assert response.headers["access-control-expose-headers"] == "X-Status"
 
     # Test non-CORS response
     response = client.get("/")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.text == "Homepage"
     assert "access-control-allow-origin" not in response.headers
 
@@ -60,7 +61,7 @@ def test_cors_allow_specific_origin():
 
     @app.route("/")
     def homepage(request):
-        return PlainTextResponse("Homepage", status_code=200)
+        return PlainTextResponse("Homepage", status_code=status.HTTP_200_OK)
 
     client = TestClient(app)
 
@@ -71,7 +72,7 @@ def test_cors_allow_specific_origin():
         "Access-Control-Request-Headers": "X-Example",
     }
     response = client.options("/", headers=headers)
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.text == "OK"
     assert response.headers["access-control-allow-origin"] == "https://example.org"
     assert response.headers["access-control-allow-headers"] == "X-Example"
@@ -79,13 +80,13 @@ def test_cors_allow_specific_origin():
     # Test standard response
     headers = {"Origin": "https://example.org"}
     response = client.get("/", headers=headers)
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.text == "Homepage"
     assert response.headers["access-control-allow-origin"] == "https://example.org"
 
     # Test non-CORS response
     response = client.get("/")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.text == "Homepage"
     assert "access-control-allow-origin" not in response.headers
 
@@ -112,7 +113,7 @@ def test_cors_disallowed_preflight():
         "Access-Control-Request-Headers": "X-Nope",
     }
     response = client.options("/", headers=headers)
-    assert response.status_code == 400
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.text == "Disallowed CORS origin, method, headers"
 
 
@@ -125,14 +126,14 @@ def test_cors_allow_origin_regex():
 
     @app.route("/")
     def homepage(request):
-        return PlainTextResponse("Homepage", status_code=200)
+        return PlainTextResponse("Homepage", status_code=status.HTTP_200_OK)
 
     client = TestClient(app)
 
     # Test standard response
     headers = {"Origin": "https://example.org"}
     response = client.get("/", headers=headers)
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.text == "Homepage"
     assert response.headers["access-control-allow-origin"] == "https://example.org"
 
@@ -141,7 +142,7 @@ def test_cors_allow_origin_regex():
     # in the lack of an "access-control-allow-origin" header in the response.
     headers = {"Origin": "http://example.org"}
     response = client.get("/", headers=headers)
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.text == "Homepage"
     assert "access-control-allow-origin" not in response.headers
 
@@ -152,7 +153,7 @@ def test_cors_allow_origin_regex():
         "Access-Control-Request-Headers": "X-Example",
     }
     response = client.options("/", headers=headers)
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.text == "OK"
     assert response.headers["access-control-allow-origin"] == "https://another.com"
     assert response.headers["access-control-allow-headers"] == "X-Example"
@@ -164,7 +165,7 @@ def test_cors_allow_origin_regex():
         "Access-Control-Request-Headers": "X-Example",
     }
     response = client.options("/", headers=headers)
-    assert response.status_code == 400
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.text == "Disallowed CORS origin"
     assert "access-control-allow-origin" not in response.headers
 
@@ -176,14 +177,14 @@ def test_cors_credentialed_requests_return_specific_origin():
 
     @app.route("/")
     def homepage(request):
-        return PlainTextResponse("Homepage", status_code=200)
+        return PlainTextResponse("Homepage", status_code=status.HTTP_200_OK)
 
     client = TestClient(app)
 
     # Test credentialed request
     headers = {"Origin": "https://example.org", "Cookie": "star_cookie=sugar"}
     response = client.get("/", headers=headers)
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.text == "Homepage"
     assert response.headers["access-control-allow-origin"] == "https://example.org"
 
@@ -197,12 +198,12 @@ def test_cors_vary_header_defaults_to_origin():
 
     @app.route("/")
     def homepage(request):
-        return PlainTextResponse("Homepage", status_code=200)
+        return PlainTextResponse("Homepage", status_code=status.HTTP_200_OK)
 
     client = TestClient(app)
 
     response = client.get("/", headers=headers)
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.headers["vary"] == "Origin"
 
 
@@ -216,11 +217,11 @@ def test_cors_vary_header_is_properly_set():
     @app.route("/")
     def homepage(request):
         return PlainTextResponse(
-            "Homepage", status_code=200, headers={"Vary": "Accept-Encoding"}
+            "Homepage", status_code=status.HTTP_200_OK, headers={"Vary": "Accept-Encoding"}
         )
 
     client = TestClient(app)
 
     response = client.get("/", headers=headers)
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.headers["vary"] == "Accept-Encoding, Origin"

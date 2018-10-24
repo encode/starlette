@@ -10,7 +10,11 @@ from starlette.exceptions import HTTPException
 from starlette.responses import PlainTextResponse
 from starlette.types import Scope, ASGIApp, ASGIInstance, Send, Receive
 from starlette.websockets import WebSocket, WebSocketClose
+from starlette import status
 from starlette.graphql import GraphQLApp
+
+import re
+import typing
 
 
 class NoMatchFound(Exception):
@@ -116,8 +120,8 @@ class Route(BaseRoute):
     def __call__(self, scope: Scope) -> ASGIInstance:
         if self.methods and scope["method"] not in self.methods:
             if "app" in scope:
-                raise HTTPException(status_code=405)
-            return PlainTextResponse("Method Not Allowed", status_code=405)
+                raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED)
+            return PlainTextResponse("Method Not Allowed", status_code=status.HTTP_405_METHOD_NOT_ALLOWED)
         return self.app(scope)
 
     def __eq__(self, other: typing.Any) -> bool:
@@ -265,8 +269,8 @@ class Router:
         # exception, so that the configurable exception handler can deal with
         # returning the response. For plain ASGI apps, just return the response.
         if "app" in scope:
-            raise HTTPException(status_code=404)
-        return PlainTextResponse("Not Found", status_code=404)
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        return PlainTextResponse("Not Found", status_code=status.HTTP_404_NOT_FOUND)
 
     def url_path_for(self, name: str, **path_params: str) -> URL:
         for route in self.routes:

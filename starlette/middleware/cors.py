@@ -1,6 +1,7 @@
 from starlette.datastructures import Headers, MutableHeaders, URL
 from starlette.responses import PlainTextResponse
 from starlette.types import ASGIApp, ASGIInstance, Receive, Scope, Send, Message
+from starlette import status
 import functools
 import typing
 import re
@@ -126,9 +127,9 @@ class CORSMiddleware:
         # if we do.
         if failures:
             failure_text = "Disallowed CORS " + ", ".join(failures)
-            return PlainTextResponse(failure_text, status_code=400, headers=headers)
+            return PlainTextResponse(failure_text, status_code=status.HTTP_400_BAD_REQUEST, headers=headers)
 
-        return PlainTextResponse("OK", status_code=200, headers=headers)
+        return PlainTextResponse("OK", status_code=status.HTTP_200_OK, headers=headers)
 
     async def simple_response(
         self, receive: Receive, send: Send, scope: Scope, request_headers: Headers

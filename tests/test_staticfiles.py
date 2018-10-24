@@ -3,6 +3,7 @@ import pytest
 
 from starlette.testclient import TestClient
 from starlette.staticfiles import StaticFiles
+from starlette import status
 
 
 def test_staticfiles(tmpdir):
@@ -13,7 +14,7 @@ def test_staticfiles(tmpdir):
     app = StaticFiles(directory=tmpdir)
     client = TestClient(app)
     response = client.get("/example.txt")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.text == "<file content>"
 
 
@@ -25,7 +26,7 @@ def test_staticfiles_post(tmpdir):
     app = StaticFiles(directory=tmpdir)
     client = TestClient(app)
     response = client.post("/example.txt")
-    assert response.status_code == 405
+    assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
     assert response.text == "Method Not Allowed"
 
 
@@ -37,7 +38,7 @@ def test_staticfiles_with_directory_returns_404(tmpdir):
     app = StaticFiles(directory=tmpdir)
     client = TestClient(app)
     response = client.get("/")
-    assert response.status_code == 404
+    assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.text == "Not Found"
 
 
@@ -49,7 +50,7 @@ def test_staticfiles_with_missing_file_returns_404(tmpdir):
     app = StaticFiles(directory=tmpdir)
     client = TestClient(app)
     response = client.get("/404.txt")
-    assert response.status_code == 404
+    assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.text == "Not Found"
 
 
@@ -95,5 +96,5 @@ def test_staticfiles_prevents_breaking_out_of_directory(tmpdir):
     app = StaticFiles(directory=directory)
     # We can't test this with 'requests', so we call the app directly here.
     response = app({"type": "http", "method": "GET", "path": "/../example.txt"})
-    assert response.status_code == 404
+    assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.body == b"Not Found"

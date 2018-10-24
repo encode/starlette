@@ -2,6 +2,7 @@ from starlette.debug import get_debug_response
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, Response
 from starlette.types import ASGIApp, ASGIInstance, Receive, Message, Send, Scope
+from starlette import status
 import asyncio
 import http
 import typing
@@ -106,4 +107,4 @@ class ExceptionMiddleware:
         return PlainTextResponse(exc.detail, status_code=exc.status_code)
 
     def server_error(self, request: Request, exc: HTTPException) -> Response:
-        return PlainTextResponse("Internal Server Error", status_code=500)
+        return PlainTextResponse("Internal Server Error", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)

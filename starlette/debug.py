@@ -2,6 +2,7 @@ import html
 import traceback
 import typing
 
+from starlette import status
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, PlainTextResponse, Response
 from starlette.types import Scope, Receive, Send, Message, ASGIApp, ASGIInstance
@@ -15,9 +16,9 @@ def get_debug_response(request: Request, exc: Exception) -> Response:
         content = (
             f"<html><body><h1>500 Server Error</h1><pre>{exc_html}</pre></body></html>"
         )
-        return HTMLResponse(content, status_code=500)
+        return HTMLResponse(content, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     content = "".join(traceback.format_tb(exc.__traceback__))
-    return PlainTextResponse(content, status_code=500)
+    return PlainTextResponse(content, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class DebugMiddleware:

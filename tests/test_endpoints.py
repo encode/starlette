@@ -3,6 +3,7 @@ from starlette.responses import PlainTextResponse
 from starlette.routing import Router, Route
 from starlette.testclient import TestClient
 from starlette.endpoints import HTTPEndpoint, WebSocketEndpoint
+from starlette import status
 
 
 class Homepage(HTTPEndpoint):
@@ -22,19 +23,19 @@ client = TestClient(app)
 
 def test_http_endpoint_route():
     response = client.get("/")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.text == "Hello, world!"
 
 
 def test_http_endpoint_route_path_params():
     response = client.get("/tomchristie")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.text == "Hello, tomchristie!"
 
 
 def test_http_endpoint_route_method():
     response = client.post("/")
-    assert response.status_code == 405
+    assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
     assert response.text == "Method Not Allowed"
 
 

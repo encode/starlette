@@ -7,6 +7,8 @@ from starlette.staticfiles import StaticFiles
 from starlette.testclient import TestClient
 from starlette.endpoints import HTTPEndpoint
 from starlette.lifespan import LifespanContext
+from starlette import status
+
 import os
 
 
@@ -18,7 +20,7 @@ class TrustedHostMiddleware:
     def __call__(self, scope):
         headers = Headers(scope=scope)
         if headers.get("host") != self.hostname:
-            return PlainTextResponse("Invalid host header", status_code=400)
+            return PlainTextResponse("Invalid host header", status_code=status.HTTP_400_BAD_REQUEST)
         return self.app(scope)
 
 
@@ -30,7 +32,7 @@ app.add_middleware(TrustedHostMiddleware, hostname="testserver")
 
 @app.exception_handler(Exception)
 async def error_500(request, exc):
-    return JSONResponse({"detail": "Server Error"}, status_code=500)
+    return JSONResponse({"detail": "Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @app.exception_handler(HTTPException)
@@ -92,31 +94,37 @@ def test_url_path_for():
 
 def test_func_route():
     response = client.get("/func")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.text == "Hello, world!"
 
 
 def test_async_route():
     response = client.get("/async")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.text == "Hello, world!"
 
 
 def test_class_route():
     response = client.get("/class")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.text == "Hello, world!"
 
 
 def test_mounted_route():
     response = client.get("/users/")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.text == "Hello, everyone!"
 
 
 def test_mounted_route_path_params():
     response = client.get("/users/tomchristie")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
+    assert response.text == "Hello, tomchristie!"
+
+
+def test_route_kwargs():
+    response = client.get("/user/tomchristie")
+    assert response.status_code == status.HTTP_200_OK
     assert response.text == "Hello, tomchristie!"
 
 
@@ -128,31 +136,31 @@ def test_websocket_route():
 
 def test_400():
     response = client.get("/404")
-    assert response.status_code == 404
+    assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json() == {"detail": "Not Found"}
 
 
 def test_405():
     response = client.post("/func")
-    assert response.status_code == 405
+    assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
     assert response.json() == {"detail": "Method Not Allowed"}
 
     response = client.post("/class")
-    assert response.status_code == 405
+    assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
     assert response.json() == {"detail": "Method Not Allowed"}
 
 
 def test_500():
     client = TestClient(app, raise_server_exceptions=False)
     response = client.get("/500")
-    assert response.status_code == 500
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert response.json() == {"detail": "Server Error"}
 
 
 def test_middleware():
     client = TestClient(app, base_url="http://incorrecthost")
     response = client.get("/func")
-    assert response.status_code == 400
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.text == "Invalid host header"
 
 
@@ -186,11 +194,11 @@ def test_app_mount(tmpdir):
     client = TestClient(app)
 
     response = client.get("/static/example.txt")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.text == "<file content>"
 
     response = client.post("/static/example.txt")
-    assert response.status_code == 405
+    assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
     assert response.text == "Method Not Allowed"
 
 
@@ -204,7 +212,7 @@ def test_app_debug():
 
     client = TestClient(app, raise_server_exceptions=False)
     response = client.get("/")
-    assert response.status_code == 500
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert "RuntimeError" in response.text
     assert app.debug
 

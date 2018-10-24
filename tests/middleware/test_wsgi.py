@@ -3,6 +3,7 @@ import pytest
 import sys
 from starlette.middleware.wsgi import WSGIMiddleware, build_environ
 from starlette.testclient import TestClient
+from starlette import status
 
 
 def hello_world(environ, start_response):
@@ -49,7 +50,7 @@ def test_wsgi_get():
     app = WSGIMiddleware(hello_world)
     client = TestClient(app)
     response = client.get("/")
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.text == "Hello World!\n"
 
 
@@ -57,7 +58,7 @@ def test_wsgi_post():
     app = WSGIMiddleware(echo_body)
     client = TestClient(app)
     response = client.post("/", json={"example": 123})
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.text == '{"example": 123}'
 
 
@@ -81,7 +82,7 @@ def test_wsgi_exc_info():
     app = WSGIMiddleware(return_exc_info)
     client = TestClient(app, raise_server_exceptions=False)
     response = client.get("/")
-    assert response.status_code == 500
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert response.text == "Internal Server Error"
 
 

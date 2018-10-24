@@ -11,6 +11,10 @@ from urllib.parse import quote_plus
 from starlette.background import BackgroundTask
 from starlette.datastructures import MutableHeaders, URL
 from starlette.types import Receive, Send
+from starlette import status
+
+from urllib.parse import quote_plus
+import http.cookies
 
 try:
     import aiofiles
@@ -32,7 +36,7 @@ class Response:
     def __init__(
         self,
         content: typing.Any,
-        status_code: int = 200,
+        status_code: int = status.HTTP_200_OK,
         headers: dict = None,
         media_type: str = None,
         background: BackgroundTask = None,
@@ -157,7 +161,7 @@ class UJSONResponse(JSONResponse):
 
 class RedirectResponse(Response):
     def __init__(
-        self, url: typing.Union[str, URL], status_code: int = 302, headers: dict = None
+        self, url: typing.Union[str, URL], status_code: int = status.HTTP_302_FOUND, headers: dict = None
     ) -> None:
         super().__init__(content=b"", status_code=status_code, headers=headers)
         self.headers["location"] = quote_plus(str(url), safe=":/#?&=@[]!$&'()*+,;")
@@ -167,7 +171,7 @@ class StreamingResponse(Response):
     def __init__(
         self,
         content: typing.Any,
-        status_code: int = 200,
+        status_code: int = status.HTTP_200_OK,
         headers: dict = None,
         media_type: str = None,
     ) -> None:
@@ -204,7 +208,7 @@ class FileResponse(Response):
     ) -> None:
         assert aiofiles is not None, "'aiofiles' must be installed to use FileResponse"
         self.path = path
-        self.status_code = 200
+        self.status_code = status.HTTP_200_OK
         self.filename = filename
         if media_type is None:
             media_type = guess_type(filename or path)[0] or "text/plain"

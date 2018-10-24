@@ -33,8 +33,8 @@ class HTTPEndpoint:
         # exception, so that the configurable exception handler can deal with
         # returning the response. For plain ASGI apps, just return the response.
         if "app" in self.scope:
-            raise HTTPException(status_code=405)
-        return PlainTextResponse("Method Not Allowed", status_code=405)
+            raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED)
+        return PlainTextResponse("Method Not Allowed", status_code=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 class WebSocketEndpoint:
