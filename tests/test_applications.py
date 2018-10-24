@@ -173,7 +173,7 @@ def test_app_add_route():
     async def homepage(request):
         return PlainTextResponse("Hello, World!")
 
-    app.add_route('/', homepage)
+    app.add_route("/", homepage)
     client = TestClient(app)
     response = client.get("/")
     assert response.status_code == 200
@@ -188,7 +188,7 @@ def test_app_add_websocket_route():
         await session.send_text("Hello, world!")
         await session.close()
 
-    app.add_websocket_route('/ws', websocket_endpoint)
+    app.add_websocket_route("/ws", websocket_endpoint)
     client = TestClient(app)
 
     with client.websocket_connect("/ws") as session:
