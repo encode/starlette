@@ -2,7 +2,7 @@ import typing
 
 from starlette.exceptions import ExceptionMiddleware
 from starlette.lifespan import LifespanHandler
-from starlette.routing import Router
+from starlette.routing import BaseRoute, Router
 from starlette.types import ASGIApp, ASGIInstance, Scope
 
 
@@ -12,6 +12,10 @@ class Starlette:
         self.lifespan_handler = LifespanHandler()
         self.app = self.router
         self.exception_middleware = ExceptionMiddleware(self.router, debug=debug)
+
+    @property
+    def routes(self) -> typing.List[BaseRoute]:
+        return self.router.routes
 
     @property
     def debug(self) -> bool:
@@ -25,9 +29,9 @@ class Starlette:
         return self.lifespan_handler.on_event(event_type)
 
     def mount(
-        self, path: str, app: ASGIApp, methods: typing.Sequence[str] = None
+        self, path: str, app: ASGIApp
     ) -> None:
-        self.router.mount(path, app=app, methods=methods)
+        self.router.mount(path, app=app)
 
     def add_middleware(self, middleware_class: type, **kwargs: typing.Any) -> None:
         self.exception_middleware.app = middleware_class(self.app, **kwargs)

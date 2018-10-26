@@ -1,7 +1,7 @@
 from starlette.responses import Response
 from starlette.testclient import TestClient
 from starlette.exceptions import ExceptionMiddleware
-from starlette.routing import Route, Mount, Router, ProtocolRouter
+from starlette.routing import Route, Mount, Router, WebSocketRoute
 from starlette.websockets import WebSocket, WebSocketDisconnect
 import pytest
 
@@ -29,7 +29,7 @@ app = Router(
         Mount(
             "/users", app=Router([Route("", app=users), Route("/{username}", app=user)])
         ),
-        Mount("/static", app=staticfiles, methods=["GET"]),
+        Mount("/static", app=staticfiles),
     ]
 )
 
@@ -74,10 +74,6 @@ def test_router():
     assert response.status_code == 200
     assert response.text == "xxxxx"
 
-    response = client.post("/static/123")
-    assert response.status_code == 405
-    assert response.text == "Method Not Allowed"
-
 
 def test_router_add_route():
     response = client.get("/func")
@@ -105,12 +101,10 @@ def websocket_endpoint(scope):
     return asgi
 
 
-mixed_protocol_app = ProtocolRouter(
-    {
-        "http": Router([Route("/", app=http_endpoint)]),
-        "websocket": Router([Route("/", app=websocket_endpoint)]),
-    }
-)
+mixed_protocol_app = Router(routes=[
+    Route("/", app=http_endpoint),
+    WebSocketRoute("/", app=websocket_endpoint),
+])
 
 
 def test_protocol_switch():

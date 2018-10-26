@@ -62,20 +62,19 @@ class Route(BaseRoute):
     def __init__(
         self,
         path: str,
-        app: ASGIApp,
+        *,
+        app: ASGIApp = None,
         methods: typing.Sequence[str] = None,
-        protocol: str = None,
     ) -> None:
         self.path = path
         self.app = app
-        self.protocol = protocol
         self.methods = methods
         regex = "^" + path + "$"
         regex = re.sub("{([a-zA-Z_][a-zA-Z0-9_]*)}", r"(?P<\1>[^/]+)", regex)
         self.path_regex = re.compile(regex)
 
     def matches(self, scope: Scope) -> typing.Tuple[bool, Scope]:
-        if self.protocol is None or scope["type"] == self.protocol:
+        if scope["type"] == "http":
             match = self.path_regex.match(scope["path"])
             if match:
                 kwargs = dict(scope.get("kwargs", {}))
@@ -93,16 +92,47 @@ class Route(BaseRoute):
         return self.app(scope)
 
 
-class Mount(BaseRoute):
+class WebSocketRoute(BaseRoute):
     def __init__(
-        self, path: str, app: ASGIApp, methods: typing.Sequence[str] = None
+        self,
+        path: str,
+        *,
+        app: ASGIApp = None,
     ) -> None:
         self.path = path
         self.app = app
-        self.methods = methods
+        regex = "^" + path + "$"
+        regex = re.sub("{([a-zA-Z_][a-zA-Z0-9_]*)}", r"(?P<\1>[^/]+)", regex)
+        self.path_regex = re.compile(regex)
+
+    def matches(self, scope: Scope) -> typing.Tuple[bool, Scope]:
+        if scope["type"] == "websocket":
+            match = self.path_regex.match(scope["path"])
+            if match:
+                kwargs = dict(scope.get("kwargs", {}))
+                kwargs.update(match.groupdict())
+                child_scope = dict(scope)
+                child_scope["kwargs"] = kwargs
+                return True, child_scope
+        return False, {}
+
+    def __call__(self, scope: Scope) -> ASGIInstance:
+        return self.app(scope)
+
+
+class Mount(BaseRoute):
+    def __init__(
+        self, path: str, app: ASGIApp,
+    ) -> None:
+        self.path = path
+        self.app = app
         regex = "^" + path
         regex = re.sub("{([a-zA-Z_][a-zA-Z0-9_]*)}", r"(?P<\1>[^/]*)", regex)
         self.path_regex = re.compile(regex)
+
+    @property
+    def routes(self) -> typing.List[BaseRoute]:
+        return getattr(self.app, 'routes', None)
 
     def matches(self, scope: Scope) -> typing.Tuple[bool, Scope]:
         match = self.path_regex.match(scope["path"])
@@ -117,10 +147,6 @@ class Mount(BaseRoute):
         return False, {}
 
     def __call__(self, scope: Scope) -> ASGIInstance:
-        if self.methods and scope["method"] not in self.methods:
-            if "app" in scope:
-                raise HTTPException(status_code=405)
-            return PlainTextResponse("Method Not Allowed", status_code=405)
         return self.app(scope)
 
 
@@ -130,24 +156,25 @@ class Router:
     ) -> None:
         self.routes = [] if routes is None else routes
         self.default = self.not_found if default is None else default
-        self.executor = ThreadPoolExecutor()
 
     def mount(
-        self, path: str, app: ASGIApp, methods: typing.Sequence[str] = None
+        self, path: str, app: ASGIApp,
     ) -> None:
-        route = Mount(path, app=app, methods=methods)
+        route = Mount(path, app=app)
         self.routes.append(route)
 
     def add_route(
-        self, path: str, route: typing.Callable, methods: typing.Sequence[str] = None
+        self, path: str, endpoint: typing.Callable, methods: typing.Sequence[str] = None
     ) -> None:
-        if not inspect.isclass(route):
-            route = request_response(route)
+        if not inspect.isclass(endpoint):
+            app = request_response(endpoint)
             if methods is None:
                 methods = ("GET",)
+        else:
+            app = endpoint
 
-        instance = Route(path, route, protocol="http", methods=methods)
-        self.routes.append(instance)
+        route = Route(path, app=app, methods=methods)
+        self.routes.append(route)
 
     def add_graphql_route(
         self, path: str, schema: typing.Any, executor: typing.Any = None
@@ -155,12 +182,14 @@ class Router:
         route = GraphQLApp(schema=schema, executor=executor)
         self.add_route(path, route, methods=["GET", "POST"])
 
-    def add_websocket_route(self, path: str, route: typing.Callable) -> None:
-        if not inspect.isclass(route):
-            route = websocket_session(route)
+    def add_websocket_route(self, path: str, endpoint: typing.Callable) -> None:
+        if not inspect.isclass(endpoint):
+            app = websocket_session(endpoint)
+        else:
+            app = endpoint
 
-        instance = Route(path, route, protocol="websocket")
-        self.routes.append(instance)
+        route = WebSocketRoute(path, app=app)
+        self.routes.append(route)
 
     def route(self, path: str, methods: typing.Sequence[str] = None) -> typing.Callable:
         def decorator(func: typing.Callable) -> typing.Callable:
@@ -178,7 +207,6 @@ class Router:
 
     def __call__(self, scope: Scope) -> ASGIInstance:
         assert scope["type"] in ("http", "websocket")
-        scope["executor"] = self.executor
 
         for route in self.routes:
             matched, child_scope = route.matches(scope)
@@ -196,12 +224,3 @@ class Router:
         if "app" in scope:
             raise HTTPException(status_code=404)
         return PlainTextResponse("Not Found", status_code=404)
-
-
-class ProtocolRouter:
-    def __init__(self, protocols: typing.Dict[str, ASGIApp]) -> None:
-        self.protocols = protocols
-
-    def __call__(self, scope: Scope) -> ASGIInstance:
-        app = self.protocols[scope["type"]]
-        return app(scope)

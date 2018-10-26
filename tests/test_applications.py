@@ -2,6 +2,7 @@ from starlette.applications import Starlette
 from starlette.datastructures import Headers
 from starlette.exceptions import HTTPException
 from starlette.responses import JSONResponse, PlainTextResponse
+from starlette.routing import Router, Route, Mount, WebSocketRoute
 from starlette.staticfiles import StaticFiles
 from starlette.testclient import TestClient
 from starlette.endpoints import HTTPEndpoint
@@ -53,9 +54,20 @@ class Homepage(HTTPEndpoint):
         return PlainTextResponse("Hello, world!")
 
 
-@app.route("/user/{username}")
+users = Router()
+
+
+@users.route("/")
+def all_users_page(request):
+    return PlainTextResponse("Hello, everyone!")
+
+
+@users.route("/{username}")
 def user_page(request, username):
     return PlainTextResponse("Hello, %s!" % username)
+
+
+app.mount('/users', users)
 
 
 @app.route("/500")
@@ -91,8 +103,14 @@ def test_class_route():
     assert response.text == "Hello, world!"
 
 
-def test_route_kwargs():
-    response = client.get("/user/tomchristie")
+def test_mounted_route():
+    response = client.get("/users/")
+    assert response.status_code == 200
+    assert response.text == "Hello, everyone!"
+
+
+def test_mounted_route_kwargs():
+    response = client.get("/users/tomchristie")
     assert response.status_code == 200
     assert response.text == "Hello, tomchristie!"
 
@@ -133,13 +151,27 @@ def test_middleware():
     assert response.text == "Invalid host header"
 
 
+def test_routes():
+    assert app.routes == [
+        Route('/func', methods=['GET']),
+        Route('/async', methods=['GET']),
+        Route('/class'),
+        Mount('/users', app=Router(routes=[
+            Route('/'),
+            Route('/{username}')
+        ])),
+        Route('/500', methods=['GET']),
+        WebSocketRoute('/ws'),
+    ]
+
+
 def test_app_mount(tmpdir):
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
         file.write("<file content>")
 
     app = Starlette()
-    app.mount("/static", StaticFiles(directory=tmpdir), methods=["GET", "HEAD"])
+    app.mount("/static", StaticFiles(directory=tmpdir))
 
     client = TestClient(app)
 
