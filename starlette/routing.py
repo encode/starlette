@@ -50,7 +50,7 @@ def websocket_session(func: typing.Callable) -> ASGIApp:
     return app
 
 
-class Route:
+class BaseRoute:
     def matches(self, scope: Scope) -> typing.Tuple[bool, Scope]:
         raise NotImplementedError()  # pragma: no cover
 
@@ -58,7 +58,7 @@ class Route:
         raise NotImplementedError()  # pragma: no cover
 
 
-class Path(Route):
+class Route(BaseRoute):
     def __init__(
         self,
         path: str,
@@ -93,7 +93,7 @@ class Path(Route):
         return self.app(scope)
 
 
-class PathPrefix(Route):
+class Mount(BaseRoute):
     def __init__(
         self, path: str, app: ASGIApp, methods: typing.Sequence[str] = None
     ) -> None:
@@ -126,7 +126,7 @@ class PathPrefix(Route):
 
 class Router:
     def __init__(
-        self, routes: typing.List[Route] = None, default: ASGIApp = None
+        self, routes: typing.List[BaseRoute] = None, default: ASGIApp = None
     ) -> None:
         self.routes = [] if routes is None else routes
         self.default = self.not_found if default is None else default
@@ -135,8 +135,8 @@ class Router:
     def mount(
         self, path: str, app: ASGIApp, methods: typing.Sequence[str] = None
     ) -> None:
-        prefix = PathPrefix(path, app=app, methods=methods)
-        self.routes.append(prefix)
+        route = Mount(path, app=app, methods=methods)
+        self.routes.append(route)
 
     def add_route(
         self, path: str, route: typing.Callable, methods: typing.Sequence[str] = None
@@ -146,7 +146,7 @@ class Router:
             if methods is None:
                 methods = ("GET",)
 
-        instance = Path(path, route, protocol="http", methods=methods)
+        instance = Route(path, route, protocol="http", methods=methods)
         self.routes.append(instance)
 
     def add_graphql_route(
@@ -159,7 +159,7 @@ class Router:
         if not inspect.isclass(route):
             route = websocket_session(route)
 
-        instance = Path(path, route, protocol="websocket")
+        instance = Route(path, route, protocol="websocket")
         self.routes.append(instance)
 
     def route(self, path: str, methods: typing.Sequence[str] = None) -> typing.Callable:

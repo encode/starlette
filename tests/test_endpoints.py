@@ -1,6 +1,6 @@
 import pytest
 from starlette.responses import PlainTextResponse
-from starlette.routing import Router, Path
+from starlette.routing import Router, Route
 from starlette.testclient import TestClient
 from starlette.endpoints import HTTPEndpoint, WebSocketEndpoint
 
@@ -12,7 +12,7 @@ class Homepage(HTTPEndpoint):
         return PlainTextResponse(f"Hello, {username}!")
 
 
-app = Router(routes=[Path("/", Homepage), Path("/{username}", Homepage)])
+app = Router(routes=[Route("/", Homepage), Route("/{username}", Homepage)])
 
 client = TestClient(app)
 

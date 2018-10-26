@@ -1,6 +1,6 @@
 from starlette.exceptions import ExceptionMiddleware, HTTPException
 from starlette.responses import PlainTextResponse
-from starlette.routing import Router, Path
+from starlette.routing import Router, Route
 from starlette.testclient import TestClient
 import pytest
 
@@ -37,10 +37,10 @@ def handled_exc_after_response(scope):
 
 router = Router(
     routes=[
-        Path("/runtime_error", app=raise_runtime_error),
-        Path("/not_acceptable", app=not_acceptable),
-        Path("/not_modified", app=not_modified),
-        Path("/handled_exc_after_response", app=handled_exc_after_response),
+        Route("/runtime_error", app=raise_runtime_error),
+        Route("/not_acceptable", app=not_acceptable),
+        Route("/not_modified", app=not_modified),
+        Route("/handled_exc_after_response", app=handled_exc_after_response),
     ]
 )
 

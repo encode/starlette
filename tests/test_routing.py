@@ -1,7 +1,7 @@
 from starlette.responses import Response
 from starlette.testclient import TestClient
 from starlette.exceptions import ExceptionMiddleware
-from starlette.routing import Path, PathPrefix, Router, ProtocolRouter
+from starlette.routing import Route, Mount, Router, ProtocolRouter
 from starlette.websockets import WebSocket, WebSocketDisconnect
 import pytest
 
@@ -25,11 +25,11 @@ def staticfiles(scope):
 
 app = Router(
     [
-        Path("/", app=homepage, methods=["GET"]),
-        PathPrefix(
-            "/users", app=Router([Path("", app=users), Path("/{username}", app=user)])
+        Route("/", app=homepage, methods=["GET"]),
+        Mount(
+            "/users", app=Router([Route("", app=users), Route("/{username}", app=user)])
         ),
-        PathPrefix("/static", app=staticfiles, methods=["GET"]),
+        Mount("/static", app=staticfiles, methods=["GET"]),
     ]
 )
 
@@ -107,8 +107,8 @@ def websocket_endpoint(scope):
 
 mixed_protocol_app = ProtocolRouter(
     {
-        "http": Router([Path("/", app=http_endpoint)]),
-        "websocket": Router([Path("/", app=websocket_endpoint)]),
+        "http": Router([Route("/", app=http_endpoint)]),
+        "websocket": Router([Route("/", app=websocket_endpoint)]),
     }
 )
 
