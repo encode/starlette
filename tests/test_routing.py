@@ -14,8 +14,8 @@ def users(request):
     return Response("All users", media_type="text/plain")
 
 
-def user(request, username=None):
-    content = "User " + username
+def user(request):
+    content = "User " + request.path_params["username"]
     return Response(content, media_type="text/plain")
 
 
@@ -46,6 +46,13 @@ def func_homepage(request):
 async def websocket_endpoint(session):
     await session.accept()
     await session.send_text("Hello, world!")
+    await session.close()
+
+
+@app.websocket_route("/ws/{room}")
+async def websocket_params(session):
+    await session.accept()
+    await session.send_text("Hello, %s!" % session.path_params["room"])
     await session.close()
 
 
@@ -96,6 +103,10 @@ def test_router_add_websocket_route():
     with client.websocket_connect("/ws") as session:
         text = session.receive_text()
         assert text == "Hello, world!"
+
+    with client.websocket_connect("/ws/test") as session:
+        text = session.receive_text()
+        assert text == "Hello, test!"
 
 
 def http_endpoint(request):

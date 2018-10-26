@@ -63,7 +63,8 @@ def all_users_page(request):
 
 
 @users.route("/{username}")
-def user_page(request, username):
+def user_page(request):
+    username = request.path_params["username"]
     return PlainTextResponse("Hello, %s!" % username)
 
 
@@ -113,7 +114,7 @@ def test_mounted_route():
     assert response.text == "Hello, everyone!"
 
 
-def test_mounted_route_kwargs():
+def test_mounted_route_path_params():
     response = client.get("/users/tomchristie")
     assert response.status_code == 200
     assert response.text == "Hello, tomchristie!"

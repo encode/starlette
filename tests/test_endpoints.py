@@ -6,7 +6,8 @@ from starlette.endpoints import HTTPEndpoint, WebSocketEndpoint
 
 
 class Homepage(HTTPEndpoint):
-    async def get(self, request, username=None):
+    async def get(self, request):
+        username = request.path_params.get("username")
         if username is None:
             return PlainTextResponse("Hello, world!")
         return PlainTextResponse(f"Hello, {username}!")
@@ -25,7 +26,7 @@ def test_http_endpoint_route():
     assert response.text == "Hello, world!"
 
 
-def test_http_endpoint_route_kwargs():
+def test_http_endpoint_route_path_params():
     response = client.get("/tomchristie")
     assert response.status_code == 200
     assert response.text == "Hello, tomchristie!"
@@ -39,7 +40,7 @@ def test_http_endpoint_route_method():
 
 def test_websocket_endpoint_on_connect():
     class WebSocketApp(WebSocketEndpoint):
-        async def on_connect(self, websocket, **kwargs):
+        async def on_connect(self, websocket):
             assert websocket["subprotocols"] == ["soap", "wamp"]
             await websocket.accept(subprotocol="wamp")
 

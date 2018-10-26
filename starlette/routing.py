@@ -18,7 +18,7 @@ class NoMatchFound(Exception):
 
 def request_response(func: typing.Callable) -> ASGIApp:
     """
-    Takes a function or coroutine `func(request, **kwargs) -> response`,
+    Takes a function or coroutine `func(request) -> response`,
     and returns an ASGI application.
     """
     is_coroutine = asyncio.iscoroutinefunction(func)
@@ -26,11 +26,10 @@ def request_response(func: typing.Callable) -> ASGIApp:
     def app(scope: Scope) -> ASGIInstance:
         async def awaitable(receive: Receive, send: Send) -> None:
             request = Request(scope, receive=receive)
-            kwargs = scope.get("kwargs", {})
             if is_coroutine:
-                response = await func(request, **kwargs)
+                response = await func(request)
             else:
-                response = func(request, **kwargs)
+                response = func(request)
             await response(receive, send)
 
         return awaitable
@@ -40,14 +39,13 @@ def request_response(func: typing.Callable) -> ASGIApp:
 
 def websocket_session(func: typing.Callable) -> ASGIApp:
     """
-    Takes a coroutine `func(session, **kwargs)`, and returns an ASGI application.
+    Takes a coroutine `func(session)`, and returns an ASGI application.
     """
 
     def app(scope: Scope) -> ASGIInstance:
         async def awaitable(receive: Receive, send: Send) -> None:
             session = WebSocket(scope, receive=receive, send=send)
-            kwargs = scope.get("kwargs", {})
-            await func(session, **kwargs)
+            await func(session)
 
         return awaitable
 
@@ -102,10 +100,10 @@ class Route(BaseRoute):
         if scope["type"] == "http":
             match = self.path_regex.match(scope["path"])
             if match:
-                kwargs = dict(scope.get("kwargs", {}))
-                kwargs.update(match.groupdict())
+                path_params = dict(scope.get("path_params", {}))
+                path_params.update(match.groupdict())
                 child_scope = dict(scope)
-                child_scope["kwargs"] = kwargs
+                child_scope["path_params"] = path_params
                 return True, child_scope
         return False, {}
 
@@ -150,10 +148,10 @@ class WebSocketRoute(BaseRoute):
         if scope["type"] == "websocket":
             match = self.path_regex.match(scope["path"])
             if match:
-                kwargs = dict(scope.get("kwargs", {}))
-                kwargs.update(match.groupdict())
+                path_params = dict(scope.get("path_params", {}))
+                path_params.update(match.groupdict())
                 child_scope = dict(scope)
-                child_scope["kwargs"] = kwargs
+                child_scope["path_params"] = path_params
                 return True, child_scope
         return False, {}
 
@@ -188,10 +186,10 @@ class Mount(BaseRoute):
     def matches(self, scope: Scope) -> typing.Tuple[bool, Scope]:
         match = self.path_regex.match(scope["path"])
         if match:
-            kwargs = dict(scope.get("kwargs", {}))
-            kwargs.update(match.groupdict())
+            path_params = dict(scope.get("path_params", {}))
+            path_params.update(match.groupdict())
             child_scope = dict(scope)
-            child_scope["kwargs"] = kwargs
+            child_scope["path_params"] = path_params
             child_scope["root_path"] = scope.get("root_path", "") + match.string
             child_scope["path"] = scope["path"][match.span()[1] :]
             return True, child_scope
