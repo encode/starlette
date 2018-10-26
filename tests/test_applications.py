@@ -67,7 +67,7 @@ def user_page(request, username):
     return PlainTextResponse("Hello, %s!" % username)
 
 
-app.mount('/users', users)
+app.mount("/users", users)
 
 
 @app.route("/500")
@@ -153,15 +153,20 @@ def test_middleware():
 
 def test_routes():
     assert app.routes == [
-        Route('/func', methods=['GET']),
-        Route('/async', methods=['GET']),
-        Route('/class'),
-        Mount('/users', app=Router(routes=[
-            Route('/'),
-            Route('/{username}')
-        ])),
-        Route('/500', methods=['GET']),
-        WebSocketRoute('/ws'),
+        Route("/func", endpoint=func_homepage, methods=["GET"]),
+        Route("/async", endpoint=async_homepage, methods=["GET"]),
+        Route("/class", endpoint=Homepage),
+        Mount(
+            "/users",
+            app=Router(
+                routes=[
+                    Route("/", endpoint=all_users_page),
+                    Route("/{username}", endpoint=user_page),
+                ]
+            ),
+        ),
+        Route("/500", endpoint=runtime_error, methods=["GET"]),
+        WebSocketRoute("/ws", endpoint=websocket_endpoint),
     ]
 
 

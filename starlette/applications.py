@@ -28,9 +28,7 @@ class Starlette:
     def on_event(self, event_type: str) -> typing.Callable:
         return self.lifespan_handler.on_event(event_type)
 
-    def mount(
-        self, path: str, app: ASGIApp
-    ) -> None:
+    def mount(self, path: str, app: ASGIApp) -> None:
         self.router.mount(path, app=app)
 
     def add_middleware(self, middleware_class: type, **kwargs: typing.Any) -> None:
@@ -43,7 +41,7 @@ class Starlette:
         self.lifespan_handler.add_event_handler(event_type, func)
 
     def add_route(
-        self, path: str, route: typing.Callable, methods: typing.Sequence[str] = None
+        self, path: str, route: typing.Callable, methods: typing.List[str] = None
     ) -> None:
         self.router.add_route(path, route, methods=methods)
 
@@ -60,7 +58,7 @@ class Starlette:
 
         return decorator
 
-    def route(self, path: str, methods: typing.Sequence[str] = None) -> typing.Callable:
+    def route(self, path: str, methods: typing.List[str] = None) -> typing.Callable:
         def decorator(func: typing.Callable) -> typing.Callable:
             self.router.add_route(path, func, methods=methods)
             return func

@@ -6,28 +6,31 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 import pytest
 
 
-def homepage(scope):
+def homepage(request):
     return Response("Hello, world", media_type="text/plain")
 
 
-def users(scope):
+def users(request):
     return Response("All users", media_type="text/plain")
 
 
-def user(scope):
-    content = "User " + scope["kwargs"]["username"]
+def user(request, username=None):
+    content = "User " + username
     return Response(content, media_type="text/plain")
 
 
-def staticfiles(scope):
+def staticfiles(request):
     return Response("xxxxx", media_type="image/png")
 
 
 app = Router(
     [
-        Route("/", app=homepage, methods=["GET"]),
+        Route("/", endpoint=homepage, methods=["GET"]),
         Mount(
-            "/users", app=Router([Route("", app=users), Route("/{username}", app=user)])
+            "/users",
+            app=Router(
+                [Route("", endpoint=users), Route("/{username}", endpoint=user)]
+            ),
         ),
         Mount("/static", app=staticfiles),
     ]
@@ -87,24 +90,27 @@ def test_router_add_websocket_route():
         assert text == "Hello, world!"
 
 
-def http_endpoint(scope):
+def http_endpoint(request):
     return Response("Hello, world", media_type="text/plain")
 
 
-def websocket_endpoint(scope):
-    async def asgi(receive, send):
-        session = WebSocket(scope, receive, send)
+class WebsocketEndpoint:
+    def __init__(self, scope):
+        self.scope = scope
+
+    async def __call__(self, receive, send):
+        session = WebSocket(scope=self.scope, receive=receive, send=send)
         await session.accept()
         await session.send_json({"hello": "world"})
         await session.close()
 
-    return asgi
 
-
-mixed_protocol_app = Router(routes=[
-    Route("/", app=http_endpoint),
-    WebSocketRoute("/", app=websocket_endpoint),
-])
+mixed_protocol_app = Router(
+    routes=[
+        Route("/", endpoint=http_endpoint),
+        WebSocketRoute("/", endpoint=WebsocketEndpoint),
+    ]
+)
 
 
 def test_protocol_switch():

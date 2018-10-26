@@ -12,7 +12,9 @@ class Homepage(HTTPEndpoint):
         return PlainTextResponse(f"Hello, {username}!")
 
 
-app = Router(routes=[Route("/", app=Homepage), Route("/{username}", app=Homepage)])
+app = Router(
+    routes=[Route("/", endpoint=Homepage), Route("/{username}", endpoint=Homepage)]
+)
 
 client = TestClient(app)
 
