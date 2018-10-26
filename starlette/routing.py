@@ -12,6 +12,10 @@ from starlette.websockets import WebSocket, WebSocketClose
 from starlette.graphql import GraphQLApp
 
 
+class NoMatchFound(Exception):
+    pass
+
+
 def request_response(func: typing.Callable) -> ASGIApp:
     """
     Takes a function or coroutine `func(request, **kwargs) -> response`,
@@ -50,8 +54,23 @@ def websocket_session(func: typing.Callable) -> ASGIApp:
     return app
 
 
+def get_name(endpoint: typing.Callable) -> str:
+    if inspect.isfunction(endpoint) or inspect.isclass(endpoint):
+        return endpoint.__name__
+    return endpoint.__class__.__name__
+
+
+def replace_params(path: str, **path_params: str) -> str:
+    for key, value in path_params.items():
+        path = path.replace("{" + key + "}", value)
+    return path
+
+
 class BaseRoute:
     def matches(self, scope: Scope) -> typing.Tuple[bool, Scope]:
+        raise NotImplementedError()  # pragma: no cover
+
+    def url_for(self, name: str, **path_params: str) -> str:
         raise NotImplementedError()  # pragma: no cover
 
     def __call__(self, scope: Scope) -> ASGIInstance:
@@ -64,16 +83,20 @@ class Route(BaseRoute):
     ) -> None:
         self.path = path
         self.endpoint = endpoint
-        if inspect.isclass(endpoint):
-            self.app = endpoint
-        else:
+        self.name = get_name(endpoint)
+
+        if inspect.isfunction(endpoint):
             self.app = request_response(endpoint)
             if methods is None:
                 methods = ["GET"]
+        else:
+            self.app = endpoint
+
         self.methods = methods
         regex = "^" + path + "$"
         regex = re.sub("{([a-zA-Z_][a-zA-Z0-9_]*)}", r"(?P<\1>[^/]+)", regex)
         self.path_regex = re.compile(regex)
+        self.param_names = set(self.path_regex.groupindex.keys())
 
     def matches(self, scope: Scope) -> typing.Tuple[bool, Scope]:
         if scope["type"] == "http":
@@ -85,6 +108,11 @@ class Route(BaseRoute):
                 child_scope["kwargs"] = kwargs
                 return True, child_scope
         return False, {}
+
+    def url_for(self, name: str, **path_params: str) -> str:
+        if name != self.name or self.param_names != set(path_params.keys()):
+            raise NoMatchFound()
+        return replace_params(self.path, **path_params)
 
     def __call__(self, scope: Scope) -> ASGIInstance:
         if self.methods and scope["method"] not in self.methods:
@@ -106,13 +134,17 @@ class WebSocketRoute(BaseRoute):
     def __init__(self, path: str, *, endpoint: typing.Callable) -> None:
         self.path = path
         self.endpoint = endpoint
-        if inspect.isclass(endpoint):
-            self.app = endpoint
-        else:
+        self.name = get_name(endpoint)
+
+        if inspect.isfunction(endpoint):
             self.app = websocket_session(endpoint)
+        else:
+            self.app = endpoint
+
         regex = "^" + path + "$"
         regex = re.sub("{([a-zA-Z_][a-zA-Z0-9_]*)}", r"(?P<\1>[^/]+)", regex)
         self.path_regex = re.compile(regex)
+        self.param_names = set(self.path_regex.groupindex.keys())
 
     def matches(self, scope: Scope) -> typing.Tuple[bool, Scope]:
         if scope["type"] == "websocket":
@@ -124,6 +156,11 @@ class WebSocketRoute(BaseRoute):
                 child_scope["kwargs"] = kwargs
                 return True, child_scope
         return False, {}
+
+    def url_for(self, name: str, **path_params: str) -> str:
+        if name != self.name or self.param_names != set(path_params.keys()):
+            raise NoMatchFound()
+        return replace_params(self.path, **path_params)
 
     def __call__(self, scope: Scope) -> ASGIInstance:
         return self.app(scope)
@@ -144,9 +181,9 @@ class Mount(BaseRoute):
         regex = re.sub("{([a-zA-Z_][a-zA-Z0-9_]*)}", r"(?P<\1>[^/]*)", regex)
         self.path_regex = re.compile(regex)
 
-    # @property
-    # def routes(self) -> typing.List[BaseRoute]:
-    #     return getattr(self.app, 'routes', None)
+    @property
+    def routes(self) -> typing.List[BaseRoute]:
+        return getattr(self.app, "routes", None)
 
     def matches(self, scope: Scope) -> typing.Tuple[bool, Scope]:
         match = self.path_regex.match(scope["path"])
@@ -159,6 +196,14 @@ class Mount(BaseRoute):
             child_scope["path"] = scope["path"][match.span()[1] :]
             return True, child_scope
         return False, {}
+
+    def url_for(self, name: str, **path_params: str) -> str:
+        for route in self.routes or []:
+            try:
+                return self.path + route.url_for(name, **path_params)
+            except NoMatchFound as exc:
+                pass
+        raise NoMatchFound()
 
     def __call__(self, scope: Scope) -> ASGIInstance:
         return self.app(scope)
@@ -222,6 +267,14 @@ class Router:
         if "app" in scope:
             raise HTTPException(status_code=404)
         return PlainTextResponse("Not Found", status_code=404)
+
+    def url_for(self, name: str, **path_params: str) -> str:
+        for route in self.routes:
+            try:
+                return route.url_for(name, **path_params)
+            except NoMatchFound as exc:
+                pass
+        raise NoMatchFound()
 
     def __call__(self, scope: Scope) -> ASGIInstance:
         assert scope["type"] in ("http", "websocket")

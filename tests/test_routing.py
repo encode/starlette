@@ -1,7 +1,7 @@
 from starlette.responses import Response
 from starlette.testclient import TestClient
 from starlette.exceptions import ExceptionMiddleware
-from starlette.routing import Route, Mount, Router, WebSocketRoute
+from starlette.routing import Route, Mount, NoMatchFound, Router, WebSocketRoute
 from starlette.websockets import WebSocket, WebSocketDisconnect
 import pytest
 
@@ -76,6 +76,14 @@ def test_router():
     response = client.get("/static/123")
     assert response.status_code == 200
     assert response.text == "xxxxx"
+
+
+def test_url_for():
+    assert app.url_for("homepage") == "/"
+    assert app.url_for("user", username="tomchristie") == "/users/tomchristie"
+    assert app.url_for("websocket_endpoint") == "/ws"
+    with pytest.raises(NoMatchFound):
+        assert app.url_for("broken")
 
 
 def test_router_add_route():
