@@ -19,15 +19,8 @@ Paths can use URI templating style to capture path components.
 Route('/users/{username}', endpoint=User, methods=['GET'])
 ```
 
-Path components are made available in the scope, as `scope["kwargs"]`.
-
-You can also use regular expressions for more complicated matching.
-
-Named capture groups will be included in `scope["kwargs"]`:
-
-```python
-Route('/users/(?P<username>[a-zA-Z0-9_]{1,20})', endpoint=User, methods=['GET'])
-```
+Path parameters are made available in the request, as the `request.path_params`
+dictionary.
 
 Because the target of a `Mount` is an ASGI instance itself, routers
 allow for easy composition. For example:
