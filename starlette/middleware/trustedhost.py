@@ -15,7 +15,7 @@ class TrustedHostMiddleware:
     def __call__(self, scope: Scope) -> ASGIInstance:
         if scope["type"] in ("http", "websocket") and not self.allow_any:
             headers = Headers(scope=scope)
-            host = headers.get("host").strip(":")[0]
+            host = headers.get("host").split(":")[0]
             if host not in self.allowed_hosts:
                 return PlainTextResponse("Invalid host header", status_code=400)
 
