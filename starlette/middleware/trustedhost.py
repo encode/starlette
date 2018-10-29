@@ -4,7 +4,7 @@ from starlette.types import ASGIApp, ASGIInstance, Scope
 import typing
 
 
-ENFORCE_DOMAIN_WILDCARD = "Wildcard patterns must be like '*.example.com'."
+ENFORCE_DOMAIN_WILDCARD = "Domain wildcard patterns must be like '*.example.com'."
 
 
 class TrustedHostMiddleware:

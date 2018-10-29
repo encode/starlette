@@ -13,9 +13,9 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 app = Starlette()
 
-# Ensure that all requests include an 'example.com' host header,
+# Ensure that all requests include an 'example.com' or '*.example.com' host header,
 # and strictly enforce https-only access.
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=['example.com'])
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=['example.com', '*.example.com'])
 app.add_middleware(HTTPSRedirectMiddleware)
 ```
 
