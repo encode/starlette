@@ -121,7 +121,9 @@ class Route(BaseRoute):
         if self.methods and scope["method"] not in self.methods:
             if "app" in scope:
                 raise HTTPException(status_code=status.HTTP_405_METHOD_NOT_ALLOWED)
-            return PlainTextResponse("Method Not Allowed", status_code=status.HTTP_405_METHOD_NOT_ALLOWED)
+            return PlainTextResponse(
+                "Method Not Allowed", status_code=status.HTTP_405_METHOD_NOT_ALLOWED
+            )
         return self.app(scope)
 
     def __eq__(self, other: typing.Any) -> bool:

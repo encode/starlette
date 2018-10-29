@@ -143,7 +143,7 @@ class PlainTextResponse(Response):
         self,
         content: typing.Any,
         status_code: int = status.HTTP_200_OK,
-        **kwargs: typing.Any
+        **kwargs: typing.Any,
     ) -> None:
         if isinstance(content, int):
             try:
@@ -178,7 +178,10 @@ class UJSONResponse(JSONResponse):
 
 class RedirectResponse(Response):
     def __init__(
-        self, url: typing.Union[str, URL], status_code: int = status.HTTP_302_FOUND, headers: dict = None
+        self,
+        url: typing.Union[str, URL],
+        status_code: int = status.HTTP_302_FOUND,
+        headers: dict = None,
     ) -> None:
         super().__init__(content=b"", status_code=status_code, headers=headers)
         self.headers["location"] = quote_plus(str(url), safe=":/#?&=@[]!$&'()*+,;")

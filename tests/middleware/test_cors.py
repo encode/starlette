@@ -217,7 +217,9 @@ def test_cors_vary_header_is_properly_set():
     @app.route("/")
     def homepage(request):
         return PlainTextResponse(
-            "Homepage", status_code=status.HTTP_200_OK, headers={"Vary": "Accept-Encoding"}
+            "Homepage",
+            status_code=status.HTTP_200_OK,
+            headers={"Vary": "Accept-Encoding"},
         )
 
     client = TestClient(app)

@@ -32,6 +32,8 @@ class TrustedHostMiddleware:
                 ):
                     break
             else:
-                return PlainTextResponse("Invalid host header", status_code=status.HTTP_400_BAD_REQUEST)
+                return PlainTextResponse(
+                    "Invalid host header", status_code=status.HTTP_400_BAD_REQUEST
+                )
 
         return self.app(scope)

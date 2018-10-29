@@ -107,4 +107,6 @@ class ExceptionMiddleware:
         return PlainTextResponse(exc.detail, status_code=exc.status_code)
 
     def server_error(self, request: Request, exc: HTTPException) -> Response:
-        return PlainTextResponse("Internal Server Error", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return PlainTextResponse(
+            "Internal Server Error", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

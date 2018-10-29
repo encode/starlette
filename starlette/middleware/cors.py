@@ -127,7 +127,9 @@ class CORSMiddleware:
         # if we do.
         if failures:
             failure_text = "Disallowed CORS " + ", ".join(failures)
-            return PlainTextResponse(failure_text, status_code=status.HTTP_400_BAD_REQUEST, headers=headers)
+            return PlainTextResponse(
+                failure_text, status_code=status.HTTP_400_BAD_REQUEST, headers=headers
+            )
 
         return PlainTextResponse("OK", status_code=status.HTTP_200_OK, headers=headers)
 

@@ -20,7 +20,9 @@ class TrustedHostMiddleware:
     def __call__(self, scope):
         headers = Headers(scope=scope)
         if headers.get("host") != self.hostname:
-            return PlainTextResponse("Invalid host header", status_code=status.HTTP_400_BAD_REQUEST)
+            return PlainTextResponse(
+                "Invalid host header", status_code=status.HTTP_400_BAD_REQUEST
+            )
         return self.app(scope)
 
 
@@ -32,7 +34,9 @@ app.add_middleware(TrustedHostMiddleware, hostname="testserver")
 
 @app.exception_handler(Exception)
 async def error_500(request, exc):
-    return JSONResponse({"detail": "Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    return JSONResponse(
+        {"detail": "Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+    )
 
 
 @app.exception_handler(HTTPException)

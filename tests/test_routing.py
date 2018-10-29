@@ -140,7 +140,7 @@ def test_protocol_switch():
 
     response = client.get("/")
     assert response.status_code == status.HTTP_200_OK
-    assert response.text == "Hello, world"
+    assert response.text == "URL: http://testserver/"
 
     with client.websocket_connect("/") as session:
         assert session.receive_json() == {"URL": "ws://testserver/"}
