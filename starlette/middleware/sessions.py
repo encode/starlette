@@ -37,10 +37,8 @@ class SessionMiddleware:
                 data = b64encode(json.dumps(scope["session"]).encode("utf-8"))
                 data = self.signer.sign(data)
                 headers = MutableHeaders(scope=message)
-                headers["Set-Cookie"] = "%s=%s" % (
-                    self.session_cookie,
-                    data.decode("utf-8"),
-                )
+                header_value = "%s=%s" % (self.session_cookie, data.decode("utf-8"))
+                headers.append("Set-Cookie", header_value)
             await send(message)
 
         await inner(receive, sender)
