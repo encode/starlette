@@ -143,7 +143,7 @@ class PlainTextResponse(Response):
         self,
         content: typing.Any,
         status_code: int = status.HTTP_200_OK,
-        **kwargs
+        **kwargs: typing.Any
     ) -> None:
         if isinstance(content, int):
             try:
