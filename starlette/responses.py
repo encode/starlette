@@ -141,15 +141,15 @@ class PlainTextResponse(Response):
 
     def __init__(
         self,
-        content: typing.Any,
+        content: typing.Any = "",
         status_code: int = status.HTTP_200_OK,
         **kwargs: typing.Any,
     ) -> None:
-        if isinstance(content, int):
+        if status_code and not content:
             try:
-                status_code = HTTPStatus(content)
+                status_code = HTTPStatus(status_code)
             except ValueError:
-                content = str(content)
+                pass
             else:
                 content = status_code.phrase
                 status_code = status_code.value

@@ -69,10 +69,10 @@ def test_plaintext_response():
     assert response.status_code == status.HTTP_200_OK
 
 
-def test_plaintext_response_status_as_content():
+def test_plaintext_response_status_only():
     def app(scope):
         async def asgi(receive, send):
-            response = PlainTextResponse(status.HTTP_404_NOT_FOUND)
+            response = PlainTextResponse(status_code=status.HTTP_404_NOT_FOUND)
             await response(receive, send)
 
         return asgi
@@ -84,18 +84,33 @@ def test_plaintext_response_status_as_content():
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
-def test_plaintext_response_non_status_integer():
+def test_plaintext_response_nonstandard_status():
     def app(scope):
         async def asgi(receive, send):
-            response = PlainTextResponse(123456789)
+            response = PlainTextResponse(status_code=700)
             await response(receive, send)
 
         return asgi
 
     client = TestClient(app)
     response = client.get("/")
-    assert response.text == "123456789"
-    assert response.headers["content-type"].startswith("text/plain")
+    assert response.text == ""
+    assert response.headers["content-type"] == "text/plain; charset=utf-8"
+    assert response.status_code == 700
+
+
+def test_plaintext_response_no_args():
+    def app(scope):
+        async def asgi(receive, send):
+            response = PlainTextResponse()
+            await response(receive, send)
+
+        return asgi
+
+    client = TestClient(app)
+    response = client.get("/")
+    assert response.text == "OK"
+    assert response.headers["content-type"] == "text/plain; charset=utf-8"
     assert response.status_code == status.HTTP_200_OK
 
 
