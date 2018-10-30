@@ -42,7 +42,8 @@ def request_response(func: typing.Callable) -> ASGIApp:
             if is_coroutine:
                 response = await func(request)
             else:
-                response = func(request)
+                loop = asyncio.get_event_loop()
+                response = await loop.run_in_executor(None, func, request)
             await response(receive, send)
 
         return awaitable
@@ -54,6 +55,7 @@ def websocket_session(func: typing.Callable) -> ASGIApp:
     """
     Takes a coroutine `func(session)`, and returns an ASGI application.
     """
+    # assert asyncio.iscoroutinefunction(func), "WebSocket endpoints must be async"
 
     def app(scope: Scope) -> ASGIInstance:
         async def awaitable(receive: Receive, send: Send) -> None:
