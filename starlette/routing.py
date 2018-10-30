@@ -293,7 +293,7 @@ class Router:
             matched, child_scope = route.matches(scope)
             if matched:
                 return route(child_scope)
-        return self.not_found(scope)
+        return self.default(scope)
 
     def __eq__(self, other: typing.Any) -> bool:
         return isinstance(other, Router) and self.routes == other.routes
