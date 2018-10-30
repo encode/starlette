@@ -59,10 +59,12 @@ def get_name(endpoint: typing.Callable) -> str:
     return endpoint.__class__.__name__
 
 
-def replace_params(path: str, **path_params: str) -> str:
-    for key, value in path_params.items():
-        path = path.replace("{" + key + "}", value)
-    return path
+def replace_params(path: str, **path_params: str) -> typing.Tuple[str, dict]:
+    for key, value in list(path_params.items()):
+        if "{" + key + "}" in path:
+            path_params.pop(key)
+            path = path.replace("{" + key + "}", value)
+    return path, path_params
 
 
 class BaseRoute:
@@ -111,7 +113,9 @@ class Route(BaseRoute):
     def url_path_for(self, name: str, **path_params: str) -> URL:
         if name != self.name or self.param_names != set(path_params.keys()):
             raise NoMatchFound()
-        return URL(scheme="http", path=replace_params(self.path, **path_params))
+        path, remaining_params = replace_params(self.path, **path_params)
+        assert not remaining_params
+        return URL(scheme="http", path=path)
 
     def __call__(self, scope: Scope) -> ASGIInstance:
         if self.methods and scope["method"] not in self.methods:
@@ -159,7 +163,9 @@ class WebSocketRoute(BaseRoute):
     def url_path_for(self, name: str, **path_params: str) -> URL:
         if name != self.name or self.param_names != set(path_params.keys()):
             raise NoMatchFound()
-        return URL(scheme="ws", path=replace_params(self.path, **path_params))
+        path, remaining_params = replace_params(self.path, **path_params)
+        assert not remaining_params
+        return URL(scheme="ws", path=path)
 
     def __call__(self, scope: Scope) -> ASGIInstance:
         return self.app(scope)
@@ -197,10 +203,11 @@ class Mount(BaseRoute):
         return False, {}
 
     def url_path_for(self, name: str, **path_params: str) -> URL:
+        path, remaining_params = replace_params(self.path, **path_params)
         for route in self.routes or []:
             try:
-                url = route.url_path_for(name, **path_params)
-                return URL(scheme=url.scheme, path=self.path + url.path)
+                url = route.url_path_for(name, **remaining_params)
+                return URL(scheme=url.scheme, path=path + url.path)
             except NoMatchFound as exc:
                 pass
         raise NoMatchFound()
