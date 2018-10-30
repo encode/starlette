@@ -135,7 +135,7 @@ class WebSocketRoute(BaseRoute):
         self.endpoint = endpoint
         self.name = get_name(endpoint)
 
-        if inspect.isfunction(endpoint):
+        if inspect.isfunction(endpoint) or inspect.ismethod(endpoint):
             self.app = websocket_session(endpoint)
         else:
             self.app = endpoint
