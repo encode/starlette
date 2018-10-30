@@ -3,6 +3,7 @@ import inspect
 import re
 import typing
 from concurrent.futures import ThreadPoolExecutor
+from enum import Enum
 
 from starlette.datastructures import URL
 from starlette.exceptions import HTTPException
@@ -14,7 +15,18 @@ from starlette.websockets import WebSocket, WebSocketClose
 
 
 class NoMatchFound(Exception):
+    """
+    Raised by `.url_for(name, **path_params)` and `.url_path_for(name, **path_params)`
+    if no matching route exists.
+    """
+
     pass
+
+
+class Match(Enum):
+    NONE = 0
+    PARTIAL = 1
+    FULL = 2
 
 
 def request_response(func: typing.Callable) -> ASGIApp:
@@ -68,7 +80,7 @@ def replace_params(path: str, **path_params: str) -> typing.Tuple[str, dict]:
 
 
 class BaseRoute:
-    def matches(self, scope: Scope) -> typing.Tuple[bool, Scope]:
+    def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         raise NotImplementedError()  # pragma: no cover
 
     def url_path_for(self, name: str, **path_params: str) -> URL:
@@ -99,7 +111,7 @@ class Route(BaseRoute):
         self.path_regex = re.compile(regex)
         self.param_names = set(self.path_regex.groupindex.keys())
 
-    def matches(self, scope: Scope) -> typing.Tuple[bool, Scope]:
+    def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] == "http":
             match = self.path_regex.match(scope["path"])
             if match:
@@ -107,8 +119,11 @@ class Route(BaseRoute):
                 path_params.update(match.groupdict())
                 child_scope = dict(scope)
                 child_scope["path_params"] = path_params
-                return True, child_scope
-        return False, {}
+                if self.methods and scope["method"] not in self.methods:
+                    return Match.PARTIAL, child_scope
+                else:
+                    return Match.FULL, child_scope
+        return Match.NONE, {}
 
     def url_path_for(self, name: str, **path_params: str) -> URL:
         if name != self.name or self.param_names != set(path_params.keys()):
@@ -149,7 +164,7 @@ class WebSocketRoute(BaseRoute):
         self.path_regex = re.compile(regex)
         self.param_names = set(self.path_regex.groupindex.keys())
 
-    def matches(self, scope: Scope) -> typing.Tuple[bool, Scope]:
+    def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] == "websocket":
             match = self.path_regex.match(scope["path"])
             if match:
@@ -157,8 +172,8 @@ class WebSocketRoute(BaseRoute):
                 path_params.update(match.groupdict())
                 child_scope = dict(scope)
                 child_scope["path_params"] = path_params
-                return True, child_scope
-        return False, {}
+                return Match.FULL, child_scope
+        return Match.NONE, {}
 
     def url_path_for(self, name: str, **path_params: str) -> URL:
         if name != self.name or self.param_names != set(path_params.keys()):
@@ -190,7 +205,7 @@ class Mount(BaseRoute):
     def routes(self) -> typing.List[BaseRoute]:
         return getattr(self.app, "routes", None)
 
-    def matches(self, scope: Scope) -> typing.Tuple[bool, Scope]:
+    def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         match = self.path_regex.match(scope["path"])
         if match:
             path_params = dict(scope.get("path_params", {}))
@@ -199,8 +214,8 @@ class Mount(BaseRoute):
             child_scope["path_params"] = path_params
             child_scope["root_path"] = scope.get("root_path", "") + match.string
             child_scope["path"] = scope["path"][match.span()[1] :]
-            return True, child_scope
-        return False, {}
+            return Match.FULL, child_scope
+        return Match.NONE, {}
 
     def url_path_for(self, name: str, **path_params: str) -> URL:
         path, remaining_params = replace_params(self.path, **path_params)
@@ -289,10 +304,18 @@ class Router:
         if "router" not in scope:
             scope["router"] = self
 
+        partial = None
+
         for route in self.routes:
-            matched, child_scope = route.matches(scope)
-            if matched:
+            match, child_scope = route.matches(scope)
+            if match == Match.FULL:
                 return route(child_scope)
+            elif match == Match.PARTIAL and partial is None:
+                partial = route
+                partial_scope = child_scope
+
+        if partial is not None:
+            return partial(partial_scope)
         return self.default(scope)
 
     def __eq__(self, other: typing.Any) -> bool:
