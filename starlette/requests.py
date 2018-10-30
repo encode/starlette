@@ -79,7 +79,7 @@ class Request(Mapping):
 
     @property
     def session(self) -> dict:
-        return self._scope["session"]
+        return self._scope.get("session", {})
 
     @property
     def receive(self) -> Receive:
