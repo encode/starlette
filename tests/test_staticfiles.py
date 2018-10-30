@@ -18,6 +18,18 @@ def test_staticfiles(tmpdir):
     assert response.text == "<file content>"
 
 
+def test_staticfile_head(tmpdir):
+    path = os.path.join(tmpdir, "example.txt")
+    with open(path, "w") as file:
+        file.write("<file content>")
+
+    app = StaticFiles(directory=tmpdir)
+    client = TestClient(app)
+    response = client.head("/example.txt")
+    assert response.status_code == 200
+    assert response.text == ""
+
+
 def test_staticfiles_post(tmpdir):
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:

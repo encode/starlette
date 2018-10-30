@@ -24,6 +24,15 @@ def test_graphql_get():
     assert response.json() == {"data": {"hello": "Hello stranger"}, "errors": None}
 
 
+def test_graphql_head():
+    response = client.head("/?query={ hello }")
+    assert response.status_code == 200
+
+    response = client.head("/?query={ hello }", headers={"Accept": "text/html"})
+    assert response.status_code == 200
+    assert response.text == ""
+
+
 def test_graphql_post():
     response = client.post("/?query={ hello }")
     assert response.status_code == 200

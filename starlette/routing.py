@@ -102,8 +102,7 @@ class Route(BaseRoute):
 
         if inspect.isfunction(endpoint) or inspect.ismethod(endpoint):
             self.app = request_response(endpoint)
-            if methods is None:
-                methods = ["GET"]
+            methods = self.init_methods(methods)
         else:
             self.app = endpoint
 
@@ -112,6 +111,17 @@ class Route(BaseRoute):
         regex = re.sub("{([a-zA-Z_][a-zA-Z0-9_]*)}", r"(?P<\1>[^/]+)", regex)
         self.path_regex = re.compile(regex)
         self.param_names = set(self.path_regex.groupindex.keys())
+
+    def init_methods(
+        self, methods: typing.List[str] = None
+    ) -> typing.Optional[typing.List[str]]:
+        if methods is None:
+            methods = ["GET", "HEAD"]
+        elif "GET" in methods and "HEAD" not in methods:
+            methods = list(methods)
+            methods.append("HEAD")
+
+        return methods
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] == "http":

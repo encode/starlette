@@ -1,5 +1,18 @@
 *.pyc
+__pycache__/
+
+# coverage
 .coverage
+htmlcov/
+
+# tests
 .pytest_cache/
+
+# releases
 starlette.egg-info/
+
+# virtualenvs
 venv/
+
+# mypy
+.mypy_cache/

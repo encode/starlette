@@ -44,6 +44,11 @@ def func_homepage(request):
     return PlainTextResponse("Hello, world!")
 
 
+@app.route("/func-post", methods=["POST"])
+def func_homepage_post(request):
+    return PlainTextResponse("Hello, world!")
+
+
 @app.route("/async")
 async def async_homepage(request):
     return PlainTextResponse("Hello, world!")
@@ -52,6 +57,12 @@ async def async_homepage(request):
 @app.route("/class")
 class Homepage(HTTPEndpoint):
     def get(self, request):
+        return PlainTextResponse("Hello, world!")
+
+
+@app.route("/class-post")
+class HomepagePost(HTTPEndpoint):
+    def post(self, request):
         return PlainTextResponse("Hello, world!")
 
 
@@ -127,6 +138,34 @@ def test_websocket_route():
         assert text == "Hello, world!"
 
 
+def test_func_route_head_method():
+    response = client.head("/func")
+    assert response.status_code == 200
+    assert response.text == ""
+
+
+def test_head_not_in_func_route():
+    response = client.post("/func-post")
+    assert response.status_code == 200
+
+    response = client.head("/func-post")
+    assert response.status_code == 405
+
+
+def test_class_route_head_method():
+    response = client.head("/class")
+    assert response.status_code == 200
+    assert response.text == ""
+
+
+def test_head_not_in_class_route():
+    response = client.post("/class-post")
+    assert response.status_code == 200
+
+    response = client.head("/class-post")
+    assert response.status_code == 405
+
+
 def test_400():
     response = client.get("/404")
     assert response.status_code == 404
@@ -160,8 +199,10 @@ def test_middleware():
 def test_routes():
     assert app.routes == [
         Route("/func", endpoint=func_homepage, methods=["GET"]),
+        Route("/func-post", endpoint=func_homepage_post, methods=["POST"]),
         Route("/async", endpoint=async_homepage, methods=["GET"]),
         Route("/class", endpoint=Homepage),
+        Route("/class-post", endpoint=HomepagePost),
         Mount(
             "/users",
             app=Router(
