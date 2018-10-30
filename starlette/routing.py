@@ -84,7 +84,7 @@ class Route(BaseRoute):
         self.endpoint = endpoint
         self.name = get_name(endpoint)
 
-        if inspect.isfunction(endpoint):
+        if inspect.isfunction(endpoint) or inspect.ismethod(endpoint):
             self.app = request_response(endpoint)
             if methods is None:
                 methods = ["GET"]
