@@ -101,11 +101,15 @@ class Route(BaseRoute):
         self.name = get_name(endpoint)
 
         if inspect.isfunction(endpoint) or inspect.ismethod(endpoint):
+            # Endpoint is function or method. Treat it as `func(request) -> response`.
             self.app = request_response(endpoint)
             if methods is None:
                 methods = ["GET"]
         else:
+            # Endpoint is a class. Treat it as ASGI.
             self.app = endpoint
+            if methods is None and hasattr(endpoint, "methods"):
+                methods = endpoint.methods()
 
         self.methods = methods
         regex = "^" + path + "$"
@@ -157,8 +161,10 @@ class WebSocketRoute(BaseRoute):
         self.name = get_name(endpoint)
 
         if inspect.isfunction(endpoint) or inspect.ismethod(endpoint):
+            # Endpoint is function or method. Treat it as `func(websocket)`.
             self.app = websocket_session(endpoint)
         else:
+            # Endpoint is a class. Treat it as ASGI.
             self.app = endpoint
 
         regex = "^" + path + "$"
