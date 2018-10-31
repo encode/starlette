@@ -13,31 +13,84 @@ def ws(session):
 
 @app.route("/users", methods=["GET", "HEAD"])
 def list_users(request):
-    """list_users"""
+    """
+    responses:
+      200:
+        description: A list of users.
+        examples:
+          [{"username": "tom"}, {"username": "lucy"}]
+    """
     pass  # pragma: no cover
 
 
 @app.route("/users", methods=["POST"])
 def create_user(request):
-    """create_user"""
+    """
+    responses:
+      200:
+        description: A user.
+        examples:
+          {"username": "tom"}
+    """
     pass  # pragma: no cover
 
 
 @app.route("/orgs")
 class OrganisationsEndpoint(HTTPEndpoint):
     def get(self, request):
-        """list_orgs"""
+        """
+        responses:
+          200:
+            description: A list of organisations.
+            examples:
+              [{"name": "Foo Corp."}, {"name": "Acme Ltd."}]
+        """
         pass  # pragma: no cover
 
     def post(self, request):
-        """create_org"""
+        """
+        responses:
+          200:
+            description: An organisation.
+            examples:
+              {"name": "Foo Corp."}
+        """
         pass  # pragma: no cover
 
 
 def test_schema_generation():
-    generator = SchemaGenerator()
-    schema = generator.get_schema(app.routes)
-    assert schema == {
-        "/users": {"get": "list_users", "post": "create_user"},
-        "/orgs": {"get": "list_orgs", "post": "create_org"},
+    assert app.schema == {
+        "/orgs": {
+            "get": {
+                "responses": {
+                    200: {
+                        "description": "A list of " "organisations.",
+                        "examples": [{"name": "Foo Corp."}, {"name": "Acme Ltd."}],
+                    }
+                }
+            },
+            "post": {
+                "responses": {
+                    200: {
+                        "description": "An organisation.",
+                        "examples": {"name": "Foo Corp."},
+                    }
+                }
+            },
+        },
+        "/users": {
+            "get": {
+                "responses": {
+                    200: {
+                        "description": "A list of users.",
+                        "examples": [{"username": "tom"}, {"username": "lucy"}],
+                    }
+                }
+            },
+            "post": {
+                "responses": {
+                    200: {"description": "A user.", "examples": {"username": "tom"}}
+                }
+            },
+        },
     }

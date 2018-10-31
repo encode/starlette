@@ -15,17 +15,6 @@ class HTTPEndpoint:
         assert scope["type"] == "http"
         self.scope = scope
 
-    @classmethod
-    def methods(cls) -> typing.List[str]:
-        methods = [
-            method
-            for method in ["GET", "POST", "PUT", "PATCH", "DELETE"]
-            if hasattr(cls, method.lower())
-        ]
-        if "GET" in methods:
-            methods += ["HEAD"]
-        return methods
-
     async def __call__(self, receive: Receive, send: Send) -> None:
         request = Request(self.scope, receive=receive)
         response = await self.dispatch(request)

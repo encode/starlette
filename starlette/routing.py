@@ -108,8 +108,6 @@ class Route(BaseRoute):
         else:
             # Endpoint is a class. Treat it as ASGI.
             self.app = endpoint
-            if methods is None and hasattr(endpoint, "methods"):
-                methods = endpoint.methods()
 
         self.methods = methods
         regex = "^" + path + "$"

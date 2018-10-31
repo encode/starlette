@@ -4,6 +4,7 @@ from starlette.datastructures import URL
 from starlette.exceptions import ExceptionMiddleware
 from starlette.lifespan import LifespanHandler
 from starlette.routing import BaseRoute, Router
+from starlette.schemas import SchemaGenerator
 from starlette.types import ASGIApp, ASGIInstance, Scope
 
 
@@ -25,6 +26,11 @@ class Starlette:
     @debug.setter
     def debug(self, value: bool) -> None:
         self.exception_middleware.debug = value
+
+    @property
+    def schema(self) -> dict:
+        generator = SchemaGenerator()
+        return generator.get_schema(self.routes)
 
     def on_event(self, event_type: str) -> typing.Callable:
         return self.lifespan_handler.on_event(event_type)
