@@ -73,7 +73,7 @@ class Starlette:
 
         return decorator
 
-    def url_path_for(self, name: str, **path_params: str) -> URL:
+    def url_path_for(self, name: str, **path_params: str) -> str:
         url = self.router.url_path_for(name, **path_params)
         return url.path
 
