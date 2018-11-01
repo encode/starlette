@@ -2,10 +2,9 @@ import asyncio
 import os
 
 import pytest
-
 from starlette import status
-from starlette.requests import Request
 from starlette.background import BackgroundTask
+from starlette.requests import Request
 from starlette.responses import (
     FileResponse,
     RedirectResponse,
@@ -74,6 +73,7 @@ def test_redirect_response():
 
 def test_streaming_response():
     filled_by_bg_task = ""
+
     def app(scope):
         async def numbers(minimum, maximum):
             for i in range(minimum, maximum + 1):
@@ -82,18 +82,22 @@ def test_streaming_response():
                     yield ", "
                 await asyncio.sleep(0)
 
-        async def numbers_for_cleanup( start=1, stop=5):
+        async def numbers_for_cleanup(start=1, stop=5):
             nonlocal filled_by_bg_task
-            async for thing in numbers( start, stop ):
-                filled_by_bg_task = filled_by_bg_task + thing 
+            async for thing in numbers(start, stop):
+                filled_by_bg_task = filled_by_bg_task + thing
 
-        cleanup_task = BackgroundTask( numbers_for_cleanup, start = 6, stop = 9 )
+        cleanup_task = BackgroundTask(numbers_for_cleanup, start=6, stop=9)
+
         async def asgi(receive, send):
             generator = numbers(1, 5)
-            response = StreamingResponse(generator, media_type="text/plain", background=cleanup_task)
+            response = StreamingResponse(
+                generator, media_type="text/plain", background=cleanup_task
+            )
             await response(receive, send)
 
         return asgi
+
     assert filled_by_bg_task == ""
     client = TestClient(app)
     response = client.get("/")
@@ -142,18 +146,20 @@ def test_file_response(tmpdir):
         file.write(content)
 
     filled_by_bg_task = ""
+
     async def numbers(minimum, maximum):
         for i in range(minimum, maximum + 1):
             yield str(i)
             if i != maximum:
                 yield ", "
-            await asyncio.sleep(0)    
-    async def numbers_for_cleanup( start=1, stop=5):
-        nonlocal filled_by_bg_task
-        async for thing in numbers( start, stop ):
-            filled_by_bg_task = filled_by_bg_task + thing 
+            await asyncio.sleep(0)
 
-    cleanup_task = BackgroundTask( numbers_for_cleanup, start = 6, stop = 9 )
+    async def numbers_for_cleanup(start=1, stop=5):
+        nonlocal filled_by_bg_task
+        async for thing in numbers(start, stop):
+            filled_by_bg_task = filled_by_bg_task + thing
+
+    cleanup_task = BackgroundTask(numbers_for_cleanup, start=6, stop=9)
 
     def app(scope):
         return FileResponse(path=path, filename="example.png", background=cleanup_task)

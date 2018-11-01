@@ -191,9 +191,10 @@ class StreamingResponse(Response):
                 chunk = chunk.encode(self.charset)
             await send({"type": "http.response.body", "body": chunk, "more_body": True})
         await send({"type": "http.response.body", "body": b"", "more_body": False})
-        
+
         if self.background is not None:
             await self.background()
+
 
 class FileResponse(Response):
     chunk_size = 4096
@@ -222,7 +223,6 @@ class FileResponse(Response):
         self.stat_result = stat_result
         if stat_result is not None:
             self.set_stat_headers(stat_result)
-        
 
     def set_stat_headers(self, stat_result: os.stat_result) -> None:
         content_length = str(stat_result.st_size)
@@ -264,4 +264,4 @@ class FileResponse(Response):
                     }
                 )
         if self.background is not None:
-            await self.background()        
+            await self.background()
