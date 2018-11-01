@@ -74,7 +74,8 @@ class Starlette:
         return decorator
 
     def url_path_for(self, name: str, **path_params: str) -> URL:
-        return self.router.url_path_for(name, **path_params)
+        url = self.router.url_path_for(name, **path_params)
+        return url.path
 
     def __call__(self, scope: Scope) -> ASGIInstance:
         scope["app"] = self
