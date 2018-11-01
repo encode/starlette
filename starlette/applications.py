@@ -3,7 +3,7 @@ import typing
 from starlette.datastructures import URL, URLPath
 from starlette.exceptions import ExceptionMiddleware
 from starlette.lifespan import LifespanHandler
-from starlette.routing import BaseRoute, Router, URLPath
+from starlette.routing import BaseRoute, Router
 from starlette.schemas import SchemaGenerator
 from starlette.types import ASGIApp, ASGIInstance, Scope
 
