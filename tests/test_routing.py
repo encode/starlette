@@ -1,7 +1,7 @@
 import pytest
 
 from starlette.exceptions import ExceptionMiddleware
-from starlette.responses import Response
+from starlette.responses import PlainTextResponse, Response
 from starlette.routing import Mount, NoMatchFound, Route, Router, WebSocketRoute
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocket, WebSocketDisconnect
@@ -176,3 +176,23 @@ def test_protocol_switch():
 
     with pytest.raises(WebSocketDisconnect):
         client.websocket_connect("/404")
+
+
+def ok(request):
+    return PlainTextResponse("OK")
+
+
+def test_mount_urls():
+    loosely_mounted = Router([Mount("/users", ok)])
+    client = TestClient(loosely_mounted)
+    assert client.get("/users").status_code == 200
+    assert client.get("/users/").status_code == 200
+    assert client.get("/users/a").status_code == 200
+    assert client.get("/usersa").status_code == 404
+
+    strictly_mounted = Router([Mount("/users/", ok)])
+    client = TestClient(strictly_mounted)
+    assert client.get("/users").status_code == 404
+    assert client.get("/users/").status_code == 200
+    assert client.get("/users/a").status_code == 200
+    assert client.get("/usersa").status_code == 404

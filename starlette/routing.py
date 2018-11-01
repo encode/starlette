@@ -206,9 +206,12 @@ class WebSocketRoute(BaseRoute):
 
 class Mount(BaseRoute):
     def __init__(self, path: str, app: ASGIApp) -> None:
-        self.path = path
+        self.path = path.rstrip("/")
         self.app = app
-        regex = "^" + path
+        if path.endswith("/"):
+            regex = "^" + self.path + "(?P<path>/.*)$"
+        else:
+            regex = "^" + self.path + "(?P<path>(/.*|))$"
         regex = re.sub("{([a-zA-Z_][a-zA-Z0-9_]*)}", r"(?P<\1>[^/]*)", regex)
         self.path_regex = re.compile(regex)
 
@@ -219,12 +222,16 @@ class Mount(BaseRoute):
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         match = self.path_regex.match(scope["path"])
         if match:
+            matched_params = match.groupdict()
+            matched_path = matched_params.pop("path")
             path_params = dict(scope.get("path_params", {}))
-            path_params.update(match.groupdict())
+            path_params.update(matched_params)
             child_scope = dict(scope)
             child_scope["path_params"] = path_params
-            child_scope["root_path"] = scope.get("root_path", "") + match.string
-            child_scope["path"] = scope["path"][match.span()[1] :]
+            child_scope["root_path"] = (
+                scope.get("root_path", "") + scope["path"][: -len(matched_path)]
+            )
+            child_scope["path"] = matched_path
             return Match.FULL, child_scope
         return Match.NONE, {}
 
