@@ -1,9 +1,9 @@
 import typing
 
-from starlette.datastructures import URL
+from starlette.datastructures import URL, URLPath
 from starlette.exceptions import ExceptionMiddleware
 from starlette.lifespan import LifespanHandler
-from starlette.routing import BaseRoute, Router
+from starlette.routing import BaseRoute, Router, URLPath
 from starlette.schemas import SchemaGenerator
 from starlette.types import ASGIApp, ASGIInstance, Scope
 
@@ -79,7 +79,7 @@ class Starlette:
 
         return decorator
 
-    def url_path_for(self, name: str, **path_params: str) -> URL:
+    def url_path_for(self, name: str, **path_params: str) -> URLPath:
         return self.router.url_path_for(name, **path_params)
 
     def __call__(self, scope: Scope) -> ASGIInstance:
