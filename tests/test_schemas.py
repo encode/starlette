@@ -3,6 +3,9 @@ from starlette.endpoints import HTTPEndpoint
 from starlette.schemas import SchemaGenerator
 
 app = Starlette()
+app.schema_generator = SchemaGenerator(
+    {"openapi": "3.0.0", "info": {"title": "Example API", "version": "1.0"}}
+)
 
 
 @app.websocket_route("/ws")
@@ -60,37 +63,41 @@ class OrganisationsEndpoint(HTTPEndpoint):
 
 def test_schema_generation():
     assert app.schema == {
-        "/orgs": {
-            "get": {
-                "responses": {
-                    200: {
-                        "description": "A list of " "organisations.",
-                        "examples": [{"name": "Foo Corp."}, {"name": "Acme Ltd."}],
+        "openapi": "3.0.0",
+        "info": {"title": "Example API", "version": "1.0"},
+        "paths": {
+            "/orgs": {
+                "get": {
+                    "responses": {
+                        200: {
+                            "description": "A list of " "organisations.",
+                            "examples": [{"name": "Foo Corp."}, {"name": "Acme Ltd."}],
+                        }
                     }
-                }
-            },
-            "post": {
-                "responses": {
-                    200: {
-                        "description": "An organisation.",
-                        "examples": {"name": "Foo Corp."},
+                },
+                "post": {
+                    "responses": {
+                        200: {
+                            "description": "An organisation.",
+                            "examples": {"name": "Foo Corp."},
+                        }
                     }
-                }
+                },
             },
-        },
-        "/users": {
-            "get": {
-                "responses": {
-                    200: {
-                        "description": "A list of users.",
-                        "examples": [{"username": "tom"}, {"username": "lucy"}],
+            "/users": {
+                "get": {
+                    "responses": {
+                        200: {
+                            "description": "A list of users.",
+                            "examples": [{"username": "tom"}, {"username": "lucy"}],
+                        }
                     }
-                }
-            },
-            "post": {
-                "responses": {
-                    200: {"description": "A user.", "examples": {"username": "tom"}}
-                }
+                },
+                "post": {
+                    "responses": {
+                        200: {"description": "A user.", "examples": {"username": "tom"}}
+                    }
+                },
             },
         },
     }

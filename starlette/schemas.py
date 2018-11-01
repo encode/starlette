@@ -1,12 +1,24 @@
 import inspect
 import typing
 
-import yaml
-
 from starlette.routing import BaseRoute, Route
 
+try:
+    import yaml
+except ImportError:  # pragma: nocover
+    yaml = None  # type: ignore
 
-class SchemaGenerator:
+
+class BaseSchemaGenerator:
+    def get_schema(self, routes: typing.List[BaseRoute]) -> dict:
+        raise NotImplementedError()  # pragma: no cover
+
+
+class SchemaGenerator(BaseSchemaGenerator):
+    def __init__(self, base_schema: dict) -> None:
+        assert yaml is not None, "`pyyaml` must be installed to use SchemaGenerator."
+        self.base_schema = base_schema
+
     def get_schema(self, routes: typing.List[BaseRoute]) -> dict:
         paths = {}  # type: dict
 
@@ -33,4 +45,6 @@ class SchemaGenerator:
                     data = yaml.safe_load(docstring) if docstring else {}
                     paths[route.path][method] = data
 
-        return paths
+        schema = dict(self.base_schema)
+        schema["paths"] = paths
+        return schema
