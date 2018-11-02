@@ -105,6 +105,7 @@ def test_staticfiles_never_read_file_for_head_method(tmpdir):
     with open(path, "w") as file:
         file.write("<file content>")
     import aiofiles
+
     old_aiofiles = aiofiles.open
     aiofiles.open = None
 
