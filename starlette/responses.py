@@ -253,7 +253,7 @@ class FileResponse(Response):
                 "headers": self.raw_headers,
             }
         )
-        if not self.send_header_only:
+        if self.send_header_only:
             await send({"type": "http.disconnect"})
         else:
             async with aiofiles.open(self.path, mode="rb") as file:
