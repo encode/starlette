@@ -61,6 +61,7 @@ class _StaticFilesResponder:
             if not stat.S_ISREG(mode):
                 response = PlainTextResponse("Not Found", status_code=404)
             else:
-                response = FileResponse(self.path, stat_result=stat_result)
+                send_header_only = self.scope["method"] == "HEAD"
+                response = FileResponse(self.path, stat_result=stat_result, send_header_only=True)
 
         await response(receive, send)
