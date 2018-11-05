@@ -268,3 +268,5 @@ class FileResponse(Response):
                             "more_body": more_body,
                         }
                     )
+        if self.background is not None:
+            await self.background()
