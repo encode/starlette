@@ -8,7 +8,7 @@ from enum import Enum
 from starlette.datastructures import URL, URLPath
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
-from starlette.responses import PlainTextResponse
+from starlette.responses import PlainTextResponse, RedirectResponse
 from starlette.types import ASGIApp, ASGIInstance, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketClose
 
@@ -100,6 +100,7 @@ class Route(BaseRoute):
         methods: typing.List[str] = None,
         include_in_schema: bool = True
     ) -> None:
+        assert path.startswith("/"), "Routed paths must alsways start '/'"
         self.path = path
         self.endpoint = endpoint
         self.name = get_name(endpoint)
@@ -159,6 +160,7 @@ class Route(BaseRoute):
 
 class WebSocketRoute(BaseRoute):
     def __init__(self, path: str, *, endpoint: typing.Callable) -> None:
+        assert path.startswith("/"), "Routed paths must alsways start '/'"
         self.path = path
         self.endpoint = endpoint
         self.name = get_name(endpoint)
@@ -208,10 +210,7 @@ class Mount(BaseRoute):
     def __init__(self, path: str, app: ASGIApp) -> None:
         self.path = path.rstrip("/")
         self.app = app
-        if path.endswith("/"):
-            regex = "^" + self.path + "(?P<path>/.*)$"
-        else:
-            regex = "^" + self.path + "(?P<path>(/.*|))$"
+        regex = "^" + self.path + "(?P<path>/.*)$"
         regex = re.sub("{([a-zA-Z_][a-zA-Z0-9_]*)}", r"(?P<\1>[^/]*)", regex)
         self.path_regex = re.compile(regex)
 
@@ -258,9 +257,13 @@ class Mount(BaseRoute):
 
 class Router:
     def __init__(
-        self, routes: typing.List[BaseRoute] = None, default: ASGIApp = None
+        self,
+        routes: typing.List[BaseRoute] = None,
+        redirect_slashes: bool = True,
+        default: ASGIApp = None,
     ) -> None:
         self.routes = [] if routes is None else routes
+        self.redirect_slashes = redirect_slashes
         self.default = self.not_found if default is None else default
 
     def mount(self, path: str, app: ASGIApp) -> None:
@@ -344,6 +347,17 @@ class Router:
 
         if partial is not None:
             return partial(partial_scope)
+
+        if self.redirect_slashes and not scope["path"].endswith("/"):
+            redirect_scope = dict(scope)
+            redirect_scope["path"] += "/"
+
+            for route in self.routes:
+                match, child_scope = route.matches(redirect_scope)
+                if match != Match.NONE:
+                    redirect_url = URL(scope=redirect_scope)
+                    return RedirectResponse(url=str(redirect_url))
+
         return self.default(scope)
 
     def __eq__(self, other: typing.Any) -> bool:

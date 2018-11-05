@@ -30,7 +30,7 @@ app = Router(
         Mount(
             "/users",
             app=Router(
-                [Route("", endpoint=users), Route("/{username}", endpoint=user)]
+                [Route("/", endpoint=users), Route("/{username}", endpoint=user)]
             ),
         ),
         Mount("/static", app=staticfiles),
@@ -192,7 +192,7 @@ def test_mount_urls():
 
     strictly_mounted = Router([Mount("/users/", ok)])
     client = TestClient(strictly_mounted)
-    assert client.get("/users").status_code == 404
+    assert client.get("/users").url == "http://testserver/users/"
     assert client.get("/users/").status_code == 200
     assert client.get("/users/a").status_code == 200
     assert client.get("/usersa").status_code == 404
