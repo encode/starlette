@@ -183,16 +183,25 @@ def ok(request):
 
 
 def test_mount_urls():
-    loosely_mounted = Router([Mount("/users", ok)])
-    client = TestClient(loosely_mounted)
+    mounted = Router([Mount("/users", ok, name="users")])
+    client = TestClient(mounted)
     assert client.get("/users").status_code == 200
-    assert client.get("/users/").status_code == 200
-    assert client.get("/users/a").status_code == 200
-    assert client.get("/usersa").status_code == 404
-
-    strictly_mounted = Router([Mount("/users/", ok)])
-    client = TestClient(strictly_mounted)
     assert client.get("/users").url == "http://testserver/users/"
     assert client.get("/users/").status_code == 200
     assert client.get("/users/a").status_code == 200
     assert client.get("/usersa").status_code == 404
+
+
+def test_reverse_mount_urls():
+    mounted = Router([Mount("/users", ok, name="users")])
+    assert mounted.url_path_for("users", path="/a") == "/users/a"
+
+    users = Router([Route("/{username}", ok, name="user")])
+    mounted = Router([Mount("/{subpath}/users", users, name="users")])
+    assert (
+        mounted.url_path_for("users:user", subpath="test", username="tom")
+        == "/test/users/tom"
+    )
+    assert (
+        mounted.url_path_for("users", subpath="test", path="/tom") == "/test/users/tom"
+    )

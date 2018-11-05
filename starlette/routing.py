@@ -72,7 +72,9 @@ def get_name(endpoint: typing.Callable) -> str:
     return endpoint.__class__.__name__
 
 
-def replace_params(path: str, **path_params: str) -> typing.Tuple[str, dict]:
+def replace_params(
+    path: str, path_params: typing.Dict[str, str]
+) -> typing.Tuple[str, dict]:
     for key, value in list(path_params.items()):
         if "{" + key + "}" in path:
             path_params.pop(key)
@@ -95,15 +97,16 @@ class Route(BaseRoute):
     def __init__(
         self,
         path: str,
-        *,
         endpoint: typing.Callable,
+        *,
         methods: typing.List[str] = None,
+        name: str = None,
         include_in_schema: bool = True
     ) -> None:
         assert path.startswith("/"), "Routed paths must always start '/'"
         self.path = path
         self.endpoint = endpoint
-        self.name = get_name(endpoint)
+        self.name = get_name(endpoint) if name is None else name
         self.include_in_schema = include_in_schema
 
         if inspect.isfunction(endpoint) or inspect.ismethod(endpoint):
@@ -138,7 +141,7 @@ class Route(BaseRoute):
     def url_path_for(self, name: str, **path_params: str) -> URLPath:
         if name != self.name or self.param_names != set(path_params.keys()):
             raise NoMatchFound()
-        path, remaining_params = replace_params(self.path, **path_params)
+        path, remaining_params = replace_params(self.path, path_params)
         assert not remaining_params
         return URLPath(path=path, protocol="http")
 
@@ -159,11 +162,13 @@ class Route(BaseRoute):
 
 
 class WebSocketRoute(BaseRoute):
-    def __init__(self, path: str, *, endpoint: typing.Callable) -> None:
+    def __init__(
+        self, path: str, endpoint: typing.Callable, *, name: str = None
+    ) -> None:
         assert path.startswith("/"), "Routed paths must always start '/'"
         self.path = path
         self.endpoint = endpoint
-        self.name = get_name(endpoint)
+        self.name = get_name(endpoint) if name is None else name
 
         if inspect.isfunction(endpoint) or inspect.ismethod(endpoint):
             # Endpoint is function or method. Treat it as `func(websocket)`.
@@ -191,7 +196,7 @@ class WebSocketRoute(BaseRoute):
     def url_path_for(self, name: str, **path_params: str) -> URLPath:
         if name != self.name or self.param_names != set(path_params.keys()):
             raise NoMatchFound()
-        path, remaining_params = replace_params(self.path, **path_params)
+        path, remaining_params = replace_params(self.path, path_params)
         assert not remaining_params
         return URLPath(path=path, protocol="websocket")
 
@@ -207,13 +212,14 @@ class WebSocketRoute(BaseRoute):
 
 
 class Mount(BaseRoute):
-    def __init__(self, path: str, app: ASGIApp) -> None:
+    def __init__(self, path: str, app: ASGIApp, name: str = None) -> None:
         assert path == "" or path.startswith("/"), "Routed paths must always start '/'"
         self.path = path.rstrip("/")
         self.app = app
         regex = "^" + self.path + "(?P<path>/.*)$"
         regex = re.sub("{([a-zA-Z_][a-zA-Z0-9_]*)}", r"(?P<\1>[^/]*)", regex)
         self.path_regex = re.compile(regex)
+        self.name = name
 
     @property
     def routes(self) -> typing.List[BaseRoute]:
@@ -236,13 +242,26 @@ class Mount(BaseRoute):
         return Match.NONE, {}
 
     def url_path_for(self, name: str, **path_params: str) -> URLPath:
-        path, remaining_params = replace_params(self.path, **path_params)
-        for route in self.routes or []:
-            try:
-                url = route.url_path_for(name, **remaining_params)
-                return URLPath(path=path + str(url), protocol=url.protocol)
-            except NoMatchFound as exc:
-                pass
+        if self.name is not None and name == self.name and "path" in path_params:
+            # 'name' matches "<mount_name>".
+            path_params["path"] = path_params["path"].lstrip("/")
+            path, remaining_params = replace_params(self.path + "/{path}", path_params)
+            if not remaining_params:
+                return URLPath(path=path, protocol="http")
+        elif self.name is None or name.startswith(self.name + ":"):
+            if self.name is None:
+                # No mount name.
+                remaining_name = name
+            else:
+                # 'name' matches "<mount_name>:<child_name>".
+                remaining_name = name[len(self.name) + 1 :]
+            path, remaining_params = replace_params(self.path, path_params)
+            for route in self.routes or []:
+                try:
+                    url = route.url_path_for(remaining_name, **remaining_params)
+                    return URLPath(path=path + str(url), protocol=url.protocol)
+                except NoMatchFound as exc:
+                    pass
         raise NoMatchFound()
 
     def __call__(self, scope: Scope) -> ASGIInstance:
