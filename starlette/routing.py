@@ -286,7 +286,7 @@ class Router:
         self.redirect_slashes = redirect_slashes
         self.default = self.not_found if default is None else default
 
-    def mount(self, path: str, app: ASGIApp, name: str=None) -> None:
+    def mount(self, path: str, app: ASGIApp, name: str = None) -> None:
         route = Mount(path, app=app, name=name)
         self.routes.append(route)
 
