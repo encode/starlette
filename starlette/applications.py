@@ -90,7 +90,9 @@ class Starlette:
         return decorator
 
     def middleware(self, middleware_type: str) -> typing.Callable:
-        assert middleware_type == 'http', 'Currently only middleware("http") is supported.'
+        assert (
+            middleware_type == "http"
+        ), 'Currently only middleware("http") is supported.'
 
         def decorator(func: typing.Callable) -> typing.Callable:
             self.add_middleware(BaseHTTPMiddleware, dispatch=func)

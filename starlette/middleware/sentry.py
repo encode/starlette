@@ -34,15 +34,21 @@ class SentryMiddleware:
                         "query_string": request.url.query,
                     }
                     if asgi_scope.get("client"):
-                        event["request"]["env"] = {"REMOTE_ADDR": asgi_scope["client"][0]}
+                        event["request"]["env"] = {
+                            "REMOTE_ADDR": asgi_scope["client"][0]
+                        }
                     if asgi_scope.get("endpoint"):
-                        event["transaction"] = self.get_transaction(asgi_scope["endpoint"])
+                        event["transaction"] = self.get_transaction(
+                            asgi_scope["endpoint"]
+                        )
                     hub.capture_event(event, hint=hint)
                     raise exc from None
 
     def get_transaction(self, endpoint):
         qualname = (
-            getattr(endpoint, "__qualname__", None) or getattr(endpoint, "__name__", None) or None
+            getattr(endpoint, "__qualname__", None)
+            or getattr(endpoint, "__name__", None)
+            or None
         )
         if not qualname:
             return None

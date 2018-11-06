@@ -62,16 +62,16 @@ def test_custom_middleware():
 def test_middleware_decorator():
     app = Starlette()
 
-    @app.route('/homepage')
+    @app.route("/homepage")
     def homepage(request):
-        return PlainTextResponse('Homepage')
+        return PlainTextResponse("Homepage")
 
-    @app.middleware('http')
+    @app.middleware("http")
     async def plaintext(request, call_next):
-        if request.url.path == '/':
-            return PlainTextResponse('OK')
+        if request.url.path == "/":
+            return PlainTextResponse("OK")
         response = await call_next(request)
-        response.headers['Custom'] = 'Example'
+        response.headers["Custom"] = "Example"
         return response
 
     client = TestClient(app)
@@ -80,4 +80,4 @@ def test_middleware_decorator():
 
     response = client.get("/homepage")
     assert response.text == "Homepage"
-    assert response.headers['Custom'] == 'Example'
+    assert response.headers["Custom"] == "Example"
