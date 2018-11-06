@@ -8,8 +8,10 @@ from starlette.types import ASGIApp, ASGIInstance, Receive, Scope, Send
 
 
 class BaseHTTPMiddleware:
-    def __init__(self, app: ASGIApp) -> None:
+    def __init__(self, app: ASGIApp, dispatch: typing.Callable = None) -> None:
         self.app = app
+        if dispatch is not None:
+            self.dispatch = dispatch
 
     def __call__(self, scope: Scope) -> ASGIInstance:
         if scope["type"] != "http":
