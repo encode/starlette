@@ -63,30 +63,21 @@ class DebugGenerator:
         return "".join(traceback.format_tb(self.exc.__traceback__))
 
 
-def get_debug_response(request: Request, exc: Exception) -> Response:
-    accept = request.headers.get("accept", "")
-    debug_gen = DebugGenerator(exc)
-
-    if "text/html" in accept:
-        content = debug_gen.generate_html()
-        return HTMLResponse(content, status_code=500)
-    content = debug_gen.generate_plain_text()
-    return PlainTextResponse(content, status_code=500)
-
-
 class DebugMiddleware:
-    def __init__(self, app: ASGIApp) -> None:
+    def __init__(self, app: ASGIApp, debug: bool = False) -> None:
         self.app = app
+        self.debug = debug
 
     def __call__(self, scope: Scope) -> ASGIInstance:
         if scope["type"] != "http":
             return self.app(scope)
-        return _DebugResponder(self.app, scope)
+        return _DebugResponder(self.app, self.debug, scope)
 
 
 class _DebugResponder:
-    def __init__(self, app: ASGIApp, scope: Scope) -> None:
+    def __init__(self, app: ASGIApp, debug: bool, scope: Scope) -> None:
         self.app = app
+        self.debug = debug
         self.scope = scope
         self.response_started = False
 
@@ -98,7 +89,10 @@ class _DebugResponder:
         except Exception as exc:
             if not self.response_started:
                 request = Request(self.scope)
-                response = get_debug_response(request, exc)
+                if self.debug:
+                    response = self.debug_response(request, exc)
+                else:
+                    response = self.error_response(request, exc)
                 await response(receive, send)
             raise exc from None
 
@@ -106,3 +100,16 @@ class _DebugResponder:
         if message["type"] == "http.response.start":
             self.response_started = True
         await self.raw_send(message)
+
+    def debug_response(self, request: Request, exc: Exception) -> Response:
+        accept = request.headers.get("accept", "")
+        debug_gen = DebugGenerator(exc)
+
+        if "text/html" in accept:
+            content = debug_gen.generate_html()
+            return HTMLResponse(content, status_code=500)
+        content = debug_gen.generate_plain_text()
+        return PlainTextResponse(content, status_code=500)
+
+    def error_response(self, request: Request, exc: Exception) -> Response:
+        return PlainTextResponse("Internal Server Error", status_code=500)

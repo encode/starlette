@@ -12,7 +12,7 @@ def test_debug_text():
 
         return asgi
 
-    app = DebugMiddleware(app)
+    app = DebugMiddleware(app, debug=True)
     client = TestClient(app, raise_server_exceptions=False)
     response = client.get("/")
     assert response.status_code == 500
@@ -27,7 +27,7 @@ def test_debug_html():
 
         return asgi
 
-    app = DebugMiddleware(app)
+    app = DebugMiddleware(app, debug=True)
     client = TestClient(app, raise_server_exceptions=False)
     response = client.get("/", headers={"Accept": "text/html, */*"})
     assert response.status_code == 500
@@ -44,7 +44,7 @@ def test_debug_after_response_sent():
 
         return asgi
 
-    app = DebugMiddleware(app)
+    app = DebugMiddleware(app, debug=True)
     client = TestClient(app)
     with pytest.raises(RuntimeError):
         client.get("/")
@@ -54,7 +54,7 @@ def test_debug_error_during_scope():
     def app(scope):
         raise RuntimeError("Something went wrong")
 
-    app = DebugMiddleware(app)
+    app = DebugMiddleware(app, debug=True)
     client = TestClient(app, raise_server_exceptions=False)
     response = client.get("/", headers={"Accept": "text/html, */*"})
     assert response.status_code == 500

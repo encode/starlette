@@ -1,6 +1,7 @@
 import typing
 
 from starlette.datastructures import URL, URLPath
+from starlette.debug import DebugMiddleware
 from starlette.exceptions import ExceptionMiddleware
 from starlette.lifespan import LifespanHandler
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -13,8 +14,8 @@ class Starlette:
     def __init__(self, debug: bool = False) -> None:
         self.router = Router()
         self.lifespan_handler = LifespanHandler()
-        self.app = self.router
-        self.exception_middleware = ExceptionMiddleware(self.router, debug=debug)
+        self.exception_middleware = ExceptionMiddleware(self.router)
+        self.debug_middleware = DebugMiddleware(self.exception_middleware, debug=debug)
         self.schema_generator = None  # type: typing.Optional[BaseSchemaGenerator]
 
     @property
@@ -23,11 +24,11 @@ class Starlette:
 
     @property
     def debug(self) -> bool:
-        return self.exception_middleware.debug
+        return self.debug_middleware.debug
 
     @debug.setter
     def debug(self, value: bool) -> None:
-        self.exception_middleware.debug = value
+        self.debug_middleware.debug = value
 
     @property
     def schema(self) -> dict:
@@ -41,7 +42,9 @@ class Starlette:
         self.router.mount(path, app=app, name=name)
 
     def add_middleware(self, middleware_class: type, **kwargs: typing.Any) -> None:
-        self.exception_middleware.app = middleware_class(self.app, **kwargs)
+        self.debug_middleware.app = middleware_class(
+            self.debug_middleware.app, **kwargs
+        )
 
     def add_exception_handler(self, exc_class: type, handler: typing.Callable) -> None:
         self.exception_middleware.add_exception_handler(exc_class, handler)
@@ -107,4 +110,4 @@ class Starlette:
         scope["app"] = self
         if scope["type"] == "lifespan":
             return self.lifespan_handler(scope)
-        return self.exception_middleware(scope)
+        return self.debug_middleware(scope)
