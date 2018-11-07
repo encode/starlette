@@ -11,19 +11,27 @@ from starlette.types import ASGIApp, ASGIInstance, Message, Receive, Scope, Send
 
 class SessionMiddleware:
     def __init__(
-        self, app: ASGIApp, secret_key: str, session_cookie: str = "session"
+        self,
+        app: ASGIApp,
+        secret_key: str,
+        session_cookie: str = "session",
+        max_age: int = 14 * 24 * 60 * 60,  # 14 days, in seconds
     ) -> None:
         self.app = app
-        self.signer = itsdangerous.Signer(secret_key)
+        self.signer = itsdangerous.TimestampSigner(secret_key)
         self.session_cookie = session_cookie
+        self.max_age = max_age
 
     def __call__(self, scope: Scope) -> ASGIInstance:
         if scope["type"] in ("http", "websocket"):
             request = Request(scope)
             if self.session_cookie in request.cookies:
                 data = request.cookies[self.session_cookie].encode("utf-8")
-                data = self.signer.unsign(data)
-                scope["session"] = json.loads(b64decode(data))
+                try:
+                    data = self.signer.unsign(data, max_age=self.max_age)
+                    scope["session"] = json.loads(b64decode(data))
+                except itsdangerous.exc.SignatureExpired:
+                    scope["session"] = {}
             else:
                 scope["session"] = {}
             return functools.partial(self.asgi, scope=scope)
