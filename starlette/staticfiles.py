@@ -62,9 +62,7 @@ class _StaticFilesResponder:
                 response = PlainTextResponse("Not Found", status_code=404)
             else:
                 response = FileResponse(
-                    self.path,
-                    stat_result=stat_result,
-                    method=self.scope["method"],
+                    self.path, stat_result=stat_result, method=self.scope["method"]
                 )
 
         await response(receive, send)
