@@ -1,3 +1,4 @@
+import functools
 import traceback
 
 from starlette.requests import Request
@@ -71,35 +72,30 @@ class DebugMiddleware:
     def __call__(self, scope: Scope) -> ASGIInstance:
         if scope["type"] != "http":
             return self.app(scope)
-        return _DebugResponder(self.app, self.debug, scope)
+        return functools.partial(self.asgi, scope=scope)
 
+    async def asgi(self, receive: Receive, send: Send, scope: Scope) -> None:
+        response_started = False
 
-class _DebugResponder:
-    def __init__(self, app: ASGIApp, debug: bool, scope: Scope) -> None:
-        self.app = app
-        self.debug = debug
-        self.scope = scope
-        self.response_started = False
+        async def _send(message: Message) -> None:
+            nonlocal response_started, send
 
-    async def __call__(self, receive: Receive, send: Send) -> None:
-        self.raw_send = send
+            if message["type"] == "http.response.start":
+                response_started = True
+            await send(message)
+
         try:
-            asgi = self.app(self.scope)
-            await asgi(receive, self.send)
+            asgi = self.app(scope)
+            await asgi(receive, _send)
         except Exception as exc:
-            if not self.response_started:
-                request = Request(self.scope)
+            if not response_started:
+                request = Request(scope)
                 if self.debug:
                     response = self.debug_response(request, exc)
                 else:
                     response = self.error_response(request, exc)
                 await response(receive, send)
             raise exc from None
-
-    async def send(self, message: Message) -> None:
-        if message["type"] == "http.response.start":
-            self.response_started = True
-        await self.raw_send(message)
 
     def debug_response(self, request: Request, exc: Exception) -> Response:
         accept = request.headers.get("accept", "")
