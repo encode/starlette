@@ -74,7 +74,7 @@ class ServerErrorMiddleware:
     If 'debug' is set, then traceback responses will be returned,
     otherwise the designated 'handler' will be called.
 
-    This middleware class should generally be used to wrap everything
+    This middleware class should generally be used to wrap *everything*
     else up, so that unhandled exceptions anywhere in the stack
     always result in an appropriate 500 response.
     """

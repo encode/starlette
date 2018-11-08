@@ -27,14 +27,14 @@ class ExceptionMiddleware:
 
     def add_exception_handler(
         self,
-        category: typing.Union[int, typing.Type[Exception]],
+        exc_class_or_status_code: typing.Union[int, typing.Type[Exception]],
         handler: typing.Callable,
     ) -> None:
-        if isinstance(category, int):
-            self._status_handlers[category] = handler
+        if isinstance(exc_class_or_status_code, int):
+            self._status_handlers[exc_class_or_status_code] = handler
         else:
-            assert issubclass(category, Exception)
-            self._exception_handlers[category] = handler
+            assert issubclass(exc_class_or_status_code, Exception)
+            self._exception_handlers[exc_class_or_status_code] = handler
 
     def _lookup_exception_handler(
         self, exc: Exception

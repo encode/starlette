@@ -53,13 +53,15 @@ class Starlette:
 
     def add_exception_handler(
         self,
-        category: typing.Union[int, typing.Type[Exception]],
+        exc_class_or_status_code: typing.Union[int, typing.Type[Exception]],
         handler: typing.Callable,
     ) -> None:
-        if category in (500, Exception):
+        if exc_class_or_status_code in (500, Exception):
             self.error_middleware.handler = handler
         else:
-            self.exception_middleware.add_exception_handler(category, handler)
+            self.exception_middleware.add_exception_handler(
+                exc_class_or_status_code, handler
+            )
 
     def add_event_handler(self, event_type: str, func: typing.Callable) -> None:
         self.lifespan_handler.add_event_handler(event_type, func)
@@ -77,10 +79,10 @@ class Starlette:
         self.router.add_websocket_route(path, route)
 
     def exception_handler(
-        self, category: typing.Union[int, typing.Type[Exception]]
+        self, exc_class_or_status_code: typing.Union[int, typing.Type[Exception]]
     ) -> typing.Callable:
         def decorator(func: typing.Callable) -> typing.Callable:
-            self.add_exception_handler(category, func)
+            self.add_exception_handler(exc_class_or_status_code, func)
             return func
 
         return decorator
