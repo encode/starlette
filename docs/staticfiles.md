@@ -1,5 +1,5 @@
 
-Starlette also includes a `StaticFiles` class for serving files in  a given directory:
+Starlette also includes a `StaticFiles` class for serving files in a given directory:
 
 ### StaticFiles
 
