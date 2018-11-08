@@ -3,6 +3,7 @@ import stat
 
 from aiofiles.os import stat as aio_stat
 
+from starlette.requests import Request
 from starlette.responses import FileResponse, PlainTextResponse, Response
 from starlette.types import ASGIInstance, Receive, Scope, Send
 
@@ -61,11 +62,11 @@ class _StaticFilesResponder:
             if not stat.S_ISREG(mode):
                 response = PlainTextResponse("Not Found", status_code=404)
             else:
-                send_header_only = self.scope["method"] == "HEAD"
+                request = Request(self.scope, receive)
                 response = FileResponse(
                     self.path,
                     stat_result=stat_result,
-                    send_header_only=send_header_only,
+                    method=request.method,
                 )
 
         await response(receive, send)

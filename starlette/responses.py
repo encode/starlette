@@ -207,13 +207,13 @@ class FileResponse(Response):
         background: BackgroundTask = None,
         filename: str = None,
         stat_result: os.stat_result = None,
-        send_header_only: bool = False,
+        method: str = None,
     ) -> None:
         assert aiofiles is not None, "'aiofiles' must be installed to use FileResponse"
         self.path = path
         self.status_code = 200
         self.filename = filename
-        self.send_header_only = send_header_only
+        self.send_header_only = method is not None and method.upper() == "HEAD"
         if media_type is None:
             media_type = guess_type(filename or path)[0] or "text/plain"
         self.media_type = media_type
