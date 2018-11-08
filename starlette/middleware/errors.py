@@ -1,6 +1,9 @@
+import asyncio
 import functools
 import traceback
+import typing
 
+from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, PlainTextResponse, Response
 from starlette.types import ASGIApp, ASGIInstance, Message, Receive, Scope, Send
@@ -64,9 +67,23 @@ class DebugGenerator:
         return "".join(traceback.format_tb(self.exc.__traceback__))
 
 
-class DebugMiddleware:
-    def __init__(self, app: ASGIApp, debug: bool = False) -> None:
+class ServerErrorMiddleware:
+    """
+    Handles returning 500 responses when a server error occurs.
+
+    If 'debug' is set, then traceback responses will be returned,
+    otherwise the designated 'handler' will be called.
+
+    This middleware class should generally be used to wrap everything
+    else up, so that unhandled exceptions anywhere in the stack
+    always result in an appropriate 500 response.
+    """
+
+    def __init__(
+        self, app: ASGIApp, handler: typing.Callable = None, debug: bool = False
+    ) -> None:
         self.app = app
+        self.handler = handler
         self.debug = debug
 
     def __call__(self, scope: Scope) -> ASGIInstance:
@@ -91,10 +108,23 @@ class DebugMiddleware:
             if not response_started:
                 request = Request(scope)
                 if self.debug:
+                    # In debug mode, return traceback responses.
                     response = self.debug_response(request, exc)
-                else:
+                elif self.handler is None:
+                    # Use our default 500 error handler.
                     response = self.error_response(request, exc)
+                else:
+                    # Use an installed 500 error handler.
+                    if asyncio.iscoroutinefunction(self.handler):
+                        response = await self.handler(request, exc)
+                    else:
+                        response = await run_in_threadpool(self.handler, request, exc)
+
                 await response(receive, send)
+
+            # We always continue to raise the exception.
+            # This allows servers to log the error, or allows test clients
+            # to optionally raise the error within the test case.
             raise exc from None
 
     def debug_response(self, request: Request, exc: Exception) -> Response:

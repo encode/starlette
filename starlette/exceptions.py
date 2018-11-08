@@ -17,17 +17,24 @@ class HTTPException(Exception):
 
 
 class ExceptionMiddleware:
-    def __init__(self, app: ASGIApp) -> None:
+    def __init__(self, app: ASGIApp, debug: bool = False) -> None:
         self.app = app
+        self.debug = debug  # TODO: We ought to handle 404 cases if debug is set.
+        self._status_handlers = {}  # type: typing.Dict[int, typing.Callable]
         self._exception_handlers = {
             HTTPException: self.http_exception
         }  # type: typing.Dict[typing.Type[Exception], typing.Callable]
 
     def add_exception_handler(
-        self, exc_class: typing.Type[Exception], handler: typing.Callable
+        self,
+        category: typing.Union[int, typing.Type[Exception]],
+        handler: typing.Callable,
     ) -> None:
-        assert issubclass(exc_class, Exception)
-        self._exception_handlers[exc_class] = handler
+        if isinstance(category, int):
+            self._status_handlers[category] = handler
+        else:
+            assert issubclass(category, Exception)
+            self._exception_handlers[category] = handler
 
     def _lookup_exception_handler(
         self, exc: Exception
@@ -55,9 +62,13 @@ class ExceptionMiddleware:
                 instance = self.app(scope)
                 await instance(receive, sender)
             except Exception as exc:
-                # Exception handling is applied to any registed exception
-                # class or subclass that occurs within the application.
-                handler = self._lookup_exception_handler(exc)
+                handler = None
+
+                if isinstance(exc, HTTPException):
+                    handler = self._status_handlers.get(exc.status_code)
+
+                if handler is None:
+                    handler = self._lookup_exception_handler(exc)
 
                 if handler is None:
                     raise exc from None
