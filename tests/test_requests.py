@@ -1,7 +1,9 @@
 import asyncio
+import inspect
 
 import pytest
 
+from starlette.applications import Starlette
 from starlette.requests import ClientDisconnect, Request
 from starlette.responses import JSONResponse, Response
 from starlette.testclient import TestClient
@@ -155,7 +157,10 @@ def test_request_json():
         async def asgi(receive, send):
             request = Request(scope, receive)
             data = await request.json()
-            response = JSONResponse({"json": data})
+            if isinstance(data, dict):
+                response = JSONResponse({"json": data})
+            else:
+                response = data
             await response(receive, send)
 
         return asgi
@@ -163,6 +168,25 @@ def test_request_json():
     client = TestClient(app)
     response = client.post("/", json={"a": "123"})
     assert response.json() == {"json": {"a": "123"}}
+
+    # Test when json body is empty
+    response = client.post("/")
+    assert response.text == "Bad Request"
+    assert response.status_code == 400
+
+
+def test_request_json_empty_inside_starlette_app():
+    app = Starlette()
+
+    @app.route("/", methods=["POST"])
+    async def get_json(request):
+        data = await request.json()
+        return JSONResponse({"data": data})
+
+    client = TestClient(app)
+    response = client.post("/")
+    assert response.text == "Bad Request"
+    assert response.status_code == 400
 
 
 def test_request_scope_interface():
