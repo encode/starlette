@@ -180,7 +180,7 @@ def test_request_json_empty_inside_starlette_app():
     @app.route("/", methods=["POST"])
     async def get_json(request):
         data = await request.json()
-        return JSONResponse({"data": data})
+        return JSONResponse({"data": data})  # pragma: no cover
 
     client = TestClient(app)
     response = client.post("/")
