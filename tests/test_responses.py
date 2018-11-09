@@ -243,3 +243,19 @@ def test_delete_cookie():
     assert response.cookies["mycookie"]
     response = client.get("/")
     assert not response.cookies.get("mycookie")
+
+
+def test_204_and_1XX_response_has_no_content_length():
+    def app(scope):
+        return Response(b"", status_code=204)
+
+    client = TestClient(app)
+    response = client.get("/")
+    assert "content-length" not in response.headers
+
+    def app(scope):
+        return Response(b"", status_code=100)
+
+    client = TestClient(app)
+    response = client.get("/")
+    assert "content-length" not in response.headers

@@ -66,6 +66,14 @@ class Response:
             populate_content_length = b"content-length" in keys
             populate_content_type = b"content-type" in keys
 
+        # RFC 7230: "a server MUST NOT send a Content-Length header field in any
+        # response with a status code of 1xx (Informational) or 204 (No Content)."
+        populate_content_length = (
+            populate_content_length
+            and self.status_code >= 200
+            and self.status_code != 204
+        )
+
         body = getattr(self, "body", b"")
         if body and populate_content_length:
             content_length = str(len(body))
