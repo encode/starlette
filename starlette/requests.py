@@ -126,9 +126,10 @@ class Request(Mapping):
     async def json(self) -> typing.Any:
         if not hasattr(self, "_json"):
             body = await self.body()
-            if body is b'':
+            if body is b"":
                 if "app" in self._scope:
                     from starlette.exceptions import HTTPException
+
                     raise HTTPException(status_code=400)
                 return PlainTextResponse("Bad Request", status_code=400)
             self._json = json.loads(body)
