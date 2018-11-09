@@ -31,7 +31,7 @@ class Response:
 
     def __init__(
         self,
-        content: typing.Any,
+        content: typing.Any = b"",
         status_code: int = 200,
         headers: dict = None,
         media_type: str = None,
