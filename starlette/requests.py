@@ -6,6 +6,7 @@ from urllib.parse import unquote
 
 from starlette.datastructures import URL, Headers, QueryParams
 from starlette.formparsers import FormParser, MultiPartParser
+from starlette.responses import PlainTextResponse
 from starlette.types import Message, Receive, Scope
 
 try:
@@ -125,6 +126,11 @@ class Request(Mapping):
     async def json(self) -> typing.Any:
         if not hasattr(self, "_json"):
             body = await self.body()
+            if body is b'':
+                if "app" in self._scope:
+                    from starlette.exceptions import HTTPException
+                    raise HTTPException(status_code=400)
+                return PlainTextResponse("Bad Request", status_code=400)
             self._json = json.loads(body)
         return self._json
 
