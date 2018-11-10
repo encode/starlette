@@ -1,6 +1,6 @@
 import os
 import stat
-from email.utils import jarsedate_to_datetime
+from email.utils import parsedate
 
 from aiofiles.os import stat as aio_stat
 
@@ -69,7 +69,7 @@ class _StaticFilesResponder:
         if "if-modified-since" not in req_headers:
             return False
         last_req_time = req_headers["if-modified-since"]
-        return jarsedate_to_datetime(last_req_time) >= jarsedate_to_datetime(
+        return parsedate(last_req_time) >= parsedate(
             resp_headers["last-modified"]
         )
 
