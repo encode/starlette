@@ -6,7 +6,7 @@ from starlette import status
 from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
-from starlette.responses import PlainTextResponse, Response
+from starlette.responses import HTMLResponse, PlainTextResponse, Response
 from starlette.types import Message, Receive, Scope, Send
 from starlette.websockets import WebSocket
 
@@ -105,3 +105,20 @@ class WebSocketEndpoint:
 
     async def on_disconnect(self, websocket: WebSocket, close_code: int) -> None:
         """Override to handle a disconnecting websocket"""
+
+
+class TemplateEndpoint(HTTPEndpoint):
+
+    template_name = None
+    response_class = HTMLResponse
+
+    def get_context(self, request: Request) -> dict:
+        """Override to modify the template context"""
+        context = {"request": request}
+        return context
+
+    def get(self, request: Request) -> HTMLResponse:
+        template = self.scope["app"].get_template(self.template_name)
+        context = self.get_context(request)
+        content = template.render(**context)
+        return self.response_class(content)
