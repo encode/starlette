@@ -64,11 +64,9 @@ class _StaticFilesResponder:
     def is_not_modified(self, response: FileResponse) -> bool:
         req_headers = Request(self.scope).headers
         resp_headers = response.headers
-        if resp_headers["etag"] == req_headers.get("http-if-none-match"):
-            print("etag match")
+        if resp_headers["etag"] == req_headers.get("if-none-match"):
             return True
         if "if-modified-since" not in req_headers:
-            print("not modified not exist")
             return False
         last_req_time = req_headers["if-modified-since"]
         return jarsedate_to_datetime(last_req_time) >= jarsedate_to_datetime(
