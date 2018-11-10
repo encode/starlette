@@ -69,7 +69,7 @@ class _StaticFilesResponder:
         if "if-modified-since" not in req_headers:
             return False
         last_req_time = req_headers["if-modified-since"]
-        return parsedate(last_req_time) >= parsedate(
+        return parsedate(last_req_time) >= parsedate(  # type: ignore
             resp_headers["last-modified"]
         )
 
