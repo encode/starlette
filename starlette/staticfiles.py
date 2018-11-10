@@ -1,10 +1,21 @@
 import os
 import stat
+from email.utils import jarsedate_to_datetime
 
 from aiofiles.os import stat as aio_stat
 
+from starlette.requests import Request
 from starlette.responses import FileResponse, PlainTextResponse, Response
 from starlette.types import ASGIInstance, Receive, Scope, Send
+
+NOT_MODIFIED_HEADERS = (
+    "cache-control",
+    "content-location",
+    "date",
+    "etag",
+    "expires",
+    "vary",
+)
 
 
 class StaticFiles:
@@ -50,6 +61,28 @@ class _StaticFilesResponder:
         if not (stat.S_ISDIR(stat_result.st_mode) or stat.S_ISLNK(stat_result.st_mode)):
             raise RuntimeError("StaticFiles path '%s' is not a directory." % directory)
 
+    def is_not_modified(self, response: FileResponse) -> bool:
+        req_headers = Request(self.scope).headers
+        resp_headers = response.headers
+        if resp_headers["etag"] == req_headers.get("http-if-none-match"):
+            print("etag match")
+            return True
+        if "if-modified-since" not in req_headers:
+            print("not modified not exist")
+            return False
+        last_req_time = req_headers["if-modified-since"]
+        return jarsedate_to_datetime(last_req_time) >= jarsedate_to_datetime(
+            resp_headers["last-modified"]
+        )
+
+    def not_modified_response(self, response: FileResponse) -> Response:
+        headers = {
+            name: value
+            for name, value in response.headers.items()
+            if name in NOT_MODIFIED_HEADERS
+        }
+        return Response(status_code=304, headers=headers)
+
     async def __call__(self, receive: Receive, send: Send) -> None:
         if self.check_directory is not None:
             await self.check_directory_configured_correctly()
@@ -66,5 +99,7 @@ class _StaticFilesResponder:
                 response = FileResponse(
                     self.path, stat_result=stat_result, method=self.scope["method"]
                 )
+                if self.is_not_modified(response):
+                    response = self.not_modified_response(response)
 
         await response(receive, send)
