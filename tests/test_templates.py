@@ -29,6 +29,7 @@ def test_templates(tmpdir):
 
     client = TestClient(app)
     response = client.get("/")
+
     assert response.text == "<html>Hello, <a href='http://testserver/'>world</a></html>"
 
 
@@ -46,6 +47,8 @@ def test_template_endpoint(tmpdir):
 
     client = TestClient(app)
     response = client.get("/")
+    # assert response.template == "index.html"
+    # assert "request" in response.context
     assert response.text == "<html>Hello, <a href='http://testserver/'>world</a></html>"
 
 
@@ -67,4 +70,7 @@ def test_template_endpoint_context(tmpdir):
 
     client = TestClient(app)
     response = client.get("/users/tomchristie")
+    # assert response.template == "index.html"
+    # assert "request" in response.context
+    # assert "greeting" in response.context
     assert response.text == "<html>Hello, tomchristie.</html>"

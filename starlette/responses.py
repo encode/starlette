@@ -36,15 +36,20 @@ class Response:
         headers: dict = None,
         media_type: str = None,
         background: BackgroundTask = None,
+        template: str = None,
+        context: dict = {},
     ) -> None:
         if content is None:
             self.body = b""
         else:
             self.body = self.render(content)
+
         self.status_code = status_code
         if media_type is not None:
             self.media_type = media_type
         self.background = background
+        self.template = template
+        self.context = context
         self.init_headers(headers)
 
     def render(self, content: typing.Any) -> bytes:

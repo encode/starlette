@@ -8,6 +8,7 @@ from starlette.middleware.errors import ServerErrorMiddleware
 from starlette.routing import BaseRoute, Router
 from starlette.schemas import BaseSchemaGenerator
 from starlette.types import ASGIApp, ASGIInstance, Scope
+from starlette.responses import HTMLResponse
 
 
 class Starlette:
@@ -55,6 +56,11 @@ class Starlette:
 
     def get_template(self, name: str) -> typing.Any:
         return self.template_env.get_template(name)
+
+    def render_response(self, name: str, context: dict, response_class=HTMLResponse):
+        template = self.get_template(name)
+        content = template.render(**context)
+        return response_class(content, template=name, context=context.keys())
 
     @property
     def schema(self) -> dict:

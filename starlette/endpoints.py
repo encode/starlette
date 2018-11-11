@@ -118,7 +118,7 @@ class TemplateEndpoint(HTTPEndpoint):
         return context
 
     def get(self, request: Request) -> HTMLResponse:
-        template = self.scope["app"].get_template(self.template_name)
         context = self.get_context(request)
-        content = template.render(**context)
-        return self.response_class(content)
+        return self.scope["app"].render_response(
+            self.template_name, context, response_class=self.response_class
+        )
