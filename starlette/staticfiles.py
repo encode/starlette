@@ -1,5 +1,6 @@
 import os
 import stat
+import typing
 from email.utils import parsedate
 
 from aiofiles.os import stat as aio_stat
@@ -61,7 +62,7 @@ class _StaticFilesResponder:
         if not (stat.S_ISDIR(stat_result.st_mode) or stat.S_ISLNK(stat_result.st_mode)):
             raise RuntimeError("StaticFiles path '%s' is not a directory." % directory)
 
-    def is_not_modified(self, stat_headers) -> bool:
+    def is_not_modified(self, stat_headers: typing.Dict[str, str]) -> bool:
         etag = stat_headers["etag"]
         last_modified = stat_headers["last-modified"]
         req_headers = Headers(scope=self.scope)
