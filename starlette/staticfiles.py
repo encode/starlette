@@ -1,10 +1,10 @@
 import os
 import stat
-from email.utils import parsedate
+from email.utils import parsedate, formatdate
 
 from aiofiles.os import stat as aio_stat
 
-from starlette.requests import Request
+from starlette.datastructures import Headers
 from starlette.responses import FileResponse, PlainTextResponse, Response
 from starlette.types import ASGIInstance, Receive, Scope, Send
 
@@ -61,22 +61,21 @@ class _StaticFilesResponder:
         if not (stat.S_ISDIR(stat_result.st_mode) or stat.S_ISLNK(stat_result.st_mode)):
             raise RuntimeError("StaticFiles path '%s' is not a directory." % directory)
 
-    def is_not_modified(self, response: FileResponse) -> bool:
-        req_headers = Request(self.scope).headers
-        resp_headers = response.headers
-        if resp_headers["etag"] == req_headers.get("if-none-match"):
+    def is_not_modified(self, stat_headers) -> bool:
+        etag = stat_headers["etag"]
+        last_modified = stat_headers["last-modified"]
+        req_headers = Headers(scope=self.scope)
+        if etag == req_headers.get("if-none-match"):
             return True
         if "if-modified-since" not in req_headers:
             return False
         last_req_time = req_headers["if-modified-since"]
-        return parsedate(last_req_time) >= parsedate(  # type: ignore
-            resp_headers["last-modified"]
-        )
+        return parsedate(last_req_time) >= parsedate(last_modified)  # type: ignore
 
-    def not_modified_response(self, response: FileResponse) -> Response:
+    def not_modified_response(self, stat_headers: dict) -> Response:
         headers = {
             name: value
-            for name, value in response.headers.items()
+            for name, value in stat_headers.items()
             if name in NOT_MODIFIED_HEADERS
         }
         return Response(status_code=304, headers=headers)
@@ -87,6 +86,7 @@ class _StaticFilesResponder:
 
         try:
             stat_result = await aio_stat(self.path)
+            print(stat_result)
         except FileNotFoundError:
             response = PlainTextResponse("Not Found", status_code=404)  # type: Response
         else:
@@ -94,10 +94,12 @@ class _StaticFilesResponder:
             if not stat.S_ISREG(mode):
                 response = PlainTextResponse("Not Found", status_code=404)
             else:
-                response = FileResponse(
-                    self.path, stat_result=stat_result, method=self.scope["method"]
-                )
-                if self.is_not_modified(response):
-                    response = self.not_modified_response(response)
+                stat_headers = FileResponse.get_stat_headers(stat_result)
+                if self.is_not_modified(stat_headers):
+                    response = self.not_modified_response(stat_headers)
+                else:
+                    response = FileResponse(
+                        self.path, stat_result=stat_result, method=self.scope["method"]
+                    )
 
         await response(receive, send)
