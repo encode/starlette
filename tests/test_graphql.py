@@ -1,3 +1,5 @@
+import os
+
 import graphene
 from graphql.execution.executors.asyncio import AsyncioExecutor
 
@@ -5,13 +7,11 @@ from starlette.applications import Starlette
 from starlette.graphql import GraphQLApp
 from starlette.testclient import TestClient
 
-
 class Query(graphene.ObjectType):
     hello = graphene.String(name=graphene.String(default_value="stranger"))
 
     def resolve_hello(self, info, name):
         return "Hello " + name
-
 
 schema = graphene.Schema(query=Query)
 app = GraphQLApp(schema=schema)
@@ -107,3 +107,45 @@ def test_graphql_async():
     response = client.get("/?query={ hello }")
     assert response.status_code == 200
     assert response.json() == {"data": {"hello": "Hello stranger"}, "errors": None}
+
+class Upload(graphene.types.Scalar):
+    @staticmethod
+    def serialize(value):
+        return value
+
+    @staticmethod
+    def parse_literal(node):
+        return node
+
+    @staticmethod
+    def parse_value(value):
+        return value
+
+class UploadMutation(graphene.Mutation):
+    class Arguments:
+        file = Upload(required=True)
+
+    success = graphene.Boolean()
+    content = graphene.String()
+
+    async def mutate(self, info, file):
+        return UploadMutation(content=str(file, 'utf-8'), success=True)
+
+class Mutation(graphene.ObjectType):
+    uploadMutation = UploadMutation.Field()
+
+upload_app = GraphQLApp(schema=graphene.Schema(mutation=Mutation), executor=AsyncioExecutor())
+
+def test_upload_graphql(tmpdir):
+    path = os.path.join(tmpdir, "test.txt")
+    with open(path, "wb") as file:
+        file.write(b"<file content>")
+    
+    client = TestClient(upload_app)
+    response = client.post("/", data={
+        "variables": '{ "file": ""}',
+        "query"    : 'mutation ($file: Upload!) { uploadMutation(file: $file) { success content } }',
+        "file_map" : '{ "file0": "file" }',
+    }, files = {"file0" : open(path, "rb")})
+    assert response.status_code == 200
+    assert response.json() == {'data': {'uploadMutation': {'content': '<file content>', 'success': True}},'errors': None}
