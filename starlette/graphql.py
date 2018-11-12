@@ -52,6 +52,17 @@ class GraphQLApp:
                 data = {"query": text}
             elif "query" in request.query_params:
                 data = request.query_params
+            elif "multipart/form-data" in content_type:
+                form = await request.form()
+                data = {}
+                file_map = json.loads(form["file_map"])
+                data = {"query": form["query"] }
+                variables = json.loads(form["variables"])
+                
+                for key, path in file_map.items():
+                    variables[path] = await form[key].read()
+                    
+                data["variables"] = variables
             else:
                 return PlainTextResponse(
                     "Unsupported Media Type",
