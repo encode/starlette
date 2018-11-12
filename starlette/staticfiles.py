@@ -1,6 +1,6 @@
 import os
 import stat
-from email.utils import parsedate, formatdate
+from email.utils import parsedate
 
 from aiofiles.os import stat as aio_stat
 
@@ -86,7 +86,6 @@ class _StaticFilesResponder:
 
         try:
             stat_result = await aio_stat(self.path)
-            print(stat_result)
         except FileNotFoundError:
             response = PlainTextResponse("Not Found", status_code=404)  # type: Response
         else:
