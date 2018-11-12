@@ -238,7 +238,7 @@ class FileResponse(Response):
         return {
             "content-length": content_length,
             "last-modified": last_modified,
-            "etag": etag
+            "etag": etag,
         }
 
     def set_stat_headers(self, stat_result: os.stat_result) -> None:
