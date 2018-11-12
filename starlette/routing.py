@@ -5,6 +5,7 @@ import typing
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
 
+from starlette import converters
 from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import URL, URLPath
 from starlette.exceptions import HTTPException
@@ -82,6 +83,19 @@ def replace_params(
     return path, path_params
 
 
+def convert_params(
+    types: typing.List[str], path_params: typing.Dict[str, str]
+) -> typing.Dict[str, typing.Any]:
+    for name, param in zip(types, path_params.keys()):
+        if name == "path":
+            continue
+        converter = getattr(converters, name.title() + "Converter", None)
+        assert converter is not None, "Cannot type coerce to '%s'" % name
+        convert = getattr(converter(), "convert")
+        path_params[param] = convert(path_params[param])
+    return path_params
+
+
 class BaseRoute:
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         raise NotImplementedError()  # pragma: no cover
@@ -108,6 +122,7 @@ class Route(BaseRoute):
         self.endpoint = endpoint
         self.name = get_name(endpoint) if name is None else name
         self.include_in_schema = include_in_schema
+        self.types = None
 
         if inspect.isfunction(endpoint) or inspect.ismethod(endpoint):
             # Endpoint is function or method. Treat it as `func(request) -> response`.
@@ -117,10 +132,23 @@ class Route(BaseRoute):
         else:
             # Endpoint is a class. Treat it as ASGI.
             self.app = endpoint
-
         self.methods = methods
-        regex = "^" + path + "$"
-        regex = re.sub("{([a-zA-Z_][a-zA-Z0-9_]*)}", r"(?P<\1>[^/]+)", regex)
+
+        if ":" in path:
+            # If we need to type coerce, find and parse all types out of the path.
+            pattern = r"(:[^{}]*)"
+            types = re.findall(pattern, path)
+            self.types = [t.strip(":") for t in types]
+            self.path = re.sub(pattern, "", path)
+
+        if self.types is not None and "path" in self.types:
+            # Type converter is 'path'. Allow slashes to be used in parameter.
+            pattern = r"(?P<\1>.*?)"
+        else:
+            pattern = r"(?P<\1>[^/]+)"
+
+        regex = "^" + self.path + "$"
+        regex = re.sub("{([a-zA-Z_][a-zA-Z0-9_]*)}", pattern, regex)
         self.path_regex = re.compile(regex)
         self.param_names = set(self.path_regex.groupindex.keys())
 
@@ -130,6 +158,9 @@ class Route(BaseRoute):
             if match:
                 path_params = dict(scope.get("path_params", {}))
                 path_params.update(match.groupdict())
+                if self.types is not None:
+                    path_params = convert_params(self.types, path_params)
+
                 child_scope = {"endpoint": self.endpoint, "path_params": path_params}
                 if self.methods and scope["method"] not in self.methods:
                     return Match.PARTIAL, child_scope
@@ -168,6 +199,7 @@ class WebSocketRoute(BaseRoute):
         self.path = path
         self.endpoint = endpoint
         self.name = get_name(endpoint) if name is None else name
+        self.types = None
 
         if inspect.isfunction(endpoint) or inspect.ismethod(endpoint):
             # Endpoint is function or method. Treat it as `func(websocket)`.
@@ -176,8 +208,21 @@ class WebSocketRoute(BaseRoute):
             # Endpoint is a class. Treat it as ASGI.
             self.app = endpoint
 
-        regex = "^" + path + "$"
-        regex = re.sub("{([a-zA-Z_][a-zA-Z0-9_]*)}", r"(?P<\1>[^/]+)", regex)
+        if ":" in path:
+            # If we need to type coerce, find and parse all types out of the path.
+            pattern = r"(:[^{}]*)"
+            types = re.findall(pattern, path)
+            self.types = [t.strip(":") for t in types]
+            self.path = re.sub(pattern, "", path)
+
+        if self.types is not None and "path" in self.types:
+            # Type converter is 'path'. Allow slashes to be used in parameter.
+            pattern = r"(?P<\1>.*?)"
+        else:
+            pattern = r"(?P<\1>[^/]+)"
+
+        regex = "^" + self.path + "$"
+        regex = re.sub("{([a-zA-Z_][a-zA-Z0-9_]*)}", pattern, regex)
         self.path_regex = re.compile(regex)
         self.param_names = set(self.path_regex.groupindex.keys())
 
@@ -187,6 +232,9 @@ class WebSocketRoute(BaseRoute):
             if match:
                 path_params = dict(scope.get("path_params", {}))
                 path_params.update(match.groupdict())
+                if self.types is not None:
+                    path_params = convert_params(self.types, path_params)
+
                 child_scope = {"endpoint": self.endpoint, "path_params": path_params}
                 return Match.FULL, child_scope
         return Match.NONE, {}
