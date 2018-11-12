@@ -1,7 +1,8 @@
 import pytest
 
+from starlette.converters import ValidationError
 from starlette.exceptions import ExceptionMiddleware
-from starlette.responses import PlainTextResponse, Response
+from starlette.responses import JSONResponse, PlainTextResponse, Response
 from starlette.routing import Mount, NoMatchFound, Route, Router, WebSocketRoute
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocket, WebSocketDisconnect
@@ -48,6 +49,24 @@ def contact(request):
     return Response("Hello, POST!", media_type="text/plain")
 
 
+@app.route("/integer/{number:int}")
+def func1(request):
+    number = request.path_params["number"]
+    return JSONResponse({"integer": number})
+
+
+@app.route("/float/{number:float}")
+def func2(request):
+    num = request.path_params["number"]
+    return JSONResponse({"float": num})
+
+
+@app.route("/get/{param:path}")
+def func3(request):
+    param = request.path_params["param"]
+    return JSONResponse({"param": param})
+
+
 @app.websocket_route("/ws")
 async def websocket_endpoint(session):
     await session.accept()
@@ -59,6 +78,30 @@ async def websocket_endpoint(session):
 async def websocket_params(session):
     await session.accept()
     await session.send_text("Hello, %s!" % session.path_params["room"])
+    await session.close()
+
+
+@app.websocket_route("/ws/integer/{integer:int}")
+async def websocket_integer(session):
+    number = session.path_params["integer"]
+    await session.accept()
+    await session.send_json(number)
+    await session.close()
+
+
+@app.websocket_route("/ws/float/{number:float}")
+async def websocket_float(session):
+    number = session.path_params["number"]
+    await session.accept()
+    await session.send_json(number)
+    await session.close()
+
+
+@app.websocket_route("/ws/path/{param:path}")
+async def websocket_path(session):
+    param = session.path_params["param"]
+    await session.accept()
+    await session.send_text(param)
     await session.close()
 
 
@@ -89,6 +132,50 @@ def test_router():
     response = client.get("/static/123")
     assert response.status_code == 200
     assert response.text == "xxxxx"
+
+
+def test_route_converters():
+    # Test integer conversion
+    response = client.get("integer/5")
+    data = response.json()["integer"]
+    assert response.status_code == 200
+    assert isinstance(data, int)
+
+    # Test float conversion
+    response = client.get("float/25.5")
+    data = response.json()["float"]
+    assert response.status_code == 200
+    assert isinstance(data, float)
+
+    # Test path conversion
+    response = client.get("get/hello/3/5/bye")
+    data = response.json()["param"]
+    assert response.status_code == 200
+    assert data == "hello/3/5/bye"
+
+
+def test_websocket_route_converters():
+    with client.websocket_connect("/ws/integer/25") as session:
+        number = session.receive_json()
+        assert isinstance(number, int)
+
+    with client.websocket_connect("/ws/float/1.5") as session:
+        number = session.receive_json()
+        assert isinstance(number, float)
+
+    with client.websocket_connect("/ws/path/home/3/2/1") as session:
+        text = session.receive_text()
+        assert text == "home/3/2/1"
+
+
+def test_route_converter_validation_error():
+    with pytest.raises(ValidationError) as exc:
+        response = client.get("integer/a")
+    assert "failed to convert" in str(exc)
+
+    with pytest.raises(ValidationError) as exc:
+        response = client.get("float/a")
+    assert "failed to convert" in str(exc)
 
 
 def test_url_path_for():
