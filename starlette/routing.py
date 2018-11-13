@@ -137,9 +137,11 @@ class Route(BaseRoute):
         if ":" in path:
             # If we need to type coerce, find and parse all types out of the path.
             pattern = r"(:[^{}]*)"
-            types = re.findall(pattern, path)
-            self.types = [t.strip(":") for t in types]
-            self.path = re.sub(pattern, "", path)
+            matches = re.findall(pattern, path)
+            types = [match.strip(":") for match in matches]
+            if "" not in types:
+                self.types = types
+                self.path = re.sub(pattern, "", path)
 
         if self.types is not None and "path" in self.types:
             # Type converter is 'path'. Allow slashes to be used in parameter.
