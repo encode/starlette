@@ -55,6 +55,18 @@ def test_staticfiles_with_missing_file_returns_404(tmpdir):
     assert response.text == "Not Found"
 
 
+def test_staticfiles_with_serve_index_html_and_missing_file(tmpdir):
+    path = os.path.join(tmpdir, "index.html")
+    with open(path, "w") as file:
+        file.write("<h1>Success</h1>")
+
+    app = StaticFiles(directory=tmpdir, serve_index_html=True)
+    client = TestClient(app)
+    response = client.get("/")
+    assert response.status_code == 200
+    assert response.text == "<h1>Success</h1>"
+
+
 def test_staticfiles_instantiated_with_missing_directory(tmpdir):
     with pytest.raises(RuntimeError) as exc:
         path = os.path.join(tmpdir, "no_such_directory")

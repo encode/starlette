@@ -20,10 +20,13 @@ NOT_MODIFIED_HEADERS = (
 
 
 class StaticFiles:
-    def __init__(self, *, directory: str, check_dir: bool = True) -> None:
+    def __init__(
+        self, *, directory: str, check_dir: bool = True, serve_index_html: bool = False
+    ) -> None:
         if check_dir and not os.path.isdir(directory):
             raise RuntimeError("Directory '%s' does not exist" % directory)
         self.directory = directory
+        self.serve_index_html = serve_index_html
         self.config_checked = False
 
     def __call__(self, scope: Scope) -> ASGIInstance:
@@ -39,14 +42,26 @@ class StaticFiles:
         else:
             check_directory = self.directory
             self.config_checked = True
-        return _StaticFilesResponder(scope, path=path, check_directory=check_directory)
+        return _StaticFilesResponder(
+            scope,
+            path=path,
+            check_directory=check_directory,
+            serve_index_html=self.serve_index_html,
+        )
 
 
 class _StaticFilesResponder:
-    def __init__(self, scope: Scope, path: str, check_directory: str = None) -> None:
+    def __init__(
+        self,
+        scope: Scope,
+        path: str,
+        check_directory: str = None,
+        serve_index_html: bool = False,
+    ) -> None:
         self.scope = scope
         self.path = path
         self.check_directory = check_directory
+        self.serve_index_html = serve_index_html
 
     async def check_directory_configured_correctly(self) -> None:
         """
@@ -84,6 +99,10 @@ class _StaticFilesResponder:
     async def __call__(self, receive: Receive, send: Send) -> None:
         if self.check_directory is not None:
             await self.check_directory_configured_correctly()
+
+        (head, tail) = os.path.split(self.path)
+        if self.serve_index_html and tail == ".":
+            self.path = os.path.join(head, "index.html")
 
         try:
             stat_result = await aio_stat(self.path)
