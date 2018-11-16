@@ -48,19 +48,19 @@ def contact(request):
     return Response("Hello, POST!", media_type="text/plain")
 
 
-@app.route("/int/{number:int}")
+@app.route("/int/{param:int}", name="int-convertor")
 def int_convertor(request):
-    number = request.path_params["number"]
+    number = request.path_params["param"]
     return JSONResponse({"int": number})
 
 
-@app.route("/float/{number:float}")
+@app.route("/float/{param:float}", name="float-convertor")
 def float_convertor(request):
-    num = request.path_params["number"]
+    num = request.path_params["param"]
     return JSONResponse({"float": num})
 
 
-@app.route("/path/{param:path}")
+@app.route("/path/{param:path}", name="path-convertor")
 def path_convertor(request):
     path = request.path_params["param"]
     return JSONResponse({"path": path})
@@ -111,19 +111,24 @@ def test_router():
 
 def test_route_converters():
     # Test integer conversion
-    response = client.get("int/5")
+    response = client.get("/int/5")
     assert response.status_code == 200
     assert response.json() == {"int": 5}
+    assert app.url_path_for("int-convertor", param=5) == "/int/5"
 
     # Test float conversion
-    response = client.get("float/25.5")
+    response = client.get("/float/25.5")
     assert response.status_code == 200
     assert response.json() == {"float": 25.5}
+    assert app.url_path_for("float-convertor", param=25.5) == "/float/25.5"
 
     # Test path conversion
-    response = client.get("path/some/example")
+    response = client.get("/path/some/example")
     assert response.status_code == 200
     assert response.json() == {"path": "some/example"}
+    assert (
+        app.url_path_for("path-convertor", param="some/example") == "/path/some/example"
+    )
 
 
 def test_url_path_for():
@@ -132,6 +137,10 @@ def test_url_path_for():
     assert app.url_path_for("websocket_endpoint") == "/ws"
     with pytest.raises(NoMatchFound):
         assert app.url_path_for("broken")
+    with pytest.raises(AssertionError):
+        app.url_path_for("user", username="tom/christie")
+    with pytest.raises(AssertionError):
+        app.url_path_for("user", username="")
 
 
 def test_url_for():
