@@ -60,7 +60,7 @@ class Starlette:
     def render_response(self, name: str, context: dict, response_class=HTMLResponse):
         template = self.get_template(name)
         content = template.render(**context)
-        return response_class(content, template=name, context=context.keys())
+        return response_class(content, template=name, context=context)
 
     @property
     def schema(self) -> dict:
