@@ -1,11 +1,25 @@
 from starlette.applications import Starlette
-from starlette.lifespan import LifespanContext, LifespanHandler
+from starlette.lifespan import LifespanContext, LifespanMiddleware
+
+
+class App:
+    def __init__(self, scope):
+        pass
+
+    async def __call__(self, receive, send):
+        message = await receive()
+        assert message["type"] == "lifespan.startup"
+        await send({'type': 'lifespan.startup.complete'})
+
+        message = await receive()
+        assert message['type']
+        await send({'type': 'lifespan.shutdown.complete'})
 
 
 def test_lifespan_handler():
     startup_complete = False
     cleanup_complete = False
-    handler = LifespanHandler()
+    handler = LifespanMiddleware(App)
 
     @handler.on_event("startup")
     def run_startup():
@@ -29,7 +43,7 @@ def test_lifespan_handler():
 def test_async_lifespan_handler():
     startup_complete = False
     cleanup_complete = False
-    handler = LifespanHandler()
+    handler = LifespanMiddleware(App)
 
     @handler.on_event("startup")
     async def run_startup():

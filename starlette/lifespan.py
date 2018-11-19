@@ -39,16 +39,16 @@ class LifespanMiddleware:
 
 class LifespanHandle:
     def __init__(self, app, scope, startup_handlers, shutdown_handlers):
-        # self.inner = app(scope)
+        self.inner = app(scope)
         self.startup_handlers = startup_handlers
         self.shutdown_handlers = shutdown_handlers
         self.send_buffer = asyncio.Queue()
         self.receive_buffer = asyncio.Queue()
 
     async def __call__(self, receive, send):
-        # inner_task = asyncio.create_task(
-        #     self.inner(self.receive_buffer.get, self.send_buffer.put)
-        # )
+        inner_task = asyncio.create_task(
+            self.inner(self.receive_buffer.get, self.send_buffer.put)
+        )
         try:
             # Handle our own startup.
             message = await receive()
@@ -56,11 +56,10 @@ class LifespanHandle:
             await self.startup()
 
             # Pass the message on to the next in the chain, and wait for the response.
-            # self.receive_buffer.put(message)
-            # message = await self.send_buffer.get()
-            message = {"type": "lifespan.startup.complete"}
+            await self.receive_buffer.put(message)
+            message = await self.send_buffer.get()
             assert message["type"] == "lifespan.startup.complete"
-            await send(message)
+            await send({"type": "lifespan.startup.complete"})
 
             # Handle our own shutdown.
             message = await receive()
@@ -68,14 +67,12 @@ class LifespanHandle:
             await self.shutdown()
 
             # Pass the message on to the next in the chain, and wait for the response.
-            # self.receive_buffer.put(message)
-            # message = await self.send_buffer.get()
-            message = {"type": "lifespan.shutdown.complete"}
+            await self.receive_buffer.put(message)
+            message = await self.send_buffer.get()
             assert message["type"] == "lifespan.shutdown.complete"
-            await send(message)
+            await send({"type": "lifespan.shutdown.complete"})
         finally:
-            pass
-            #await inner_task
+            await inner_task
 
     async def startup(self):
         for handler in self.startup_handlers:
@@ -90,56 +87,6 @@ class LifespanHandle:
                 await handler()
             else:
                 handler()
-
-
-class LifespanHandler:
-    def __init__(self) -> None:
-        self.startup_handlers = []  # type: typing.List[typing.Callable]
-        self.shutdown_handlers = []  # type: typing.List[typing.Callable]
-
-    def on_event(self, event_type: str) -> typing.Callable:
-        def decorator(func: typing.Callable) -> typing.Callable:
-            self.add_event_handler(event_type, func)
-            return func
-
-        return decorator
-
-    def add_event_handler(self, event_type: str, func: typing.Callable) -> None:
-        assert event_type in ("startup", "shutdown")
-
-        if event_type == "startup":
-            self.startup_handlers.append(func)
-        else:
-            assert event_type == "shutdown"
-            self.shutdown_handlers.append(func)
-
-    async def run_startup(self) -> None:
-        for handler in self.startup_handlers:
-            if asyncio.iscoroutinefunction(handler):
-                await handler()
-            else:
-                handler()
-
-    async def run_shutdown(self) -> None:
-        for handler in self.shutdown_handlers:
-            if asyncio.iscoroutinefunction(handler):
-                await handler()
-            else:
-                handler()
-
-    def __call__(self, scope: Message) -> ASGIInstance:
-        assert scope["type"] == "lifespan"
-        return self.run_lifespan
-
-    async def run_lifespan(self, receive: Receive, send: Send) -> None:
-        message = await receive()
-        assert message["type"] == "lifespan.startup"
-        await self.run_startup()
-        await send({"type": "lifespan.startup.complete"})
-        message = await receive()
-        assert message["type"] == "lifespan.shutdown"
-        await self.run_shutdown()
-        await send({"type": "lifespan.shutdown.complete"})
 
 
 class LifespanContext:
