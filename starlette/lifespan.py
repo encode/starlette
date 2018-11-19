@@ -9,6 +9,89 @@ from starlette.types import ASGIApp, ASGIInstance, Message, Receive, Send
 STATE_TRANSITION_ERROR = "Got invalid state transition on lifespan protocol."
 
 
+class LifespanMiddleware:
+    def __init__(self, app, startup_handlers=None, shutdown_handlers=None):
+        self.app = app
+        self.startup_handlers = list(startup_handlers or [])
+        self.shutdown_handlers = list(shutdown_handlers or [])
+
+    def add_event_handler(self, event_type: str, func: typing.Callable) -> None:
+        assert event_type in ("startup", "shutdown")
+
+        if event_type == "startup":
+            self.startup_handlers.append(func)
+        else:
+            assert event_type == "shutdown"
+            self.shutdown_handlers.append(func)
+
+    def on_event(self, event_type: str) -> typing.Callable:
+        def decorator(func: typing.Callable) -> typing.Callable:
+            self.add_event_handler(event_type, func)
+            return func
+
+        return decorator
+
+    def __call__(self, scope):
+        if scope['type'] == 'lifespan':
+            return LifespanHandle(self.app, scope, self.startup_handlers, self.shutdown_handlers)
+        return self.app(scope)
+
+
+class LifespanHandle:
+    def __init__(self, app, scope, startup_handlers, shutdown_handlers):
+        # self.inner = app(scope)
+        self.startup_handlers = startup_handlers
+        self.shutdown_handlers = shutdown_handlers
+        self.send_buffer = asyncio.Queue()
+        self.receive_buffer = asyncio.Queue()
+
+    async def __call__(self, receive, send):
+        # inner_task = asyncio.create_task(
+        #     self.inner(self.receive_buffer.get, self.send_buffer.put)
+        # )
+        try:
+            # Handle our own startup.
+            message = await receive()
+            assert message["type"] == "lifespan.startup"
+            await self.startup()
+
+            # Pass the message on to the next in the chain, and wait for the response.
+            # self.receive_buffer.put(message)
+            # message = await self.send_buffer.get()
+            message = {"type": "lifespan.startup.complete"}
+            assert message["type"] == "lifespan.startup.complete"
+            await send(message)
+
+            # Handle our own shutdown.
+            message = await receive()
+            assert message["type"] == "lifespan.shutdown"
+            await self.shutdown()
+
+            # Pass the message on to the next in the chain, and wait for the response.
+            # self.receive_buffer.put(message)
+            # message = await self.send_buffer.get()
+            message = {"type": "lifespan.shutdown.complete"}
+            assert message["type"] == "lifespan.shutdown.complete"
+            await send(message)
+        finally:
+            pass
+            #await inner_task
+
+    async def startup(self):
+        for handler in self.startup_handlers:
+            if asyncio.iscoroutinefunction(handler):
+                await handler()
+            else:
+                handler()
+
+    async def shutdown(self):
+        for handler in self.shutdown_handlers:
+            if asyncio.iscoroutinefunction(handler):
+                await handler()
+            else:
+                handler()
+
+
 class LifespanHandler:
     def __init__(self) -> None:
         self.startup_handlers = []  # type: typing.List[typing.Callable]
@@ -27,6 +110,7 @@ class LifespanHandler:
         if event_type == "startup":
             self.startup_handlers.append(func)
         else:
+            assert event_type == "shutdown"
             self.shutdown_handlers.append(func)
 
     async def run_startup(self) -> None:
