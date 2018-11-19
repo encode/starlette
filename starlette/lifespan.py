@@ -48,7 +48,8 @@ class LifespanHandle:
         self.receive_buffer = asyncio.Queue()
 
     async def __call__(self, receive, send):
-        inner_task = asyncio.create_task(
+        loop = asyncio.get_event_loop()
+        inner_task = loop.create_task(
             self.inner(self.receive_buffer.get, self.send_buffer.put)
         )
         try:
