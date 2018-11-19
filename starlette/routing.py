@@ -473,10 +473,10 @@ class Router:
 
 
 class LifespanHandler:
-    def __init__(self, scope):
+    def __init__(self, scope: Scope) -> None:
         pass
 
-    async def __call__(self, receive, send):
+    async def __call__(self, receive: Receive, send: Send) -> None:
         message = await receive()
         assert message["type"] == "lifespan.startup"
         await send({"type": "lifespan.startup.complete"})

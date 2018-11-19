@@ -4,13 +4,18 @@ import traceback
 import typing
 from types import TracebackType
 
-from starlette.types import ASGIApp, ASGIInstance, Message, Receive, Send
+from starlette.types import ASGIApp, ASGIInstance, Message, Receive, Scope, Send
 
 STATE_TRANSITION_ERROR = "Got invalid state transition on lifespan protocol."
 
 
 class LifespanMiddleware:
-    def __init__(self, app, startup_handlers=None, shutdown_handlers=None):
+    def __init__(
+        self,
+        app: ASGIApp,
+        startup_handlers: typing.List[typing.Callable] = None,
+        shutdown_handlers: typing.List[typing.Callable] = None,
+    ):
         self.app = app
         self.startup_handlers = list(startup_handlers or [])
         self.shutdown_handlers = list(shutdown_handlers or [])
@@ -31,7 +36,7 @@ class LifespanMiddleware:
 
         return decorator
 
-    def __call__(self, scope):
+    def __call__(self, scope: Scope) -> ASGIInstance:
         if scope["type"] == "lifespan":
             return LifespanHandle(
                 self.app, scope, self.startup_handlers, self.shutdown_handlers
@@ -40,14 +45,20 @@ class LifespanMiddleware:
 
 
 class LifespanHandle:
-    def __init__(self, app, scope, startup_handlers, shutdown_handlers):
+    def __init__(
+        self,
+        app: ASGIApp,
+        scope: Scope,
+        startup_handlers: typing.List[typing.Callable],
+        shutdown_handlers: typing.List[typing.Callable],
+    ) -> None:
         self.inner = app(scope)
         self.startup_handlers = startup_handlers
         self.shutdown_handlers = shutdown_handlers
-        self.send_buffer = asyncio.Queue()
-        self.receive_buffer = asyncio.Queue()
+        self.send_buffer = asyncio.Queue()  # type: asyncio.Queue
+        self.receive_buffer = asyncio.Queue()  # type: asyncio.Queue
 
-    async def __call__(self, receive, send):
+    async def __call__(self, receive: Receive, send: Send) -> None:
         loop = asyncio.get_event_loop()
         inner_task = loop.create_task(
             self.inner(self.receive_buffer.get, self.send_buffer.put)
@@ -77,14 +88,14 @@ class LifespanHandle:
         finally:
             await inner_task
 
-    async def startup(self):
+    async def startup(self) -> None:
         for handler in self.startup_handlers:
             if asyncio.iscoroutinefunction(handler):
                 await handler()
             else:
                 handler()
 
-    async def shutdown(self):
+    async def shutdown(self) -> None:
         for handler in self.shutdown_handlers:
             if asyncio.iscoroutinefunction(handler):
                 await handler()
