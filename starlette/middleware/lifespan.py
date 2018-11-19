@@ -38,13 +38,13 @@ class LifespanMiddleware:
 
     def __call__(self, scope: Scope) -> ASGIInstance:
         if scope["type"] == "lifespan":
-            return LifespanHandle(
+            return LifespanHandler(
                 self.app, scope, self.startup_handlers, self.shutdown_handlers
             )
         return self.app(scope)
 
 
-class LifespanHandle:
+class LifespanHandler:
     def __init__(
         self,
         app: ASGIApp,
@@ -109,65 +109,3 @@ class LifespanHandle:
                 await handler()
             else:
                 handler()
-
-
-class LifespanContext:
-    def __init__(
-        self, app: ASGIApp, startup_timeout: int = 10, shutdown_timeout: int = 10
-    ) -> None:
-        self.startup_timeout = startup_timeout
-        self.shutdown_timeout = shutdown_timeout
-        self.startup_event = asyncio.Event()
-        self.shutdown_event = asyncio.Event()
-        self.receive_queue = asyncio.Queue()  # type: asyncio.Queue
-        self.asgi = app({"type": "lifespan"})  # type: ASGIInstance
-        self.task = None  # type: typing.Optional[asyncio.Task]
-
-    def __enter__(self) -> None:
-        loop = asyncio.get_event_loop()
-        self.task = loop.create_task(self.run_lifespan())
-        loop.run_until_complete(self.wait_startup())
-        if self.task.done():
-            self.task.result()
-
-    def __exit__(
-        self,
-        exc_type: typing.Type[BaseException],
-        exc: BaseException,
-        tb: TracebackType,
-    ) -> None:
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.wait_shutdown())
-        if self.task is not None and self.task.done():
-            self.task.result()
-
-    async def run_lifespan(self) -> None:
-        try:
-            await self.asgi(self.receive, self.send)
-        finally:
-            self.startup_event.set()
-            self.shutdown_event.set()
-
-    async def send(self, message: Message) -> None:
-        if message["type"] == "lifespan.startup.complete":
-            assert not self.startup_event.is_set(), STATE_TRANSITION_ERROR
-            assert not self.shutdown_event.is_set(), STATE_TRANSITION_ERROR
-            self.startup_event.set()
-        else:
-            assert message["type"] == "lifespan.shutdown.complete"
-            assert self.startup_event.is_set(), STATE_TRANSITION_ERROR
-            assert not self.shutdown_event.is_set(), STATE_TRANSITION_ERROR
-            self.shutdown_event.set()
-
-    async def receive(self) -> Message:
-        return await self.receive_queue.get()
-
-    async def wait_startup(self) -> None:
-        await self.receive_queue.put({"type": "lifespan.startup"})
-        await asyncio.wait_for(self.startup_event.wait(), timeout=self.startup_timeout)
-
-    async def wait_shutdown(self) -> None:
-        await self.receive_queue.put({"type": "lifespan.shutdown"})
-        await asyncio.wait_for(
-            self.shutdown_event.wait(), timeout=self.shutdown_timeout
-        )

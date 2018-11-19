@@ -1,7 +1,8 @@
 import pytest
 
 from starlette.applications import Starlette
-from starlette.lifespan import LifespanContext, LifespanMiddleware
+from starlette.middleware.lifespan import LifespanMiddleware
+from starlette.testclient import TestClient
 
 
 class App:
@@ -50,7 +51,7 @@ def test_lifespan_handler():
 
     assert not startup_complete
     assert not cleanup_complete
-    with LifespanContext(handler):
+    with TestClient(handler):
         assert startup_complete
         assert not cleanup_complete
     assert startup_complete
@@ -74,7 +75,7 @@ def test_async_lifespan_handler():
 
     assert not startup_complete
     assert not cleanup_complete
-    with LifespanContext(handler):
+    with TestClient(handler):
         assert startup_complete
         assert not cleanup_complete
     assert startup_complete
@@ -85,7 +86,7 @@ def test_raise_on_startup():
     handler = LifespanMiddleware(RaiseOnStartup)
 
     with pytest.raises(RuntimeError):
-        with LifespanContext(handler):
+        with TestClient(handler):
             pass  # pragma: nocover
 
 
@@ -93,7 +94,7 @@ def test_raise_on_shutdown():
     handler = LifespanMiddleware(RaiseOnShutdown)
 
     with pytest.raises(RuntimeError):
-        with LifespanContext(handler):
+        with TestClient(handler):
             pass
 
 
@@ -114,7 +115,7 @@ def test_app_lifespan():
 
     assert not startup_complete
     assert not cleanup_complete
-    with LifespanContext(app):
+    with TestClient(app):
         assert startup_complete
         assert not cleanup_complete
     assert startup_complete
