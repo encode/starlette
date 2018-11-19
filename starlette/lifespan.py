@@ -60,9 +60,7 @@ class LifespanHandle:
 
     async def __call__(self, receive: Receive, send: Send) -> None:
         loop = asyncio.get_event_loop()
-        inner_task = loop.create_task(
-            self.inner(self.receive_buffer.get, self.send_buffer.put)
-        )
+        inner_task = loop.create_task(self.run_inner())
         try:
             # Handle our own startup.
             message = await receive()
@@ -72,6 +70,8 @@ class LifespanHandle:
             # Pass the message on to the next in the chain, and wait for the response.
             await self.receive_buffer.put(message)
             message = await self.send_buffer.get()
+            if message is None:
+                inner_task.result()
             assert message["type"] == "lifespan.startup.complete"
             await send({"type": "lifespan.startup.complete"})
 
@@ -83,10 +83,18 @@ class LifespanHandle:
             # Pass the message on to the next in the chain, and wait for the response.
             await self.receive_buffer.put(message)
             message = await self.send_buffer.get()
+            if message is None:
+                inner_task.result()
             assert message["type"] == "lifespan.shutdown.complete"
             await send({"type": "lifespan.shutdown.complete"})
         finally:
             await inner_task
+
+    async def run_inner(self) -> None:
+        try:
+            await self.inner(self.receive_buffer.get, self.send_buffer.put)
+        finally:
+            await self.send_buffer.put(None)
 
     async def startup(self) -> None:
         for handler in self.startup_handlers:
@@ -113,11 +121,14 @@ class LifespanContext:
         self.shutdown_event = asyncio.Event()
         self.receive_queue = asyncio.Queue()  # type: asyncio.Queue
         self.asgi = app({"type": "lifespan"})  # type: ASGIInstance
+        self.task = None  # type: typing.Optional[asyncio.Task]
 
     def __enter__(self) -> None:
         loop = asyncio.get_event_loop()
-        loop.create_task(self.run_lifespan())
+        self.task = loop.create_task(self.run_lifespan())
         loop.run_until_complete(self.wait_startup())
+        if self.task.done():
+            self.task.result()
 
     def __exit__(
         self,
@@ -127,6 +138,8 @@ class LifespanContext:
     ) -> None:
         loop = asyncio.get_event_loop()
         loop.run_until_complete(self.wait_shutdown())
+        if self.task is not None and self.task.done():
+            self.task.result()
 
     async def run_lifespan(self) -> None:
         try:

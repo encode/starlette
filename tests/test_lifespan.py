@@ -1,19 +1,36 @@
+import pytest
+
 from starlette.applications import Starlette
 from starlette.lifespan import LifespanContext, LifespanMiddleware
 
 
 class App:
+    raise_on_startup = False
+    raise_on_shutdown = False
+
     def __init__(self, scope):
         pass
 
     async def __call__(self, receive, send):
         message = await receive()
         assert message["type"] == "lifespan.startup"
+        if self.raise_on_startup:
+            raise RuntimeError()
         await send({"type": "lifespan.startup.complete"})
 
         message = await receive()
         assert message["type"]
+        if self.raise_on_shutdown:
+            raise RuntimeError()
         await send({"type": "lifespan.shutdown.complete"})
+
+
+class RaiseOnStartup(App):
+    raise_on_startup = True
+
+
+class RaiseOnShutdown(App):
+    raise_on_shutdown = True
 
 
 def test_lifespan_handler():
@@ -62,6 +79,22 @@ def test_async_lifespan_handler():
         assert not cleanup_complete
     assert startup_complete
     assert cleanup_complete
+
+
+def test_raise_on_startup():
+    handler = LifespanMiddleware(RaiseOnStartup)
+
+    with pytest.raises(RuntimeError):
+        with LifespanContext(handler):
+            pass  # pragma: nocover
+
+
+def test_raise_on_shutdown():
+    handler = LifespanMiddleware(RaiseOnShutdown)
+
+    with pytest.raises(RuntimeError):
+        with LifespanContext(handler):
+            pass
 
 
 def test_app_lifespan():
