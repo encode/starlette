@@ -32,8 +32,10 @@ class LifespanMiddleware:
         return decorator
 
     def __call__(self, scope):
-        if scope['type'] == 'lifespan':
-            return LifespanHandle(self.app, scope, self.startup_handlers, self.shutdown_handlers)
+        if scope["type"] == "lifespan":
+            return LifespanHandle(
+                self.app, scope, self.startup_handlers, self.shutdown_handlers
+            )
         return self.app(scope)
 
 

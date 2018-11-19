@@ -9,11 +9,11 @@ class App:
     async def __call__(self, receive, send):
         message = await receive()
         assert message["type"] == "lifespan.startup"
-        await send({'type': 'lifespan.startup.complete'})
+        await send({"type": "lifespan.startup.complete"})
 
         message = await receive()
-        assert message['type']
-        await send({'type': 'lifespan.shutdown.complete'})
+        assert message["type"]
+        await send({"type": "lifespan.shutdown.complete"})
 
 
 def test_lifespan_handler():
