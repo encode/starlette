@@ -4,7 +4,7 @@ import sys
 import typing
 
 from starlette.concurrency import run_in_threadpool
-from starlette.types import ASGIApp, ASGIInstance, Message, Receive, Scope, Send
+from starlette.types import ASGIInstance, Message, Receive, Scope, Send
 
 
 def build_environ(scope: Scope, body: bytes) -> dict:
@@ -81,14 +81,19 @@ class WSGIResponder:
             body += message.get("body", b"")
             more_body = message.get("more_body", False)
         environ = build_environ(self.scope, body)
-        wsgi = run_in_threadpool(self.wsgi, environ, self.start_response)
-        sender = self.loop.create_task(self.sender(send))
-        await asyncio.wait_for(wsgi, None)
-        self.send_queue.append(None)
-        self.send_event.set()
-        await asyncio.wait_for(sender, None)
-        if self.exc_info is not None:
-            raise self.exc_info[0].with_traceback(self.exc_info[1], self.exc_info[2])
+        try:
+            sender = self.loop.create_task(self.sender(send))
+            await run_in_threadpool(self.wsgi, environ, self.start_response)
+            self.send_queue.append(None)
+            self.send_event.set()
+            await asyncio.wait_for(sender, None)
+            if self.exc_info is not None:
+                raise self.exc_info[0].with_traceback(
+                    self.exc_info[1], self.exc_info[2]
+                )
+        finally:
+            if not sender.done():
+                sender.cancel()  # pragma: no cover
 
     async def sender(self, send: Send) -> None:
         while True:

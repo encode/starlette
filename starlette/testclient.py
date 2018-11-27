@@ -4,6 +4,7 @@ import io
 import json
 import queue
 import threading
+import types
 import typing
 from types import TracebackType
 from urllib.parse import unquote, urljoin, urlparse
@@ -133,6 +134,14 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 body_bytes = body.encode("utf-8")  # type: bytes
             elif body is None:
                 body_bytes = b""
+            elif isinstance(body, types.GeneratorType):
+                try:
+                    chunk = body.send(None)
+                    if isinstance(chunk, str):
+                        chunk = chunk.encode("utf-8")
+                    return {"type": "http.request", "body": chunk, "more_body": True}
+                except StopIteration:
+                    return {"type": "http.request", "body": b""}
             else:
                 body_bytes = body
             return {"type": "http.request", "body": body_bytes}
@@ -173,7 +182,11 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
         response_complete = False
         raw_kwargs = {"body": io.BytesIO()}  # type: typing.Dict[str, typing.Any]
 
-        loop = asyncio.get_event_loop()
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
 
         try:
             connection = self.app(scope)
