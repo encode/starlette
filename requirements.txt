@@ -1,5 +1,7 @@
 # Optionals
 aiofiles
+asyncpg
+asyncpgsa
 graphene
 itsdangerous
 jinja2
@@ -15,6 +17,8 @@ isort
 mypy
 pytest
 pytest-cov
+sqlalchemy
+psycopg2
 
 # Documentation
 mkdocs
