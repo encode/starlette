@@ -83,6 +83,12 @@ class Request(Mapping):
         ), "SessionMiddleware must be installed to access request.session"
         return self._scope["session"]
 
+    def resource(self, name: str) -> typing.Any:
+        assert "resources" in self._scope and name in self._scope["resources"], (
+            "There is no resource middleware registered for %s" % name
+        )
+        return self._scope["resources"][name]
+
     @property
     def receive(self) -> Receive:
         return self._receive
