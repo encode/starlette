@@ -1,10 +1,8 @@
-import functools
-
 import graphene
 from graphql.execution.executors.asyncio import AsyncioExecutor
 
-from starlette.datastructures import Headers
 from starlette.applications import Starlette
+from starlette.datastructures import Headers
 from starlette.graphql import GraphQLApp
 from starlette.testclient import TestClient
 
@@ -14,16 +12,9 @@ class FakeAuthMiddleware:
         self.app = app
 
     def __call__(self, scope):
-        return functools.partial(self.asgi, scope=scope)
-
-    async def asgi(self, receive, send, scope) -> None:
         headers = Headers(scope=scope)
-        if headers.get('Authorization') == 'Bearer 123':
-            scope["user"] = "Jane"
-        else:
-            scope["user"] = None
-        inner = self.app(scope)
-        await inner(receive, send)
+        scope["user"] = "Jane" if headers.get("Authorization") == "Bearer 123" else None
+        return self.app(scope)
 
 
 class Query(graphene.ObjectType):
