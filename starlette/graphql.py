@@ -85,9 +85,9 @@ class GraphQLApp:
         )
         return JSONResponse(response_data, status_code=status_code)
 
-    async def execute(
+    async def execute(  # type: ignore
         self, request, query, variables=None, operation_name=None
-    ):  # type: ignore
+    ):
         context = dict(request=request)
 
         if self.is_async:
