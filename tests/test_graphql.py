@@ -25,7 +25,11 @@ class Query(graphene.ObjectType):
         return "Hello " + name
 
     def resolve_whoami(self, info):
-        return "a mystery" if info.context["request"]["user"] is None else info.context["request"]["user"]
+        return (
+            "a mystery"
+            if info.context["request"]["user"] is None
+            else info.context["request"]["user"]
+        )
 
 
 schema = graphene.Schema(query=Query)
@@ -111,7 +115,9 @@ def test_graphql_context():
     app.add_middleware(FakeAuthMiddleware)
     app.add_route("/", GraphQLApp(schema=schema))
     client = TestClient(app)
-    response = client.post("/", json={"query": "{ whoami }"}, headers={'Authorization': 'Bearer 123'})
+    response = client.post(
+        "/", json={"query": "{ whoami }"}, headers={"Authorization": "Bearer 123"}
+    )
     assert response.status_code == 200
     assert response.json() == {"data": {"whoami": "Jane"}, "errors": None}
 

@@ -85,7 +85,9 @@ class GraphQLApp:
         )
         return JSONResponse(response_data, status_code=status_code)
 
-    async def execute(self, request, query, variables=None, operation_name=None):  # type: ignore
+    async def execute(
+        self, request, query, variables=None, operation_name=None
+    ):  # type: ignore
         context = dict(request=request)
 
         if self.is_async:
@@ -95,7 +97,7 @@ class GraphQLApp:
                 operation_name=operation_name,
                 executor=self.executor,
                 return_promise=True,
-                context=context
+                context=context,
             )
         else:
             return await run_in_threadpool(
@@ -103,7 +105,7 @@ class GraphQLApp:
                 query,
                 variables=variables,
                 operation_name=operation_name,
-                context=context
+                context=context,
             )
 
     async def handle_graphiql(self, request: Request) -> Response:
