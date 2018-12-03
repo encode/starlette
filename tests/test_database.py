@@ -21,7 +21,9 @@ notes = sqlalchemy.Table(
 )
 
 app = Starlette()
-app.add_middleware(DatabaseMiddleware, database_url=DATABASE_URL)
+app.add_middleware(
+    DatabaseMiddleware, database_url=DATABASE_URL, rollback_sessions=True
+)
 
 
 @pytest.fixture(autouse=True, scope="module")
@@ -46,7 +48,10 @@ async def list_notes(request):
 async def add_note(request):
     data = await request.json()
     query = notes.insert().values(text=data["text"], completed=data["completed"])
-    await request.db.execute(query)
+    async with request.db.transaction():
+        await request.db.execute(query)
+        if 'raise_exc' in request.query_params:
+            raise RuntimeError()
     return JSONResponse({"text": data["text"], "completed": data["completed"]})
 
 
@@ -74,6 +79,13 @@ def test_database():
         )
         assert response.status_code == 200
 
+        # response = client.post(
+        #     "/notes",
+        #     json={"text": "you wont see me", "completed": False},
+        #     params={"raise_exc": "true"}
+        # )
+        # assert response.status_code == 500
+
         response = client.post(
             "/notes", json={"text": "walk the dog", "completed": False}
         )
@@ -93,3 +105,29 @@ def test_database():
         response = client.get("/notes/1/text")
         assert response.status_code == 200
         assert response.json() == "buy the milk"
+
+
+# def test_database_isolated_during_test_cases():
+#     with TestClient(app) as client:
+#         response = client.post(
+#             "/notes", json={"text": "just one note", "completed": True}
+#         )
+#         assert response.status_code == 200
+#
+#         response = client.get("/notes")
+#         assert response.status_code == 200
+#         assert response.json() == [
+#             {"text": "just one note", "completed": True},
+#         ]
+#
+#     with TestClient(app) as client:
+#         response = client.post(
+#             "/notes", json={"text": "just one note", "completed": True}
+#         )
+#         assert response.status_code == 200
+#
+#         response = client.get("/notes")
+#         assert response.status_code == 200
+#         assert response.json() == [
+#             {"text": "just one note", "completed": True},
+#         ]

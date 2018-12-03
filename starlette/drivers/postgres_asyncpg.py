@@ -43,30 +43,84 @@ class PostgresSession(DatabaseSession):
     def __init__(self, pool: asyncpg.pool.Pool, dialect: Dialect):
         self.pool = pool
         self.dialect = dialect
+        self.transaction_stack = []
 
     async def fetchall(self, query: ClauseElement) -> typing.Any:
         query, args = compile(query, dialect=self.dialect)
 
-        conn = await self.pool.acquire()
+        conn = await self._get_connection()
         try:
             return await conn.fetch(query, *args)
         finally:
-            await self.pool.release(conn)
+            await self._release_connection(conn)
 
     async def fetchone(self, query: ClauseElement) -> typing.Any:
         query, args = compile(query, dialect=self.dialect)
 
-        conn = await self.pool.acquire()
+        conn = await self._get_connection()
         try:
             return await conn.fetchrow(query, *args)
         finally:
-            await self.pool.release(conn)
+            await self._release_connection(conn)
 
-    async def execute(self, query: ClauseElement) -> None:
+    async def execute(self, query: ClauseElement) -> typing.Any:
         query, args = compile(query, dialect=self.dialect)
 
-        conn = await self.pool.acquire()
+        conn = await self._get_connection()
         try:
-            await conn.execute(query, *args)
+            return await conn.execute(query, *args)
         finally:
+            await self._release_connection(conn)
+
+    def transaction(self):
+        return PostgresTransaction(self.pool, self.transaction_stack)
+
+    async def _get_connection(self) -> asyncpg.Connection:
+        if self.transaction_stack:
+            return self.transaction_stack[-1]._conn
+        else:
+            return await self.pool.acquire()
+
+    async def _release_connection(self, conn):
+        if not self.transaction_stack:
             await self.pool.release(conn)
+
+
+class PostgresTransaction:
+    def __init__(self, pool, transaction_stack):
+        self.pool = pool
+        self.transaction_stack = transaction_stack
+        self._conn = None
+        self._trans = None
+
+    async def __aenter__(self):
+        await self.start()
+
+    async def __aexit__(self, extype, ex, tb):
+        if extype is not None:
+            await self.rollback()
+        else:
+            await self.commit()
+
+    async def start(self):
+        if self.transaction_stack:
+            self._conn = self.transaction_stack[-1]._conn
+        else:
+            self._conn = await self.pool.acquire()
+        self._trans = self._conn.transaction()
+        await self._trans.start()
+        self.transaction_stack.append(self)
+
+    async def commit(self):
+        transaction = self.transaction_stack.pop()
+        assert transaction is self
+        await self._trans.commit()
+        if not self.transaction_stack:
+            self.pool.release(self._conn)
+
+    async def rollback(self):
+        transaction = self.transaction_stack.pop()
+        assert transaction is self
+        await self._trans.rollback()
+        if not self.transaction_stack:
+            self.pool.release(self._conn)
