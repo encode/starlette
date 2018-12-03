@@ -1,36 +1,28 @@
 import functools
 import typing
 
-import asyncpgsa
+import asyncpg
 
+from starlette.drivers.postgres_asyncpg import PostgresBackend
 from starlette.types import ASGIApp, ASGIInstance, Message, Receive, Scope, Send
 
 
 class DatabaseMiddleware:
     def __init__(self, app: ASGIApp, database_url: str) -> None:
         self.app = app
-        self.database_url = database_url
-        self.pool = None  # type: typing.Any
+        self.backend = PostgresBackend(database_url)
 
     def __call__(self, scope: Scope) -> ASGIInstance:
         if scope["type"] == "lifespan":
             return DatabaseLifespan(self.app, self, scope)
-        return functools.partial(self.asgi, scope=scope)
-
-    async def asgi(self, receive: Receive, send: Send, scope: Scope) -> None:
-        conn = await self.pool.acquire()
-        try:
-            scope["db"] = conn
-            inner = self.app(scope)
-            await inner(receive, send)
-        finally:
-            await conn.close()
+        scope["db"] = self.backend.new_session()
+        return self.app(scope)
 
     async def startup(self) -> None:
-        self.pool = await asyncpgsa.create_pool(self.database_url)
+        await self.backend.startup()
 
     async def shutdown(self) -> None:
-        await self.pool.close()
+        await self.backend.shutdown()
 
 
 class DatabaseLifespan:
