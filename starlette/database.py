@@ -37,8 +37,15 @@ class DatabaseBackend:
 
 
 class DatabaseSession:
-    async def fetch(self, query: ClauseElement) -> typing.Any:
+    async def fetchall(self, query: ClauseElement) -> typing.Any:
         raise NotImplementedError()  # pragma: no cover
+
+    async def fetchone(self, query: ClauseElement) -> typing.Any:
+        raise NotImplementedError()  # pragma: no cover
+
+    async def fetchval(self, query: ClauseElement, index: int = 0) -> typing.Any:
+        row = await self.fetchone(query)
+        return row[index]
 
     async def execute(self, query: ClauseElement) -> None:
         raise NotImplementedError()  # pragma: no cover

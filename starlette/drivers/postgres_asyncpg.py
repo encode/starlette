@@ -44,12 +44,21 @@ class PostgresSession(DatabaseSession):
         self.pool = pool
         self.dialect = dialect
 
-    async def fetch(self, query: ClauseElement) -> typing.Any:
+    async def fetchall(self, query: ClauseElement) -> typing.Any:
         query, args = compile(query, dialect=self.dialect)
 
         conn = await self.pool.acquire()
         try:
             return await conn.fetch(query, *args)
+        finally:
+            await self.pool.release(conn)
+
+    async def fetchone(self, query: ClauseElement) -> typing.Any:
+        query, args = compile(query, dialect=self.dialect)
+
+        conn = await self.pool.acquire()
+        try:
+            return await conn.fetchrow(query, *args)
         finally:
             await self.pool.release(conn)
 

@@ -35,7 +35,7 @@ def create_test_database():
 @app.route("/notes", methods=["GET"])
 async def list_notes(request):
     query = sqlalchemy.select([notes])
-    results = await request.db.fetch(query)
+    results = await request.db.fetchall(query)
     content = [
         {"text": result["text"], "completed": result["completed"]} for result in results
     ]
@@ -50,19 +50,46 @@ async def add_note(request):
     return JSONResponse({"text": data["text"], "completed": data["completed"]})
 
 
+@app.route("/notes/{note_id:int}", methods=["GET"])
+async def read_note(request):
+    note_id = request.path_params["note_id"]
+    query = sqlalchemy.select([notes]).where(notes.c.id == note_id)
+    result = await request.db.fetchone(query)
+    content = {"text": result["text"], "completed": result["completed"]}
+    return JSONResponse(content)
+
+
+@app.route("/notes/{note_id:int}/text", methods=["GET"])
+async def read_note_text(request):
+    note_id = request.path_params["note_id"]
+    query = sqlalchemy.select([notes.c.text]).where(notes.c.id == note_id)
+    text = await request.db.fetchval(query)
+    return JSONResponse(text)
+
+
 def test_database():
     with TestClient(app) as client:
         response = client.post(
             "/notes", json={"text": "buy the milk", "completed": True}
         )
         assert response.status_code == 200
+
         response = client.post(
             "/notes", json={"text": "walk the dog", "completed": False}
         )
         assert response.status_code == 200
+
         response = client.get("/notes")
         assert response.status_code == 200
         assert response.json() == [
             {"text": "buy the milk", "completed": True},
             {"text": "walk the dog", "completed": False},
         ]
+
+        response = client.get("/notes/1")
+        assert response.status_code == 200
+        assert response.json() == {"text": "buy the milk", "completed": True}
+
+        response = client.get("/notes/1/text")
+        assert response.status_code == 200
+        assert response.json() == "buy the milk"
