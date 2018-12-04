@@ -3,8 +3,8 @@ import typing
 
 import asyncpg
 
-from starlette.database import DatabaseSession, DatabaseTransaction
-from starlette.drivers.postgres_asyncpg import PostgresBackend
+from starlette.database.core import DatabaseSession, DatabaseTransaction
+from starlette.database.postgres import PostgresBackend
 from starlette.types import ASGIApp, ASGIInstance, Message, Receive, Scope, Send
 
 
@@ -20,7 +20,9 @@ class DatabaseMiddleware:
 
     def __call__(self, scope: Scope) -> ASGIInstance:
         if scope["type"] == "lifespan":
-            return DatabaseLifespan(self.app, self, scope)
+            return DatabaseLifespan(
+                self.app, scope, startup=self.startup, shutdown=self.shutdown
+            )
 
         if self.session is not None:
             session = self.session
@@ -46,22 +48,23 @@ class DatabaseMiddleware:
 
 class DatabaseLifespan:
     def __init__(
-        self, app: ASGIApp, middleware: DatabaseMiddleware, scope: Scope
+        self,
+        app: ASGIApp,
+        scope: Scope,
+        startup: typing.Callable,
+        shutdown: typing.Callable,
     ) -> None:
         self.inner = app(scope)
-        self.middleware = middleware
+        self.startup = startup
+        self.shutdown = shutdown
 
     async def __call__(self, receive: Receive, send: Send) -> None:
-        try:
+        async def receiver() -> Message:
+            message = await receive()
+            if message["type"] == "lifespan.startup":
+                await self.startup()
+            elif message["type"] == "lifespan.shutdown":
+                await self.shutdown()
+            return message
 
-            async def receiver() -> Message:
-                message = await receive()
-                if message["type"] == "lifespan.startup":
-                    await self.middleware.startup()
-                elif message["type"] == "lifespan.shutdown":
-                    await self.middleware.shutdown()
-                return message
-
-            await self.inner(receiver, send)
-        finally:
-            self.middleware = None  # type: ignore
+        await self.inner(receiver, send)

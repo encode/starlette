@@ -6,7 +6,7 @@ from sqlalchemy.dialects.postgresql import pypostgresql
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql import ClauseElement
 
-from starlette.database import (
+from starlette.database.core import (
     DatabaseBackend,
     DatabaseSession,
     DatabaseTransaction,
