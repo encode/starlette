@@ -50,7 +50,7 @@ async def add_note(request):
     query = notes.insert().values(text=data["text"], completed=data["completed"])
     async with request.db.transaction():
         await request.db.execute(query)
-        if 'raise_exc' in request.query_params:
+        if "raise_exc" in request.query_params:
             raise RuntimeError()
     return JSONResponse({"text": data["text"], "completed": data["completed"]})
 
@@ -79,12 +79,12 @@ def test_database():
         )
         assert response.status_code == 200
 
-        # response = client.post(
-        #     "/notes",
-        #     json={"text": "you wont see me", "completed": False},
-        #     params={"raise_exc": "true"}
-        # )
-        # assert response.status_code == 500
+        with pytest.raises(RuntimeError):
+            response = client.post(
+                "/notes",
+                json={"text": "you wont see me", "completed": False},
+                params={"raise_exc": "true"},
+            )
 
         response = client.post(
             "/notes", json={"text": "walk the dog", "completed": False}

@@ -18,10 +18,7 @@ class DatabaseMiddleware:
     def __call__(self, scope: Scope) -> ASGIInstance:
         if scope["type"] == "lifespan":
             return DatabaseLifespan(self.app, self, scope)
-        scope["db"] = self.backend.new_session()
-        # if rollback_sessions:
-        #     return RollbackSession()
-        return self.app(scope)
+        return SessionManager(self.backend, self.rollback_sessions, self.app, scope)
 
     async def startup(self) -> None:
         await self.backend.startup()
@@ -30,18 +27,17 @@ class DatabaseMiddleware:
         await self.backend.shutdown()
 
 
-# class RollbackSession:
-#     def __init__(self, app, scope):
-#         self.scope = scope
-#         self.inner = app(scope)
-#
-#     async def __call__(self, receive, send):
-#         transaction = self.scope['db'].transaction()
-#         await transaction.start()
-#         try:
-#             await self.inner(receive, send)
-#         finally:
-#             await transaction.rollback()
+class SessionManager:
+    def __init__(
+        self, backend: PostgresBackend, rollback: bool, app: ASGIApp, scope: Scope
+    ) -> None:
+        self.session = backend.session()
+        self.rollback = rollback
+        scope["db"] = self.session
+        self.inner = app(scope)
+
+    async def __call__(self, receive: Receive, send: Send) -> None:
+        await self.inner(receive, send)
 
 
 class DatabaseLifespan:

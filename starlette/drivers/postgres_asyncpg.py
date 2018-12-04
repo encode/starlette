@@ -1,11 +1,17 @@
 import typing
+from types import TracebackType
 
 import asyncpg
 from sqlalchemy.dialects.postgresql import pypostgresql
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql import ClauseElement
 
-from starlette.database import DatabaseBackend, DatabaseSession, compile
+from starlette.database import (
+    DatabaseBackend,
+    DatabaseSession,
+    DatabaseTransaction,
+    compile,
+)
 
 
 class PostgresBackend(DatabaseBackend):
@@ -34,7 +40,7 @@ class PostgresBackend(DatabaseBackend):
         await self.pool.close()
         self.pool = None
 
-    def new_session(self) -> "PostgresSession":
+    def session(self) -> "PostgresSession":
         assert self.pool is not None, "DatabaseBackend is not running"
         return PostgresSession(self.pool, self.dialect)
 
@@ -43,84 +49,84 @@ class PostgresSession(DatabaseSession):
     def __init__(self, pool: asyncpg.pool.Pool, dialect: Dialect):
         self.pool = pool
         self.dialect = dialect
-        self.transaction_stack = []
+        self.conn = None
+        self.connection_holders = 0
 
     async def fetchall(self, query: ClauseElement) -> typing.Any:
         query, args = compile(query, dialect=self.dialect)
 
-        conn = await self._get_connection()
+        conn = await self.acquire_connection()
         try:
             return await conn.fetch(query, *args)
         finally:
-            await self._release_connection(conn)
+            await self.release_connection()
 
     async def fetchone(self, query: ClauseElement) -> typing.Any:
         query, args = compile(query, dialect=self.dialect)
 
-        conn = await self._get_connection()
+        conn = await self.acquire_connection()
         try:
             return await conn.fetchrow(query, *args)
         finally:
-            await self._release_connection(conn)
+            await self.release_connection()
 
     async def execute(self, query: ClauseElement) -> typing.Any:
         query, args = compile(query, dialect=self.dialect)
 
-        conn = await self._get_connection()
+        conn = await self.acquire_connection()
         try:
             return await conn.execute(query, *args)
         finally:
-            await self._release_connection(conn)
+            await self.release_connection()
 
-    def transaction(self):
-        return PostgresTransaction(self.pool, self.transaction_stack)
+    def transaction(self) -> DatabaseTransaction:
+        return PostgresTransaction(self)
 
-    async def _get_connection(self) -> asyncpg.Connection:
-        if self.transaction_stack:
-            return self.transaction_stack[-1]._conn
-        else:
-            return await self.pool.acquire()
+    async def acquire_connection(self) -> asyncpg.Connection:
+        """
+        Either acquire a connection from the pool, or return the
+        existing connection. Must be followed by a corresponding
+        call to `release_connection`.
+        """
+        self.connection_holders += 1
+        if self.conn is None:
+            self.conn = await self.pool.acquire()
+        return self.conn
 
-    async def _release_connection(self, conn):
-        if not self.transaction_stack:
-            await self.pool.release(conn)
+    async def release_connection(self) -> None:
+        self.connection_holders -= 1
+        if self.connection_holders == 0:
+            await self.pool.release(self.conn)
+            self.conn = None
 
 
-class PostgresTransaction:
-    def __init__(self, pool, transaction_stack):
-        self.pool = pool
-        self.transaction_stack = transaction_stack
-        self._conn = None
-        self._trans = None
+class PostgresTransaction(DatabaseTransaction):
+    def __init__(self, session: PostgresSession):
+        self.session = session
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> None:
         await self.start()
 
-    async def __aexit__(self, extype, ex, tb):
-        if extype is not None:
+    async def __aexit__(
+        self,
+        exc_type: typing.Type[BaseException] = None,
+        exc_value: BaseException = None,
+        traceback: TracebackType = None,
+    ) -> None:
+        if exc_type is not None:
             await self.rollback()
         else:
             await self.commit()
 
-    async def start(self):
-        if self.transaction_stack:
-            self._conn = self.transaction_stack[-1]._conn
-        else:
-            self._conn = await self.pool.acquire()
-        self._trans = self._conn.transaction()
-        await self._trans.start()
-        self.transaction_stack.append(self)
+    async def start(self) -> None:
+        conn = await self.session.acquire_connection()
+        self.transaction = conn.transaction()
+        await self.transaction.start()
 
-    async def commit(self):
-        transaction = self.transaction_stack.pop()
-        assert transaction is self
-        await self._trans.commit()
-        if not self.transaction_stack:
-            self.pool.release(self._conn)
+    async def commit(self) -> None:
+        await self.transaction.commit()
+        await self.session.release_connection()
 
-    async def rollback(self):
-        transaction = self.transaction_stack.pop()
-        assert transaction is self
-        await self._trans.rollback()
-        if not self.transaction_stack:
-            self.pool.release(self._conn)
+    async def rollback(self) -> None:
+        await self.transaction.rollback()
+        await self.session.release_connection()
