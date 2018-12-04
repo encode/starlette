@@ -3,20 +3,35 @@ import typing
 
 import asyncpg
 
-from starlette.database.core import DatabaseSession, DatabaseTransaction
-from starlette.database.postgres import PostgresBackend
+from starlette.database.core import (
+    DatabaseBackend,
+    DatabaseSession,
+    DatabaseTransaction,
+)
+from starlette.datastructures import URL
 from starlette.types import ASGIApp, ASGIInstance, Message, Receive, Scope, Send
 
 
 class DatabaseMiddleware:
     def __init__(
-        self, app: ASGIApp, database_url: str, rollback_sessions: bool
+        self,
+        app: ASGIApp,
+        database_url: typing.Union[str, URL],
+        rollback_sessions: bool,
     ) -> None:
         self.app = app
-        self.backend = PostgresBackend(database_url)
+        self.backend = self.get_backend(database_url)
         self.rollback_sessions = rollback_sessions
         self.session = None  # type: typing.Optional[DatabaseSession]
         self.transaction = None  # type: typing.Optional[DatabaseTransaction]
+
+    def get_backend(self, database_url: typing.Union[str, URL]) -> DatabaseBackend:
+        if isinstance(database_url, str):
+            database_url = URL(database_url)
+        assert database_url.scheme == "postgres"
+        from starlette.database.postgres import PostgresBackend
+
+        return PostgresBackend(database_url)
 
     def __call__(self, scope: Scope) -> ASGIInstance:
         if scope["type"] == "lifespan":
@@ -28,7 +43,7 @@ class DatabaseMiddleware:
             session = self.session
         else:
             session = self.backend.session()  # pragma: no cover
-        scope["db"] = session
+        scope["database"] = session
         return self.app(scope)
 
     async def startup(self) -> None:

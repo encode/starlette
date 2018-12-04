@@ -36,8 +36,8 @@ def create_test_database():
 
 @app.route("/notes", methods=["GET"])
 async def list_notes(request):
-    query = sqlalchemy.select([notes])
-    results = await request.db.fetchall(query)
+    query = notes.select()
+    results = await request.database.fetchall(query)
     content = [
         {"text": result["text"], "completed": result["completed"]} for result in results
     ]
@@ -48,8 +48,8 @@ async def list_notes(request):
 async def add_note(request):
     data = await request.json()
     query = notes.insert().values(text=data["text"], completed=data["completed"])
-    async with request.db.transaction():
-        await request.db.execute(query)
+    async with request.database.transaction():
+        await request.database.execute(query)
         if "raise_exc" in request.query_params:
             raise RuntimeError()
     return JSONResponse({"text": data["text"], "completed": data["completed"]})
@@ -58,8 +58,8 @@ async def add_note(request):
 @app.route("/notes/{note_id:int}", methods=["GET"])
 async def read_note(request):
     note_id = request.path_params["note_id"]
-    query = sqlalchemy.select([notes]).where(notes.c.id == note_id)
-    result = await request.db.fetchone(query)
+    query = notes.select().where(notes.c.id == note_id)
+    result = await request.database.fetchone(query)
     content = {"text": result["text"], "completed": result["completed"]}
     return JSONResponse(content)
 
@@ -68,7 +68,7 @@ async def read_note(request):
 async def read_note_text(request):
     note_id = request.path_params["note_id"]
     query = sqlalchemy.select([notes.c.text]).where(notes.c.id == note_id)
-    text = await request.db.fetchval(query)
+    text = await request.database.fetchval(query)
     return JSONResponse(text)
 
 

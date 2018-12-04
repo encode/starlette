@@ -12,11 +12,12 @@ from starlette.database.core import (
     DatabaseTransaction,
     compile,
 )
+from starlette.datastructures import URL
 
 
 class PostgresBackend(DatabaseBackend):
-    def __init__(self, database_url: str) -> None:
-        self.database_url = database_url
+    def __init__(self, database_url: typing.Union[str, URL]) -> None:
+        self.database_url = str(database_url)
         self.dialect = self.get_dialect()
         self.pool = None
 
