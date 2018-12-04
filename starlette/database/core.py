@@ -1,9 +1,13 @@
+import functools
 import logging
 import typing
 from types import TracebackType
 
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql import ClauseElement
+
+from starlette.requests import Request
+from starlette.responses import Response
 
 logger = logging.getLogger("starlette.database")
 
@@ -24,6 +28,15 @@ def compile(query: ClauseElement, dialect: Dialect) -> typing.Tuple[str, list]:
 
     logger.debug(compiled_query)
     return compiled_query, args
+
+
+def transaction(func: typing.Callable) -> typing.Callable:
+    @functools.wraps(func)
+    async def wrapper(request: Request) -> Response:
+        async with request.database.transaction():
+            return await func(request)
+
+    return wrapper
 
 
 class DatabaseBackend:

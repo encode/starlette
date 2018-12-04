@@ -4,6 +4,7 @@ import pytest
 import sqlalchemy
 
 from starlette.applications import Starlette
+from starlette.database import transaction
 from starlette.middleware.database import DatabaseMiddleware
 from starlette.responses import JSONResponse
 from starlette.testclient import TestClient
@@ -22,7 +23,7 @@ notes = sqlalchemy.Table(
 
 app = Starlette()
 app.add_middleware(
-    DatabaseMiddleware, database_url=DATABASE_URL, rollback_sessions=True
+    DatabaseMiddleware, database_url=DATABASE_URL, rollback_on_shutdown=True
 )
 
 
@@ -45,13 +46,13 @@ async def list_notes(request):
 
 
 @app.route("/notes", methods=["POST"])
+@transaction
 async def add_note(request):
     data = await request.json()
     query = notes.insert().values(text=data["text"], completed=data["completed"])
-    async with request.database.transaction():
-        await request.database.execute(query)
-        if "raise_exc" in request.query_params:
-            raise RuntimeError()
+    await request.database.execute(query)
+    if "raise_exc" in request.query_params:
+        raise RuntimeError()
     return JSONResponse({"text": data["text"], "completed": data["completed"]})
 
 

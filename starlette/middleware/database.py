@@ -1,4 +1,3 @@
-import functools
 import typing
 
 import asyncpg
@@ -17,11 +16,11 @@ class DatabaseMiddleware:
         self,
         app: ASGIApp,
         database_url: typing.Union[str, URL],
-        rollback_sessions: bool,
+        rollback_on_shutdown: bool,
     ) -> None:
         self.app = app
         self.backend = self.get_backend(database_url)
-        self.rollback_sessions = rollback_sessions
+        self.rollback_on_shutdown = rollback_on_shutdown
         self.session = None  # type: typing.Optional[DatabaseSession]
         self.transaction = None  # type: typing.Optional[DatabaseTransaction]
 
@@ -48,13 +47,13 @@ class DatabaseMiddleware:
 
     async def startup(self) -> None:
         await self.backend.startup()
-        if self.rollback_sessions:
+        if self.rollback_on_shutdown:
             self.session = self.backend.session()
             self.transaction = self.session.transaction()
             await self.transaction.start()
 
     async def shutdown(self) -> None:
-        if self.rollback_sessions:
+        if self.rollback_on_shutdown:
             assert self.session is not None
             assert self.transaction is not None
             await self.transaction.rollback()
