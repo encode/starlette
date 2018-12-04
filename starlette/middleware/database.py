@@ -3,6 +3,7 @@ import typing
 
 import asyncpg
 
+from starlette.database import DatabaseSession, DatabaseTransaction
 from starlette.drivers.postgres_asyncpg import PostgresBackend
 from starlette.types import ASGIApp, ASGIInstance, Message, Receive, Scope, Send
 
@@ -14,30 +15,33 @@ class DatabaseMiddleware:
         self.app = app
         self.backend = PostgresBackend(database_url)
         self.rollback_sessions = rollback_sessions
+        self.session = None  # type: typing.Optional[DatabaseSession]
+        self.transaction = None  # type: typing.Optional[DatabaseTransaction]
 
     def __call__(self, scope: Scope) -> ASGIInstance:
         if scope["type"] == "lifespan":
             return DatabaseLifespan(self.app, self, scope)
-        return SessionManager(self.backend, self.rollback_sessions, self.app, scope)
+
+        if self.session is not None:
+            session = self.session
+        else:
+            session = self.backend.session()  # pragma: no cover
+        scope["db"] = session
+        return self.app(scope)
 
     async def startup(self) -> None:
         await self.backend.startup()
+        if self.rollback_sessions:
+            self.session = self.backend.session()
+            self.transaction = self.session.transaction()
+            await self.transaction.start()
 
     async def shutdown(self) -> None:
+        if self.rollback_sessions:
+            assert self.session is not None
+            assert self.transaction is not None
+            await self.transaction.rollback()
         await self.backend.shutdown()
-
-
-class SessionManager:
-    def __init__(
-        self, backend: PostgresBackend, rollback: bool, app: ASGIApp, scope: Scope
-    ) -> None:
-        self.session = backend.session()
-        self.rollback = rollback
-        scope["db"] = self.session
-        self.inner = app(scope)
-
-    async def __call__(self, receive: Receive, send: Send) -> None:
-        await self.inner(receive, send)
 
 
 class DatabaseLifespan:

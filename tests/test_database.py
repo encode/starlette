@@ -107,27 +107,27 @@ def test_database():
         assert response.json() == "buy the milk"
 
 
-# def test_database_isolated_during_test_cases():
-#     with TestClient(app) as client:
-#         response = client.post(
-#             "/notes", json={"text": "just one note", "completed": True}
-#         )
-#         assert response.status_code == 200
-#
-#         response = client.get("/notes")
-#         assert response.status_code == 200
-#         assert response.json() == [
-#             {"text": "just one note", "completed": True},
-#         ]
-#
-#     with TestClient(app) as client:
-#         response = client.post(
-#             "/notes", json={"text": "just one note", "completed": True}
-#         )
-#         assert response.status_code == 200
-#
-#         response = client.get("/notes")
-#         assert response.status_code == 200
-#         assert response.json() == [
-#             {"text": "just one note", "completed": True},
-#         ]
+def test_database_isolated_during_test_cases():
+    """
+    Using `TestClient` as a context manager
+    """
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/notes", json={"text": "just one note", "completed": True}
+        )
+        assert response.status_code == 200
+
+        response = client.get("/notes")
+        assert response.status_code == 200
+        assert response.json() == [{"text": "just one note", "completed": True}]
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/notes", json={"text": "just one note", "completed": True}
+        )
+        assert response.status_code == 200
+
+        response = client.get("/notes")
+        assert response.status_code == 200
+        assert response.json() == [{"text": "just one note", "completed": True}]
