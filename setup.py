@@ -51,6 +51,7 @@ setup(
             'python-multipart',
             'pyyaml',
             'requests',
+            'sqlalchemy',
             'ujson',
         ]
     },
