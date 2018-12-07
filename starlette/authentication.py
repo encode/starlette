@@ -47,10 +47,14 @@ def requires(
     return decorator
 
 
+class AuthenticationError(Exception):
+    pass
+
+
 class AuthenticationBackend:
     async def authenticate(
         self, request: Request
-    ) -> typing.Tuple["AuthCredentials", "BaseUser"]:
+    ) -> typing.Optional[typing.Tuple["AuthCredentials", "BaseUser"]]:
         raise NotImplemented()  # pragma: no cover
 
 

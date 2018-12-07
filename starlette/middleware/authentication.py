@@ -1,7 +1,13 @@
 import functools
 
-from starlette.authentication import AuthenticationBackend
+from starlette.authentication import (
+    AuthCredentials,
+    AuthenticationBackend,
+    AuthenticationError,
+    UnauthenticatedUser,
+)
 from starlette.requests import Request
+from starlette.responses import PlainTextResponse
 from starlette.types import ASGIApp, ASGIInstance, Receive, Scope, Send
 
 
@@ -15,8 +21,15 @@ class AuthenticationMiddleware:
 
     async def asgi(self, receive: Receive, send: Send, scope: Scope) -> None:
         request = Request(scope, receive=receive)
-        auth, user = await self.backend.authenticate(request)
-        scope["auth"] = auth
-        scope["user"] = user
+        try:
+            auth_result = await self.backend.authenticate(request)
+        except AuthenticationError as exc:
+            response = PlainTextResponse(str(exc), status_code=400)
+            await response(receive, send)
+            return
+
+        if auth_result is None:
+            auth_result = AuthCredentials(), UnauthenticatedUser()
+        scope["auth"], scope["user"] = auth_result
         inner = self.app(scope)
         await inner(receive, send)

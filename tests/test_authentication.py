@@ -1,9 +1,11 @@
 import base64
+import binascii
 
 from starlette.applications import Starlette
 from starlette.authentication import (
     AuthCredentials,
     AuthenticationBackend,
+    AuthenticationError,
     SimpleUser,
     UnauthenticatedUser,
     requires,
@@ -16,12 +18,16 @@ from starlette.testclient import TestClient
 class BasicAuth(AuthenticationBackend):
     async def authenticate(self, request):
         if "Authorization" not in request.headers:
-            return AuthCredentials(), UnauthenticatedUser()
+            return None
 
         auth = request.headers["Authorization"]
-        scheme, credentials = auth.split()
-        decoded = base64.b64decode(credentials)
-        username, _, password = decoded.decode("ascii").partition(":")
+        try:
+            scheme, credentials = auth.split()
+            decoded = base64.b64decode(credentials).decode("ascii")
+        except (ValueError, UnicodeDecodeError, binascii.Error) as exc:
+            raise AuthenticationError("Invalid basic auth credentials")
+
+        username, _, password = decoded.partition(":")
         return AuthCredentials(["authenticated"]), SimpleUser(username)
 
 
@@ -110,6 +116,10 @@ def test_authentication_required():
     response = client.get("/dashboard/sync", auth=("tomchristie", "example"))
     assert response.status_code == 200
     assert response.json() == {"authenticated": True, "user": "tomchristie"}
+
+    response = client.get("/dashboard", headers={"Authorization": "basic foobar"})
+    assert response.status_code == 400
+    assert response.text == "Invalid basic auth credentials"
 
 
 def test_authentication_redirect():
