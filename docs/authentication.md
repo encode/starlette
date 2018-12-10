@@ -37,7 +37,7 @@ class BasicAuthBackend(AuthenticationBackend):
 
 
 app = Starlette()
-app.add_middleware(AuthenticationMiddleware, backend=BasicAuthBackend)
+app.add_middleware(AuthenticationMiddleware, backend=BasicAuthBackend())
 
 
 @app.route('/')
