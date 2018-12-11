@@ -65,6 +65,13 @@ def path_convertor(request):
     return JSONResponse({"path": path})
 
 
+@app.route(r"/optional(?P<optional>\+[^/]+)?/(?P<suffix>.*)")
+def optional(request):
+    optional = request.path_params["optional"]
+    suffix = request.path_params["suffix"]
+    return JSONResponse({"optional": optional, "suffix": suffix})
+
+
 @app.websocket_route("/ws")
 async def websocket_endpoint(session):
     await session.accept()
@@ -106,6 +113,16 @@ def test_router():
     response = client.get("/static/123")
     assert response.status_code == 200
     assert response.text == "xxxxx"
+
+
+def test_router_optional():
+    response = client.get("/optional/suffix")
+    assert response.status_code == 200
+    assert response.json() == {"optional": None, "suffix": "suffix"}
+
+    response = client.get("/optional+provided/suffix")
+    assert response.status_code == 200
+    assert response.json() == {"optional": "+provided", "suffix": "suffix"}
 
 
 def test_route_converters():

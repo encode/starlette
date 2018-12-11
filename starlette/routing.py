@@ -175,6 +175,8 @@ class Route(BaseRoute):
             if match:
                 matched_params = match.groupdict()
                 for key, value in matched_params.items():
+                    if key not in self.param_convertors:
+                        continue
                     matched_params[key] = self.param_convertors[key].convert(value)
                 path_params = dict(scope.get("path_params", {}))
                 path_params.update(matched_params)
