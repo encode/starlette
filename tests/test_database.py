@@ -11,7 +11,7 @@ from starlette.testclient import TestClient
 
 try:
     DATABASE_URL = os.environ["STARLETTE_TEST_DATABASE"]
-except KeyError:
+except KeyError:  # pragma: no cover
     pytest.skip("DATABASE_URL is not set", allow_module_level=True)
 
 metadata = sqlalchemy.MetaData()
