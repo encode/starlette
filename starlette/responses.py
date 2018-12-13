@@ -150,19 +150,24 @@ class TemplateResponse(Response):
         media_type: str = None,
         background: BackgroundTask = None,
     ):
+        if "request" not in context:
+            raise ValueError('context must include a "request" key')
         self.template = template
         self.context = context
         content = template.render(context)
         super().__init__(content, status_code, headers, media_type, background)
 
     async def __call__(self, receive: Receive, send: Send) -> None:
-        await send(
-            {
-                "type": "http.response.template",
-                "template": self.template,
-                "context": self.context,
-            }
-        )
+        request = self.context["request"]
+        extensions = request.get("extensions", {})
+        if "http.response.template" in extensions:
+            await send(
+                {
+                    "type": "http.response.template",
+                    "template": self.template,
+                    "context": self.context,
+                }
+            )
         await super().__call__(receive, send)
 
 

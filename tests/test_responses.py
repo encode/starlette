@@ -248,6 +248,8 @@ def test_delete_cookie():
 
 def test_template_response():
     def app(scope):
+        request = Request(scope)
+
         class Template:
             def __init__(self, name):
                 self.name = name
@@ -257,7 +259,7 @@ def test_template_response():
 
         async def asgi(receive, send):
             template = Template("index.html")
-            context = {"username": "tomchristie"}
+            context = {"username": "tomchristie", "request": request}
             response = TemplateResponse(template, context)
             await response(receive, send)
 
@@ -267,4 +269,9 @@ def test_template_response():
     response = client.get("/")
     assert response.text == "username: tomchristie"
     assert response.template.name == "index.html"
-    assert response.context == {"username": "tomchristie"}
+    assert response.context["username"] == "tomchristie"
+
+
+def test_template_response_requires_request():
+    with pytest.raises(ValueError):
+        TemplateResponse(None, {})

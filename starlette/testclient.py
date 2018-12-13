@@ -126,6 +126,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             "headers": headers,
             "client": ["testclient", 50000],
             "server": [host, port],
+            "extensions": {"http.response.template": {}},
         }
 
         async def receive() -> Message:
