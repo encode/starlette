@@ -1,5 +1,7 @@
 import os
 
+from requests_toolbelt.multipart.encoder import MultipartEncoder
+
 from starlette.formparsers import UploadFile
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -48,6 +50,44 @@ def test_multipart_request_files(tmpdir):
     response = client.post("/", files={"test": open(path, "rb")})
     assert response.json() == {
         "test": {"filename": "test.txt", "content": "<file content>"}
+    }
+
+
+def test_multipart_request_files_and_data(tmpdir):
+    path = os.path.join(tmpdir, "test.txt")
+    with open(path, "wb") as file:
+        file.write(b"<file content>")
+
+    client = TestClient(app)
+    response = client.post("/", files={"test": open(path, "rb")}, data={"some": "data"})
+    assert response.json() == {
+        "test": {"filename": "test.txt", "content": "<file content>"},
+        "some": "data",
+    }
+
+
+def test_multipart_request_mixed_files_and_data(tmpdir):
+    path = os.path.join(tmpdir, "test.txt")
+    with open(path, "wb") as file:
+        file.write(b"<file content>")
+    multipart_data = MultipartEncoder(
+        fields={
+            "field0": "value0",
+            "file": ("file.txt", open(path, "rb"), "text/plain"),
+            "field1": "value1",
+        }
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/",
+        data=multipart_data.to_string(),
+        headers={"Content-Type": multipart_data.content_type},
+    )
+    assert response.json() == {
+        "file": {"filename": "file.txt", "content": "<file content>"},
+        "field0": "value0",
+        "field1": "value1",
     }
 
 

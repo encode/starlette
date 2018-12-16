@@ -241,7 +241,7 @@ class MultiPartParser:
                         result[field_name] = data.decode("latin-1")
                     else:
                         await file.seek(0)
-                        result[field_name] = file
+                        result[field_name], file = file, None
                 elif message_type == MultiPartMessage.END:
                     pass
 
