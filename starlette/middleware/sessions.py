@@ -27,7 +27,7 @@ class SessionMiddleware:
         self.max_age = max_age
         self.security_flags = "httponly; samesite=" + same_site
         if https_only: # Secure flag can be used with HTTPS only
-            self.security_flags += "; secure" 
+            self.security_flags += "; secure"
 
     def __call__(self, scope: Scope) -> ASGIInstance:
         if scope["type"] in ("http", "websocket"):
