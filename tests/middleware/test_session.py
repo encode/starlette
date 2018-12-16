@@ -59,6 +59,7 @@ def test_session_expires():
     response = client.get("/view_session")
     assert response.json() == {"session": {}}
 
+
 def test_secure_session():
     app = create_app()
     app.add_middleware(SessionMiddleware, secret_key="example", https_only=True)
