@@ -7,11 +7,11 @@ from starlette.authentication import (
     AuthenticationBackend,
     AuthenticationError,
     SimpleUser,
-    UnauthenticatedUser,
     requires,
 )
 from starlette.middleware.authentication import AuthenticationMiddleware
-from starlette.responses import JSONResponse
+from starlette.requests import Request
+from starlette.responses import JSONResponse, Response
 from starlette.testclient import TestClient
 
 
@@ -31,11 +31,11 @@ class BasicAuth(AuthenticationBackend):
         return AuthCredentials(["authenticated"]), SimpleUser(username)
 
 
-app = Starlette()
-app.add_middleware(AuthenticationMiddleware, backend=BasicAuth())
+app_1 = Starlette()
+app_1.add_middleware(AuthenticationMiddleware, backend=BasicAuth())
 
 
-@app.route("/")
+@app_1.route("/")
 def homepage(request):
     return JSONResponse(
         {
@@ -45,7 +45,7 @@ def homepage(request):
     )
 
 
-@app.route("/dashboard")
+@app_1.route("/dashboard")
 @requires("authenticated")
 async def dashboard(request):
     return JSONResponse(
@@ -56,7 +56,7 @@ async def dashboard(request):
     )
 
 
-@app.route("/admin")
+@app_1.route("/admin")
 @requires("authenticated", redirect="homepage")
 async def admin(request):
     return JSONResponse(
@@ -67,7 +67,7 @@ async def admin(request):
     )
 
 
-@app.route("/dashboard/sync")
+@app_1.route("/dashboard/sync")
 @requires("authenticated")
 def dashboard(request):
     return JSONResponse(
@@ -78,7 +78,7 @@ def dashboard(request):
     )
 
 
-@app.route("/admin/sync")
+@app_1.route("/admin/sync")
 @requires("authenticated", redirect="homepage")
 def admin(request):
     return JSONResponse(
@@ -90,7 +90,7 @@ def admin(request):
 
 
 def test_user_interface():
-    with TestClient(app) as client:
+    with TestClient(app_1) as client:
         response = client.get("/")
         assert response.status_code == 200
         assert response.json() == {"authenticated": False, "user": ""}
@@ -101,7 +101,7 @@ def test_user_interface():
 
 
 def test_authentication_required():
-    with TestClient(app) as client:
+    with TestClient(app_1) as client:
         response = client.get("/dashboard")
         assert response.status_code == 403
 
@@ -122,7 +122,7 @@ def test_authentication_required():
 
 
 def test_authentication_redirect():
-    with TestClient(app) as client:
+    with TestClient(app_1) as client:
         response = client.get("/admin")
         assert response.status_code == 200
         assert response.url == "http://testserver/"
@@ -138,3 +138,48 @@ def test_authentication_redirect():
         response = client.get("/admin/sync", auth=("tomchristie", "example"))
         assert response.status_code == 200
         assert response.json() == {"authenticated": True, "user": "tomchristie"}
+
+
+class BasicAuthWithCustomResponse(BasicAuth):
+    def error_response(self, request: Request, exc: Exception) -> Response:
+        if request.headers.get("Content-Type") == "application/json":
+            return JSONResponse({"error": str(exc)}, status_code=400)
+
+        return super().error_response(request, exc)
+
+
+app_2 = Starlette()
+app_2.add_middleware(AuthenticationMiddleware, backend=BasicAuthWithCustomResponse())
+
+
+@app_2.route("/control_panel")
+@requires("authenticated")
+async def control_panel(request):
+    return JSONResponse(
+        {
+            "authenticated": request.user.is_authenticated,
+            "user": request.user.display_name,
+        }
+    )
+
+
+def test_custom_auth_error_responses():
+    with TestClient(app_2) as client:
+        response = client.get("/control_panel", auth=("tomchristie", "example"))
+        assert response.status_code == 200
+
+        response = client.get(
+            "/control_panel", headers={"Authorization": "basic foobar"}
+        )
+        assert response.status_code == 400
+        assert response.text == "Invalid basic auth credentials"
+
+        response = client.get(
+            "/control_panel",
+            headers={
+                "Authorization": "basic foobar",
+                "Content-Type": "application/json",
+            },
+        )
+        assert response.status_code == 400
+        assert response.json() == {"error": "Invalid basic auth credentials"}

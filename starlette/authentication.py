@@ -4,7 +4,7 @@ import typing
 
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
-from starlette.responses import RedirectResponse, Response
+from starlette.responses import PlainTextResponse, RedirectResponse, Response
 
 
 def has_required_scope(request: Request, scopes: typing.Sequence[str]) -> bool:
@@ -56,6 +56,9 @@ class AuthenticationBackend:
         self, request: Request
     ) -> typing.Optional[typing.Tuple["AuthCredentials", "BaseUser"]]:
         raise NotImplemented()  # pragma: no cover
+
+    def error_response(self, request: Request, exc: Exception) -> Response:
+        return PlainTextResponse(str(exc), status_code=400)
 
 
 class AuthCredentials:

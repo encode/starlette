@@ -7,7 +7,6 @@ from starlette.authentication import (
     UnauthenticatedUser,
 )
 from starlette.requests import Request
-from starlette.responses import PlainTextResponse
 from starlette.types import ASGIApp, ASGIInstance, Receive, Scope, Send
 
 
@@ -26,7 +25,7 @@ class AuthenticationMiddleware:
         try:
             auth_result = await self.backend.authenticate(request)
         except AuthenticationError as exc:
-            response = PlainTextResponse(str(exc), status_code=400)
+            response = self.backend.error_response(request, exc)
             await response(receive, send)
             return
 
