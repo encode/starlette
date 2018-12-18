@@ -1,4 +1,5 @@
 import functools
+import typing
 
 from starlette.authentication import (
     AuthCredentials,
@@ -11,10 +12,20 @@ from starlette.responses import PlainTextResponse
 from starlette.types import ASGIApp, ASGIInstance, Receive, Scope, Send
 
 
+def default_on_error(request: Request, exc: Exception):
+    return PlainTextResponse(str(exc), status_code=400)
+
+
 class AuthenticationMiddleware:
-    def __init__(self, app: ASGIApp, backend: AuthenticationBackend) -> None:
+    def __init__(
+        self,
+        app: ASGIApp,
+        backend: AuthenticationBackend,
+        on_error: typing.Callable = None,
+    ) -> None:
         self.app = app
         self.backend = backend
+        self.on_error = on_error if on_error is not None else default_on_error
 
     def __call__(self, scope: Scope) -> ASGIInstance:
         if scope["type"] in ["http", "websockets"]:
@@ -26,7 +37,7 @@ class AuthenticationMiddleware:
         try:
             auth_result = await self.backend.authenticate(request)
         except AuthenticationError as exc:
-            response = PlainTextResponse(str(exc), status_code=400)
+            response = self.on_error(request, exc)
             await response(receive, send)
             return
 
