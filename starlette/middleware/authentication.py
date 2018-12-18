@@ -8,12 +8,8 @@ from starlette.authentication import (
     UnauthenticatedUser,
 )
 from starlette.requests import Request
-from starlette.responses import PlainTextResponse
+from starlette.responses import PlainTextResponse, Response
 from starlette.types import ASGIApp, ASGIInstance, Receive, Scope, Send
-
-
-def default_on_error(request: Request, exc: Exception):
-    return PlainTextResponse(str(exc), status_code=400)
 
 
 class AuthenticationMiddleware:
@@ -21,11 +17,13 @@ class AuthenticationMiddleware:
         self,
         app: ASGIApp,
         backend: AuthenticationBackend,
-        on_error: typing.Callable = None,
+        on_error: typing.Callable[[Request, AuthenticationError], Response] = None,
     ) -> None:
         self.app = app
         self.backend = backend
-        self.on_error = on_error if on_error is not None else default_on_error
+        self.on_error = (
+            on_error if on_error is not None else self.default_on_error
+        )  # type: typing.Callable[[Request, AuthenticationError], Response]
 
     def __call__(self, scope: Scope) -> ASGIInstance:
         if scope["type"] in ["http", "websockets"]:
@@ -46,3 +44,7 @@ class AuthenticationMiddleware:
         scope["auth"], scope["user"] = auth_result
         inner = self.app(scope)
         await inner(receive, send)
+
+    @staticmethod
+    def default_on_error(request: Request, exc: Exception) -> Response:
+        return PlainTextResponse(str(exc), status_code=400)
