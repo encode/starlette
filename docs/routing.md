@@ -59,11 +59,7 @@ You should add that route for `/users/me` before the one for `/users/{username}`
 
 ```python
 app = Router([
-    Route('/', endpoint=Homepage, methods=['GET']),
-    Mount('/users', app=Router([
-        Route('/', endpoint=Users, methods=['GET', 'POST']),
-        Route('/users/me', endpoint=UserMe, methods=['GET'])
-        Route('/{username}', endpoint=User, methods=['GET']),
-    ]))
+    Route('/users/me', endpoint=UserMe, methods=['GET']),
+    Route('/{username}', endpoint=User, methods=['GET']),
 ])
 ```
