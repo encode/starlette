@@ -20,7 +20,6 @@ pytest
 pytest-cov
 sqlalchemy
 psycopg2-binary
-requests_toolbelt
 
 # Documentation
 mkdocs

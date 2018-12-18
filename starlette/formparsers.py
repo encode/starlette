@@ -231,6 +231,8 @@ class MultiPartParser:
                         filename = options[b"filename"].decode("latin-1")
                         file = UploadFile(filename=filename)
                         await file.setup()
+                    else:
+                        file = None
                 elif message_type == MultiPartMessage.PART_DATA:
                     if file is None:
                         data += message_bytes
@@ -241,7 +243,7 @@ class MultiPartParser:
                         result[field_name] = data.decode("latin-1")
                     else:
                         await file.seek(0)
-                        result[field_name], file = file, None
+                        result[field_name] = file
                 elif message_type == MultiPartMessage.END:
                     pass
 
