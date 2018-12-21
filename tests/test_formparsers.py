@@ -41,11 +41,7 @@ def app_read_body(scope):
         data = await request.form()
         output = {}
         for key, value in data.items():
-            if isinstance(value, UploadFile):
-                content = await value.read()
-                output[key] = {"filename": value.filename, "content": content.decode()}
-            else:
-                output[key] = value
+            output[key] = value
         await request.close()
         response = JSONResponse(output)
         await response(receive, send)
