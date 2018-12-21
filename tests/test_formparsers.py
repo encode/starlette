@@ -141,5 +141,7 @@ def test_urlencoded_multi_field_app_reads_body(tmpdir):
 
 def test_multipart_multi_field_app_reads_body(tmpdir):
     client = TestClient(app_read_body)
-    response = client.post("/", data={"some": "data", "second": "key pair"}, files=FORCE_MULTIPART)
+    response = client.post(
+        "/", data={"some": "data", "second": "key pair"}, files=FORCE_MULTIPART
+    )
     assert response.json() == {"some": "data", "second": "key pair"}
