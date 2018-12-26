@@ -45,6 +45,18 @@ By default, tests involving a database are excluded. To include them, set the `S
 export STARLETTE_TEST_DATABASE="postgresql://localhost/starlette"
 ```
 
+## Linting
+
+We use [Black] as a code formatter. To run it along with a few other linting tools, we provide a stand-alone linting script:
+
+```bash
+./scripts/lint
+```
+
+If linting has anything to say about the code, it will format it in-place.
+
+To keep the code style consistent, you should apply linting before committing.
+
 ## Documentation
 
 The documentation is built with [MkDocs], a Markdown-based documentation site generator.
@@ -59,5 +71,6 @@ Please refer to the [MkDocs docs][MkDocs] for more usage information, including 
 [Open a PR]: https://github.com/encode/starlette/compare
 [pytest]: https://docs.pytest.org
 [pytest-cov]: https://github.com/pytest-dev/pytest-cov
+[Black]: https://www.google.com/search?client=safari&rls=en&q=github+black&ie=UTF-8&oe=UTF-8
 [MkDocs]: https://www.mkdocs.org
 [Editable Installs]: https://pip.pypa.io/en/stable/reference/pip_install/#editable-installs
