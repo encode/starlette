@@ -31,11 +31,19 @@ pip install -r requirements.txt
 
 The tests are written using [pytest] and located in the `tests/` directory.
 
-Tests should be run before making any changes to the code in order to make sure that everything is running as expected.
+**Note**: tests should be run before making any changes to the code in order to make sure that everything is running as expected.
 
-You can run the tests by running `$ pytest` in the project root directory.
+We provide a stand-alone **test script** to run tests in a reliable manner. Run it with:
 
-For coverage reports, run `$ pytest --cov=./` instead. See the [pytest-cov] documentation for more information.
+```bash
+./scripts/test
+```
+
+By default, tests involving a database are excluded. To include them, set the `STARLETTE_TEST_DATABASE` environment variable to the URL of a PostgreSQL database, e.g.:
+
+```bash
+export STARLETTE_TEST_DATABASE="postgresql://localhost/starlette"
+```
 
 ## Documentation
 
