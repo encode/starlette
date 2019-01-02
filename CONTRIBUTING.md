@@ -9,9 +9,9 @@ The Starlette team happily welcomes contributions. This document will help you g
 1. Fork the repo.
 2. Clone your fork on your local computer: `git clone https://github.com/<username>/starlette.git`.
 3. Install Starlette locally and run the tests (see next sections).
-4. Create a branch for your work, e.g. `fix/some-bug`.
+4. Create a branch for your work, e.g. `git checkout -b fix-some-bug`.
 5. Remember to include tests and documentation updates if applicable.
-6. Once ready, push to your remote: `git push origin fix/some-bug`.
+6. Once ready, push to your remote: `git push origin fix-some-bug`.
  7. [Open a PR] on the main repo.
 
 ## Install
