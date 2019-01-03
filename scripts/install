@@ -1,11 +1,13 @@
 #!/bin/sh -e
 
+[[ $1 = "-p" ]] && PYTHON=$2 || PYTHON="python"
+
 MIN_VERSION="(3,6)"
-VERSION_OK=`python -c "import sys; print(sys.version_info[0:2] >= $MIN_VERSION and '1' or '');"`
+VERSION_OK=`"$PYTHON" -c "import sys; print(sys.version_info[0:2] >= $MIN_VERSION and '1' or '');"`
 
 if [[ -z "$VERSION_OK" ]] ; then
-    PYTHON_VERSION=`python -c "import sys; print('%s.%s' % sys.version_info[0:2]);"`
-    DISP_MIN_VERSION=`python -c "print('%s.%s' % $MIN_VERSION)"`
+    PYTHON_VERSION=`"$PYTHON" -c "import sys; print('%s.%s' % sys.version_info[0:2]);"`
+    DISP_MIN_VERSION=`"$PYTHON" -c "print('%s.%s' % $MIN_VERSION)"`
     echo "ERROR: Python $PYTHON_VERSION detected, but $DISP_MIN_VERSION+ is required."
     echo "Please upgrade your Python distribution to install Starlette."
     exit 1
@@ -20,7 +22,7 @@ function execute() {
     $1
 }
 
-execute "python -m venv $VENV"
+execute "$PYTHON -m venv $VENV"
 execute "$PIP install -r $REQUIREMENTS"
 execute "$PIP install -e ."
 

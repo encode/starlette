@@ -2,7 +2,11 @@
 
 The Starlette team happily welcomes contributions. This document will help you get ready to contribute to Starlette!
 
-> **NOTE**: before writing any code, please first [open an issue] and discuss your ideas with the maintainers.
+This guide references utility shell scripts that were written to automate common tasks. You can find them in the [scripts](./scripts) directory.
+
+These scripts are currently suited to **Linux** and **macOS**, but we would happily take PRs to help us make them more cross-compatible or update the instructions.
+
+> **NOTE**: before writing any code, please first consider [opening an issue] to discuss your ideas with the maintainers.
 
 ## Setting up the repository
 
@@ -16,16 +20,17 @@ The Starlette team happily welcomes contributions. This document will help you g
 
 ## Install
 
-- Make sure you are using a compatible Python version, as specified in our README.
-- Create a virtual environment and install project dependencies:
+Use the `install` script to install project dependencies in a virtual environment.
 
 ```bash
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+./scripts/install
 ```
 
-- Install an editable version of the project: `pip install -e .` (see [Editable Installs] in the `pip` docs).
+Your Python version will be verified and the virtual environment created using the `python3` executable. To use another executable, use the `-p` option, e.g.:
+
+```bash
+./scripts/install -p py
+```
 
 ## Running the tests
 
