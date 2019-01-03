@@ -31,7 +31,9 @@ def test_config(tmpdir):
     assert REQUEST_TIMEOUT == 10
     assert REQUEST_HOSTNAME == "example.com"
     assert repr(SECRET_KEY) == "Secret('**********')"
-    assert str(SECRET_KEY) == "12345"
+    assert str(SECRET_KEY) == "Secret('**********')"
+    assert format(SECRET_KEY) == "Secret('**********')"
+    assert SECRET_KEY.value == "12345"
 
     with pytest.raises(KeyError):
         config.get("MISSING")

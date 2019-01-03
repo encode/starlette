@@ -50,25 +50,27 @@ If none of those match, then `config(...)` will raise an error.
 For sensitive keys, the `Secret` class is useful, since it helps minimize
 occasions where the value it holds could leak out into tracebacks or logging.
 
-To get the value of a `Secret` instance, you must explicitly cast it to a string.
+To get the value of a `Secret` instance, you must access the `value` property.
 You should only do this at the point at which the value is used.
 
 ```python
 >>> from myproject import settings
+>>> settings.SECRET_KEY
+Secret('**********')
 >>> print(settings.SECRET_KEY)
 Secret('**********')
->>> str(settings.SECRET_KEY)
+>>> settings.SECRET_KEY.value
 '98n349$%8b8-7yjn0n8y93T$23r'
 ```
 
 Similarly, the `URL` and `DatabaseURL` class will hide any password component
-in their representations.
+in their representations. Cast to a string to get the underlying value.
 
 ```python
 >>> from myproject import settings
->>> print(settings.DATABASE_URL)
+>>> settings.DATABASE_URL
 DatabaseURL('postgresql://admin:**********@192.168.0.8/my-application')
->>> str(settings.SECRET_KEY)
+>>> str(settings.DATABASE_URL)
 'postgresql://admin:Fkjh348htGee4t3@192.168.0.8/my-application'
 ```
 

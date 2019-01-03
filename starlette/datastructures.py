@@ -184,17 +184,20 @@ class URLPath(str):
 class Secret:
     """
     Holds a string value that should not be revealed in tracebacks etc.
-    You should cast the value to `str` at the point it is required.
+    You should access the ``value`` attribute at the point it is required.
     """
 
     def __init__(self, value: str):
         self._value = value
 
+    @property
+    def value(self) -> str:
+        return self._value
+
     def __repr__(self) -> str:
         return "%s('**********')" % self.__class__.__name__
 
-    def __str__(self) -> str:
-        return self._value
+    __str__ = __repr__
 
 
 class CommaSeparatedStrings(Sequence):
