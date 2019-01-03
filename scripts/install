@@ -1,0 +1,30 @@
+#!/bin/sh -e
+
+MIN_VERSION="(3,6)"
+VERSION_OK=`python -c "import sys; print(sys.version_info[0:2] >= $MIN_VERSION and '1' or '');"`
+
+if [[ -z "$VERSION_OK" ]] ; then
+    PYTHON_VERSION=`python -c "import sys; print('%s.%s' % sys.version_info[0:2]);"`
+    DISP_MIN_VERSION=`python -c "print('%s.%s' % $MIN_VERSION)"`
+    echo "ERROR: Python $PYTHON_VERSION detected, but $DISP_MIN_VERSION+ is required."
+    echo "Please upgrade your Python distribution to install Starlette."
+    exit 1
+fi
+
+REQUIREMENTS="requirements.txt"
+VENV="venv"
+PIP="$VENV/bin/pip"
+
+function execute() {
+    echo "Executing $1…"
+    $1
+}
+
+execute "python -m venv $VENV"
+execute "$PIP install -r $REQUIREMENTS"
+execute "$PIP install -e ."
+
+echo "\nAll set! Activate your virtual environment using the command below."
+echo ". $VENV/bin/activate"
+
+exit 0
