@@ -80,7 +80,24 @@ from fastapi import FastAPI
 
 app = FastAPI()
 
-@app.get('/')
-def read_root():
-    return {'hello': 'world'}
+
+@app.get("/items/{item_id}")
+def read_item(item_id: int, q: str = None):
+    return {"item_id": item_id, "q": q}
+```
+
+## Docker
+
+### Docker image: `tiangolo/uvicorn-gunicorn-starlette`
+
+Link: <a href="https://github.com/tiangolo/uvicorn-gunicorn-starlette-docker" target="_blank">https://github.com/tiangolo/uvicorn-gunicorn-starlette-docker</a>
+
+<a href="https://www.docker.com/" target="_blank">**Docker**</a> image with <a href="https://www.uvicorn.org/" target="_blank">**Uvicorn**</a> managed by <a href="https://gunicorn.org/" target="_blank">**Gunicorn**</a> for high-performance **Starlette** web applications in Python 3.7 and 3.6 with performance auto-tuning. Optionally with Alpine Linux.
+
+You can use it in your `Dockerfile` like:
+
+```Dockerfile
+FROM tiangolo/uvicorn-gunicorn-starlette:python3.7
+
+COPY ./app /app
 ```
