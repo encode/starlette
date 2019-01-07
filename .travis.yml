@@ -1,7 +1,5 @@
 language: python
 
-cache: pip
-
 python:
     - "3.6"
     - "3.7-dev"
@@ -13,7 +11,7 @@ services:
     - postgresql
 
 install:
-    - pip install -U -r requirements.txt
+    - pip install -r requirements.txt
 
 before_script:
     - psql -c 'create database starlette;' -U postgres
