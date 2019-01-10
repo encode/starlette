@@ -1,5 +1,6 @@
 import base64
 import binascii
+import pytest
 
 from starlette.applications import Starlette
 from starlette.authentication import (
@@ -100,6 +101,13 @@ def admin(request):
             "user": request.user.display_name,
         }
     )
+
+
+def test_invalid_decorator_usage():
+    with pytest.raises(Exception):
+        @requires("authenticated")
+        def foo():
+            pass
 
 
 def test_user_interface():
