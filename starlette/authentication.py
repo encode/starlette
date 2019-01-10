@@ -27,8 +27,11 @@ def requires(
 
             @functools.wraps(func)
             async def wrapper(*args: typing.Any) -> Response:
-                assert len(args) in (1, 2)  # func(request) or func(self, request)
+                # Support either `func(request)`` or `func(self, request)``
+                assert len(args) in (1, 2)
                 request = args[-1]
+                assert isinstance(request, Request)
+
                 if not has_required_scope(request, scopes_list):
                     if redirect is not None:
                         return RedirectResponse(url=request.url_for(redirect))
@@ -39,8 +42,11 @@ def requires(
 
         @functools.wraps(func)
         def sync_wrapper(*args: typing.Any) -> Response:
-            assert len(args) in (1, 2)  # func(request) or func(self, request)
+            # Support either `func(request)`` or `func(self, request)``
+            assert len(args) in (1, 2)
             request = args[-1]
+            assert isinstance(request, Request)
+
             if not has_required_scope(request, scopes_list):
                 if redirect is not None:
                     return RedirectResponse(url=request.url_for(redirect))
