@@ -14,7 +14,7 @@ from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.testclient import TestClient
-from starlette.schemas import SchemaGenerator
+from starlette.schemas import OpenAPIResponse, SchemaGenerator
 
 
 class BasicAuth(AuthenticationBackend):
@@ -183,15 +183,22 @@ api_app.schema_generator = SchemaGenerator(
 )
 
 
-@api_app.route("/manage")
+@api_app.route("/docs", include_in_schema=False)
+def api_docs(request):
+    return OpenAPIResponse(api_app.schema)
+
+
+@api_app.route("/manage", name="manage")
 @requires("authenticated")
-class ManagementConsole(HTTPEndpoint):
-    def get(self, req):
+class ManageResources(HTTPEndpoint):
+    def get(self, request):
         """
-        summary: list manage-able resources
+        summary: list manageable resources
         responses:
           200:
             description: successful operation
+          403:
+            description: forbidden
         """
         return JSONResponse(
             [
@@ -205,6 +212,19 @@ class ManagementConsole(HTTPEndpoint):
                 },
             ]
         )
+
+
+@api_app.route("/users/{user_id}")
+@requires("authenticated", redirect="manage")
+class ManageUsers(HTTPEndpoint):
+    def delete(self, request):
+        """
+        summary: delete a user
+        responses:
+          200:
+            description: successful operation or redirect
+        """
+        return JSONResponse({"deleted": request.path_params['user_id']})
 
 
 def test_management_api():
@@ -221,10 +241,33 @@ def test_management_api():
                     'responses': {
                         200: {
                             'description': 'successful operation'
+                        },
+                        403: {
+                            'description': 'forbidden'
+                        }
+                    }
+                }
+            },
+            '/users/{user_id}': {
+                'delete': {
+                    'summary': 'delete a user',
+                    'responses': {
+                        200: {
+                            'description': 'successful operation or redirect'
                         }
                     }
                 }
             }
         }
     }
+    with TestClient(api_app) as client:
+        response = client.get("/manage")
+        assert response.status_code == 403
 
+        response = client.get("/manage", auth=("tomchristie", "example"))
+        assert response.status_code == 200
+        assert response.json() == [{"id": 1, "name": "users"}, {"id": 2, "name": "organizations"}]
+
+        response = client.delete("/users/1")
+        assert response.status_code == 302
+        assert response.headers['location'] == 'http://testserver/manage'
