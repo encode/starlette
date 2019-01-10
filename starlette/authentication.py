@@ -1,5 +1,6 @@
 import asyncio
 import functools
+import inspect
 import typing
 
 from starlette.exceptions import HTTPException
@@ -23,24 +24,27 @@ def requires(
 
     def decorator(func: typing.Callable) -> typing.Callable:
         if asyncio.iscoroutinefunction(func):
-
             @functools.wraps(func)
-            async def wrapper(request: Request) -> Response:
+            async def wrapper(*args) -> Response:
+                assert len(args) in (1, 2)  # func(request) or func(self, request)
+                request = args[-1]
                 if not has_required_scope(request, scopes_list):
                     if redirect is not None:
                         return RedirectResponse(url=request.url_for(redirect))
                     raise HTTPException(status_code=status_code)
-                return await func(request)
+                return await func(*args)
 
             return wrapper
 
         @functools.wraps(func)
-        def sync_wrapper(request: Request) -> Response:
+        def sync_wrapper(*args) -> Response:
+            assert len(args) in (1, 2)  # func(request) or func(self, request)
+            request = args[-1]
             if not has_required_scope(request, scopes_list):
                 if redirect is not None:
                     return RedirectResponse(url=request.url_for(redirect))
                 raise HTTPException(status_code=status_code)
-            return func(request)
+            return func(*args)
 
         return sync_wrapper
 
