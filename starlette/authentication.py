@@ -24,8 +24,9 @@ def requires(
 
     def decorator(func: typing.Callable) -> typing.Callable:
         if asyncio.iscoroutinefunction(func):
+
             @functools.wraps(func)
-            async def wrapper(*args) -> Response:
+            async def wrapper(*args: typing.Any) -> Response:
                 assert len(args) in (1, 2)  # func(request) or func(self, request)
                 request = args[-1]
                 if not has_required_scope(request, scopes_list):
@@ -37,7 +38,7 @@ def requires(
             return wrapper
 
         @functools.wraps(func)
-        def sync_wrapper(*args) -> Response:
+        def sync_wrapper(*args: typing.Any) -> Response:
             assert len(args) in (1, 2)  # func(request) or func(self, request)
             request = args[-1]
             if not has_required_scope(request, scopes_list):
