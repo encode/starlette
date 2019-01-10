@@ -109,7 +109,7 @@ def test_invalid_decorator_usage():
 
         @requires("authenticated")
         def foo():
-            pass
+            pass  # pragma: nocover
 
 
 def test_user_interface():
