@@ -9,10 +9,12 @@ from starlette.authentication import (
     SimpleUser,
     requires,
 )
+from starlette.endpoints import HTTPEndpoint
 from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.testclient import TestClient
+from starlette.schemas import SchemaGenerator
 
 
 class BasicAuth(AuthenticationBackend):
@@ -172,3 +174,57 @@ def test_custom_on_error():
         )
         assert response.status_code == 401
         assert response.json() == {"error": "Invalid basic auth credentials"}
+
+
+api_app = Starlette()
+api_app.add_middleware(AuthenticationMiddleware, backend=BasicAuth())
+api_app.schema_generator = SchemaGenerator(
+    {"openapi": "3.0.0", "info": {"title": "Example API", "version": "1.0"}}
+)
+
+
+@api_app.route("/manage")
+@requires("authenticated")
+class ManagementConsole(HTTPEndpoint):
+    def get(self, req):
+        """
+        summary: list manage-able resources
+        responses:
+          200:
+            description: successful operation
+        """
+        return JSONResponse(
+            [
+                {
+                    "id": 1,
+                    "name": "users",
+                },
+                {
+                    "id": 2,
+                    "name": "organizations",
+                },
+            ]
+        )
+
+
+def test_management_api():
+    assert api_app.schema == {
+        'openapi': '3.0.0',
+        'info': {
+            'title': 'Example API',
+            'version': '1.0'
+        },
+        'paths': {
+            '/manage': {
+                'get': {
+                    'summary': 'list manageable resources',
+                    'responses': {
+                        200: {
+                            'description': 'successful operation'
+                        }
+                    }
+                }
+            }
+        }
+    }
+
