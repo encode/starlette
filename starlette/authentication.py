@@ -25,7 +25,7 @@ def requires(
     def decorator(func: typing.Callable) -> typing.Callable:
         sig = inspect.signature(func)
         for idx, parameter in enumerate(sig.parameters.values()):
-            if parameter.name == 'request':
+            if parameter.name == "request":
                 break
         else:
             raise Exception('No "request" argument on function "%s"' % func)
@@ -34,7 +34,7 @@ def requires(
 
             @functools.wraps(func)
             async def wrapper(*args: typing.Any, **kwargs: typing.Any) -> Response:
-                request = kwargs.get('request', args[idx])
+                request = kwargs.get("request", args[idx])
                 assert isinstance(request, Request)
 
                 if not has_required_scope(request, scopes_list):
@@ -48,7 +48,7 @@ def requires(
         @functools.wraps(func)
         def sync_wrapper(*args: typing.Any, **kwargs: typing.Any) -> Response:
             # Support either `func(request)` or `func(self, request)`
-            request = kwargs.get('request', args[idx])
+            request = kwargs.get("request", args[idx])
             assert isinstance(request, Request)
 
             if not has_required_scope(request, scopes_list):
