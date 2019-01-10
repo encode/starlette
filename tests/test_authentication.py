@@ -183,11 +183,6 @@ api_app.schema_generator = SchemaGenerator(
 )
 
 
-@api_app.route("/docs", include_in_schema=False)
-def api_docs(request):
-    return OpenAPIResponse(api_app.schema)
-
-
 @api_app.route("/manage", name="manage")
 @requires("authenticated")
 class ManageResources(HTTPEndpoint):
@@ -271,3 +266,7 @@ def test_management_api():
         response = client.delete("/users/1")
         assert response.status_code == 302
         assert response.headers['location'] == 'http://testserver/manage'
+
+        response = client.delete("/users/123", auth=("tomchristie", "example"))
+        assert response.status_code == 200
+        assert response.json()['deleted'] == '123'
