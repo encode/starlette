@@ -132,8 +132,8 @@ class WebSocket(HTTPConnection):
         assert self.application_state == WebSocketState.CONNECTED
         message = await self.receive()
         self._raise_on_disconnect(message)
-        encoded = message["bytes"]
-        return json.loads(encoded.decode("utf-8"))
+        text = message["text"]
+        return json.loads(text)
 
     async def send_text(self, data: str) -> None:
         await self.send({"type": "websocket.send", "text": data})
@@ -142,8 +142,8 @@ class WebSocket(HTTPConnection):
         await self.send({"type": "websocket.send", "bytes": data})
 
     async def send_json(self, data: typing.Any) -> None:
-        encoded = json.dumps(data).encode("utf-8")
-        await self.send({"type": "websocket.send", "bytes": encoded})
+        text = json.dumps(data)
+        await self.send({"type": "websocket.send", "text": text})
 
     async def close(self, code: int = 1000) -> None:
         await self.send({"type": "websocket.close", "code": code})

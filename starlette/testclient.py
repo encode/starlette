@@ -277,8 +277,8 @@ class WebSocketTestSession:
         self.send({"type": "websocket.receive", "bytes": data})
 
     def send_json(self, data: typing.Any) -> None:
-        encoded = json.dumps(data).encode("utf-8")
-        self.send({"type": "websocket.receive", "bytes": encoded})
+        text = json.dumps(data)
+        self.send({"type": "websocket.receive", "text": text})
 
     def close(self, code: int = 1000) -> None:
         self.send({"type": "websocket.disconnect", "code": code})
@@ -302,8 +302,8 @@ class WebSocketTestSession:
     def receive_json(self) -> typing.Any:
         message = self.receive()
         self._raise_on_close(message)
-        encoded = message["bytes"]
-        return json.loads(encoded.decode("utf-8"))
+        text = message["text"]
+        return json.loads(text)
 
 
 class TestClient(requests.Session):

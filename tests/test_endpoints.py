@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from starlette.endpoints import HTTPEndpoint, WebSocketEndpoint
@@ -78,6 +80,10 @@ def test_websocket_endpoint_on_receive_json():
     client = TestClient(WebSocketApp)
     with client.websocket_connect("/ws") as websocket:
         websocket.send_json({"hello": "world"})
+        data = websocket.receive_json()
+        assert data == {"message": {"hello": "world"}}
+
+        websocket.send_bytes(json.dumps({"hello": "world"}).encode("utf-8"))
         data = websocket.receive_json()
         assert data == {"message": {"hello": "world"}}
 
