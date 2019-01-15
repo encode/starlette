@@ -1,6 +1,6 @@
 import pytest
 
-from starlette.middleware.errors import ServerErrorMiddleware
+from starlette.middleware.errors import ServerErrorMiddleware, DebugGenerator
 from starlette.responses import JSONResponse, Response
 from starlette.testclient import TestClient
 
@@ -91,3 +91,17 @@ def test_debug_not_http():
 
     with pytest.raises(RuntimeError):
         app({"type": "websocket"})
+
+
+def test_customized_debug_generator():
+    exc = RuntimeError("Something went wrong")
+
+    class CustomDebugGenerator(DebugGenerator):
+        title = "My debugger"
+        styles = "p{color: red;}"
+
+    gen = CustomDebugGenerator(exc)
+    html = gen.generate_html()
+    assert "p{color: red;}" in html
+    assert "Something went wrong" in html
+    assert "My debugger" in html

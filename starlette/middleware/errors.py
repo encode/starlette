@@ -18,7 +18,7 @@ STYLES = """\
 
 TEMPLATE = """
     <style type='text/css'>{style}</style>
-    <title>Starlette Debugger</title>
+    <title>{title}</title>
     <h1>500 Server Error</h1>
     <h2>{error}</h2>
     <div class='traceback-container'>
@@ -38,30 +38,44 @@ FRAME_TEMPLATE = """
 
 
 class DebugGenerator:
+
+    title = "Starlette Debugger"
+    styles = STYLES
+    template = TEMPLATE
+    frame_template = FRAME_TEMPLATE
+
     def __init__(self, exc: Exception) -> None:
         self.exc = exc
         self.traceback_obj = traceback.TracebackException.from_exception(
             exc, capture_locals=True
         )
-        self.error = f"{self.traceback_obj.exc_type.__name__}: {self.traceback_obj}"
+        self.error = (
+            f"{self.traceback_obj.exc_type.__name__}: {self.traceback_obj}"
+        )
 
-    @staticmethod
-    def gen_frame_html(frame: traceback.FrameSummary) -> str:
+    def gen_frame_html(self, frame: traceback.FrameSummary) -> str:
         values = {
             "frame_filename": frame.filename,
             "frame_lineno": frame.lineno,
             "frame_name": frame.name,
             "frame_line": frame.line,
         }
-        return FRAME_TEMPLATE.format(**values)
+        return self.frame_template.format(**values)
+
+    def get_template_values(self) -> dict:
+        ext_html = "".join(
+            self.gen_frame_html(frame) for frame in self.traceback_obj.stack
+        )
+        return {
+            "title": self.title,
+            "style": self.styles,
+            "error": self.error,
+            "ext_html": ext_html,
+        }
 
     def generate_html(self) -> str:
-        ext_html = "".join(
-            [self.gen_frame_html(frame) for frame in self.traceback_obj.stack]
-        )
-        values = {"style": STYLES, "error": self.error, "ext_html": ext_html}
-
-        return TEMPLATE.format(**values)
+        values = self.get_template_values()
+        return self.template.format(**values)
 
     def generate_plain_text(self) -> str:
         return "".join(traceback.format_tb(self.exc.__traceback__))
@@ -78,6 +92,8 @@ class ServerErrorMiddleware:
     else up, so that unhandled exceptions anywhere in the stack
     always result in an appropriate 500 response.
     """
+
+    debug_generator_class = DebugGenerator
 
     def __init__(
         self, app: ASGIApp, handler: typing.Callable = None, debug: bool = False
@@ -118,7 +134,9 @@ class ServerErrorMiddleware:
                     if asyncio.iscoroutinefunction(self.handler):
                         response = await self.handler(request, exc)
                     else:
-                        response = await run_in_threadpool(self.handler, request, exc)
+                        response = await run_in_threadpool(
+                            self.handler, request, exc
+                        )
 
                 await response(receive, send)
 
@@ -129,7 +147,7 @@ class ServerErrorMiddleware:
 
     def debug_response(self, request: Request, exc: Exception) -> Response:
         accept = request.headers.get("accept", "")
-        debug_gen = DebugGenerator(exc)
+        debug_gen = self.debug_generator_class(exc)
 
         if "text/html" in accept:
             content = debug_gen.generate_html()
