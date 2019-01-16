@@ -170,9 +170,7 @@ class Route(BaseRoute):
             if "GET" in self.methods:
                 self.methods |= set(["HEAD"])
 
-        self.path_regex, self.path_format, self.param_convertors = compile_path(
-            path
-        )
+        self.path_regex, self.path_format, self.param_convertors = compile_path(path)
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] == "http":
@@ -237,9 +235,7 @@ class WebSocketRoute(BaseRoute):
 
         regex = "^" + path + "$"
         regex = re.sub("{([a-zA-Z_][a-zA-Z0-9_]*)}", r"(?P<\1>[^/]+)", regex)
-        self.path_regex, self.path_format, self.param_convertors = compile_path(
-            path
-        )
+        self.path_regex, self.path_format, self.param_convertors = compile_path(path)
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] == "websocket":

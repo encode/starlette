@@ -8,7 +8,6 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse, PlainTextResponse, Response
 from starlette.types import ASGIApp, ASGIInstance, Message, Receive, Scope, Send
 
-
 STYLES = """
 .traceback-container {
     border: 1px solid #038BB8;
