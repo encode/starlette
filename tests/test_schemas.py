@@ -62,12 +62,38 @@ class OrganisationsEndpoint(HTTPEndpoint):
         pass  # pragma: no cover
 
 
+@app.route("/things", methods=["POST"])
+@app.route("/things/{name}", methods=["DELETE"])
+class ThingsEndpoint(HTTPEndpoint):
+    def post(self, request):
+        """
+        responses:
+          201:
+            description: A thing.
+            examples:
+              {"name": "starlette"}
+        """
+        pass  # pragma: no cover
+    
+    def delete(self, request):
+        """
+        parameters:
+          - in: "path"
+            name: "name"
+        responses:
+          204:
+            description: thing entity successfully deleted.
+        """
+        pass  # pragma: no cover
+
+
 @app.route("/schema", methods=["GET"], include_in_schema=False)
 def schema(request):
     return OpenAPIResponse(app.schema)
 
 
 def test_schema_generation():
+    # print(app.schema)
     assert app.schema == {
         "openapi": "3.0.0",
         "info": {"title": "Example API", "version": "1.0"},
@@ -105,6 +131,25 @@ def test_schema_generation():
                     }
                 },
             },
+            "/things": {
+                "post": {
+                    "responses": {
+                        201: {"description": "A thing.", "examples": {"name": "starlette"}}
+                    }
+                },
+            },
+            "/things/{name}": {
+                "delete": {
+                    "parameters": [
+                        {"in": "path", "name": "name"}
+                    ],
+                    "responses": {
+                        204: {
+                            "description": "thing entity successfully deleted.",
+                        }
+                    }
+                },
+            }
         },
     }
 
@@ -129,6 +174,21 @@ paths:
           description: An organisation.
           examples:
             name: Foo Corp.
+  /things:
+    post:
+      responses:
+        201:
+          description: A thing.
+          examples:
+            name: starlette
+  /things/{name}:
+    delete:
+      parameters:
+      - in: path
+        name: name
+      responses:
+        204:
+          description: thing entity successfully deleted.
   /users:
     get:
       responses:
@@ -150,4 +210,5 @@ def test_schema_endpoint():
     client = TestClient(app)
     response = client.get("/schema")
     assert response.headers["Content-Type"] == "application/vnd.oai.openapi"
+    #print(response.text)
     assert response.text.strip() == EXPECTED_SCHEMA.strip()
