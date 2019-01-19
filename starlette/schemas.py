@@ -58,12 +58,15 @@ class BaseSchemaGenerator:
                         EndpointInfo(route.path, method.lower(), route.endpoint)
                     )
             else:
-                for method in ["get", "post", "put", "patch", "delete", "options"]:
+                allowed_methods = map(str.lower, route.methods)\
+                    if route.methods is not None\
+                    else ["get", "post", "put", "patch", "delete", "options"]
+                for method in allowed_methods:
                     if not hasattr(route.endpoint, method):
                         continue
                     func = getattr(route.endpoint, method)
                     endpoints_info.append(
-                        EndpointInfo(route.path, method.lower(), func)
+                        EndpointInfo(route.path, method, func)
                     )
         return endpoints_info
 
