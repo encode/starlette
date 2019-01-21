@@ -58,16 +58,16 @@ class BaseSchemaGenerator:
                         EndpointInfo(route.path, method.lower(), route.endpoint)
                     )
             else:
-                allowed_methods = map(str.lower, route.methods)\
-                    if route.methods is not None\
+                allowed_methods = (
+                    map(str.lower, route.methods)
+                    if route.methods is not None
                     else ["get", "post", "put", "patch", "delete", "options"]
+                )
                 for method in allowed_methods:
                     if not hasattr(route.endpoint, method):
                         continue
                     func = getattr(route.endpoint, method)
-                    endpoints_info.append(
-                        EndpointInfo(route.path, method, func)
-                    )
+                    endpoints_info.append(EndpointInfo(route.path, method, func))
         return endpoints_info
 
     def parse_docstring(self, func_or_method: typing.Callable) -> dict:

@@ -74,7 +74,7 @@ class ThingsEndpoint(HTTPEndpoint):
               {"name": "starlette"}
         """
         pass  # pragma: no cover
-    
+
     def delete(self, request):
         """
         parameters:
@@ -134,22 +134,21 @@ def test_schema_generation():
             "/things": {
                 "post": {
                     "responses": {
-                        201: {"description": "A thing.", "examples": {"name": "starlette"}}
+                        201: {
+                            "description": "A thing.",
+                            "examples": {"name": "starlette"},
+                        }
                     }
-                },
+                }
             },
             "/things/{name}": {
                 "delete": {
-                    "parameters": [
-                        {"in": "path", "name": "name"}
-                    ],
+                    "parameters": [{"in": "path", "name": "name"}],
                     "responses": {
-                        204: {
-                            "description": "thing entity successfully deleted.",
-                        }
-                    }
-                },
-            }
+                        204: {"description": "thing entity successfully deleted."}
+                    },
+                }
+            },
         },
     }
 
@@ -210,5 +209,5 @@ def test_schema_endpoint():
     client = TestClient(app)
     response = client.get("/schema")
     assert response.headers["Content-Type"] == "application/vnd.oai.openapi"
-    #print(response.text)
+    # print(response.text)
     assert response.text.strip() == EXPECTED_SCHEMA.strip()
