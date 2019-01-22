@@ -307,7 +307,9 @@ class QueryParams(typing.Mapping[str, str]):
 class UploadFile:
     def __init__(self, filename: str, file: typing.IO = None) -> None:
         self.filename = filename
-        self.file = tempfile.SpooledTemporaryFile()
+        if file is None:
+            file = tempfile.SpooledTemporaryFile()
+        self.file = file
 
     async def write(self, data: typing.Union[bytes, str]) -> None:
         await run_in_threadpool(self.file.write, data)
