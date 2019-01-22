@@ -111,7 +111,7 @@ class URL:
 
             netloc = hostname
             if port is not None:
-                netloc += ":%d" % port
+                netloc += f":{port}"
             if username is not None:
                 userpass = username
                 if password is not None:

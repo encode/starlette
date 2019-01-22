@@ -112,7 +112,7 @@ def compile_path(
         path_regex += f"(?P<{param_name}>{convertor.regex})"
 
         path_format += path[idx : match.start()]
-        path_format += f"{{{param_name}}}"
+        path_format += "{%s}" % param_name
 
         param_convertors[param_name] = convertor
 
