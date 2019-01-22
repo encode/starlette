@@ -1,4 +1,5 @@
 import typing
+import itertools
 from collections import namedtuple
 from collections.abc import Sequence
 from shlex import shlex
@@ -222,6 +223,107 @@ class CommaSeparatedStrings(Sequence):
 
     def __str__(self) -> str:
         return ", ".join([repr(item) for item in self])
+
+
+class MultiDict(dict):
+    """
+    A mutable multidict.
+    """
+
+    def __init__(
+        self,
+        iterable: typing.Union[
+            "MultiDict",
+            typing.Mapping[typing.Any, typing.Any],
+            typing.List[typing.Tuple[typing.Any, typing.Any]],
+        ] = None,
+        **kwargs,
+    ) -> None:
+        items = []  # type: typing.List[typing.Tuple[typing.Any, typing.Any]]
+        if iterable is not None:
+            if isinstance(iterable, MultiDict):
+                items = iterable.itemslist()
+            elif isinstance(iterable, dict):
+                items = iterable.items()
+            else:
+                items = iterable
+
+        self.update(itertools.chain(items, kwargs.items()))
+
+    def __getitem__(self, key) -> typing.Any:
+        list_ = super().__getitem__(key)
+        try:
+            return list_[-1]
+        except IndexError:
+            # TO DISCUSS raise some custom error MultiDictValueError
+            return []
+
+    def __setitem__(self, key, value) -> None:
+        super().__setitem__(key, [value])
+        # TO DISCUSS
+        # self.get(key, []).append(value)
+
+    def get(self, key, default=None) -> typing.Any:
+        try:
+            val = self[key]
+        except KeyError:
+            return default
+        else:
+            if val == []:
+                return default
+            return val
+
+    def getlist(self, key, default=None) -> typing.List[typing.Any]:
+        try:
+            values = super().__getitem__(key)
+        except KeyError:
+            if default is None:
+                return []
+            return default
+        else:
+            return values
+
+    def setlistdefault(self, key, default=None) -> typing.List[typing.Any]:
+        if key not in self:
+            if default is None:
+                default = []
+            super().__setitem__(key, default)
+
+        return self.getlist(key)
+
+    def values(self) -> typing.Any:
+        for key in self:
+            yield self[key]
+
+    def items(self) -> typing.Tuple[typing.Any, typing.Any]:
+        for key in self:
+            yield key, self[key]
+
+    def itemslist(self) -> typing.Tuple[typing.Any, typing.List[typing.Any]]:
+        yield from super().items()
+
+    def update(self, iterable=None, **kwargs) -> None:
+        if iterable:
+            if isinstance(iterable, MultiDict):
+                for key, value in iterable.itemslist():
+                    self.setlistdefault(key).extend(value)
+            else:
+                try:
+                    _items = iterable.items()
+                except AttributeError:
+                    _items = iterable
+
+                for key, value in _items:
+                    self.setlistdefault(key).append(value)
+
+        for key, value in kwargs.items():
+            self.setlistdefault(key).append(value)
+
+    def pop(self, key) -> typing.Any:
+        return self.getlist(key).pop()
+
+    def poplist(self, key) -> typing.List[typing.Any]:
+        return super().pop(key)
 
 
 class QueryParams(typing.Mapping[str, str]):
