@@ -223,6 +223,29 @@ class CommaSeparatedStrings(Sequence):
         return ", ".join([repr(item) for item in self])
 
 
+# class ImmutableMixin:
+#     def __new__(cls, *args, **kwargs):
+#         print(super(), cls, cls.__name__)
+#         self = super().__new__(cls, *args, **kwargs)
+#         print(self)
+#         _ERROR_MESSAGE = f"Can not mutate {cls.__name__} instance"
+#         return self
+
+#     def _raise_on_mutation(self, *args, **kwargs):
+#         raise AttributeError("self._ERROR_MESSAGE")
+
+#     # TODO Add other mutaters
+#     __setitem__ = _raise_on_mutation
+#     __delitem__ = _raise_on_mutation
+#     __iadd__ = _raise_on_mutation
+#     __imul__ = _raise_on_mutation
+#     append = _raise_on_mutation
+#     extend = _raise_on_mutation
+#     insert = _raise_on_mutation
+#     pop = _raise_on_mutation
+#     remove = _raise_on_mutation
+
+
 class MultiDict(dict):
     """
     A mutable multidict.
@@ -323,6 +346,11 @@ class MultiDict(dict):
 
     def poplist(self, key) -> typing.List[typing.Any]:
         return super().pop(key)
+
+
+# class ImmutableMultiDict(ImmutableMixin, MultiDict):
+#     setlistdefault = ImmutableMixin._raise_on_mutation
+#     # NOT WORKING
 
 
 class QueryParams(typing.Mapping[str, str]):
