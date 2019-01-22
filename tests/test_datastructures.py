@@ -194,4 +194,10 @@ def test_queryparams():
         {"b": "456", "a": "123"}
     )
     assert QueryParams() == QueryParams({})
+    assert QueryParams(items=[("a", "123"), ("a", "456")]) == QueryParams(
+        query_string="a=123&a=456"
+    )
     assert QueryParams({"a": "123", "b": "456"}) != "invalid"
+
+    q = QueryParams(items=[("a", "123"), ("a", "456")])
+    assert QueryParams(q) == q
