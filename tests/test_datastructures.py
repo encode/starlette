@@ -179,6 +179,7 @@ def test_queryparams():
     assert q.keys() == ["a", "b"]
     assert q.values() == ["456", "789"]
     assert q.items() == [("a", "456"), ("b", "789")]
+    assert len(q) == 2
     assert list(q) == ["a", "b"]
     assert dict(q) == {"a": "456", "b": "789"}
     assert str(q) == "a=123&a=456&b=789"
