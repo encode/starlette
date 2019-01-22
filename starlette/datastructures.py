@@ -282,7 +282,7 @@ class QueryParams(typing.Mapping[str, str]):
         return iter(self.keys())
 
     def __len__(self) -> int:
-        return len(self._list)
+        return len(self._dict)
 
     def __eq__(self, other: typing.Any) -> bool:
         if not isinstance(other, QueryParams):
