@@ -242,7 +242,7 @@ class QueryParams(typing.Mapping[str, str]):
             assert query_string is None, "Cannot set both 'params' and 'query_string'"
             assert scope is None, "Cannot set both 'params' and 'scope'"
             if isinstance(params, QueryParams):
-                _items = list(params.itemlists())
+                _items = list(params.multi_items())
             else:
                 _items = list(params.items())
         elif items is not None:
@@ -270,7 +270,7 @@ class QueryParams(typing.Mapping[str, str]):
     def items(self) -> typing.List[typing.Tuple[str, str]]:  # type: ignore
         return list(self._dict.items())
 
-    def itemlists(self) -> typing.List[typing.Tuple[str, str]]:
+    def multi_items(self) -> typing.List[typing.Tuple[str, str]]:
         return list(self._list)
 
     def get(self, key: typing.Any, default: typing.Any = None) -> typing.Any:
