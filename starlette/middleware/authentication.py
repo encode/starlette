@@ -26,7 +26,7 @@ class AuthenticationMiddleware:
         )  # type: typing.Callable[[Request, AuthenticationError], Response]
 
     def __call__(self, scope: Scope) -> ASGIInstance:
-        if scope["type"] in ["http", "websockets"]:
+        if scope["type"] in ["http", "websocket"]:
             return functools.partial(self.asgi, scope=scope)
         return self.app(scope)
 
