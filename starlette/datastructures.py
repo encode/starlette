@@ -1,5 +1,5 @@
+import copy
 import typing
-import itertools
 from collections import namedtuple
 from collections.abc import Sequence
 from shlex import shlex
@@ -239,16 +239,7 @@ class MultiDict(dict):
         ] = None,
         **kwargs,
     ) -> None:
-        items = []  # type: typing.List[typing.Tuple[typing.Any, typing.Any]]
-        if iterable is not None:
-            if isinstance(iterable, MultiDict):
-                items = iterable.itemslist()
-            elif isinstance(iterable, dict):
-                items = iterable.items()
-            else:
-                items = iterable
-
-        self.update(itertools.chain(items, kwargs.items()))
+        self.update(iterable, **kwargs)
 
     def __getitem__(self, key) -> typing.Any:
         list_ = super().__getitem__(key)
@@ -262,6 +253,16 @@ class MultiDict(dict):
         super().__setitem__(key, [value])
         # TO DISCUSS
         # self.get(key, []).append(value)
+
+    def __copy__(self) -> "MultiDict":
+        return self.__class__(self)
+
+    def __deepcopy__(self, memo) -> "MultiDict":
+        copy_ = self.__class__()
+        memo[id(self)] = copy_
+        for key, value in self.itemslist():
+            copy_.setlistdefault(copy.deepcopy(key, memo), copy.deepcopy(value, memo))
+        return copy_
 
     def get(self, key, default=None) -> typing.Any:
         try:
