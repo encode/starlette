@@ -172,15 +172,15 @@ def test_queryparams():
     assert "a" in q
     assert "A" not in q
     assert "c" not in q
-    assert q["a"] == "123"
-    assert q.get("a") == "123"
+    assert q["a"] == "456"
+    assert q.get("a") == "456"
     assert q.get("nope", default=None) is None
     assert q.getlist("a") == ["123", "456"]
-    assert q.keys() == ["a", "a", "b"]
-    assert q.values() == ["123", "456", "789"]
-    assert q.items() == [("a", "123"), ("a", "456"), ("b", "789")]
-    assert list(q) == ["a", "a", "b"]
-    assert dict(q) == {"a": "123", "b": "789"}
+    assert q.keys() == ["a", "b"]
+    assert q.values() == ["456", "789"]
+    assert q.items() == [("a", "456"), ("b", "789")]
+    assert list(q) == ["a", "b"]
+    assert dict(q) == {"a": "456", "b": "789"}
     assert str(q) == "a=123&a=456&b=789"
     assert repr(q) == "QueryParams(query_string='a=123&a=456&b=789')"
     assert QueryParams({"a": "123", "b": "456"}) == QueryParams(
