@@ -325,6 +325,63 @@ class MultiDict(dict):
         return super().pop(key)
 
 
+class ImmutableMultiDict:
+    """
+    An immutable multidict.
+    """
+
+    def __init__(self, *args, **kwargs):
+        self._dict = MultiDict(*args, **kwargs)
+
+    def __getitem__(self, key) -> typing.Any:
+        return self._dict[key]
+
+    def __copy__(self) -> typing.Mapping:
+        return self.__class__(self)
+
+    def __deepcopy__(self, memo) -> typing.Mapping:
+        copy_ = self.__class__(copy.deepcopy(self._dict, memo))
+        return copy_
+
+    def get(self, key, default=None) -> typing.Any:
+        return self._dict.get()
+
+    def getlist(self, key, default=None) -> typing.List[typing.Any]:
+        return self._dict.getlist(key, default)
+
+    def values(self) -> typing.Any:
+        yield from self._dict.values()
+
+    def items(self) -> typing.Tuple[typing.Any, typing.Any]:
+        yield from self._dict.items()
+
+    def itemslist(self) -> typing.Tuple[typing.Any, typing.List[typing.Any]]:
+        yield from self._dict.itemslist()
+
+    def __getitem__(self, key: typing.Any) -> str:
+        return self._dict[key]
+
+    def __contains__(self, key: typing.Any) -> bool:
+        return key in self._dict
+
+    def __iter__(self) -> typing.Iterator[typing.Any]:
+        return iter(self.keys())
+
+    def __len__(self) -> int:
+        return len(self._dict)
+
+    def __eq__(self, other: typing.Any) -> bool:
+        if not isinstance(other, ImmutableMultiDict):
+            return False
+        return self._dict == self._dict
+
+    def __str__(self) -> str:
+        return str(self._dict)
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({repr(str(self._dict))})"
+
+
 class QueryParams(typing.Mapping[str, str]):
     """
     An immutable multidict.
