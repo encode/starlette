@@ -344,10 +344,13 @@ class ImmutableMultiDict:
         return copy_
 
     def get(self, key, default=None) -> typing.Any:
-        return self._dict.get()
+        return self._dict.get(key, default)
 
     def getlist(self, key, default=None) -> typing.List[typing.Any]:
         return self._dict.getlist(key, default)
+
+    def keys(self) -> typing.Any:
+        return list(self._dict.keys())
 
     def values(self) -> typing.Any:
         yield from self._dict.values()
@@ -357,6 +360,11 @@ class ImmutableMultiDict:
 
     def itemslist(self) -> typing.Tuple[typing.Any, typing.List[typing.Any]]:
         yield from self._dict.itemslist()
+
+    def multi_items(self):
+        for key, values in self.itemslist():
+            for value in values:
+                yield (key, value)
 
     def __getitem__(self, key: typing.Any) -> str:
         return self._dict[key]
