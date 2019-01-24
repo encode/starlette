@@ -267,15 +267,14 @@ def test_multidict():
     assert q.get("a") is None
     assert repr(q) == "MultiDict([])"
 
-    q = MultiDict([("a", "1"), ("a", "2"), ("a", "3"), ("b", "4")])
-    assert q.pop("a") == "3"
-    assert q.getlist("a") == ["1", "2"]  # a's items keep the same order
-    assert repr(q) == "MultiDict([('b', '4'), ('a', '1'), ('a', '2')])"
+    q = MultiDict([("a", "123"), ("a", "456"), ("b", "789")])
+    assert q.pop("a") == "456"
+    assert q.get("a", None) is None
+    assert repr(q) == "MultiDict([('b', '789')])"
 
-    q = MultiDict([("a", "1"), ("a", "2"), ("a", "3"), ("b", "4")])
-    assert q.popitem("a") == ("a", "3")
-    assert q.getlist("a") == ["1", "2"]  # a's items keep the same order
-    assert repr(q) == "MultiDict([('b', '4'), ('a', '1'), ('a', '2')])"
+    q = MultiDict([("a", "123"), ("a", "456"), ("b", "789")])
+    item = q.popitem()
+    assert q.get(item[0]) is None
 
     q = MultiDict([("a", "123"), ("a", "456"), ("b", "789")])
     assert q.poplist("a") == ["123", "456"]
@@ -291,7 +290,7 @@ def test_multidict():
     q.setlist("a", ["456", "789"])
     assert q.getlist("a") == ["456", "789"]
     q.setlist("b", [])
-    assert q.getlist("b") == [None]
+    assert q.get("b") is None
 
     q = MultiDict([("a", "123")])
     assert q.setdefault("a", "456") == "123"
@@ -301,29 +300,18 @@ def test_multidict():
     assert repr(q) == "MultiDict([('a', '123'), ('b', '456')])"
 
     q = MultiDict([("a", "123")])
-    assert q.setlistdefault("a", ["123", "456", "789"]) == ["123"]
-    assert q.getlist("a") == ["123"]
-    assert q.setlistdefault("b", ["456", "789"]) == ["456", "789"]
-    assert q.getlist("b") == ["456", "789"]
-    assert q.setlistdefault("c") == [None]
-    assert q.getlist("b") == ["456", "789"]
-
-    q = MultiDict([("a", "123")])
     q.appendlist("a", "456")
     assert q.getlist("a") == ["123", "456"]
     assert repr(q) == "MultiDict([('a', '123'), ('a', '456')])"
 
     q = MultiDict([("a", "123"), ("b", "456")])
-    q.update([("a", "789")])
-    assert q.getlist("a") == ["123", "789"]
+    q.update({"a": "789"})
+    assert q.getlist("a") == ["789"]
+    q == MultiDict([("a", "789"), ("b", "456")])
 
     q = MultiDict([("a", "123"), ("b", "456")])
     q.update(q)
     assert repr(q) == "MultiDict([('a', '123'), ('b', '456')])"
-
-    q = MultiDict([("a", "123"), ("b", "456")])
-    q.update({"a": "789"})
-    assert q.getlist("a") == ["123", "789"]
 
     q = MultiDict([("a", "123"), ("b", "456")])
     q.update(None)
@@ -331,6 +319,6 @@ def test_multidict():
 
     q = MultiDict([("a", "123"), ("a", "456")])
     q.update([("a", "123")])
-    assert q.getlist("a") == ["456", "123"]
-    q.update([("a", "123")], b="789")
-    assert repr(q) == "MultiDict([('a', '456'), ('a', '123'), ('b', '789')])"
+    assert q.getlist("a") == ["123"]
+    q.update([("a", "456")], a="789", b="123")
+    assert q == MultiDict([("a", "456"), ("a", "789"), ("b", "123")])

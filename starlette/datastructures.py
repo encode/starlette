@@ -294,26 +294,24 @@ class ImmutableMultiDict(typing.Mapping):
 class MultiDict(ImmutableMultiDict):
     def __setitem__(self, key: typing.Any, value: typing.Any) -> None:
         self.setlist(key, [value])
-        self._dict[key] = value
 
     def __delitem__(self, key: typing.Any) -> None:
-        self._list = list(filter(lambda item: item[0] != key, self._list))
+        self._list = [(k, v) for k, v in self._list if k != key]
         del self._dict[key]
 
-    def pop(self, key: typing.Any) -> typing.Any:
-        list_ = list(filter(lambda item: item[0] == key, self._list))
-        poped = self._dict.pop(key)
-        self.setlist(key, [v for _, v in list_[:-1]])
-        return poped
+    def pop(self, key: typing.Any, default: typing.Any = None) -> typing.Any:
+        self._list = [(k, v) for k, v in self._list if k != key]
+        return self._dict.pop(key, default)
 
-    def popitem(self, key: typing.Any) -> typing.Tuple:
-        return key, self.pop(key)
+    def popitem(self) -> typing.Tuple:
+        key, value = self._dict.popitem()
+        self._list = [(k, v) for k, v in self._list if k != key]
+        return key, value
 
     def poplist(self, key: typing.Any) -> typing.List:
-        poped_list = list(filter(lambda item: item[0] == key, self._list))
-        self._list = list(filter(lambda item: item[0] != key, self._list))
-        self._dict.pop(key)
-        return [v for _, v in poped_list]
+        poped_list = [v for k, v in self._list if k == key]
+        self.pop(key)
+        return poped_list
 
     def clear(self) -> None:
         self._dict.clear()
@@ -327,24 +325,12 @@ class MultiDict(ImmutableMultiDict):
         return self[key]
 
     def setlist(self, key: typing.Any, values: typing.List) -> None:
-        filter_obj = filter(lambda item: item[0] != key, self._list)
+        self.pop(key, None)
         if not values:
-            values.append(None)
-        self._list = [*filter_obj, *((key, value) for value in values)]
-        self._dict[key] = self._list[-1][1]
-        # Case list is empty
-
-    def setlistdefault(
-        self, key: typing.Any, default_list: typing.List = None
-    ) -> typing.List:
-        if key not in self:
-            if default_list is None:
-                default_list = [None]  # or just []
-
-            self._list.extend(((key, value) for value in default_list))
-            self._dict[key] = default_list[-1]
-
-        return self.getlist(key)
+            values = []
+        else:
+            self._dict[key] = values[-1]
+        self._list.extend(((key, value) for value in values))
 
     def appendlist(self, key: typing.Any, value: typing.Any) -> None:
         self._list.append((key, value))
@@ -373,11 +359,13 @@ class MultiDict(ImmutableMultiDict):
             )
             items_ = values
 
-        for item in itertools.chain(items_, kwargs.items()):
-            if item in self._list:
-                self._list.remove(item)
-            self._list.append(item)
-            self._dict[item[0]] = item[1]
+        keys = {k for k, _ in itertools.chain(items_, kwargs.items())}
+        self._list = [
+            *((k, v) for k, v in self._list if k not in keys),
+            *items_,
+            *list(kwargs.items()),
+        ]
+        self._dict.update(itertools.chain(items_, kwargs.items()))
 
 
 class QueryParams(ImmutableMultiDict):
