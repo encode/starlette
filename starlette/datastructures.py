@@ -309,9 +309,9 @@ class MultiDict(ImmutableMultiDict):
         return key, value
 
     def poplist(self, key: typing.Any) -> typing.List:
-        poped_list = [v for k, v in self._list if k == key]
+        values = [v for k, v in self._list if k == key]
         self.pop(key)
-        return poped_list
+        return values
 
     def clear(self) -> None:
         self._dict.clear()
