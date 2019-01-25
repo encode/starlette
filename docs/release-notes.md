@@ -4,6 +4,7 @@
 * `GraphQLApp` now takes an `executor_class` argument, which should be used in preference to the existing `executor` argument. Resolves an issue with async executors being instantiated before the event loop was setup. The `executor` argument is expected to be deprecated in the next median or major release.
 * Authentication and the `@requires` decorator now support WebSocket endpoints.
 * `MultiDict` and `ImmutableMultiDict` classes are available in `uvicorn.datastructures`.
+* `QueryParams` is now instantiated with standard dict-style `*args, **kwargs` arguments.
 
 ## 0.9.11
 
