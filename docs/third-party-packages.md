@@ -24,9 +24,7 @@ That library aims to bring a layer on top of Starlette framework to provide usef
 * **Components** as the base of the plugin ecosystem, allowing you to create custom or use those already defined in your endpoints, injected as parameters.
 * **Starlette ASGI** objects like `Request`, `Response`, `Session` and so on are defined as components and ready to be injected in your endpoints.
 
-
 ### webargs-starlette
-
 
 Link: <a href="https://github.com/sloria/webargs-starlette" target="_blank">https://github.com/sloria/webargs-starlette</a>
 
@@ -58,6 +56,34 @@ if __name__ == "__main__":
 # {"Hello": "World"}
 # curl 'http://localhost:5000/?name=Ada'
 # {"Hello": "Ada"}
+```
+
+### Mangum
+
+Link: <a href="https://github.com/erm/mangum" target="_blank">https://github.com/erm/mangum</a>
+
+A library for using any ASGI application with FaaS platforms.
+
+It includes:
+
+* Middleware classes for **AWS Lambda & API Gateway** and **Azure Functions**.
+* CLI tools (experimental) for generating, packaging, and validating AWS deployment configurations.
+
+```Python
+from starlette.applications import Starlette
+from starlette.responses import PlainTextResponse
+from mangum.platforms.aws.middleware import AWSLambdaMiddleware
+
+
+app = Starlette()
+
+
+@app.route("/")
+def homepage(request):
+    return PlainTextResponse("Hello, world!")
+
+
+handler = AWSLambdaMiddleware(app)  # optionally set debug=True
 ```
 
 
