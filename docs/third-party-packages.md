@@ -66,13 +66,14 @@ A library for using any ASGI application with FaaS platforms.
 
 It includes:
 
-* Middleware classes for **AWS Lambda & API Gateway** and **Azure Functions**.
+* Adapter classes for **AWS Lambda & API Gateway** and **Azure Functions**.
 * CLI tools (experimental) for generating, packaging, and validating AWS deployment configurations.
 
 ```Python
 from starlette.applications import Starlette
 from starlette.responses import PlainTextResponse
-from mangum.platforms.aws.middleware import AWSLambdaMiddleware
+from mangum.platforms.aws.adapter import AWSLambdaAdapter
+# from mangum.platforms.azure.adapter import AzureFunctionAdapter
 
 
 app = Starlette()
@@ -83,7 +84,8 @@ def homepage(request):
     return PlainTextResponse("Hello, world!")
 
 
-handler = AWSLambdaMiddleware(app)  # optionally set debug=True
+handler = AWSLambdaAdapter(app)  # optionally set debug=True
+# handler = AzureFunctionAdapter(app)
 ```
 
 
