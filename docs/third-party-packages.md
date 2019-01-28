@@ -135,7 +135,7 @@ Key features include:
 * First-class support for both HTTP / REST and WebSocket.
 * Built-in CORS, HSTS, GZip, HTTP streaming, Jinja2 templates, background tasks, static files…
 
-… and more ahead as depicted in the <a href="https://github.com/bocadilloproject/bocadillo/blob/master/ROADMAP.md" target="_blank">Roadmap</a>.
+… and more ahead, as depicted in the <a href="https://github.com/bocadilloproject/bocadillo/blob/master/ROADMAP.md" target="_blank">Roadmap</a>.
 
 The example below demonstrates a simple WebSocket echo server.
 
