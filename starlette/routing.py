@@ -276,7 +276,7 @@ class WebSocketRoute(BaseRoute):
 
 
 class Mount(BaseRoute):
-    def __init__(self, path, app: ASGIApp = None, name: str = None) -> None:
+    def __init__(self, path: str, app: ASGIApp, name: str = None) -> None:
         assert path == "" or path.startswith("/"), "Routed paths must start with '/'"
         self.path = path.rstrip("/")
         self.app = app
@@ -351,23 +351,9 @@ class Mount(BaseRoute):
 
 
 class Host(BaseRoute):
-    def __init__(
-        self,
-        host: str,
-        routes: typing.List[BaseRoute] = None,
-        app: ASGIApp = None,
-        name: str = None,
-    ) -> None:
+    def __init__(self, host: str, app: ASGIApp, name: str = None) -> None:
         self.host = host
-        if app is None:
-            assert routes is not None, "One of either 'routes' or 'app' is required."
-            self.app = Router(routes=routes)
-        else:
-            assert (
-                routes is None
-            ), "One of either 'routes' or 'app' is required. Not both."
-            self.app = app
-
+        self.app = app
         self.name = name
         self.host_regex, self.host_format, self.param_convertors = compile_path(host)
 

@@ -281,15 +281,17 @@ mixed_hosts_app = Router(
     routes=[
         Host(
             "www.example.org",
-            routes=[
-                Route("/", homepage, name="homepage"),
-                Route("/users", users, name="users"),
-            ],
+            app=Router(
+                [
+                    Route("/", homepage, name="homepage"),
+                    Route("/users", users, name="users"),
+                ]
+            ),
         ),
         Host(
             "api.example.org",
             name="api",
-            routes=[Route("/users", users_api, name="users")],
+            app=Router([Route("/users", users_api, name="users")]),
         ),
     ]
 )
