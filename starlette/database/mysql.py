@@ -54,8 +54,12 @@ class Record:
             col[0]: (idx, col) for idx, col in enumerate(self._result_columns)
         }
 
-    def __getitem__(self, key: str) -> typing.Any:
-        idx, col = self._column_map[key]
+    def __getitem__(self, key: typing.Union[int, str]) -> typing.Any:
+        if isinstance(key, int):
+            idx = key
+            col = self._result_columns[idx]
+        else:
+            idx, col = self._column_map[key]
         raw = self._row[idx]
         return col[-1].python_type(raw)
 
