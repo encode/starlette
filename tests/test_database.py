@@ -138,6 +138,9 @@ def test_database(database_url):
 def test_database_executemany(database_url):
     app = get_app(database_url)
     with TestClient(app) as client:
+        response = client.get("/notes")
+        print(response.json())
+
         data = [
             {"text": "buy the milk", "completed": True},
             {"text": "walk the dog", "completed": False},
@@ -146,6 +149,7 @@ def test_database_executemany(database_url):
         assert response.status_code == 200
 
         response = client.get("/notes")
+        print(response.json())
         assert response.status_code == 200
         assert response.json() == [
             {"text": "buy the milk", "completed": True},
