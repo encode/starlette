@@ -5,7 +5,7 @@ import sqlalchemy
 
 from starlette.applications import Starlette
 from starlette.database import transaction
-from starlette.datastructures import CommaSeparatedStrings
+from starlette.datastructures import CommaSeparatedStrings, DatabaseURL
 from starlette.middleware.database import DatabaseMiddleware
 from starlette.responses import JSONResponse
 from starlette.testclient import TestClient
@@ -30,9 +30,18 @@ notes = sqlalchemy.Table(
 def create_test_databases():
     engines = {}
     for url in DATABASE_URLS:
+        db_url = DatabaseURL(url)
+        if db_url.dialect == "mysql":
+            db_name = db_url.database
+            db_url = db_url.replace(database="")
+            engine = sqlalchemy.create_engine(str(db_url))
+            engine.execute("CREATE DATABASE IF NOT EXISTS " + db_name)
+
         engines[url] = sqlalchemy.create_engine(url)
         metadata.create_all(engines[url])
+
     yield
+
     for engine in engines.values():
         engine.execute("DROP TABLE notes")
 
