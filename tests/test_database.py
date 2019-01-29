@@ -27,7 +27,7 @@ notes = sqlalchemy.Table(
 
 
 @pytest.fixture(autouse=True, scope="module")
-def create_test_database():
+def create_test_databases():
     engines = {}
     for url in DATABASE_URLS:
         engines[url] = sqlalchemy.create_engine(url)
@@ -40,7 +40,7 @@ def create_test_database():
 def get_app(database_url):
     app = Starlette()
     app.add_middleware(
-        DatabaseMiddleware, database_url=DATABASE_URL, rollback_on_shutdown=True
+        DatabaseMiddleware, database_url=database_url, rollback_on_shutdown=True
     )
 
     @app.route("/notes", methods=["GET"])
@@ -88,10 +88,7 @@ def get_app(database_url):
     return app
 
 
-# DATABASE_URLS = [DATABASE_URL]
-
-
-@pytest.mark.parametrize("database_url", [DATABASE_URL])
+@pytest.mark.parametrize("database_url", DATABASE_URLS)
 def test_database(database_url):
     app = get_app(database_url)
     with TestClient(app) as client:
@@ -128,7 +125,7 @@ def test_database(database_url):
         assert response.json() == "buy the milk"
 
 
-@pytest.mark.parametrize("database_url", [DATABASE_URL])
+@pytest.mark.parametrize("database_url", DATABASE_URLS)
 def test_database_executemany(database_url):
     app = get_app(database_url)
     with TestClient(app) as client:
@@ -147,7 +144,7 @@ def test_database_executemany(database_url):
         ]
 
 
-@pytest.mark.parametrize("database_url", [DATABASE_URL])
+@pytest.mark.parametrize("database_url", DATABASE_URLS)
 def test_database_isolated_during_test_cases(database_url):
     """
     Using `TestClient` as a context manager
