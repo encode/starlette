@@ -43,16 +43,15 @@ def get_app(database_url):
         DatabaseMiddleware, database_url=DATABASE_URL, rollback_on_shutdown=True
     )
 
-
     @app.route("/notes", methods=["GET"])
     async def list_notes(request):
         query = notes.select()
         results = await request.database.fetchall(query)
         content = [
-            {"text": result["text"], "completed": result["completed"]} for result in results
+            {"text": result["text"], "completed": result["completed"]}
+            for result in results
         ]
         return JSONResponse(content)
-
 
     @app.route("/notes", methods=["POST"])
     @transaction
@@ -64,14 +63,12 @@ def get_app(database_url):
             raise RuntimeError()
         return JSONResponse({"text": data["text"], "completed": data["completed"]})
 
-
     @app.route("/notes/bulk_create", methods=["POST"])
     async def bulk_create_notes(request):
         data = await request.json()
         query = notes.insert()
         await request.database.executemany(query, data)
         return JSONResponse({"notes": data})
-
 
     @app.route("/notes/{note_id:int}", methods=["GET"])
     async def read_note(request):
@@ -80,7 +77,6 @@ def get_app(database_url):
         result = await request.database.fetchone(query)
         content = {"text": result["text"], "completed": result["completed"]}
         return JSONResponse(content)
-
 
     @app.route("/notes/{note_id:int}/text", methods=["GET"])
     async def read_note_text(request):
