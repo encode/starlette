@@ -1,13 +1,11 @@
 import typing
 from types import TracebackType
 
-import asyncio
-
-import aiomysql
 from sqlalchemy.dialects.mysql import pymysql
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql import ClauseElement
 
+import aiomysql
 from starlette.database.core import (
     DatabaseBackend,
     DatabaseSession,
@@ -19,7 +17,7 @@ from starlette.datastructures import DatabaseURL
 
 class MysqlBackend(DatabaseBackend):
     def __init__(self, database_url: typing.Union[str, DatabaseURL]) -> None:
-        self.database_url = database_url
+        self.database_url = DatabaseURL(database_url)
         self.dialect = self.get_dialect()
         self.pool = None
 
@@ -28,11 +26,13 @@ class MysqlBackend(DatabaseBackend):
 
     async def startup(self) -> None:
         db = self.database_url
-        self.pool = await aiomysql.create_pool(host=db.hostname,
-                                               port=db.port,
-                                               user=db.username,
-                                               password=db.password,
-                                               db=db.database)
+        self.pool = await aiomysql.create_pool(
+            host=db.hostname,
+            port=db.port,
+            user=db.username,
+            password=db.password,
+            db=db.database,
+        )
 
     async def shutdown(self) -> None:
         assert self.pool is not None, "DatabaseBackend is not running"
@@ -122,7 +122,6 @@ class MysqlSession(DatabaseSession):
 class MysqlTransaction(DatabaseTransaction):
     def __init__(self, session: MysqlSession):
         self.session = session
-        self.conn = None
 
     async def __aenter__(self) -> None:
         await self.start()

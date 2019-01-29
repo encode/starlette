@@ -17,7 +17,7 @@ from starlette.datastructures import DatabaseURL
 
 class PostgresBackend(DatabaseBackend):
     def __init__(self, database_url: typing.Union[str, DatabaseURL]) -> None:
-        self.database_url = database_url
+        self.database_url = DatabaseURL(database_url)
         self.dialect = self.get_dialect()
         self.pool = None
 
