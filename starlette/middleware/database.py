@@ -1,7 +1,5 @@
 import typing
 
-import asyncpg
-
 from starlette.database.core import (
     DatabaseBackend,
     DatabaseSession,
@@ -30,11 +28,18 @@ class DatabaseMiddleware:
         if isinstance(database_url, str):
             database_url = DatabaseURL(database_url)
         assert (
-            database_url.dialect == "postgresql"
-        ), "Currently only postgresql is supported."
-        from starlette.database.postgres import PostgresBackend
+            database_url.dialect in ["postgresql", "mysql"]
+        ), "Currently only postgresql and mysql are supported."
 
-        return PostgresBackend(database_url)
+        if database_url.dialect == "postgresql":
+            from starlette.database.postgres import PostgresBackend
+
+            return PostgresBackend(database_url)
+
+        if database_url.dialect == "mysql":
+            from starlette.database.mysql import MysqlBackend
+
+            return MysqlBackend(database_url)
 
     def __call__(self, scope: Scope) -> ASGIInstance:
         if scope["type"] == "lifespan":
