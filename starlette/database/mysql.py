@@ -1,18 +1,20 @@
+import logging
 import typing
 from types import TracebackType
 
-import aiomysql
 from sqlalchemy.dialects.mysql import pymysql
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql import ClauseElement
 
+import aiomysql
 from starlette.database.core import (
     DatabaseBackend,
     DatabaseSession,
     DatabaseTransaction,
-    compile,
 )
 from starlette.datastructures import DatabaseURL
+
+logger = logging.getLogger("starlette.database")
 
 
 class MysqlBackend(DatabaseBackend):
@@ -44,6 +46,20 @@ class MysqlBackend(DatabaseBackend):
         return MysqlSession(self.pool, self.dialect)
 
 
+class Record:
+    def __init__(self, row: tuple, result_columns: tuple) -> None:
+        self._row = row
+        self._result_columns = result_columns
+        self._column_map = {
+            col[0]: (idx, col) for idx, col in enumerate(self._result_columns)
+        }
+
+    def __getitem__(self, key: str) -> typing.Any:
+        idx, col = self._column_map[key]
+        print(idx, col, self._row[idx])
+        return self._row[idx]
+
+
 class MysqlSession(DatabaseSession):
     def __init__(self, pool: aiomysql.pool.Pool, dialect: Dialect):
         self.pool = pool
@@ -51,32 +67,40 @@ class MysqlSession(DatabaseSession):
         self.conn = None
         self.connection_holders = 0
 
+    def _compile(self, query: ClauseElement) -> typing.Tuple[str, list, tuple]:
+        compiled = query.compile(dialect=self.dialect)
+        args = compiled.construct_params()
+        logger.debug(compiled.string, args)
+        return compiled.string, args, compiled._result_columns
+
     async def fetchall(self, query: ClauseElement) -> typing.Any:
-        query, args = compile(query, dialect=self.dialect)
+        query, args, result_columns = self._compile(query)
 
         conn = await self.acquire_connection()
         cursor = await conn.cursor()
         try:
             await cursor.execute(query, args)
-            return await cursor.fetchall()
+            rows = await cursor.fetchall()
+            return [Record(row, result_columns) for row in rows]
         finally:
             await cursor.close()
             await self.release_connection()
 
     async def fetchone(self, query: ClauseElement) -> typing.Any:
-        query, args = compile(query, dialect=self.dialect)
+        query, args, result_columns = self._compile(query)
 
         conn = await self.acquire_connection()
         cursor = await conn.cursor()
         try:
             await cursor.execute(query, args)
-            return await conn.fetchrow(query, args)
+            row = await conn.fetchrow(query, args)
+            return Record(row, result_columns)
         finally:
             await cursor.close()
             await self.release_connection()
 
     async def execute(self, query: ClauseElement) -> None:
-        query, args = compile(query, dialect=self.dialect)
+        query, args, result_columns = self._compile(query)
 
         conn = await self.acquire_connection()
         cursor = await conn.cursor()
@@ -92,7 +116,7 @@ class MysqlSession(DatabaseSession):
         try:
             for item in values:
                 single_query = query.values(item)
-                single_query, args = compile(single_query, dialect=self.dialect)
+                single_query, args, result_columns = self._compile(single_query)
                 await cursor.execute(single_query, args)
         finally:
             await cursor.close()
