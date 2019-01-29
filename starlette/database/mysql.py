@@ -93,7 +93,7 @@ class MysqlSession(DatabaseSession):
         cursor = await conn.cursor()
         try:
             await cursor.execute(query, args)
-            row = await cursor.fetchone(query, args)
+            row = await cursor.fetchone()
             return Record(row, result_columns)
         finally:
             await cursor.close()
