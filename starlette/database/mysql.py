@@ -53,12 +53,11 @@ class MysqlSession(DatabaseSession):
 
     async def fetchall(self, query: ClauseElement) -> typing.Any:
         query, args = compile(query, dialect=self.dialect)
-        print(query, args)
 
         conn = await self.acquire_connection()
         cursor = await conn.cursor()
         try:
-            await cursor.execute(query, *args)
+            await cursor.execute(query, args)
             return await cursor.fetchall()
         finally:
             await cursor.close()
@@ -66,13 +65,12 @@ class MysqlSession(DatabaseSession):
 
     async def fetchone(self, query: ClauseElement) -> typing.Any:
         query, args = compile(query, dialect=self.dialect)
-        print(query, args)
 
         conn = await self.acquire_connection()
         cursor = await conn.cursor()
         try:
-            await cursor.execute(query, *args)
-            return await conn.fetchrow(query, *args)
+            await cursor.execute(query, args)
+            return await conn.fetchrow(query, args)
         finally:
             await cursor.close()
             await self.release_connection()
@@ -80,11 +78,10 @@ class MysqlSession(DatabaseSession):
     async def execute(self, query: ClauseElement) -> None:
         query, args = compile(query, dialect=self.dialect)
 
-        print(query, args)
         conn = await self.acquire_connection()
         cursor = await conn.cursor()
         try:
-            await cursor.execute(query, *args)
+            await cursor.execute(query, args)
         finally:
             await cursor.close()
             await self.release_connection()
@@ -96,8 +93,7 @@ class MysqlSession(DatabaseSession):
             for item in values:
                 single_query = query.values(item)
                 single_query, args = compile(single_query, dialect=self.dialect)
-                print(single_query, args)
-                await cursor.execute(single_query, *args)
+                await cursor.execute(single_query, args)
         finally:
             await cursor.close()
             await self.release_connection()
