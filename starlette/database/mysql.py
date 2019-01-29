@@ -53,6 +53,7 @@ class MysqlSession(DatabaseSession):
 
     async def fetchall(self, query: ClauseElement) -> typing.Any:
         query, args = compile(query, dialect=self.dialect)
+        print(query, args)
 
         conn = await self.acquire_connection()
         cursor = await conn.cursor()
@@ -65,6 +66,7 @@ class MysqlSession(DatabaseSession):
 
     async def fetchone(self, query: ClauseElement) -> typing.Any:
         query, args = compile(query, dialect=self.dialect)
+        print(query, args)
 
         conn = await self.acquire_connection()
         cursor = await conn.cursor()
@@ -78,6 +80,7 @@ class MysqlSession(DatabaseSession):
     async def execute(self, query: ClauseElement) -> None:
         query, args = compile(query, dialect=self.dialect)
 
+        print(query, args)
         conn = await self.acquire_connection()
         cursor = await conn.cursor()
         try:
@@ -93,6 +96,7 @@ class MysqlSession(DatabaseSession):
             for item in values:
                 single_query = query.values(item)
                 single_query, args = compile(single_query, dialect=self.dialect)
+                print(single_query, args)
                 await cursor.execute(single_query, *args)
         finally:
             await cursor.close()
