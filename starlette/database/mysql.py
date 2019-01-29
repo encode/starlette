@@ -56,8 +56,8 @@ class Record:
 
     def __getitem__(self, key: str) -> typing.Any:
         idx, col = self._column_map[key]
-        print(idx, col, self._row[idx])
-        return self._row[idx]
+        raw = self._row[idx]
+        return col[-1].python_type(raw)
 
 
 class MysqlSession(DatabaseSession):
@@ -93,7 +93,7 @@ class MysqlSession(DatabaseSession):
         cursor = await conn.cursor()
         try:
             await cursor.execute(query, args)
-            row = await conn.fetchrow(query, args)
+            row = await cursor.fetchrow(query, args)
             return Record(row, result_columns)
         finally:
             await cursor.close()
