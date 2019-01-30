@@ -1,3 +1,4 @@
+import uuid
 import logging
 import typing
 from types import TracebackType
@@ -70,6 +71,7 @@ class MysqlSession(DatabaseSession):
         self.dialect = dialect
         self.conn = None
         self.connection_holders = 0
+        self.root_transaction = None
 
     def _compile(self, query: ClauseElement) -> typing.Tuple[str, list, tuple]:
         compiled = query.compile(dialect=self.dialect)
@@ -150,8 +152,13 @@ class MysqlSession(DatabaseSession):
 class MysqlTransaction(DatabaseTransaction):
     def __init__(self, session: MysqlSession):
         self.session = session
+        self.is_root = False
 
     async def __aenter__(self) -> None:
+        if self.session.root_transaction is None:
+            self.session.root_transaction = self
+            self.is_root = True
+
         await self.start()
 
     async def __aexit__(
@@ -164,15 +171,40 @@ class MysqlTransaction(DatabaseTransaction):
             await self.rollback()
         else:
             await self.commit()
+        if self.is_root:
+            self.session.root_transaction = None
 
     async def start(self) -> None:
         self.conn = await self.session.acquire_connection()
-        await self.conn.begin()
+        if self.is_root:
+            await self.conn.begin()
+        else:
+            id = str(uuid.uuid4()).replace('-', '_')
+            self.savepoint_name = f"STARLETTE_SAVEPOINT_{id}"
+            cursor = await self.conn.cursor()
+            try:
+                await cursor.execute(f'SAVEPOINT {self.savepoint_name}')
+            finally:
+                await cursor.close()
 
     async def commit(self) -> None:
-        await self.conn.commit()
+        if self.is_root:
+            await self.conn.commit()
+        else:
+            cursor = await self.conn.cursor()
+            try:
+                await cursor.execute(f'RELEASE SAVEPOINT {self.savepoint_name}')
+            finally:
+                await cursor.close()
         await self.session.release_connection()
 
     async def rollback(self) -> None:
-        await self.conn.rollback()
+        if self.is_root:
+            await self.conn.rollback()
+        else:
+            cursor = await self.conn.cursor()
+            try:
+                await cursor.execute(f'ROLLBACK TO SAVEPOINT {self.savepoint_name}')
+            finally:
+                await cursor.close()
         await self.session.release_connection()
