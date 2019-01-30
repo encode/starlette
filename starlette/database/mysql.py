@@ -1,13 +1,13 @@
-import uuid
 import logging
 import typing
+import uuid
 from types import TracebackType
 
+import aiomysql
 from sqlalchemy.dialects.mysql import pymysql
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql import ClauseElement
 
-import aiomysql
 from starlette.database.core import (
     DatabaseBackend,
     DatabaseSession,
@@ -71,7 +71,7 @@ class MysqlSession(DatabaseSession):
         self.dialect = dialect
         self.conn = None
         self.connection_holders = 0
-        self.root_transaction = None
+        self.has_root_transaction = False
 
     def _compile(self, query: ClauseElement) -> typing.Tuple[str, list, tuple]:
         compiled = query.compile(dialect=self.dialect)
@@ -169,19 +169,19 @@ class MysqlTransaction(DatabaseTransaction):
             await self.commit()
 
     async def start(self) -> None:
-        if self.session.root_transaction is None:
-            self.session.root_transaction = self
+        if self.session.has_root_transaction is False:
+            self.session.has_root_transaction = True
             self.is_root = True
 
         self.conn = await self.session.acquire_connection()
         if self.is_root:
             await self.conn.begin()
         else:
-            id = str(uuid.uuid4()).replace('-', '_')
+            id = str(uuid.uuid4()).replace("-", "_")
             self.savepoint_name = f"STARLETTE_SAVEPOINT_{id}"
             cursor = await self.conn.cursor()
             try:
-                await cursor.execute(f'SAVEPOINT {self.savepoint_name}')
+                await cursor.execute(f"SAVEPOINT {self.savepoint_name}")
             finally:
                 await cursor.close()
 
@@ -191,11 +191,11 @@ class MysqlTransaction(DatabaseTransaction):
             # since we *always* wrap the test case up in a transaction
             # and rollback to a clean state at the end.
             await self.conn.commit()
-            self.session.root_transaction = None
+            self.session.has_root_transaction = False
         else:
             cursor = await self.conn.cursor()
             try:
-                await cursor.execute(f'RELEASE SAVEPOINT {self.savepoint_name}')
+                await cursor.execute(f"RELEASE SAVEPOINT {self.savepoint_name}")
             finally:
                 await cursor.close()
         await self.session.release_connection()
@@ -203,11 +203,11 @@ class MysqlTransaction(DatabaseTransaction):
     async def rollback(self) -> None:
         if self.is_root:
             await self.conn.rollback()
-            self.session.root_transaction = None
+            self.session.has_root_transaction = False
         else:
             cursor = await self.conn.cursor()
             try:
-                await cursor.execute(f'ROLLBACK TO SAVEPOINT {self.savepoint_name}')
+                await cursor.execute(f"ROLLBACK TO SAVEPOINT {self.savepoint_name}")
             finally:
                 await cursor.close()
         await self.session.release_connection()
