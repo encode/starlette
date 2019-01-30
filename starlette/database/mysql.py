@@ -155,10 +155,6 @@ class MysqlTransaction(DatabaseTransaction):
         self.is_root = False
 
     async def __aenter__(self) -> None:
-        if self.session.root_transaction is None:
-            self.session.root_transaction = self
-            self.is_root = True
-
         await self.start()
 
     async def __aexit__(
@@ -175,36 +171,42 @@ class MysqlTransaction(DatabaseTransaction):
             self.session.root_transaction = None
 
     async def start(self) -> None:
+        if self.session.root_transaction is None:
+            self.session.root_transaction = self
+            self.is_root = True
+
         self.conn = await self.session.acquire_connection()
-        # if self.is_root:
-        await self.conn.begin()
-        # else:
-        #     id = str(uuid.uuid4()).replace('-', '_')
-        #     self.savepoint_name = f"STARLETTE_SAVEPOINT_{id}"
-        #     cursor = await self.conn.cursor()
-        #     try:
-        #         await cursor.execute(f'SAVEPOINT {self.savepoint_name}')
-        #     finally:
-        #         await cursor.close()
+        if self.is_root:
+            await self.conn.begin()
+        else:
+            id = str(uuid.uuid4()).replace('-', '_')
+            self.savepoint_name = f"STARLETTE_SAVEPOINT_{id}"
+            cursor = await self.conn.cursor()
+            try:
+                await cursor.execute(f'SAVEPOINT {self.savepoint_name}')
+            finally:
+                await cursor.close()
 
     async def commit(self) -> None:
-        # if self.is_root:
-        await self.conn.commit()
-        # else:
-        #     cursor = await self.conn.cursor()
-        #     try:
-        #         await cursor.execute(f'RELEASE SAVEPOINT {self.savepoint_name}')
-        #     finally:
-        #         await cursor.close()
+        if self.is_root:
+            await self.conn.commit()
+            self.session.root_transaction = None
+        else:
+            cursor = await self.conn.cursor()
+            try:
+                await cursor.execute(f'RELEASE SAVEPOINT {self.savepoint_name}')
+            finally:
+                await cursor.close()
         await self.session.release_connection()
 
     async def rollback(self) -> None:
-        # if self.is_root:
-        await self.conn.rollback()
-        # else:
-        #     cursor = await self.conn.cursor()
-        #     try:
-        #         await cursor.execute(f'ROLLBACK TO SAVEPOINT {self.savepoint_name}')
-        #     finally:
-        #         await cursor.close()
+        if self.is_root:
+            await self.conn.rollback()
+            self.session.root_transaction = None
+        else:
+            cursor = await self.conn.cursor()
+            try:
+                await cursor.execute(f'ROLLBACK TO SAVEPOINT {self.savepoint_name}')
+            finally:
+                await cursor.close()
         await self.session.release_connection()
