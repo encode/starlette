@@ -167,8 +167,6 @@ class MysqlTransaction(DatabaseTransaction):
             await self.rollback()
         else:
             await self.commit()
-        if self.is_root:
-            self.session.root_transaction = None
 
     async def start(self) -> None:
         if self.session.root_transaction is None:
@@ -188,7 +186,10 @@ class MysqlTransaction(DatabaseTransaction):
                 await cursor.close()
 
     async def commit(self) -> None:
-        if self.is_root:
+        if self.is_root:  # pragma: no cover
+            # In test cases the root transaction is never committed,
+            # since we *always* wrap the test case up in a transaction
+            # and rollback to a clean state at the end.
             await self.conn.commit()
             self.session.root_transaction = None
         else:
