@@ -1,3 +1,4 @@
+import getpass
 import logging
 import typing
 import uuid
@@ -31,8 +32,8 @@ class MysqlBackend(DatabaseBackend):
         db = self.database_url
         self.pool = await aiomysql.create_pool(
             host=db.hostname,
-            port=db.port,
-            user=db.username,
+            port=db.port or 3306,
+            user=db.username or getpass.getuser(),
             password=db.password,
             db=db.database,
         )

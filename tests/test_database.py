@@ -32,8 +32,10 @@ def create_test_databases():
     for url in DATABASE_URLS:
         db_url = DatabaseURL(url)
         if db_url.dialect == "mysql":
+            #  Use the 'pymysql' driver for creating the database & tables.
+            url = str(db_url.replace(scheme="mysql+pymysql"))
             db_name = db_url.database
-            db_url = db_url.replace(database="")
+            db_url = db_url.replace(scheme="mysql+pymysql", database="")
             engine = sqlalchemy.create_engine(str(db_url))
             engine.execute("CREATE DATABASE IF NOT EXISTS " + db_name)
 
