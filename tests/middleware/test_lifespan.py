@@ -1,3 +1,4 @@
+import os
 from functools import partial
 
 import pytest
@@ -5,6 +6,7 @@ import pytest
 from starlette.applications import Starlette
 from starlette.middleware.lifespan import LifespanMiddleware
 from starlette.routing import MountedAppLifespanHandler
+from starlette.staticfiles import StaticFiles
 from starlette.testclient import TestClient
 
 
@@ -154,10 +156,27 @@ def test_mounted_app_lifespan_handler():
 
     [apps[0].mount(f"/{idx}", app) for idx, app in enumerate(apps[1:])]
 
-    app = partial(MountedAppLifespanHandler, apps[0])
+    handler = partial(MountedAppLifespanHandler, apps[0])
 
-    with TestClient(app):
+    with TestClient(handler):
         assert all(startup_complete[1:])
         assert not any(shutdown_complete[1:])
     assert all(startup_complete[1:])
     assert all(shutdown_complete[1:])
+
+
+def test_mounted_app_lifespan_handler_with_error(tmpdir):
+    path = os.path.join(tmpdir, "example.txt")
+    with open(path, "w") as file:
+        file.write("<file content>")
+
+    app = Starlette()
+    app.mount("/static", StaticFiles(directory=tmpdir))
+    app.mount("/fail_startup", RaiseOnStartup)
+    app.mount("/fail_shutdown", RaiseOnShutdown)
+
+    for asgi_app in (app, App):
+        handler = partial(MountedAppLifespanHandler, asgi_app)
+
+        with TestClient(handler):
+            pass
