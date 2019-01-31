@@ -10,7 +10,7 @@ from starlette.datastructures import URL, Headers, URLPath
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, RedirectResponse
-from starlette.types import ASGIApp, ASGIInstance, Receive, Scope, Send
+from starlette.types import ASGIApp, ASGIInstance, Message, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketClose
 
 
@@ -551,4 +551,91 @@ class LifespanHandler:
 
         message = await receive()
         assert message["type"] == "lifespan.shutdown"
+        await send({"type": "lifespan.shutdown.complete"})
+
+
+class MountedAppLifespanHandler:
+    def __init__(self, app: ASGIApp, scope: Scope) -> None:
+        self.app = app
+        self.scope = scope
+
+    async def __call__(self, receive: Receive, send: Send) -> None:
+        class Lifespan:
+            def __init__(self, instance: ASGIInstance) -> None:
+                self.instance = instance
+                self.startup_event = asyncio.Event()
+                self.shutdown_event = asyncio.Event()
+                self.receive_queue = asyncio.Queue()
+
+            async def receive(self) -> Message:
+                return await self.receive_queue.get()
+
+            async def send(self, message: Message) -> None:
+                assert message["type"] in (
+                    "lifespan.startup.complete",
+                    "lifespan.shutdown.complete",
+                )
+                STATE_TRANSITION_ERROR = (
+                    "Got invalid state transition on lifespan protocol."
+                )
+
+                if message["type"] == "lifespan.startup.complete":
+                    assert not self.startup_event.is_set(), STATE_TRANSITION_ERROR
+                    assert not self.shutdown_event.is_set(), STATE_TRANSITION_ERROR
+                    self.startup_event.set()
+                elif message["type"] == "lifespan.shutdown.complete":
+                    assert self.startup_event.is_set(), STATE_TRANSITION_ERROR
+                    assert not self.shutdown_event.is_set(), STATE_TRANSITION_ERROR
+                    self.shutdown_event.set()
+
+            async def main(self) -> None:
+                try:
+                    await self.instance(self.receive, self.send)
+                except BaseException:
+                    raise
+                finally:
+                    self.startup_event.set()
+                    self.shutdown_event.set()
+
+            async def startup(self) -> None:
+                asyncio.ensure_future(self.main())
+                await self.receive_queue.put({"type": "lifespan.startup"})
+                await self.startup_event.wait()
+
+            async def shutdown(self) -> None:
+                await self.receive_queue.put({"type": "lifespan.shutdown"})
+                await self.shutdown_event.wait()
+
+        class MountedAppLifespan:
+            def __init__(self, app: ASGIApp, scope: Scope) -> None:
+                self.lifespans = []
+                if not hasattr(app, "routes"):
+                    return
+                for route in app.routes:
+                    try:
+                        if not isinstance(route, Route):
+                            self.lifespans.append(Lifespan(route(scope)))
+                    except:
+                        pass
+
+            async def startup(self) -> None:
+                await asyncio.gather(
+                    *[lifespan.startup() for lifespan in self.lifespans]
+                )
+
+            async def shutdown(self) -> None:
+                await asyncio.gather(
+                    *[lifespan.shutdown() for lifespan in self.lifespans]
+                )
+
+        mounted = MountedAppLifespan(self.app, self.scope)
+
+        message = await receive()
+        assert message["type"] == "lifespan.startup"
+        await mounted.startup()
+        await send({"type": "lifespan.startup.complete"})
+
+        message = await receive()
+        assert message["type"] == "lifespan.shutdown", message
+        await mounted.shutdown()
         await send({"type": "lifespan.shutdown.complete"})
