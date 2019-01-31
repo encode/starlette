@@ -422,8 +422,9 @@ class UploadFile:
     An uploaded file included as part of the request data.
     """
 
-    def __init__(self, filename: str, file: typing.IO = None) -> None:
+    def __init__(self, filename: str, content_type: str, file: typing.IO = None) -> None:
         self.filename = filename
+        self.content_type = content_type
         if file is None:
             file = tempfile.SpooledTemporaryFile()
         self.file = file
