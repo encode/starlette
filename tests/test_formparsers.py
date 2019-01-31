@@ -23,7 +23,11 @@ def app(scope):
         for key, value in data.items():
             if isinstance(value, UploadFile):
                 content = await value.read()
-                output[key] = {"filename": value.filename, "content": content.decode(), "content_type": value.content_type}
+                output[key] = {
+                    "filename": value.filename,
+                    "content": content.decode(),
+                    "content_type": value.content_type,
+                }
             else:
                 output[key] = value
         await request.close()
@@ -44,7 +48,11 @@ def multi_items_app(scope):
             if isinstance(value, UploadFile):
                 content = await value.read()
                 output[key].append(
-                    {"filename": value.filename, "content": content.decode(), "content_type": value.content_type}
+                    {
+                        "filename": value.filename,
+                        "content": content.decode(),
+                        "content_type": value.content_type,
+                    }
                 )
             else:
                 output[key].append(value)
@@ -86,8 +94,13 @@ def test_multipart_request_files(tmpdir):
     with open(path, "rb") as f:
         response = client.post("/", files={"test": f})
         assert response.json() == {
-            "test": {"filename": "test.txt", "content": "<file content>", "content_type": None}
+            "test": {
+                "filename": "test.txt",
+                "content": "<file content>",
+                "content_type": None,
+            }
         }
+
 
 def test_multipart_request_files_with_content_type(tmpdir):
     path = os.path.join(tmpdir, "test.txt")
@@ -98,7 +111,11 @@ def test_multipart_request_files_with_content_type(tmpdir):
     with open(path, "rb") as f:
         response = client.post("/", files={"test": ("test.txt", f, "text/plain")})
         assert response.json() == {
-            "test": {"filename": "test.txt", "content": "<file content>", "content_type": "text/plain"}
+            "test": {
+                "filename": "test.txt",
+                "content": "<file content>",
+                "content_type": "text/plain",
+            }
         }
 
 
@@ -113,10 +130,20 @@ def test_multipart_request_multiple_files(tmpdir):
 
     client = TestClient(app)
     with open(path1, "rb") as f1, open(path2, "rb") as f2:
-        response = client.post("/", files={"test1": f1, "test2": ("test2.txt", f2, "text/plain")})
+        response = client.post(
+            "/", files={"test1": f1, "test2": ("test2.txt", f2, "text/plain")}
+        )
         assert response.json() == {
-            "test1": {"filename": "test1.txt", "content": "<file1 content>", "content_type": None},
-            "test2": {"filename": "test2.txt", "content": "<file2 content>", "content_type": "text/plain"},
+            "test1": {
+                "filename": "test1.txt",
+                "content": "<file1 content>",
+                "content_type": None,
+            },
+            "test2": {
+                "filename": "test2.txt",
+                "content": "<file2 content>",
+                "content_type": "text/plain",
+            },
         }
 
 
@@ -132,13 +159,23 @@ def test_multi_items(tmpdir):
     client = TestClient(multi_items_app)
     with open(path1, "rb") as f1, open(path2, "rb") as f2:
         response = client.post(
-            "/", data=[("test1", "abc")], files=[("test1", f1), ("test1", ("test2.txt", f2, "text/plain"))]
+            "/",
+            data=[("test1", "abc")],
+            files=[("test1", f1), ("test1", ("test2.txt", f2, "text/plain"))],
         )
         assert response.json() == {
             "test1": [
                 "abc",
-                {"filename": "test1.txt", "content": "<file1 content>", "content_type": None},
-                {"filename": "test2.txt", "content": "<file2 content>", "content_type": "text/plain"},
+                {
+                    "filename": "test1.txt",
+                    "content": "<file1 content>",
+                    "content_type": None,
+                },
+                {
+                    "filename": "test2.txt",
+                    "content": "<file2 content>",
+                    "content_type": "text/plain",
+                },
             ]
         }
 
@@ -168,7 +205,11 @@ def test_multipart_request_mixed_files_and_data(tmpdir):
         },
     )
     assert response.json() == {
-        "file": {"filename": "file.txt", "content": "<file content>", "content_type": "text/plain"},
+        "file": {
+            "filename": "file.txt",
+            "content": "<file content>",
+            "content_type": "text/plain",
+        },
         "field0": "value0",
         "field1": "value1",
     }
