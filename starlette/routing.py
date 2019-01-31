@@ -565,7 +565,7 @@ class MountedAppLifespanHandler:
                 self.instance = instance
                 self.startup_event = asyncio.Event()
                 self.shutdown_event = asyncio.Event()
-                self.receive_queue = asyncio.Queue()
+                self.receive_queue = asyncio.Queue()  # type: asyncio.Queue
 
             async def receive(self) -> Message:
                 return await self.receive_queue.get()
@@ -608,10 +608,8 @@ class MountedAppLifespanHandler:
 
         class MountedAppLifespan:
             def __init__(self, app: ASGIApp, scope: Scope) -> None:
-                self.lifespans = []
-                if not hasattr(app, "routes"):
-                    return
-                for route in app.routes:
+                self.lifespans = []  # type: typing.List[Lifespan]
+                for route in getattr(app, "routes", []):
                     try:
                         if not isinstance(route, Route):
                             self.lifespans.append(Lifespan(route(scope)))
