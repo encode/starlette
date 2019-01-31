@@ -1,7 +1,10 @@
+from functools import partial
+
 import pytest
 
 from starlette.applications import Starlette
 from starlette.middleware.lifespan import LifespanMiddleware
+from starlette.routing import MountedAppLifespanHandler
 from starlette.testclient import TestClient
 
 
@@ -120,3 +123,41 @@ def test_app_lifespan():
         assert not cleanup_complete
     assert startup_complete
     assert cleanup_complete
+
+
+def test_mounted_app_lifespan_handler():
+
+    # apps[0] as the root app
+    apps = [Starlette() for _ in range(0, 10)]
+    startup_complete = [False] * len(apps)
+    shutdown_complete = [False] * len(apps)
+
+    def run_startup(idx):
+        nonlocal startup_complete
+        startup_complete[idx] = True
+
+    def run_shutdown(idx):
+        nonlocal shutdown_complete
+        shutdown_complete[idx] = True
+
+    [
+        app.add_event_handler("startup", partial(run_startup, idx))
+        for idx, app in enumerate(apps)
+    ]
+    [
+        app.add_event_handler("shutdown", partial(run_shutdown, idx))
+        for idx, app in enumerate(apps)
+    ]
+
+    assert not any(startup_complete)
+    assert not any(shutdown_complete)
+
+    [apps[0].mount(f"/{idx}", app) for idx, app in enumerate(apps[1:])]
+
+    app = partial(MountedAppLifespanHandler, apps[0])
+
+    with TestClient(app):
+        assert all(startup_complete[1:])
+        assert not any(shutdown_complete[1:])
+    assert all(startup_complete[1:])
+    assert all(shutdown_complete[1:])
