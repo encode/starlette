@@ -423,7 +423,7 @@ class UploadFile:
     """
 
     def __init__(
-        self, filename: str, content_type: str, file: typing.IO = None
+        self, filename: str, file: typing.IO = None, content_type: str = ""
     ) -> None:
         self.filename = filename
         self.content_type = content_type
