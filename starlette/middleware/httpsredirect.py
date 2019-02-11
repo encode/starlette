@@ -11,7 +11,7 @@ class HTTPSRedirectMiddleware:
         if scope["type"] in ("http", "websocket") and scope["scheme"] in ("http", "ws"):
             redirect_scheme = {"http": "https", "ws": "wss"}[scope["scheme"]]
             url = URL(scope=scope)
-            url = url.replace(scheme=redirect_scheme, netloc=url.hostname)
+            url = url.replace(scheme=redirect_scheme, netloc=url.netloc)
             return RedirectResponse(url, status_code=301)
 
         return self.app(scope)
