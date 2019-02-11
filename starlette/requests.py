@@ -13,7 +13,12 @@ try:
 except ImportError:  # pragma: nocover
     parse_options_header = None  # type: ignore
 
+try:
+    import ujson
+except ImportError:  # pragma: nocover
+    ujson = None  # type: ignore
 
+    
 class ClientDisconnect(Exception):
     pass
 
@@ -168,6 +173,12 @@ class Request(HTTPConnection):
             self._json = json.loads(body)
         return self._json
 
+    async def ujson(self) -> typing.Any:
+        if not hasattr(self, "_json"):
+            body = await self.body()
+            self._json = ujson.loads(body)
+        return self._json
+    
     async def form(self) -> FormData:
         if not hasattr(self, "_form"):
             assert (
