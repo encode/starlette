@@ -197,6 +197,21 @@ def test_request_json():
     assert response.json() == {"json": {"a": "123"}}
 
 
+def test_request_ujson():
+    def app(scope):
+        async def asgi(receive, send):
+            request = Request(scope, receive)
+            data = await request.ujson()
+            response = JSONResponse({"json": data})
+            await response(receive, send)
+
+        return asgi
+
+    client = TestClient(app)
+    response = client.post("/", json={"a": "123"})
+    assert response.json() == {"json": {"a": "123"}}
+
+
 def test_request_scope_interface():
     """
     A Request can be instantiated with a scope, and presents a `Mapping`
