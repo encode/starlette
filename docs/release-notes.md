@@ -1,3 +1,12 @@
+## 0.10.3
+
+* Recommend `databases` rather than the built-in `DatabaseMiddleware`.
+
+## 0.10.2
+
+* Retain explicit port in host on HTTPS redirects.
+* Add `content_type` attribute to `UploadFile`.
+
 ## 0.10.1
 
 * Add MySQL database support.
