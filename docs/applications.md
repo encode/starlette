@@ -53,6 +53,12 @@ You can use any of the following to add handled routes to the application:
 * `@app.route(path)` - Add an HTTP route, decorator style.
 * `@app.websocket_route(path)` - Add a WebSocket route, decorator style.
 
+#### Order matters
+
+Routes are evaluated in order.
+
+If you need to declare a route of `/user/me` and another of `/user/{username}`, make sure you declare `/user/me` first.
+
 ### Adding event handlers to the application
 
 There are two ways to add event handlers:
