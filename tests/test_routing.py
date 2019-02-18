@@ -43,7 +43,7 @@ app = Router(
                 Route("/me", endpoint=user_me),
                 Route("/{username}", endpoint=user),
                 Route("/nomatch", endpoint=user_no_match),
-            ]
+            ],
         ),
         Mount("/static", app=staticfiles),
     ]
