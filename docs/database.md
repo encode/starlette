@@ -276,6 +276,7 @@ We can adjust the `create_test_database` fixture slightly:
 ```python
 from alembic import command
 from alembic.config import Config
+import app
 
 ...
 
