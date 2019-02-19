@@ -3,7 +3,7 @@ import pytest
 from starlette.applications import Starlette
 from starlette.middleware.lifespan import LifespanMiddleware
 from starlette.responses import PlainTextResponse
-from starlette.routing import Router, Route, Lifespan
+from starlette.routing import Lifespan, Route, Router
 from starlette.testclient import TestClient
 
 
@@ -115,10 +115,12 @@ def test_routed_lifespan():
         nonlocal shutdown_complete
         shutdown_complete = True
 
-    app = Router(routes=[
-        Lifespan(on_startup=run_startup, on_shutdown=run_shutdown),
-        Route('/', hello_world),
-    ])
+    app = Router(
+        routes=[
+            Lifespan(on_startup=run_startup, on_shutdown=run_shutdown),
+            Route("/", hello_world),
+        ]
+    )
 
     assert not startup_complete
     assert not shutdown_complete

@@ -276,9 +276,17 @@ class WebSocketRoute(BaseRoute):
 
 
 class Mount(BaseRoute):
-    def __init__(self, path: str, app: ASGIApp=None, routes: typing.List[BaseRoute]=None, name: str = None) -> None:
+    def __init__(
+        self,
+        path: str,
+        app: ASGIApp = None,
+        routes: typing.List[BaseRoute] = None,
+        name: str = None,
+    ) -> None:
         assert path == "" or path.startswith("/"), "Routed paths must start with '/'"
-        assert app is not None or routes is not None, "Either 'app=...', or 'routes=' must be specified"
+        assert (
+            app is not None or routes is not None
+        ), "Either 'app=...', or 'routes=' must be specified"
         self.path = path.rstrip("/")
         if routes is not None:
             self.app = Router(routes=routes)
@@ -421,9 +429,7 @@ class Host(BaseRoute):
 
 class Lifespan(BaseRoute):
     def __init__(
-        self,
-        on_startup: typing.Callable = None,
-        on_shutdown: typing.Callable = None
+        self, on_startup: typing.Callable = None, on_shutdown: typing.Callable = None
     ):
         self.startup_handlers = [] if on_startup is None else [on_startup]
         self.shutdown_handlers = [] if on_shutdown is None else [on_shutdown]
