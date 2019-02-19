@@ -420,31 +420,51 @@ class Host(BaseRoute):
 
 
 class Lifespan(BaseRoute):
-    def __init__(self, on_startup: typing.Callable = None, on_shutdown: typing.Callable = None):
-        self.on_startup = on_startup
-        self.on_shutdown = on_shutdown
+    def __init__(
+        self,
+        on_startup: typing.Callable = None,
+        on_shutdown: typing.Callable = None
+    ):
+        self.startup_handlers = [] if on_startup is None else [on_startup]
+        self.shutdown_handlers = [] if on_shutdown is None else [on_shutdown]
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] == "lifespan":
-            return Match.FULL, scope
+            return Match.FULL, {}
         return Match.NONE, {}
+
+    def add_event_handler(self, event_type: str, func: typing.Callable) -> None:
+        assert event_type in ("startup", "shutdown")
+
+        if event_type == "startup":
+            self.startup_handlers.append(func)
+        else:
+            assert event_type == "shutdown"
+            self.shutdown_handlers.append(func)
+
+    def on_event(self, event_type: str) -> typing.Callable:
+        def decorator(func: typing.Callable) -> typing.Callable:
+            self.add_event_handler(event_type, func)
+            return func
+
+        return decorator
+
+    async def startup(self):
+        for handler in self.startup_handlers:
+            if asyncio.iscoroutinefunction(handler):
+                await handler()
+            else:
+                handler()
+
+    async def shutdown(self):
+        for handler in self.shutdown_handlers:
+            if asyncio.iscoroutinefunction(handler):
+                await handler()
+            else:
+                handler()
 
     def __call__(self, scope: Scope) -> ASGIInstance:
         return self.asgi
-
-    async def startup(self):
-        if self.on_startup is not None:
-            if asyncio.iscoroutinefunction(self.on_startup):
-                await self.on_startup()
-            else:
-                self.on_startup()
-
-    async def shutdown(self):
-        if self.on_shutdown is not None:
-            if asyncio.iscoroutinefunction(self.on_shutdown):
-                await self.on_shutdown()
-            else:
-                self.on_shutdown()
 
     async def asgi(self, receive: Receive, send: Send) -> None:
         message = await receive()
@@ -468,6 +488,7 @@ class Router:
         self.routes = [] if routes is None else list(routes)
         self.redirect_slashes = redirect_slashes
         self.default = self.not_found if default is None else default
+        self.lifespan = Lifespan()
 
     def mount(self, path: str, app: ASGIApp, name: str = None) -> None:
         route = Mount(path, app=app, name=name)
@@ -578,22 +599,8 @@ class Router:
                         return RedirectResponse(url=str(redirect_url))
 
         if scope["type"] == "lifespan":
-            return LifespanHandler(scope)
+            return self.lifespan(scope)
         return self.default(scope)
 
     def __eq__(self, other: typing.Any) -> bool:
         return isinstance(other, Router) and self.routes == other.routes
-
-
-class LifespanHandler:
-    def __init__(self, scope: Scope) -> None:
-        pass
-
-    async def __call__(self, receive: Receive, send: Send) -> None:
-        message = await receive()
-        assert message["type"] == "lifespan.startup"
-        await send({"type": "lifespan.startup.complete"})
-
-        message = await receive()
-        assert message["type"] == "lifespan.shutdown"
-        await send({"type": "lifespan.shutdown.complete"})
