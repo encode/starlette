@@ -81,14 +81,6 @@ class BaseSchemaGenerator:
 
         return endpoints_info
 
-    def _extract_yaml(self, docstring: str) -> str:
-        """
-        We support having regular docstrings before the schema definition.
-
-        Here we return just the schema part from a docstring.
-        """
-        return docstring.split("---")[-1]
-
     def parse_docstring(self, func_or_method: typing.Callable) -> typing.Optional[dict]:
         """
         Given a function, parse the docstring as YAML and return a dictionary of info.
@@ -97,7 +89,10 @@ class BaseSchemaGenerator:
         if not docstring:
             return None
 
-        docstring = self._extract_yaml(docstring)
+        # We support having regular docstrings before the schema
+        # definition. Here we return just the schema part from
+        # the docstring.
+        docstring = docstring.split("---")[-1]
 
         parsed = yaml.safe_load(docstring)
 
