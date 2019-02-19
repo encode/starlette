@@ -81,13 +81,13 @@ class BaseSchemaGenerator:
 
         return endpoints_info
 
-    def parse_docstring(self, func_or_method: typing.Callable) -> typing.Optional[dict]:
+    def parse_docstring(self, func_or_method: typing.Callable) -> dict:
         """
         Given a function, parse the docstring as YAML and return a dictionary of info.
         """
         docstring = func_or_method.__doc__
         if not docstring:
-            return None
+            return {}
 
         # We support having regular docstrings before the schema
         # definition. Here we return just the schema part from
@@ -99,7 +99,7 @@ class BaseSchemaGenerator:
         if not isinstance(parsed, dict):
             # A regular docstring (not yaml formatted) can return
             # a simple string here, which wouldn't follow the schema.
-            return None
+            return {}
 
         return parsed
 
@@ -122,10 +122,12 @@ class SchemaGenerator(BaseSchemaGenerator):
 
             parsed = self.parse_docstring(endpoint.func)
 
-            if parsed is not None:
-                if endpoint.path not in schema["paths"]:
-                    schema["paths"][endpoint.path] = {}
+            if not parsed:
+                continue
 
-                schema["paths"][endpoint.path][endpoint.http_method] = parsed
+            if endpoint.path not in schema["paths"]:
+                schema["paths"][endpoint.path] = {}
+
+            schema["paths"][endpoint.path][endpoint.http_method] = parsed
 
         return schema
