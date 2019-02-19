@@ -27,7 +27,7 @@ class GraphQLApp:
         schema: "graphene.Schema",
         executor: typing.Any = None,
         executor_class: type = None,
-        graphiql: bool = False,
+        graphiql: bool = True,
     ) -> None:
         self.schema = schema
         self.graphiql = graphiql

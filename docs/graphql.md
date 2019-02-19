@@ -17,13 +17,12 @@ class Query(graphene.ObjectType):
 
 
 app = Starlette()
-app.add_route('/', GraphQLApp(schema=graphene.Schema(query=Query), graphiql=True))
+app.add_route('/', GraphQLApp(schema=graphene.Schema(query=Query)))
 ```
 
 If you load up the page in a browser, you'll be served the GraphiQL tool,
 which you can use to interact with your GraphQL API.
 
-The `graphiql` parameter must be set to `True` for console access.
 
 ![GraphiQL](img/graphiql.png)
 

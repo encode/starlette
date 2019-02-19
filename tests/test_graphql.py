@@ -102,7 +102,7 @@ def test_graphiql_get():
 
 
 def test_graphiql_not_found():
-    app = GraphQLApp(schema=schema)
+    app = GraphQLApp(schema=schema, graphiql=False)
     client = TestClient(app)
     response = client.get("/", headers={"accept": "text/html"})
     assert response.status_code == 404
