@@ -288,10 +288,10 @@ class Mount(BaseRoute):
             app is not None or routes is not None
         ), "Either 'app=...', or 'routes=' must be specified"
         self.path = path.rstrip("/")
-        if routes is not None:
-            self.app = Router(routes=routes)
+        if app is not None:
+            self.app = app  # type: ASGIApp
         else:
-            self.app = app
+            self.app = Router(routes=routes)
         self.name = name
         self.path_regex, self.path_format, self.param_convertors = compile_path(
             path + "/{path:path}"
@@ -455,14 +455,14 @@ class Lifespan(BaseRoute):
 
         return decorator
 
-    async def startup(self):
+    async def startup(self) -> None:
         for handler in self.startup_handlers:
             if asyncio.iscoroutinefunction(handler):
                 await handler()
             else:
                 handler()
 
-    async def shutdown(self):
+    async def shutdown(self) -> None:
         for handler in self.shutdown_handlers:
             if asyncio.iscoroutinefunction(handler):
                 await handler()
