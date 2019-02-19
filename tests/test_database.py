@@ -3,8 +3,7 @@ import sqlalchemy
 
 import databases
 from starlette.applications import Starlette
-from starlette.datastructures import CommaSeparatedStrings, DatabaseURL
-from starlette.middleware.database import DatabaseMiddleware
+from starlette.datastructures import CommaSeparatedStrings
 from starlette.responses import JSONResponse
 from starlette.testclient import TestClient
 
