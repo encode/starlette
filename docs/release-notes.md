@@ -1,3 +1,11 @@
+## 0.10.6
+
+* Add `Lifespan` routing component.
+
+## 0.10.5
+
+* Ensure `templating` does not strictly require `jinja2` to be installed.
+
 ## 0.10.4
 
 * Templates are now configured independently from the application instance. `templates = Jinja2Templates(directory=...)`. Existing API remains in place, but is no longer documented,
