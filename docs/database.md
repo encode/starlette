@@ -294,3 +294,120 @@ def create_test_database():
 
 [sqlalchemy-core]: https://docs.sqlalchemy.org/en/latest/core/
 [alembic]: https://alembic.sqlalchemy.org/en/latest/
+
+
+## Integrating `SQLAlchemy` ORM
+
+You can also use [SQLAlchemy ORM](https://docs.sqlalchemy.org/en/latest/orm/).
+
+**Use cases**
+
+This could be specially useful if you are migrating from another framework like Flask.
+
+Or if you need to use any of the other databases supported by SQLAlchemy (Oracle, Microsoft SQL Server, Firebird, Sybase).
+
+**Set up**
+
+You should make sure you use non-async routes.
+
+And you should create a single session per-request and close it after each request.
+
+To achieve that, you can add a middleware to attach a SQLAlchemy session to the request before it is handled by the route.
+
+And then, close the SQLAlchemy session after the route returns the response.
+
+You can store the session in the `Request.state` object.
+
+Here's a complete working example using SQLAlchemy ORM:
+
+```python
+from sqlalchemy import Boolean, Column, Integer, String, create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from starlette.applications import Starlette
+from starlette.requests import Request
+from starlette.responses import JSONResponse
+
+# SQLAlchemy specific code
+SQLALCHEMY_DATABASE_URI = "sqlite:///./test.db"
+
+# For PostgreSQL:
+# SQLALCHEMY_DATABASE_URI = "postgresql://user:password@postgresserver/db"
+
+engine = create_engine(
+    # connect_args for SQLite
+    SQLALCHEMY_DATABASE_URI,
+    connect_args={"check_same_thread": False}
+    # For PostgreSQL:
+    # SQLALCHEMY_DATABASE_URI
+)
+Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base = declarative_base()
+
+
+class User(Base):
+    __tablename__ = "user"
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    is_active = Column(Boolean(), default=True)
+
+
+Base.metadata.create_all(bind=engine)
+
+db_session = Session()
+
+first_user = db_session.query(User).first()
+if not first_user:
+    u = User(email="johndoe@example.com", hashed_password="notreallyhashed")
+    db_session.add(u)
+    db_session.commit()
+
+db_session.close()
+
+
+# Utility
+def get_user(db_session, user_id):
+    return db_session.query(User).filter(User.id == user_id).first()
+
+
+# Starlette specific code
+app = Starlette()
+
+
+@app.route("/users/{user_id}", methods=["GET"])
+def read_user(request):
+    user_id = request.path_params["user_id"]
+    user = get_user(request.state.db, user_id=user_id)
+    data = {"id": user.id, "email": user.email, "is_active": user.is_active}
+    return JSONResponse(data)
+
+
+@app.middleware("http")
+async def close_db(request, call_next):
+    request.state.db = Session()
+    response = await call_next(request)
+    request.state.db.close()
+    return response
+```
+
+If you open your browser at: `http://127.0.0.1:8000/users/1` you will see a response with data from the SQLite database like:
+
+```JSON
+{
+    "id":1,
+    "email":"johndoe@example.com",
+    "is_active":true
+}
+```
+
+**Note**
+
+This is a simplified example to demonstrate how to use the needed parts in a single file that you can copy and run.
+
+In a production application you would probably want to:
+
+* Create (and migrate) the database tables with Alembic.
+* Read configurations from an external file or environment variable.
+* Handle initial data creation in a different way, etc.
