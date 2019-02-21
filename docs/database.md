@@ -385,7 +385,7 @@ def read_user(request):
 
 
 @app.middleware("http")
-async def close_db(request, call_next):
+async def db_session_middleware(request, call_next):
     request.state.db = Session()
     response = await call_next(request)
     request.state.db.close()
