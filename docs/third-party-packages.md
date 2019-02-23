@@ -276,16 +276,16 @@ Key features include:
 The example below demonstrates a simple WebSocket echo server.
 
 ```python
-from bocadillo import API, WebSocket
+from bocadillo import App, WebSocket
 
-api = API()
+app = App()
 
-@api.websocket_route("/echo")
+@app.websocket_route("/echo")
 async def echo(ws: WebSocket):
     async with ws:
         async for message in ws:
             await ws.send(message)
 
 if __name__ == "__main__":
-    api.run()
+    app.run()
 ```
