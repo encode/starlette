@@ -181,9 +181,6 @@ app.add_middleware(
 async def homepage(request):
     ...
 
-@router.get("/settings", tags=["Info"])
-def get_settings() -> dict:
-    return {var: repr(getattr(settings, var)) for var in dir(settings) if var.isupper()}
 
 ```
 
