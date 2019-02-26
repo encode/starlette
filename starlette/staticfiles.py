@@ -22,30 +22,48 @@ class NotModifiedResponse(Response):
         "vary",
     )
 
-    def __init__(self, stat_headers: dict):
-        headers = {
-            name: value
-            for name, value in stat_headers.items()
-            if name in self.NOT_MODIFIED_HEADERS
-        }
-        return super().__init__(status_code=304, headers=headers)
+    def __init__(self, headers: Headers):
+        return super().__init__(
+            status_code=304,
+            headers={
+                name: value
+                for name, value in headers.items()
+                if name in self.NOT_MODIFIED_HEADERS
+            },
+        )
 
 
 class StaticFiles:
-    def __init__(self, *, directory: str, packages: typing.List[str] = None, check_dir: bool = True) -> None:
+    def __init__(
+        self,
+        *,
+        directory: str = None,
+        packages: typing.List[str] = None,
+        check_dir: bool = True,
+    ) -> None:
         self.directory = directory
         self.packages = packages
+        self.all_directories = self.get_directories(directory, packages)
         self.config_checked = False
-        if check_dir and not os.path.isdir(directory):
+        if check_dir and directory is not None and not os.path.isdir(directory):
             raise RuntimeError(f"Directory '{directory}' does not exist")
 
-    def _get_package_dirs(self, packages: typing.List[str] = None) -> typing.List[str]:
+    def get_directories(
+        self, directory: str = None, packages: typing.List[str] = None
+    ) -> typing.List[str]:
         directories = []
+        if directory is not None:
+            directories.append(directory)
         for package in packages or []:
             spec = importlib.util.find_spec(package)
             assert spec is not None, f"Package {package!r} could not be found."
-            directory = os.path.join(spec.origin, "..", "statics")
-            assert os.path.isdir(directory), "Directory 'statics' in package {package!r} could not be found."
+            assert (
+                spec.origin is not None
+            ), "Directory 'statics' in package {package!r} could not be found."
+            directory = os.path.normpath(os.path.join(spec.origin, "..", "statics"))
+            assert os.path.isdir(
+                directory
+            ), "Directory 'statics' in package {package!r} could not be found."
             directories.append(directory)
         return directories
 
@@ -59,39 +77,42 @@ class StaticFiles:
         if path.startswith(".."):
             return PlainTextResponse("Not Found", status_code=404)
 
-        path = os.path.join(self.directory, path)
-        return functools.partial(self.asgi, scope=scope)
+        return functools.partial(self.asgi, scope=scope, path=path)
 
-    async def asgi(self, receive: Receive, send: Send, scope: Scope) -> None:
+    async def asgi(self, receive: Receive, send: Send, scope: Scope, path: str) -> None:
         if not self.config_checked:
             await self.check_config()
             self.config_checked = True
 
-        path = os.path.normpath(os.path.join(*scope["path"].split("/")))
         method = scope["method"]
         headers = Headers(scope=scope)
         response = await self.get_response(path, method, headers)
         await response(receive, send)
 
-    async def get_response(self, path: str, method: str, headers: Headers) -> Response:
-        if path.startswith(".."):
-            return PlainTextResponse("Not Found", status_code=404)
+    async def get_response(
+        self, path: str, method: str, request_headers: Headers
+    ) -> Response:
+        stat_result = None
+        for directory in self.all_directories:
+            full_path = os.path.join(directory, path)
+            try:
+                stat_result = await aio_stat(full_path)
+            except FileNotFoundError:
+                pass
+            else:
+                break
 
-        path = os.path.join(self.directory, path)
-        try:
-            stat_result = await aio_stat(path)
-        except FileNotFoundError:
+        if stat_result is None:
             return PlainTextResponse("Not Found", status_code=404)
 
         mode = stat_result.st_mode
         if not stat.S_ISREG(mode):
             return PlainTextResponse("Not Found", status_code=404)
 
-        stat_headers = FileResponse.get_stat_headers(stat_result)
-        if self.is_not_modified(stat_headers, headers):
-            return NotModifiedResponse(stat_headers)
-
-        return FileResponse(path, stat_result=stat_result, method=method)
+        response = FileResponse(full_path, stat_result=stat_result, method=method)
+        if self.is_not_modified(response.headers, request_headers):
+            return NotModifiedResponse(response.headers)
+        return response
 
     async def check_config(self) -> None:
         """
@@ -99,19 +120,41 @@ class StaticFiles:
         pointed at a directory, so that we can raise loud errors rather than
         just returning 404 responses.
         """
+        if self.directory is None:
+            return
+
         try:
             stat_result = await aio_stat(self.directory)
         except FileNotFoundError:
-            raise RuntimeError(f"StaticFiles directory '{self.directory}' does not exist.")
+            raise RuntimeError(
+                f"StaticFiles directory '{self.directory}' does not exist."
+            )
         if not (stat.S_ISDIR(stat_result.st_mode) or stat.S_ISLNK(stat_result.st_mode)):
-            raise RuntimeError(f"StaticFiles path '{self.directory}' is not a directory.")
+            raise RuntimeError(
+                f"StaticFiles path '{self.directory}' is not a directory."
+            )
 
-    def is_not_modified(self, stat_headers: typing.Dict[str, str], request_headers: Headers) -> bool:
-        etag = stat_headers["etag"]
-        last_modified = stat_headers["last-modified"]
-        if etag == request_headers.get("if-none-match"):
-            return True
-        if "if-modified-since" not in request_headers:
-            return False
-        if_modified_since = request_headers["if-modified-since"]
-        return parsedate(if_modified_since) >= parsedate(last_modified)  # type: ignore
+    def is_not_modified(
+        self, response_headers: Headers, request_headers: Headers
+    ) -> bool:
+        try:
+            if_none_match = request_headers["if-none-match"]
+            etag = response_headers["etag"]
+            if if_none_match == etag:
+                return True
+        except KeyError:
+            pass
+
+        try:
+            if_modified_since = parsedate(request_headers["if-modified-since"])
+            last_modified = parsedate(response_headers["last-modified"])
+            if (
+                if_modified_since is not None
+                and last_modified is not None
+                and if_modified_since >= last_modified
+            ):
+                return True
+        except KeyError:
+            pass
+
+        return False
