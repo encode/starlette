@@ -121,9 +121,7 @@ state with `disconnected = await request.is_disconnected()`.
 Request files are normally sent as multipart form data (`multipart/form-data`).
 
 When you call `await request.form()` you receive a `starlette.datastructures.FormData` which is an immutable
-multidict, containing both file uploads and text input.
-
-When one of the fields is a file upload, you will get a `starlette.datastructures.UploadFile`.
+multidict, containing both file uploads and text input. File upload items are represented as instances of `starlette.datastructures.UploadFile`.
 
 `UploadFile` has the following attributes:
 
@@ -132,27 +130,39 @@ When one of the fields is a file upload, you will get a `starlette.datastructure
 * `file`: A <a href="https://docs.python.org/3/library/tempfile.html#tempfile.SpooledTemporaryFile" target="_blank">`SpooledTemporaryFile`</a> (a <a href="https://docs.python.org/3/glossary.html#term-file-like-object" target="_blank">file-like</a> object). This is the actual Python file that you can pass directly to other functions or libraries that expect a "file-like" object.
 
 
-`UploadFile` has the following `async` methods. They all call the corresponding file methods underneath (using the internal `SpooledTemporaryFile`) in a threadpool.
+`UploadFile` has the following `async` methods. They all call the corresponding file methods underneath (using the internal `SpooledTemporaryFile`).
 
-* `write(data)`: Writes `data` (`str` or `bytes`) to the file.
-* `read(size)`: Reads `size` (`int`) bytes/characters of the file.
-* `seek(offset)`: Goes to the byte position `offset` (`int`) in the file.
+* `async write(data)`: Writes `data` (`str` or `bytes`) to the file.
+* `async read(size)`: Reads `size` (`int`) bytes/characters of the file.
+* `async seek(offset)`: Goes to the byte position `offset` (`int`) in the file.
     * E.g., `await myfile.seek(0)` would go to the start of the file.
-    * This is especially useful if you run `await myfile.read()` once and then need to read the contents again.
-* `close()`: Closes the file.
+* `async close()`: Closes the file.
 
 As all these methods are `async` methods, you need to "await" them.
 
-For example, inside of an `async` route you can get the contents with:
+For example:
 
-```Python
-contents = await myfile.read()
-```
+```python
+from starlette.requests import Request
+from starlette.responses import Response
 
-If you are inside of a normal `def` route, you can access the `UploadFile.file` directly, for example:
 
-```Python
-contents = myfile.file.read()
+class App:
+    def __init__(self, scope):
+        assert scope["type"] == "http"
+        self.scope = scope
+
+    async def __call__(self, receive, send):
+        request = Request(self.scope, receive)
+        form = await request.form()
+        myfile = form["file"]
+        filename = myfile.filename
+        contents_bytes = await myfile.read()
+        contents_str = contents_bytes.decode("utf-8")
+        response = Response(
+            f"The file {filename} contains: {contents_str}", media_type="text/plain"
+        )
+        await response(receive, send)
 ```
 
 #### Other state
