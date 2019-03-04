@@ -140,29 +140,12 @@ multidict, containing both file uploads and text input. File upload items are re
 
 As all these methods are `async` methods, you need to "await" them.
 
-For example:
+For example, you can get the file name and the contents with:
 
 ```python
-from starlette.requests import Request
-from starlette.responses import Response
-
-
-class App:
-    def __init__(self, scope):
-        assert scope["type"] == "http"
-        self.scope = scope
-
-    async def __call__(self, receive, send):
-        request = Request(self.scope, receive)
-        form = await request.form()
-        myfile = form["file"]
-        filename = myfile.filename
-        contents_bytes = await myfile.read()
-        contents_str = contents_bytes.decode("utf-8")
-        response = Response(
-            f"The file {filename} contains: {contents_str}", media_type="text/plain"
-        )
-        await response(receive, send)
+form = await request.form()
+filename = form["upload_file"].filename
+contents = await form["upload_file"].read()
 ```
 
 #### Other state
