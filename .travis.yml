@@ -3,6 +3,10 @@ language: python
 
 cache: pip
 
+env:
+    global:
+        - PYTEST_ADDOPTS=--cov-report=xml
+
 jobs:
     include:
         - env: TOXENV=py36-coverage
@@ -21,4 +25,9 @@ script:
     - tox
 
 after_script:
-    - codecov
+    - |
+      # Upload coverage.
+      if [[ -f coverage.xml ]]; then
+          pip install codecov
+          codecov -f coverage.xml
+      fi
