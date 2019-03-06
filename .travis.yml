@@ -1,19 +1,24 @@
-sudo: required
 dist: xenial
 language: python
 
 cache: pip
 
-python:
-    - "3.6"
-    - "3.7"
-    - "3.8-dev"
+jobs:
+    include:
+        - env: TOXENV=py36-coverage
+          python: "3.6"
+        - env: TOXENV=py37-coverage
+          python: "3.7"
+        - env: TOXENV=py38-coverage
+          python: "3.8-dev"
+        - env: TOXENV=mypy,autoflake,black
+          python: "3.7"
 
 install:
     - pip install -U -r requirements.txt
 
 script:
-    - scripts/test
+    - tox
 
 after_script:
     - codecov
