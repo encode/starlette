@@ -44,10 +44,7 @@ REQS_OPTIONAL = [
     "requests",
     "ujson",
 ]
-REQS_DOCS = [
-    "mkdocs",
-    "mkdocs-material",
-]
+REQS_DOCS = ["mkdocs", "mkdocs-material"]
 REQS_DEV = [
     "autoflake",
     "black",
