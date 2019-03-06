@@ -34,6 +34,30 @@ def get_packages(package):
     ]
 
 
+REQS_OPTIONAL = [
+    "aiofiles",
+    "graphene",
+    "itsdangerous",
+    "jinja2",
+    "python-multipart",
+    "pyyaml",
+    "requests",
+    "ujson",
+]
+REQS_DOCS = [
+    "mkdocs",
+    "mkdocs-material",
+]
+REQS_DEV = [
+    "autoflake",
+    "black",
+    "databases[sqlite]",
+    "isort",
+    "mypy",
+    "pytest",
+    "pytest-cov",
+]
+
 setup(
     name="starlette",
     python_requires=">=3.6",
@@ -49,17 +73,10 @@ setup(
     package_data={"starlette": ["py.typed"]},
     data_files=[("", ["LICENSE.md"])],
     extras_require={
-        "full": [
-            "aiofiles",
-            "asyncpg",
-            "graphene",
-            "itsdangerous",
-            "jinja2",
-            "python-multipart",
-            "pyyaml",
-            "requests",
-            "ujson",
-        ]
+        "full": REQS_OPTIONAL + REQS_DEV + REQS_DOCS,
+        "optional": REQS_OPTIONAL,
+        "dev": REQS_DEV,
+        "docs": REQS_DOCS,
     },
     classifiers=[
         "Development Status :: 3 - Alpha",

@@ -14,11 +14,9 @@ if [[ -z "$VERSION_OK" ]] ; then
     exit 1
 fi
 
-REQUIREMENTS="requirements.txt"
 VENV="venv"
 PIP="$VENV/bin/pip"
 
 set -x
 "$PYTHON" -m venv "$VENV"
-"$PIP" install -r "$REQUIREMENTS"
-"$PIP" install -e .
+"$PIP" install -e '.[full]'
