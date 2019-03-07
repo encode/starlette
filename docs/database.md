@@ -282,8 +282,7 @@ import app
 
 @pytest.fixture(scope="session", autouse=True)
 def create_test_database():
-    url = str(app.DATABASE_URL)
-    engine = create_engine(url)
+    url = str(app.TEST_DATABASE_URL)
     assert not database_exists(url), 'Test database already exists. Aborting tests.'
     create_database(url)             # Create the test database.
     config = Config("alembic.ini")   # Run the migrations.
