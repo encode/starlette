@@ -198,20 +198,20 @@ import app
 
 @pytest.fixture(scope="session", autouse=True)
 def create_test_database():
-  """
-  Create a clean database on every test case.
-  For safety, we should abort if a database already exists.
+    """
+    Create a clean database on every test case.
+    For safety, we should abort if a database already exists.
 
-  We use the `sqlalchemy_utils` package here for a few helpers in consistently
-  creating and dropping the database.
-  """
-  url = str(app.DATABASE_URL)
-  engine = create_engine(url)
-  assert not database_exists(url), 'Test database already exists. Aborting tests.'
-  create_database(url)             # Create the test database.
-  metadata.create_all(engine)      # Create the tables.
-  yield                            # Run the tests.
-  drop_database(url)               # Drop the test database.
+    We use the `sqlalchemy_utils` package here for a few helpers in consistently
+    creating and dropping the database.
+    """
+    url = str(app.DATABASE_URL)
+    engine = create_engine(url)
+    assert not database_exists(url), 'Test database already exists. Aborting tests.'
+    create_database(url)             # Create the test database.
+    metadata.create_all(engine)      # Create the tables.
+    yield                            # Run the tests.
+    drop_database(url)               # Drop the test database.
 
 
 @pytest.fixture()
