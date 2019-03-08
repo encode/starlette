@@ -6,7 +6,7 @@ from starlette.config import Config, Environ, EnvironError
 from starlette.datastructures import URL, Secret
 
 
-def test_config(tmpdir):
+def test_config(tmpdir, monkeypatch):
     path = os.path.join(tmpdir, ".env")
     with open(path, "w") as file:
         file.write("# Do not commit to source control\n")
@@ -42,8 +42,8 @@ def test_config(tmpdir):
     with pytest.raises(ValueError):
         config.get("REQUEST_HOSTNAME", cast=bool)
 
-    os.environ["STARLETTE_EXAMPLE_TEST"] = "123"
     config = Config()
+    monkeypatch.setenv("STARLETTE_EXAMPLE_TEST", "123")
     assert config.get("STARLETTE_EXAMPLE_TEST", cast=int) == 123
 
 
