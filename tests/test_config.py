@@ -10,9 +10,7 @@ def test_config(tmpdir, monkeypatch):
     path = os.path.join(tmpdir, ".env")
     with open(path, "w") as file:
         file.write("# Do not commit to source control\n")
-        file.write(
-            "DATABASE_URL=postgres://username:password@localhost/database_name\n"
-        )
+        file.write("DATABASE_URL=postgres://user:pass@localhost/dbname\n")
         file.write("REQUEST_HOSTNAME=example.com\n")
         file.write("SECRET_KEY=12345\n")
         file.write("BOOL_AS_INT=0\n")
@@ -29,7 +27,9 @@ def test_config(tmpdir, monkeypatch):
     assert config("BOOL_AS_INT", cast=bool) is False
 
     assert DEBUG is True
-    assert DATABASE_URL.path == "/database_name"
+    assert DATABASE_URL.path == "/dbname"
+    assert DATABASE_URL.password == "pass"
+    assert DATABASE_URL.username == "user"
     assert REQUEST_TIMEOUT == 10
     assert REQUEST_HOSTNAME == "example.com"
     assert repr(SECRET_KEY) == "Secret('**********')"
