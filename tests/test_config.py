@@ -15,6 +15,7 @@ def test_config(tmpdir, monkeypatch):
         )
         file.write("REQUEST_HOSTNAME=example.com\n")
         file.write("SECRET_KEY=12345\n")
+        file.write("BOOL_AS_INT=0\n")
         file.write("\n")
         file.write("\n")
 
@@ -25,6 +26,7 @@ def test_config(tmpdir, monkeypatch):
     REQUEST_TIMEOUT = config("REQUEST_TIMEOUT", cast=int, default=10)
     REQUEST_HOSTNAME = config("REQUEST_HOSTNAME")
     SECRET_KEY = config("SECRET_KEY", cast=Secret)
+    assert config("BOOL_AS_INT", cast=bool) is False
 
     assert DEBUG is True
     assert DATABASE_URL.path == "/database_name"
@@ -44,7 +46,13 @@ def test_config(tmpdir, monkeypatch):
 
     config = Config()
     monkeypatch.setenv("STARLETTE_EXAMPLE_TEST", "123")
+    monkeypatch.setenv("BOOL_AS_INT", "1")
     assert config.get("STARLETTE_EXAMPLE_TEST", cast=int) == 123
+    assert config.get("BOOL_AS_INT", cast=bool) is True
+
+    monkeypatch.setenv("BOOL_AS_INT", "2")
+    with pytest.raises(ValueError):
+        config.get("BOOL_AS_INT", cast=bool)
 
 
 def test_environ():
