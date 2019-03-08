@@ -258,7 +258,7 @@ config = context.config
 
 # Configure Alembic to use our DATABASE_URL and our table definitions...
 import app
-config.set_main_option('sqlalchemy.url', str(app.DATABASE_URL))
+config.set_main_option('sqlalchemy.url', str(app.database._url))
 target_metadata = app.metadata
 
 ...
