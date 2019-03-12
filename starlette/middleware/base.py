@@ -1,5 +1,4 @@
 import asyncio
-import functools
 import typing
 
 from starlette.requests import Request
@@ -17,24 +16,26 @@ class BaseHTTPMiddleware:
         self.app = app
         self.dispatch_func = self.dispatch if dispatch is None else dispatch
 
-    def __call__(self, scope: Scope) -> ASGIInstance:
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
-            return self.app(scope)
-        return functools.partial(self.asgi, scope=scope)
+            await self.app(scope, receive, send)
+            return
 
-    async def asgi(self, receive: Receive, send: Send, scope: Scope) -> None:
         request = Request(scope, receive=receive)
         response = await self.dispatch_func(request, self.call_next)
         await response(receive, send)
 
     async def call_next(self, request: Request) -> ASGIInstance:
-        inner = self.app(dict(request))
         loop = asyncio.get_event_loop()
         queue = asyncio.Queue()  # type: asyncio.Queue
 
+        scope = dict(request)
+        receive = request.receive
+        send = queue.put
+
         async def coro() -> None:
             try:
-                await inner(request.receive, queue.put)
+                await self.app(scope, receive, send)
             finally:
                 await queue.put(None)
 

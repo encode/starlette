@@ -84,8 +84,8 @@ class ServerErrorMiddleware:
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
-            instance = self.app(scope)
-            return await instance(receive, send)
+            await self.app(scope, receive, send)
+            return
 
         response_started = False
 
@@ -97,8 +97,7 @@ class ServerErrorMiddleware:
             await send(message)
 
         try:
-            instance = self.app(scope)
-            await instance(receive, _send)
+            await self.app(scope, receive, _send)
         except Exception as exc:
             if not response_started:
                 request = Request(scope)

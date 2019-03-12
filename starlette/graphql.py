@@ -1,4 +1,3 @@
-import functools
 import json
 import typing
 
@@ -46,10 +45,7 @@ class GraphQLApp:
             self.executor_class = None
             self.is_async = isinstance(executor, AsyncioExecutor)
 
-    def __call__(self, scope: Scope) -> ASGIInstance:
-        return functools.partial(self.asgi, scope=scope)
-
-    async def asgi(self, receive: Receive, send: Send, scope: Scope) -> None:
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if self.executor is None and self.executor_class is not None:
             self.executor = self.executor_class()
 

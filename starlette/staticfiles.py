@@ -1,4 +1,3 @@
-import functools
 import importlib.util
 import os
 import stat
@@ -67,23 +66,17 @@ class StaticFiles:
             directories.append(directory)
         return directories
 
-    def __call__(self, scope: Scope) -> ASGIInstance:
+    def get_path(self, scope: Scope) -> str:
+        return os.path.normpath(os.path.join(*scope["path"].split("/")))
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         assert scope["type"] == "http"
 
-        if scope["method"] not in ("GET", "HEAD"):
-            return PlainTextResponse("Method Not Allowed", status_code=405)
-
-        path = os.path.normpath(os.path.join(*scope["path"].split("/")))
-        if path.startswith(".."):
-            return PlainTextResponse("Not Found", status_code=404)
-
-        return functools.partial(self.asgi, scope=scope, path=path)
-
-    async def asgi(self, receive: Receive, send: Send, scope: Scope, path: str) -> None:
         if not self.config_checked:
             await self.check_config()
             self.config_checked = True
 
+        path = self.get_path(scope)
         method = scope["method"]
         headers = Headers(scope=scope)
         response = await self.get_response(path, method, headers)
@@ -92,6 +85,12 @@ class StaticFiles:
     async def get_response(
         self, path: str, method: str, request_headers: Headers
     ) -> Response:
+        if method not in ("GET", "HEAD"):
+            return PlainTextResponse("Method Not Allowed", status_code=405)
+
+        if path.startswith(".."):
+            return PlainTextResponse("Not Found", status_code=404)
+
         stat_result = None
         for directory in self.all_directories:
             full_path = os.path.join(directory, path)
