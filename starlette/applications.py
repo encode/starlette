@@ -131,5 +131,4 @@ class Starlette:
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         scope["app"] = self
-        instance = self.error_middleware(scope)
-        await instance(receive, send)
+        await self.error_middleware(scope, receive, send)

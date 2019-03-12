@@ -1,5 +1,4 @@
 import asyncio
-import functools
 import traceback
 import typing
 
@@ -83,12 +82,11 @@ class ServerErrorMiddleware:
         self.handler = handler
         self.debug = debug
 
-    def __call__(self, scope: Scope) -> ASGIInstance:
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
-            return self.app(scope)
-        return functools.partial(self.asgi, scope=scope)
+            instance = self.app(scope)
+            return await instance(receive, send)
 
-    async def asgi(self, receive: Receive, send: Send, scope: Scope) -> None:
         response_started = False
 
         async def _send(message: Message) -> None:
@@ -99,8 +97,8 @@ class ServerErrorMiddleware:
             await send(message)
 
         try:
-            asgi = self.app(scope)
-            await asgi(receive, _send)
+            instance = self.app(scope)
+            await instance(receive, _send)
         except Exception as exc:
             if not response_started:
                 request = Request(scope)
