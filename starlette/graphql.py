@@ -6,7 +6,7 @@ from starlette.background import BackgroundTasks
 from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response
-from starlette.types import ASGIInstance, Receive, Scope, Send
+from starlette.types import Receive, Scope, Send
 
 try:
     import graphene
@@ -51,7 +51,7 @@ class GraphQLApp:
 
         request = Request(scope, receive=receive)
         response = await self.handle_graphql(request)
-        await response(receive, send)
+        await response(scope, receive, send)
 
     async def handle_graphql(self, request: Request) -> Response:
         if request.method in ("GET", "HEAD"):

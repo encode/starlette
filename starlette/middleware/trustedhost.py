@@ -2,7 +2,7 @@ import typing
 
 from starlette.datastructures import URL, Headers
 from starlette.responses import PlainTextResponse, RedirectResponse, Response
-from starlette.types import ASGIApp, ASGIInstance, Receive, Scope, Send
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 ENFORCE_DOMAIN_WILDCARD = "Domain wildcard patterns must be like '*.example.com'."
 
@@ -53,4 +53,4 @@ class TrustedHostMiddleware:
                 response = RedirectResponse(url=str(redirect_url))  # type: Response
             else:
                 response = PlainTextResponse("Invalid host header", status_code=400)
-            await response(receive, send)
+            await response(scope, receive, send)

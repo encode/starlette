@@ -2,7 +2,7 @@ import gzip
 import io
 
 from starlette.datastructures import Headers, MutableHeaders
-from starlette.types import ASGIApp, ASGIInstance, Message, Receive, Scope, Send
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
 class GZipMiddleware:

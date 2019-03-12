@@ -3,8 +3,8 @@ import re
 import typing
 
 from starlette.datastructures import Headers, MutableHeaders
-from starlette.responses import PlainTextResponse
-from starlette.types import ASGIApp, ASGIInstance, Message, Receive, Scope, Send
+from starlette.responses import PlainTextResponse, Response
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 ALL_METHODS = ("DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT")
 
@@ -78,7 +78,7 @@ class CORSMiddleware:
 
         if method == "OPTIONS" and "access-control-request-method" in headers:
             response = self.preflight_response(request_headers=headers)
-            await response(receive, send)
+            await response(scope, receive, send)
             return
 
         await self.simple_response(scope, receive, send, request_headers=headers)
@@ -94,7 +94,7 @@ class CORSMiddleware:
 
         return origin in self.allow_origins
 
-    def preflight_response(self, request_headers: Headers) -> ASGIInstance:
+    def preflight_response(self, request_headers: Headers) -> Response:
         requested_origin = request_headers["origin"]
         requested_method = request_headers["access-control-request-method"]
         requested_headers = request_headers.get("access-control-request-headers")

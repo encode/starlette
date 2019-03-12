@@ -7,7 +7,7 @@ from itsdangerous.exc import BadTimeSignature, SignatureExpired
 
 from starlette.datastructures import MutableHeaders, Secret
 from starlette.requests import Request
-from starlette.types import ASGIApp, ASGIInstance, Message, Receive, Scope, Send
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
 class SessionMiddleware:

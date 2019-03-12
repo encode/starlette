@@ -1,6 +1,6 @@
 from starlette.datastructures import URL
 from starlette.responses import RedirectResponse
-from starlette.types import ASGIApp, ASGIInstance, Receive, Scope, Send
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 
 class HTTPSRedirectMiddleware:
@@ -14,6 +14,6 @@ class HTTPSRedirectMiddleware:
             netloc = url.hostname if url.port in (80, 443) else url.netloc
             url = url.replace(scheme=redirect_scheme, netloc=netloc)
             response = RedirectResponse(url, status_code=301)
-            await response(receive, send)
+            await response(scope, receive, send)
         else:
             await self.app(scope, receive, send)

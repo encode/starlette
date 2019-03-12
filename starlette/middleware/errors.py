@@ -5,7 +5,7 @@ import typing
 from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, PlainTextResponse, Response
-from starlette.types import ASGIApp, ASGIInstance, Message, Receive, Scope, Send
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 STYLES = """
 .traceback-container {
@@ -114,7 +114,7 @@ class ServerErrorMiddleware:
                     else:
                         response = await run_in_threadpool(self.handler, request, exc)
 
-                await response(receive, send)
+                await response(scope, receive, send)
 
             # We always continue to raise the exception.
             # This allows servers to log the error, or allows test clients

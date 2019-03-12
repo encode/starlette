@@ -8,7 +8,7 @@ from aiofiles.os import stat as aio_stat
 
 from starlette.datastructures import Headers
 from starlette.responses import FileResponse, PlainTextResponse, Response
-from starlette.types import ASGIInstance, Receive, Scope, Send
+from starlette.types import Receive, Scope, Send
 
 
 class NotModifiedResponse(Response):
@@ -80,7 +80,7 @@ class StaticFiles:
         method = scope["method"]
         headers = Headers(scope=scope)
         response = await self.get_response(path, method, headers)
-        await response(receive, send)
+        await response(scope, receive, send)
 
     async def get_response(
         self, path: str, method: str, request_headers: Headers

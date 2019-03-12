@@ -29,11 +29,6 @@ def user_no_match(request):  # pragma: no cover
     return Response(content, media_type="text/plain")
 
 
-async def staticfiles(scope, receive, send):
-    response = Response("xxxxx", media_type="image/png")
-    await response(receive, send)
-
-
 app = Router(
     [
         Route("/", endpoint=homepage, methods=["GET"]),
@@ -46,7 +41,7 @@ app = Router(
                 Route("/nomatch", endpoint=user_no_match),
             ],
         ),
-        Mount("/static", app=staticfiles),
+        Mount("/static", app=Response("xxxxx", media_type="image/png")),
     ]
 )
 
@@ -240,9 +235,7 @@ def test_protocol_switch():
         client.websocket_connect("/404")
 
 
-async def ok(scope, receive, send):
-    response = PlainTextResponse("OK")
-    await response(receive, send)
+ok = PlainTextResponse("OK")
 
 
 def test_mount_urls():
@@ -331,7 +324,7 @@ def test_host_reverse_urls():
 
 async def subdomain_app(scope, receive, send):
     response = JSONResponse({"subdomain": scope["path_params"]["subdomain"]})
-    await response(receive, send)
+    await response(scope, receive, send)
 
 
 subdomain_app = Router(

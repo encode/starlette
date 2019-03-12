@@ -10,7 +10,7 @@ from starlette.datastructures import URL, Headers, URLPath
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, RedirectResponse
-from starlette.types import ASGIApp, ASGIInstance, Receive, Scope, Send
+from starlette.types import ASGIApp, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketClose
 
 
@@ -40,7 +40,7 @@ def request_response(func: typing.Callable) -> ASGIApp:
             response = await func(request)
         else:
             response = await run_in_threadpool(func, request)
-        await response(receive, send)
+        await response(scope, receive, send)
 
     return app
 
@@ -202,7 +202,7 @@ class Route(BaseRoute):
                 raise HTTPException(status_code=405)
             else:
                 response = PlainTextResponse("Method Not Allowed", status_code=405)
-            await response(receive, send)
+            await response(scope, receive, send)
         else:
             await self.app(scope, receive, send)
 
@@ -560,7 +560,7 @@ class Router:
             raise HTTPException(status_code=404)
         else:
             response = PlainTextResponse("Not Found", status_code=404)
-        await response(receive, send)
+        await response(scope, receive, send)
 
     def url_path_for(self, name: str, **path_params: str) -> URLPath:
         for route in self.routes:
@@ -603,7 +603,7 @@ class Router:
                     if match != Match.NONE:
                         redirect_url = URL(scope=redirect_scope)
                         response = RedirectResponse(url=str(redirect_url))
-                        await response(receive, send)
+                        await response(scope, receive, send)
                         return
 
         if scope["type"] == "lifespan":

@@ -5,7 +5,7 @@ import typing
 from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, Response
-from starlette.types import ASGIApp, ASGIInstance, Message, Receive, Scope, Send
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
 class HTTPException(Exception):
@@ -81,7 +81,7 @@ class ExceptionMiddleware:
                 response = await handler(request, exc)
             else:
                 response = await run_in_threadpool(handler, request, exc)
-            await response(receive, sender)
+            await response(scope, receive, sender)
 
     def http_exception(self, request: Request, exc: HTTPException) -> Response:
         if exc.status_code in {204, 304}:

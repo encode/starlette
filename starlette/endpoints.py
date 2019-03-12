@@ -30,7 +30,7 @@ class HTTPEndpoint:
             response = await handler(request)
         else:
             response = await run_in_threadpool(handler, request)
-        await response(self.receive, self.send)
+        await response(self.scope, self.receive, self.send)
 
     async def method_not_allowed(self, request: Request) -> Response:
         # If we're running inside a starlette application then raise an

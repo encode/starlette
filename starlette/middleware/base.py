@@ -2,12 +2,12 @@ import asyncio
 import typing
 
 from starlette.requests import Request
-from starlette.responses import StreamingResponse
-from starlette.types import ASGIApp, ASGIInstance, Receive, Scope, Send
+from starlette.responses import Response, StreamingResponse
+from starlette.types import ASGIApp, Receive, Scope, Send
 
-RequestResponseEndpoint = typing.Callable[[Request], typing.Awaitable[ASGIInstance]]
+RequestResponseEndpoint = typing.Callable[[Request], typing.Awaitable[Response]]
 DispatchFunction = typing.Callable[
-    [Request, RequestResponseEndpoint], typing.Awaitable[ASGIInstance]
+    [Request, RequestResponseEndpoint], typing.Awaitable[Response]
 ]
 
 
@@ -23,9 +23,9 @@ class BaseHTTPMiddleware:
 
         request = Request(scope, receive=receive)
         response = await self.dispatch_func(request, self.call_next)
-        await response(receive, send)
+        await response(scope, receive, send)
 
-    async def call_next(self, request: Request) -> ASGIInstance:
+    async def call_next(self, request: Request) -> Response:
         loop = asyncio.get_event_loop()
         queue = asyncio.Queue()  # type: asyncio.Queue
 
@@ -63,5 +63,5 @@ class BaseHTTPMiddleware:
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
-    ) -> ASGIInstance:
+    ) -> Response:
         raise NotImplementedError()  # pragma: no cover

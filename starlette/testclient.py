@@ -11,7 +11,7 @@ from urllib.parse import unquote, urljoin, urlsplit
 
 import requests
 
-from starlette.types import ASGI2App, ASGI3App, Message, Receive, Scope, Send
+from starlette.types import Message, Receive, Scope, Send
 from starlette.websockets import WebSocketDisconnect
 
 # Annotations for `Session.request()`
@@ -27,6 +27,11 @@ AuthType = typing.Union[
     requests.auth.AuthBase,
     typing.Callable[[requests.Request], requests.Request],
 ]
+
+
+ASGIInstance = typing.Callable[[Receive, Send], typing.Awaitable[None]]
+ASGI2App = typing.Callable[[Scope], ASGIInstance]
+ASGI3App = typing.Callable[[Scope, Receive, Send], typing.Awaitable[None]]
 
 
 class _HeaderDict(requests.packages.urllib3._collections.HTTPHeaderDict):

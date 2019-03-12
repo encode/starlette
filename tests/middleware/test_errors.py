@@ -46,7 +46,7 @@ def test_debug_html():
 def test_debug_after_response_sent():
     async def app(scope, receive, send):
         response = Response(b"", status_code=204)
-        await response(receive, send)
+        await response(scope, receive, send)
         raise RuntimeError("Something went wrong")
 
     app = ServerErrorMiddleware(app, debug=True)

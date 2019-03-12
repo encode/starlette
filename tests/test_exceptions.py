@@ -21,7 +21,7 @@ def not_modified(request):
 class HandledExcAfterResponse:
     async def __call__(self, scope, receive, send):
         response = PlainTextResponse("OK", status_code=200)
-        await response(receive, send)
+        await response(scope, receive, send)
         raise HTTPException(status_code=406)
 
 
