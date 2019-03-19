@@ -190,6 +190,7 @@ class Route(BaseRoute):
         return Match.NONE, {}
 
     def url_path_for(self, name: str, **path_params: str) -> URLPath:
+        path_params = {k: v for k, v in path_params.items() if v is not None}
         seen_params = set(path_params.keys())
         expected_params = set(self.param_convertors.keys())
 
