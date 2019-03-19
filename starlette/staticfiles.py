@@ -6,8 +6,13 @@ from email.utils import parsedate
 
 from aiofiles.os import stat as aio_stat
 
-from starlette.datastructures import Headers
-from starlette.responses import FileResponse, PlainTextResponse, Response
+from starlette.datastructures import URL, Headers
+from starlette.responses import (
+    FileResponse,
+    PlainTextResponse,
+    RedirectResponse,
+    Response,
+)
 from starlette.types import Receive, Scope, Send
 
 
@@ -85,9 +90,7 @@ class StaticFiles:
             self.config_checked = True
 
         path = self.get_path(scope)
-        method = scope["method"]
-        headers = Headers(scope=scope)
-        response = await self.get_response(path, method, headers)
+        response = await self.get_response(path, scope)
         await response(scope, receive, send)
 
     def get_path(self, scope: Scope) -> str:
@@ -97,44 +100,47 @@ class StaticFiles:
         """
         return os.path.normpath(os.path.join(*scope["path"].split("/")))
 
-    async def get_response(
-        self, path: str, method: str, request_headers: Headers
-    ) -> Response:
+    async def get_response(self, path: str, scope: Scope) -> Response:
         """
         Returns an HTTP response, given the incoming path, method and request headers.
         """
-        if method not in ("GET", "HEAD"):
+        if scope["method"] not in ("GET", "HEAD"):
             return PlainTextResponse("Method Not Allowed", status_code=405)
 
         if path.startswith(".."):
+            # Most clients will normalize the path, so we shouldn't normally
+            # get this, but don't allow misbehaving clients to break out of
+            # the static files directory.
             return PlainTextResponse("Not Found", status_code=404)
 
         full_path, stat_result = await self.lookup_path(path)
 
-        if stat_result is None or not stat.S_ISREG(stat_result.st_mode):
-            if self.html:
-                # Check for 'index.html' if we're in HTML mode.
-                if stat_result is not None and stat.S_ISDIR(stat_result.st_mode):
-                    index_path = os.path.join(path, "index.html")
-                    full_path, stat_result = await self.lookup_path(index_path)
-                    if stat_result is not None and stat.S_ISREG(stat_result.st_mode):
-                        return self.file_response(
-                            full_path, stat_result, method, request_headers
-                        )
+        if stat_result and stat.S_ISREG(stat_result.st_mode):
+            # We have a static file to serve.
+            return self.file_response(full_path, stat_result, scope)
 
-                # Check for '404.html' if we're in HTML mode.
-                full_path, stat_result = await self.lookup_path("404.html")
-                if stat_result is not None and stat.S_ISREG(stat_result.st_mode):
-                    return FileResponse(
-                        full_path,
-                        stat_result=stat_result,
-                        method=method,
-                        status_code=404,
-                    )
+        elif stat_result and stat.S_ISDIR(stat_result.st_mode) and self.html:
+            # We're in HTML mode, and have got a directory URL.
+            # Check if we have 'index.html' file to serve.
+            index_path = os.path.join(path, "index.html")
+            full_path, stat_result = await self.lookup_path(index_path)
+            if stat_result is not None and stat.S_ISREG(stat_result.st_mode):
+                if not scope["path"].endswith("/"):
+                    # Directory URLs should redirect to always end in "/".
+                    url = URL(scope=scope)
+                    url = url.replace(path=url.path + "/")
+                    return RedirectResponse(url=url)
+                return self.file_response(full_path, stat_result, scope)
 
-            return PlainTextResponse("Not Found", status_code=404)
+        if self.html:
+            # Check for '404.html' if we're in HTML mode.
+            full_path, stat_result = await self.lookup_path("404.html")
+            if stat_result is not None and stat.S_ISREG(stat_result.st_mode):
+                return self.file_response(
+                    full_path, stat_result, scope, status_code=404
+                )
 
-        return self.file_response(full_path, stat_result, method, request_headers)
+        return PlainTextResponse("Not Found", status_code=404)
 
     async def lookup_path(
         self, path: str
@@ -153,10 +159,15 @@ class StaticFiles:
         self,
         full_path: str,
         stat_result: os.stat_result,
-        method: str,
-        request_headers: Headers,
+        scope: Scope,
+        status_code: int = 200,
     ) -> Response:
-        response = FileResponse(full_path, stat_result=stat_result, method=method)
+        method = scope["method"]
+        request_headers = Headers(scope=scope)
+
+        response = FileResponse(
+            full_path, status_code=status_code, stat_result=stat_result, method=method
+        )
         if self.is_not_modified(response.headers, request_headers):
             return NotModifiedResponse(response.headers)
         return response

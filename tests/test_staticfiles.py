@@ -114,10 +114,9 @@ def test_staticfiles_prevents_breaking_out_of_directory(tmpdir):
     app = StaticFiles(directory=directory)
     # We can't test this with 'requests', so we test the app directly here.
     path = app.get_path({"path": "/../example.txt"})
-    method = "GET"
-    headers = Headers()
+    scope = {"method": "GET"}
     loop = asyncio.get_event_loop()
-    response = loop.run_until_complete(app.get_response(path, method, headers))
+    response = loop.run_until_complete(app.get_response(path, scope))
     assert response.status_code == 404
     assert response.body == b"Not Found"
 
@@ -189,14 +188,17 @@ def test_staticfiles_html(tmpdir):
     client = TestClient(app)
 
     response = client.get("/dir/")
+    assert response.url == "http://testserver/dir/"
     assert response.status_code == 200
     assert response.text == "<h1>Hello</h1>"
 
     response = client.get("/dir")
+    assert response.url == "http://testserver/dir/"
     assert response.status_code == 200
     assert response.text == "<h1>Hello</h1>"
 
     response = client.get("/dir/index.html")
+    assert response.url == "http://testserver/dir/index.html"
     assert response.status_code == 200
     assert response.text == "<h1>Hello</h1>"
 
