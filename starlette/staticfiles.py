@@ -38,11 +38,13 @@ class StaticFiles:
         *,
         directory: str = None,
         packages: typing.List[str] = None,
+        html: bool = False,
         check_dir: bool = True,
     ) -> None:
         self.directory = directory
         self.packages = packages
         self.all_directories = self.get_directories(directory, packages)
+        self.html = html
         self.config_checked = False
         if check_dir and directory is not None and not os.path.isdir(directory):
             raise RuntimeError(f"Directory '{directory}' does not exist")
@@ -50,9 +52,14 @@ class StaticFiles:
     def get_directories(
         self, directory: str = None, packages: typing.List[str] = None
     ) -> typing.List[str]:
+        """
+        Given `directory` and `packages` arugments, return a list of all the
+        directories that should be used for serving static files from.
+        """
         directories = []
         if directory is not None:
             directories.append(directory)
+
         for package in packages or []:
             spec = importlib.util.find_spec(package)
             assert spec is not None, f"Package {package!r} could not be found."
@@ -64,12 +71,13 @@ class StaticFiles:
                 directory
             ), "Directory 'statics' in package {package!r} could not be found."
             directories.append(directory)
+
         return directories
 
-    def get_path(self, scope: Scope) -> str:
-        return os.path.normpath(os.path.join(*scope["path"].split("/")))
-
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        """
+        The ASGI entry point.
+        """
         assert scope["type"] == "http"
 
         if not self.config_checked:
@@ -82,32 +90,72 @@ class StaticFiles:
         response = await self.get_response(path, method, headers)
         await response(scope, receive, send)
 
+    def get_path(self, scope: Scope) -> str:
+        """
+        Given the ASGI scope, return the `path` string to serve up,
+        with OS specific path seperators, and any '..', '.' components removed.
+        """
+        return os.path.normpath(os.path.join(*scope["path"].split("/")))
+
     async def get_response(
         self, path: str, method: str, request_headers: Headers
     ) -> Response:
+        """
+        Returns an HTTP response, given the incoming path, method and request headers.
+        """
         if method not in ("GET", "HEAD"):
             return PlainTextResponse("Method Not Allowed", status_code=405)
 
         if path.startswith(".."):
             return PlainTextResponse("Not Found", status_code=404)
 
+        full_path, stat_result = await self.lookup_path(path)
+
+        if stat_result is None or not stat.S_ISREG(stat_result.st_mode):
+            if self.html:
+                # Check for 'index.html' if we're in HTML mode.
+                if stat_result is not None and stat.S_ISDIR(stat_result.st_mode):
+                    index_path = os.path.join(path, "index.html")
+                    full_path, stat_result = await self.lookup_path(index_path)
+                    if stat_result is not None and stat.S_ISREG(stat_result.st_mode):
+                        return self.file_response(
+                            full_path, stat_result, method, request_headers
+                        )
+
+                # Check for '404.html' if we're in HTML mode.
+                full_path, stat_result = await self.lookup_path("404.html")
+                if stat_result is not None and stat.S_ISREG(stat_result.st_mode):
+                    return FileResponse(
+                        full_path,
+                        stat_result=stat_result,
+                        method=method,
+                        status_code=404,
+                    )
+
+            return PlainTextResponse("Not Found", status_code=404)
+
+        return self.file_response(full_path, stat_result, method, request_headers)
+
+    async def lookup_path(
+        self, path: str
+    ) -> typing.Tuple[str, typing.Optional[os.stat_result]]:
         stat_result = None
         for directory in self.all_directories:
             full_path = os.path.join(directory, path)
             try:
                 stat_result = await aio_stat(full_path)
+                return (full_path, stat_result)
             except FileNotFoundError:
                 pass
-            else:
-                break
+        return ("", None)
 
-        if stat_result is None:
-            return PlainTextResponse("Not Found", status_code=404)
-
-        mode = stat_result.st_mode
-        if not stat.S_ISREG(mode):
-            return PlainTextResponse("Not Found", status_code=404)
-
+    def file_response(
+        self,
+        full_path: str,
+        stat_result: os.stat_result,
+        method: str,
+        request_headers: Headers,
+    ) -> Response:
         response = FileResponse(full_path, stat_result=stat_result, method=method)
         if self.is_not_modified(response.headers, request_headers):
             return NotModifiedResponse(response.headers)
@@ -136,6 +184,10 @@ class StaticFiles:
     def is_not_modified(
         self, response_headers: Headers, request_headers: Headers
     ) -> bool:
+        """
+        Given the request and response headers, return `True` if an HTTP
+        "Not Modified" response could be returned instead.
+        """
         try:
             if_none_match = request_headers["if-none-match"]
             etag = response_headers["etag"]

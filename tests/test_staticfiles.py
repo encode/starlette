@@ -173,3 +173,33 @@ def test_staticfiles_304_with_last_modified_compare_last_req(tmpdir):
     )
     assert response.status_code == 200
     assert response.content == b"<file content>"
+
+
+def test_staticfiles_html(tmpdir):
+    path = os.path.join(tmpdir, "404.html")
+    with open(path, "w") as file:
+        file.write("<h1>Custom not found page</h1>")
+    path = os.path.join(tmpdir, "dir")
+    os.mkdir(path)
+    path = os.path.join(path, "index.html")
+    with open(path, "w") as file:
+        file.write("<h1>Hello</h1>")
+
+    app = StaticFiles(directory=tmpdir, html=True)
+    client = TestClient(app)
+
+    response = client.get("/dir/")
+    assert response.status_code == 200
+    assert response.text == "<h1>Hello</h1>"
+
+    response = client.get("/dir")
+    assert response.status_code == 200
+    assert response.text == "<h1>Hello</h1>"
+
+    response = client.get("/dir/index.html")
+    assert response.status_code == 200
+    assert response.text == "<h1>Hello</h1>"
+
+    response = client.get("/missing")
+    assert response.status_code == 404
+    assert response.text == "<h1>Custom not found page</h1>"
