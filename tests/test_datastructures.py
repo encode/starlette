@@ -35,6 +35,17 @@ def test_url():
     assert new == "https://example.com:123/path/to/somewhere?abc=123#anchor"
     assert new.hostname == "example.com"
 
+    assert u.path_query_fragment == "/path/to/somewhere?abc=123#anchor"
+    new = u.replace(path="")
+    assert new.path_query_fragment == "?abc=123#anchor"
+    new = u.replace(query="")
+    assert new.path_query_fragment == "/path/to/somewhere#anchor"
+    new = u.replace(fragment="")
+    assert new.path_query_fragment == "/path/to/somewhere?abc=123"
+    new = u.replace(path="", query="")
+    assert new.path_query_fragment == "#anchor"
+    new = u.replace(path="", fragment="")
+    assert new.path_query_fragment == "?abc=123"
 
 def test_hidden_password():
     u = URL("https://example.org/path/to/somewhere")

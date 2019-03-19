@@ -95,6 +95,17 @@ class URL:
     def is_secure(self) -> bool:
         return self.scheme in ("https", "wss")
 
+    @property
+    def path_query_fragment(self) -> str:
+        r = self.path
+        query = self.query
+        if query:
+            r += '?' + query
+        fragment = self.fragment
+        if fragment:
+            r += '#' + fragment
+        return r
+
     def replace(self, **kwargs: typing.Any) -> "URL":
         if (
             "username" in kwargs
