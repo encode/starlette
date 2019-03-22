@@ -354,3 +354,23 @@ def test_subdomain_reverse_urls():
         ).make_absolute_url("https://whatever")
         == "https://foo.example.org/homepage"
     )
+
+
+combo_route_app = Router(
+    [
+        Route("/combo/", ok, name="combo"),
+        Route("/combo/{page:int}", ok, name="combo"),
+        Route("/combo/cat/{cat}", ok, name="combo"),
+        Route("/combo/cat/{cat}/{page:int}", ok, name="combo"),
+    ]
+)
+
+
+def test_combo():
+    assert combo_route_app.url_path_for("combo") == "/combo/"
+    assert combo_route_app.url_path_for("combo", cat="sample") == "/combo/cat/sample"
+    assert combo_route_app.url_path_for("combo", page=1) == "/combo/1"
+    assert (
+        combo_route_app.url_path_for("combo", cat="sample", page=1)
+        == "/combo/cat/sample/1"
+    )
