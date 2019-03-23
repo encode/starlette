@@ -5,7 +5,7 @@ import sqlalchemy
 from starlette.applications import Starlette
 from starlette.datastructures import CommaSeparatedStrings
 from starlette.responses import JSONResponse
-from starlette.testclient import TestClient
+from starlette.testclient import AsyncTestClient, TestClient
 
 DATABASE_URL = "sqlite:///test.db"
 
@@ -165,3 +165,21 @@ def test_database_isolated_during_test_cases():
         response = client.get("/notes")
         assert response.status_code == 200
         assert response.json() == [{"text": "just one note", "completed": True}]
+
+
+@pytest.mark.asyncio
+async def test_database_with_async_test_client():
+    """
+    Using AsyncTestClient
+    """
+    async with AsyncTestClient(app) as client:
+        # Post a row to the DB
+        response = await client.post(
+            "/notes", json={"text": "just one note", "completed": True}
+        )
+        assert response.status_code == 200
+
+        # Call the DB explicitly
+        query = notes.select()
+        results = await database.fetch_all(query)
+        assert results == [(1, "just one note", True)]

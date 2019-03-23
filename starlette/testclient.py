@@ -10,6 +10,7 @@ import typing
 from urllib.parse import unquote, urljoin, urlsplit
 
 import requests
+import requests_async
 
 from starlette.types import Message, Receive, Scope, Send
 from starlette.websockets import WebSocketDisconnect
@@ -472,3 +473,38 @@ class TestClient(requests.Session):
             self.task.result()
         assert message["type"] == "lifespan.shutdown.complete"
         await self.task
+
+
+class AsyncTestClient(requests_async.ASGISession):
+    async def lifespan(self) -> None:
+        scope = {"type": "lifespan"}
+        try:
+            await self.app(scope, self.receive_queue.get, self.send_queue.put)
+        finally:
+            await self.send_queue.put(None)
+
+    async def wait_startup(self) -> None:
+        await self.receive_queue.put({"type": "lifespan.startup"})
+        message = await self.send_queue.get()
+        if message is None:
+            self.task.result()
+        assert message["type"] == "lifespan.startup.complete"
+
+    async def wait_shutdown(self) -> None:
+        await self.receive_queue.put({"type": "lifespan.shutdown"})
+        message = await self.send_queue.get()
+        if message is None:
+            self.task.result()
+        assert message["type"] == "lifespan.shutdown.complete"
+        await self.task
+
+    async def __aenter__(self) -> requests_async.ASGISession:
+        loop = asyncio.get_event_loop()
+        self.send_queue = asyncio.Queue()  # type: asyncio.Queue
+        self.receive_queue = asyncio.Queue()  # type: asyncio.Queue
+        self.task = loop.create_task(self.lifespan())
+        await self.wait_startup()
+        return self
+
+    async def __aexit__(self, *args: typing.Any) -> None:
+        await self.wait_shutdown()

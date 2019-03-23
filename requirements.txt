@@ -15,7 +15,9 @@ databases[sqlite]
 isort
 mypy
 pytest
+pytest-asyncio
 pytest-cov
+requests_async
 
 # Documentation
 mkdocs

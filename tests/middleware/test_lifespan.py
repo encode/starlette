@@ -3,7 +3,7 @@ import pytest
 from starlette.applications import Starlette
 from starlette.responses import PlainTextResponse
 from starlette.routing import Lifespan, Route, Router
-from starlette.testclient import TestClient
+from starlette.testclient import AsyncTestClient, TestClient
 
 
 def test_routed_lifespan():
@@ -102,6 +102,55 @@ def test_app_async_lifespan():
     assert not startup_complete
     assert not shutdown_complete
     with TestClient(app):
+        assert startup_complete
+        assert not shutdown_complete
+    assert startup_complete
+    assert shutdown_complete
+
+
+@pytest.mark.asyncio
+async def test_raise_on_startup_async_test_client():
+    def run_startup():
+        raise RuntimeError()
+
+    app = Router(routes=[Lifespan(on_startup=run_startup)])
+
+    with pytest.raises(RuntimeError):
+        async with AsyncTestClient(app):
+            pass  # pragma: nocover
+
+
+@pytest.mark.asyncio
+async def test_raise_on_shutdown_async_test_client():
+    def run_shutdown():
+        raise RuntimeError()
+
+    app = Router(routes=[Lifespan(on_shutdown=run_shutdown)])
+
+    with pytest.raises(RuntimeError):
+        async with AsyncTestClient(app):
+            pass  # pragma: nocover
+
+
+@pytest.mark.asyncio
+async def test_app_async_test_client_lifespan():
+    startup_complete = False
+    shutdown_complete = False
+    app = Starlette()
+
+    @app.on_event("startup")
+    async def run_startup():
+        nonlocal startup_complete
+        startup_complete = True
+
+    @app.on_event("shutdown")
+    async def run_shutdown():
+        nonlocal shutdown_complete
+        shutdown_complete = True
+
+    assert not startup_complete
+    assert not shutdown_complete
+    async with AsyncTestClient(app):
         assert startup_complete
         assert not shutdown_complete
     assert startup_complete
