@@ -28,7 +28,7 @@ def test_trusted_host_middleware():
     assert response.status_code == 400
 
 
-def test_trusted_host_middleware_uses_wildcard_if_no_allowed_hosts_specified():
+def test_default_allowed_hosts_equalto_wildcard_if_not_specified():
     app = Starlette()
     middleware = TrustedHostMiddleware(app)
     assert middleware.allowed_hosts == ['*']
