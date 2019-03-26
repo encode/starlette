@@ -28,10 +28,10 @@ def test_trusted_host_middleware():
     assert response.status_code == 400
 
 
-def test_default_allowed_hosts_equalto_wildcard_if_not_specified():
+def test_default_allowed_hosts():
     app = Starlette()
     middleware = TrustedHostMiddleware(app)
-    assert middleware.allowed_hosts == ['*']
+    assert middleware.allowed_hosts == ["*"]
 
 
 def test_www_redirect():
