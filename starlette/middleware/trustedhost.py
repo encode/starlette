@@ -14,7 +14,7 @@ class TrustedHostMiddleware:
         allowed_hosts: typing.Sequence[str] = None,
         www_redirect: bool = True,
     ) -> None:
-        if allowed_hosts is not None:
+        if allowed_hosts is None:
             allowed_hosts = ["*"]
 
         for pattern in allowed_hosts:
