@@ -368,7 +368,10 @@ combo_route_app = Router(
 
 def test_combo():
     assert combo_route_app.url_path_for("combo", cat=None, page=None) == "/combo/"
-    assert combo_route_app.url_path_for("combo", cat="sample", page=None) == "/combo/cat/sample"
+    assert (
+        combo_route_app.url_path_for("combo", cat="sample", page=None)
+        == "/combo/cat/sample"
+    )
     assert combo_route_app.url_path_for("combo", cat=None, page=1) == "/combo/1"
     assert (
         combo_route_app.url_path_for("combo", cat="sample", page=1)
