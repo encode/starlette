@@ -5,6 +5,7 @@ import pytest
 
 from starlette import status
 from starlette.background import BackgroundTask
+from starlette.concurrency import iterator_to_async
 from starlette.requests import Request
 from starlette.responses import (
     FileResponse,
@@ -88,6 +89,24 @@ def test_streaming_response():
     response = client.get("/")
     assert response.text == "1, 2, 3, 4, 5"
     assert filled_by_bg_task == "6, 7, 8, 9"
+
+
+def test_streaming_response_from_sync_stream():
+    async def app(scope, receive, send):
+        def numbers(minimum, maximum):
+            for i in range(minimum, maximum + 1):
+                yield str(i)
+                if i != maximum:
+                    yield ", "
+
+        generator = numbers(1, 5)
+        aio_generator = iterator_to_async(generator)
+        response = StreamingResponse(aio_generator, media_type="text/plain")
+        await response(scope, receive, send)
+
+    client = TestClient(app)
+    response = client.get("/")
+    assert response.text == "1, 2, 3, 4, 5"
 
 
 def test_response_headers():
