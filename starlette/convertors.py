@@ -61,9 +61,20 @@ class FloatConvertor(Convertor):
         return ("%0.20f" % value).rstrip("0").rstrip(".")
 
 
-CONVERTOR_TYPES = {
+_DEFAULT_CONVERTOR_TYPES = {
     "str": StringConvertor(),
     "path": PathConvertor(),
     "int": IntegerConvertor(),
     "float": FloatConvertor(),
 }
+
+CONVERTOR_TYPES = dict(_DEFAULT_CONVERTOR_TYPES)
+
+
+def add(key: str, convertor: Convertor) -> None:
+    CONVERTOR_TYPES[key] = convertor
+
+
+def reset() -> None:
+    CONVERTOR_TYPES.clear()
+    CONVERTOR_TYPES.update(_DEFAULT_CONVERTOR_TYPES)
