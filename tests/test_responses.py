@@ -91,7 +91,7 @@ def test_streaming_response():
     assert filled_by_bg_task == "6, 7, 8, 9"
 
 
-def test_streaming_response_from_sync_stream():
+def test_sync_streaming_response():
     async def app(scope, receive, send):
         def numbers(minimum, maximum):
             for i in range(minimum, maximum + 1):
@@ -100,8 +100,7 @@ def test_streaming_response_from_sync_stream():
                     yield ", "
 
         generator = numbers(1, 5)
-        aio_generator = iterator_to_async(generator)
-        response = StreamingResponse(aio_generator, media_type="text/plain")
+        response = StreamingResponse(generator, media_type="text/plain")
         await response(scope, receive, send)
 
     client = TestClient(app)

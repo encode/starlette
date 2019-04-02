@@ -154,7 +154,7 @@ class App:
 
 ### StreamingResponse
 
-Takes an async generator and streams the response body.
+Takes a an async generator or a normal generator/iterator and streams the response body.
 
 ```python
 from starlette.responses import StreamingResponse
@@ -180,30 +180,7 @@ class App:
         await response(receive, send)
 ```
 
-If you have a standard generator or iterator (instead of an async generator), you can wrap it with `starlette.concurrency.iterator_to_async` to convert it to an async generator.
-
-Then you can use it with a `StreamingResponse`.
-
-This is specially useful for synchronous <a href="https://docs.python.org/3/glossary.html#term-file-like-object" target="_blank">file-like</a> or streaming objects, like those provided by cloud storage providers.
-
-```python
-from starlette.responses import StreamingResponse
-from starlette.concurrency import iterator_to_async
-
-def get_stream():
-    # this would return an iterator or file-like object, etc.
-    pass
-
-class App:
-    def __init__(self, scope):
-        assert scope['type'] == 'http'
-        self.scope = scope
-
-    async def __call__(self, receive, send):
-        generator = iterator_to_async(get_stream())
-        response = StreamingResponse(generator, media_type='application/octet-stream')
-        await response(receive, send)
-```
+Have in mind that <a href="https://docs.python.org/3/glossary.html#term-file-like-object" target="_blank">file-like</a> objects (like those created by `open()`) are normal iterators. So, you can return them directly in a `StreamingResponse`.
 
 ### FileResponse
 

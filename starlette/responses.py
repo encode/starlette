@@ -1,5 +1,6 @@
 import hashlib
 import http.cookies
+import inspect
 import json
 import os
 import stat
@@ -9,6 +10,7 @@ from mimetypes import guess_type
 from urllib.parse import quote_plus
 
 from starlette.background import BackgroundTask
+from starlette.concurrency import iterator_to_async
 from starlette.datastructures import URL, MutableHeaders
 from starlette.types import Receive, Scope, Send
 
@@ -175,7 +177,11 @@ class StreamingResponse(Response):
         media_type: str = None,
         background: BackgroundTask = None,
     ) -> None:
-        self.body_iterator = content
+        if inspect.isasyncgen(content):
+            self.body_iterator = content
+        else:
+            self.body_iterator = iterator_to_async(content)
+
         self.status_code = status_code
         self.media_type = self.media_type if media_type is None else media_type
         self.background = background
