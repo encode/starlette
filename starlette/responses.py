@@ -181,7 +181,6 @@ class StreamingResponse(Response):
             self.body_iterator = content
         else:
             self.body_iterator = iterator_to_async(content)
-
         self.status_code = status_code
         self.media_type = self.media_type if media_type is None else media_type
         self.background = background

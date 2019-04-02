@@ -154,7 +154,7 @@ class App:
 
 ### StreamingResponse
 
-Takes a an async generator or a normal generator/iterator and streams the response body.
+Takes an async generator or a normal generator/iterator and streams the response body.
 
 ```python
 from starlette.responses import StreamingResponse
