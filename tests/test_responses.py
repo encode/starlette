@@ -5,7 +5,6 @@ import pytest
 
 from starlette import status
 from starlette.background import BackgroundTask
-from starlette.concurrency import iterator_to_async
 from starlette.requests import Request
 from starlette.responses import (
     FileResponse,

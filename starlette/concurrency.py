@@ -37,7 +37,7 @@ def _interceptable_next(iterator: Iterator) -> Any:
         raise _StopSyncIteration
 
 
-async def iterator_to_async(iterator: Iterator) -> AsyncGenerator:
+async def iterate_in_threadpool(iterator: Iterator) -> AsyncGenerator:
     while True:
         try:
             result = await run_in_threadpool(_interceptable_next, iterator)
