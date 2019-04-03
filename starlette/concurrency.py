@@ -25,22 +25,23 @@ async def run_in_threadpool(
     return await loop.run_in_executor(None, func, *args)
 
 
-class _StopSyncIteration(Exception):
+class _StopIteration(Exception):
     pass
 
 
-def _interceptable_next(iterator: Iterator) -> Any:
+def _next(iterator: Iterator) -> Any:
+    # We can't raise `StopIteration` from within the threadpool iterator
+    # and catch it outside that context, so we coerce them into a different
+    # exception type.
     try:
-        result = next(iterator)
-        return result
+        return next(iterator)
     except StopIteration:
-        raise _StopSyncIteration
+        raise _StopIteration
 
 
 async def iterate_in_threadpool(iterator: Iterator) -> AsyncGenerator:
     while True:
         try:
-            result = await run_in_threadpool(_interceptable_next, iterator)
-            yield result
-        except _StopSyncIteration:
+            yield await run_in_threadpool(_next, iterator)
+        except _StopIteration:
             break
