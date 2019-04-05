@@ -286,3 +286,16 @@ def test_chunked_encoding():
 
     response = client.post("/", data=post_body())
     assert response.json() == {"body": "foobar"}
+
+
+def test_edit_request_header():
+    async def app(scope, receive, send):
+        request = Request(scope, receive)
+        request.headers["x-foo"] = "bar"
+        response = JSONResponse({"foo": request.headers.get("X-Foo")})
+        await response(scope, receive, send)
+
+    client = TestClient(app)
+
+    response = client.get("/")
+    assert response.json() == {"foo": "bar"}

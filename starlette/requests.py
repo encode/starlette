@@ -4,7 +4,14 @@ import json
 import typing
 from collections.abc import Mapping
 
-from starlette.datastructures import URL, Address, FormData, Headers, QueryParams
+from starlette.datastructures import (
+    URL,
+    Address,
+    FormData,
+    Headers,
+    MutableHeaders,
+    QueryParams,
+)
 from starlette.formparsers import FormParser, MultiPartParser
 from starlette.types import Message, Receive, Scope
 
@@ -52,9 +59,9 @@ class HTTPConnection(Mapping):
         return self._url
 
     @property
-    def headers(self) -> Headers:
+    def headers(self) -> MutableHeaders:
         if not hasattr(self, "_headers"):
-            self._headers = Headers(scope=self._scope)
+            self._headers = MutableHeaders(scope=self._scope)
         return self._headers
 
     @property
