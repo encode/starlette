@@ -7,7 +7,8 @@ from starlette.templating import Jinja2Templates
 from starlette.testclient import TestClient
 
 
-def test_templates(tmpdir):
+@pytest.mark.parametrize("with_middleware", ("with", "without"))
+def test_templates(tmpdir, with_middleware):
     path = os.path.join(tmpdir, "index.html")
     with open(path, "w") as file:
         file.write("<html>Hello, <a href='{{ url_for('homepage') }}'>world</a></html>")
@@ -18,6 +19,12 @@ def test_templates(tmpdir):
     @app.route("/")
     async def homepage(request):
         return templates.TemplateResponse("index.html", {"request": request})
+
+    if with_middleware == "with":
+        @app.middleware("http")
+        async def noop(request, call_next):
+            response = await call_next(request)
+            return response
 
     client = TestClient(app)
     response = client.get("/")
