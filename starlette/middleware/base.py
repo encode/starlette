@@ -21,6 +21,8 @@ class BaseHTTPMiddleware:
             await self.app(scope, receive, send)
             return
 
+        self._orig_send = send
+
         request = Request(scope, receive=receive)
         response = await self.dispatch_func(request, self.call_next)
         await response(scope, receive, send)
@@ -51,6 +53,10 @@ class BaseHTTPMiddleware:
                 message = await queue.get()
                 if message is None:
                     break
+                if 'http.response.template' in scope.get("extensions", {}):
+                    if message["type"] == "http.response.template":
+                        await self._orig_send(message)
+                        continue
                 assert message["type"] == "http.response.body", message["type"]
                 yield message["body"]
             task.result()
