@@ -11,6 +11,7 @@ python:
 
 install:
     - pip install -U -r requirements.txt
+    - pip freeze
 
 script:
     - scripts/test
