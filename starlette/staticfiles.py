@@ -4,8 +4,7 @@ import stat
 import typing
 from email.utils import parsedate
 
-from aiofiles.os import stat as aio_stat
-
+from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import URL, Headers
 from starlette.responses import (
     FileResponse,
@@ -149,7 +148,7 @@ class StaticFiles:
         for directory in self.all_directories:
             full_path = os.path.join(directory, path)
             try:
-                stat_result = await aio_stat(full_path)
+                stat_result = await run_in_threadpool(os.stat, full_path)
                 return (full_path, stat_result)
             except FileNotFoundError:
                 pass
@@ -182,7 +181,7 @@ class StaticFiles:
             return
 
         try:
-            stat_result = await aio_stat(self.directory)
+            stat_result = await run_in_threadpool(os.stat, self.directory)
         except FileNotFoundError:
             raise RuntimeError(
                 f"StaticFiles directory '{self.directory}' does not exist."

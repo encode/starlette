@@ -1,5 +1,4 @@
 # Optionals
-aiofiles
 graphene
 itsdangerous
 jinja2

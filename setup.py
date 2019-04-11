@@ -50,7 +50,6 @@ setup(
     data_files=[("", ["LICENSE.md"])],
     extras_require={
         "full": [
-            "aiofiles",
             "asyncpg",
             "graphene",
             "itsdangerous",

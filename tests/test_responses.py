@@ -156,7 +156,7 @@ def test_file_response(tmpdir):
 
     async def app(scope, receive, send):
         response = FileResponse(
-            path=path, filename="example.png", background=cleanup_task
+            file_or_path=path, filename="example.png", background=cleanup_task
         )
         await response(scope, receive, send)
 
@@ -174,8 +174,30 @@ def test_file_response(tmpdir):
     assert filled_by_bg_task == "6, 7, 8, 9"
 
 
+def test_file_like_response(tmpdir):
+    path = os.path.join(tmpdir, "xyz")
+    content = b"<file content>" * 1000
+    with open(path, "wb") as file:
+        file.write(content)
+
+    async def app(scope, receive, send):
+        with open(path, "rb") as file_like:
+            response = FileResponse(file_or_path=file_like)
+            await response(scope, receive, send)
+
+    client = TestClient(app)
+    response = client.get("/")
+    assert response.status_code == status.HTTP_200_OK
+    assert response.content == content
+    assert response.headers["content-type"] == "application/octet-stream"
+    assert "content-disposition" not in response.headers
+    assert "content-length" not in response.headers
+    assert "last-modified" not in response.headers
+    assert "etag" not in response.headers
+
+
 def test_file_response_with_directory_raises_error(tmpdir):
-    app = FileResponse(path=tmpdir, filename="example.png")
+    app = FileResponse(file_or_path=str(tmpdir), filename="example.png")
     client = TestClient(app)
     with pytest.raises(RuntimeError) as exc:
         client.get("/")
@@ -184,11 +206,26 @@ def test_file_response_with_directory_raises_error(tmpdir):
 
 def test_file_response_with_missing_file_raises_error(tmpdir):
     path = os.path.join(tmpdir, "404.txt")
-    app = FileResponse(path=path, filename="404.txt")
+    app = FileResponse(file_or_path=path, filename="404.txt")
     client = TestClient(app)
     with pytest.raises(RuntimeError) as exc:
         client.get("/")
     assert "does not exist" in str(exc)
+
+
+def test_file_response_reading_error_raises_error():
+    class FakeFile:
+        def read(self):
+            raise ValueError("No content here")  # pragma: no cover
+
+        def close(self):
+            pass
+
+    app = FileResponse(file_or_path=FakeFile())
+    client = TestClient(app)
+    with pytest.raises(RuntimeError) as exc:
+        client.get("/")
+    assert "Error processing file in FileResponse" in str(exc)
 
 
 def test_set_cookie():

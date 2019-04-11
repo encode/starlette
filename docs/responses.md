@@ -188,12 +188,12 @@ Asynchronously streams a file as the response.
 
 Takes a different set of arguments to instantiate than the other response types:
 
-* `path` - The filepath to the file to stream.
+* `file_or_path` - Can be a file path as a `str`, or a `pathlib.Path`. Can also be a [file-like object](https://docs.python.org/3/glossary.html#term-file-like-object) like those returned by `open(some_path, mode="rb")`.
 * `headers` - Any custom headers to include, as a dictionary.
-* `media_type` - A string giving the media type. If unset, the filename or path will be used to infer a media type.
-* `filename` - If set, this will be included in the response `Content-Disposition`.
+* `media_type` - A string giving the media type. If unset, the filename or path will be used to infer a media type (if `file_or_path` is a path).
+* `filename` - If set, this will be included in the response `Content-Disposition`. For example, instructing the browser to download the file instead of displaying it.
 
-File responses will include appropriate `Content-Length`, `Last-Modified` and `ETag` headers.
+File responses will include appropriate `Content-Length`, `Last-Modified` and `ETag` headers if `file_or_path` was a path.
 
 ```python
 from starlette.responses import FileResponse

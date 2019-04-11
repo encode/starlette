@@ -3,6 +3,7 @@ import http.cookies
 import inspect
 import json
 import os
+import pathlib
 import stat
 import typing
 from email.utils import formatdate
@@ -10,16 +11,9 @@ from mimetypes import guess_type
 from urllib.parse import quote_plus
 
 from starlette.background import BackgroundTask
-from starlette.concurrency import iterate_in_threadpool
+from starlette.concurrency import iterate_in_threadpool, run_in_threadpool
 from starlette.datastructures import URL, MutableHeaders
 from starlette.types import Receive, Scope, Send
-
-try:
-    import aiofiles
-    from aiofiles.os import stat as aio_stat
-except ImportError:  # pragma: nocover
-    aiofiles = None  # type: ignore
-    aio_stat = None  # type: ignore
 
 try:
     import ujson
@@ -209,7 +203,7 @@ class FileResponse(Response):
 
     def __init__(
         self,
-        path: str,
+        file_or_path: typing.Union[str, pathlib.Path, typing.IO[str], typing.IO[bytes]],
         status_code: int = 200,
         headers: dict = None,
         media_type: str = None,
@@ -218,13 +212,21 @@ class FileResponse(Response):
         stat_result: os.stat_result = None,
         method: str = None,
     ) -> None:
-        assert aiofiles is not None, "'aiofiles' must be installed to use FileResponse"
-        self.path = path
+        # self.file_or_path: typing.Union[str, pathlib.Path, typing.IO[str], typing.IO[bytes]] = file_or_path
+        self.file_or_path = file_or_path
+        self.is_readable = hasattr(file_or_path, "read")
         self.status_code = status_code
         self.filename = filename
         self.send_header_only = method is not None and method.upper() == "HEAD"
         if media_type is None:
-            media_type = guess_type(filename or path)[0] or "text/plain"
+            if filename:
+                media_type = guess_type(filename)[0]
+            elif not self.is_readable:
+                media_type = guess_type(str(file_or_path))[0]
+            else:
+                # Default to generic media type "application/octet-stream", ref:
+                # https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types
+                media_type = "application/octet-stream"
         self.media_type = media_type
         self.background = background
         self.init_headers(headers)
@@ -247,15 +249,20 @@ class FileResponse(Response):
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if self.stat_result is None:
-            try:
-                stat_result = await aio_stat(self.path)
-                self.set_stat_headers(stat_result)
-            except FileNotFoundError:
-                raise RuntimeError(f"File at path {self.path} does not exist.")
-            else:
-                mode = stat_result.st_mode
-                if not stat.S_ISREG(mode):
-                    raise RuntimeError(f"File at path {self.path} is not a file.")
+            if not self.is_readable:
+                try:
+                    stat_result = await run_in_threadpool(os.stat, self.file_or_path)
+                    self.set_stat_headers(stat_result)
+                except FileNotFoundError:
+                    raise RuntimeError(
+                        f"File at path {self.file_or_path} does not exist."
+                    )
+                else:
+                    mode = stat_result.st_mode
+                    if not stat.S_ISREG(mode):
+                        raise RuntimeError(
+                            f"File at path {self.file_or_path} is not a file."
+                        )
         await send(
             {
                 "type": "http.response.start",
@@ -266,10 +273,16 @@ class FileResponse(Response):
         if self.send_header_only:
             await send({"type": "http.response.body"})
         else:
-            async with aiofiles.open(self.path, mode="rb") as file:
+            if self.is_readable:
+                file = typing.cast(
+                    typing.Union[typing.IO[str], typing.IO[bytes]], self.file_or_path
+                )
+            else:
+                file = await run_in_threadpool(open, self.file_or_path, mode="rb")
+            try:
                 more_body = True
                 while more_body:
-                    chunk = await file.read(self.chunk_size)
+                    chunk = await run_in_threadpool(file.read, self.chunk_size)
                     more_body = len(chunk) == self.chunk_size
                     await send(
                         {
@@ -278,5 +291,9 @@ class FileResponse(Response):
                             "more_body": more_body,
                         }
                     )
+            except Exception as e:
+                if hasattr(file, "close"):
+                    await run_in_threadpool(file.close)
+                raise RuntimeError(f"Error processing file in FileResponse: {e}")
         if self.background is not None:
             await self.background()
