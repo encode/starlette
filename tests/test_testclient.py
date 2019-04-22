@@ -112,3 +112,23 @@ def test_websocket_blocking_receive():
     with client.websocket_connect("/") as websocket:
         data = websocket.receive_json()
         assert data == {"message": "test"}
+
+
+def test_websocket_connect_runs_use_current_loop():
+    app = Starlette()
+
+    @app.on_event("startup")
+    async def open_connection_pool():
+        app.pool = asyncio.create_task(asyncio.sleep(0.1))
+
+    @app.websocket_route("/")
+    async def websocket_endpoint(websocket):
+        await websocket.accept()
+        await app.pool
+        await websocket.send_json({"message": "test"})
+        await websocket.close()
+
+    client = TestClient(app)
+    with client as cli, cli.websocket_connect("/") as websocket:
+        data = websocket.receive_json()
+        assert data == {"message": "test"}

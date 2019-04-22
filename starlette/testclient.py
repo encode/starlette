@@ -263,7 +263,7 @@ class WebSocketTestSession:
         self.app = app
         self.scope = scope
         self.accepted_subprotocol = None
-        self._loop = asyncio.new_event_loop()
+        self._loop = asyncio.get_event_loop()
         self._receive_queue = queue.Queue()  # type: queue.Queue
         self._send_queue = queue.Queue()  # type: queue.Queue
         self._thread = threading.Thread(target=self._run)
