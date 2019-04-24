@@ -249,6 +249,9 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 "original_response": _MockOriginalResponse([]),
                 "body": io.BytesIO(),
             }
+        else:
+            # Rewind body always for missing more_body=False message.
+            raw_kwargs["body"].seek(0)
 
         raw = requests.packages.urllib3.HTTPResponse(**raw_kwargs)
         response = self.build_response(request, raw)
