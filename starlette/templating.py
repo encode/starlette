@@ -28,8 +28,6 @@ class _TemplateResponse(Response):
         super().__init__(content, status_code, headers, media_type, background)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        await super().__call__(scope, receive, send)
-
         request = self.context.get("request", {})
         extensions = request.get("extensions", {})
         if "http.response.template" in extensions:
@@ -40,6 +38,7 @@ class _TemplateResponse(Response):
                     "context": self.context,
                 }
             )
+        await super().__call__(scope, receive, send)
 
 
 class Jinja2Templates:

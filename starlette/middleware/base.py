@@ -46,6 +46,12 @@ class BaseHTTPMiddleware:
         if message is None:
             task.result()
             raise RuntimeError("No response returned.")
+
+        if "http.response.template" in scope.get("extensions", {}):
+            if message["type"] == "http.response.template":
+                await self._orig_send(message)
+                message = await queue.get()
+
         assert message["type"] == "http.response.start", message["type"]
 
         async def body_stream() -> typing.AsyncGenerator[bytes, None]:
@@ -53,10 +59,6 @@ class BaseHTTPMiddleware:
                 message = await queue.get()
                 if message is None:
                     break
-                if 'http.response.template' in scope.get("extensions", {}):
-                    if message["type"] == "http.response.template":
-                        await self._orig_send(message)
-                        continue
                 assert message["type"] == "http.response.body", message["type"]
                 yield message["body"]
             task.result()
