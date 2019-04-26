@@ -149,8 +149,9 @@ class Route(BaseRoute):
         self.name = get_name(endpoint) if name is None else name
         self.include_in_schema = include_in_schema
 
-        if inspect.isfunction(endpoint) or inspect.ismethod(endpoint):
-            # Endpoint is function or method. Treat it as `func(request) -> response`.
+        if (inspect.isfunction(endpoint) or inspect.ismethod(endpoint)) and len(
+            inspect.signature(endpoint).parameters
+        ) == 1:
             self.app = request_response(endpoint)
             if methods is None:
                 methods = ["GET"]
