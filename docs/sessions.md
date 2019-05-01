@@ -76,6 +76,15 @@ await client.connect()
 backend = DatabaseBackend(client)
 ```
 
+Optionally, you can change used table and column names:
+```python
+DatabaseBackend(client, table='sessions', id_column='id', data_column='data')
+```
+
+Note, that the backend does not manage database, you have to create 
+needed tables before activating this backend.
+ 
+
 ## Custom backend
 
 Create a class which implements `starlette.sessions.SessionBackend` interface:
