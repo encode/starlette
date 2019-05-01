@@ -3,6 +3,7 @@ import re
 from starlette.applications import Starlette
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import JSONResponse
+from starlette.sessions import InMemoryBackend
 from starlette.testclient import TestClient
 
 
@@ -53,6 +54,17 @@ def test_session():
     assert response.json() == {"session": {}}
 
     response = client.get("/view_session")
+    assert response.json() == {"session": {}}
+
+
+def test_empty_session():
+    backend = InMemoryBackend()
+    app = create_app()
+    app.add_middleware(SessionMiddleware, backend=backend, secret_key="example")
+
+    headers = {"cookie": "session=someid"}
+    client = TestClient(app)
+    response = client.get("/view_session", headers=headers)
     assert response.json() == {"session": {}}
 
 

@@ -6,7 +6,8 @@ import itsdangerous
 from itsdangerous.exc import BadTimeSignature, SignatureExpired
 
 from starlette.datastructures import MutableHeaders, Secret
-from starlette.requests import HTTPConnection
+from starlette.requests import HTTPConnection, Request
+from starlette.sessions import CookieBackend, SessionBackend, SessionNotFoundError
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
@@ -19,8 +20,10 @@ class SessionMiddleware:
         max_age: int = 14 * 24 * 60 * 60,  # 14 days, in seconds
         same_site: str = "lax",
         https_only: bool = False,
+        backend: SessionBackend = None,
     ) -> None:
         self.app = app
+        self.backend = backend or CookieBackend()
         self.signer = itsdangerous.TimestampSigner(str(secret_key))
         self.session_cookie = session_cookie
         self.max_age = max_age
@@ -36,13 +39,18 @@ class SessionMiddleware:
         connection = HTTPConnection(scope)
         initial_session_was_empty = True
 
+        session_id = None
         if self.session_cookie in connection.cookies:
-            data = connection.cookies[self.session_cookie].encode("utf-8")
             try:
-                data = self.signer.unsign(data, max_age=self.max_age)
+                session_id = connection.cookies[self.session_cookie]
+                signed_data = await self.backend.read(session_id)
+                if signed_data is None:  # there is no data for key
+                    raise SessionNotFoundError()
+
+                data = self.signer.unsign(signed_data, max_age=self.max_age)
                 scope["session"] = json.loads(b64decode(data))
                 initial_session_was_empty = False
-            except (BadTimeSignature, SignatureExpired):
+            except (BadTimeSignature, SignatureExpired, SessionNotFoundError):
                 scope["session"] = {}
         else:
             scope["session"] = {}
@@ -51,12 +59,18 @@ class SessionMiddleware:
             if message["type"] == "http.response.start":
                 if scope["session"]:
                     # We have session data to persist.
+                    nonlocal session_id
+                    if not session_id:
+                        session_id = self.backend.generate_id()
+
                     data = b64encode(json.dumps(scope["session"]).encode("utf-8"))
-                    data = self.signer.sign(data)
+                    session_id = await self.backend.write(
+                        session_id, self.signer.sign(data).decode("utf-8")
+                    )
                     headers = MutableHeaders(scope=message)
                     header_value = "%s=%s; path=/; Max-Age=%d; %s" % (
                         self.session_cookie,
-                        data.decode("utf-8"),
+                        session_id,
                         self.max_age,
                         self.security_flags,
                     )
