@@ -32,7 +32,7 @@ class SessionBackend(abc.ABC):
         ...
 
     @abc.abstractmethod
-    async def remove(self, session_id: str):  # pragma: nocover
+    async def remove(self, session_id: str) -> None:  # pragma: nocover
         ...
 
     async def exists(self, session_id: str) -> bool:
@@ -44,8 +44,8 @@ class SessionBackend(abc.ABC):
 
 
 class InMemoryBackend(SessionBackend):
-    def __init__(self):
-        self._data = {}
+    def __init__(self) -> None:
+        self._data: dict = {}
 
     async def read(self, session_id: str) -> Optional[str]:
         return self._data.get(session_id, None)
@@ -54,7 +54,7 @@ class InMemoryBackend(SessionBackend):
         self._data[session_id] = data
         return session_id
 
-    async def remove(self, session_id: str):
+    async def remove(self, session_id: str) -> None:
         del self._data[session_id]
 
 
@@ -67,7 +67,7 @@ class CookieBackend(SessionBackend):
         """ The data is a session id in this backend. """
         return data
 
-    async def remove(self, session_id: str):
+    async def remove(self, session_id: str) -> None:
         """ Session data stored on client side - no way to remove it. """
 
     async def exists(self, session_id: str) -> bool:
@@ -75,7 +75,7 @@ class CookieBackend(SessionBackend):
 
 
 class RedisBackend(SessionBackend):
-    def __init__(self, client: "aioredis.Redis"):
+    def __init__(self, client: "aioredis.Redis") -> None:
         assert aioredis, "aioredis must be installed to use RedisBackend"
 
         self.redis = client
@@ -87,29 +87,28 @@ class RedisBackend(SessionBackend):
         await self.redis.set(session_id, data)
         return session_id
 
-    async def remove(self, session_id: str):
+    async def remove(self, session_id: str) -> None:
         await self.redis.delete(session_id)
 
 
 class MemcachedBackend(SessionBackend):
-    def __init__(self, client: "aiomcache.Client"):
+    def __init__(self, client: "aiomcache.Client") -> None:
         assert aiomcache, "aiomcache must be installed to use MemcachedBackend"
 
         self.client = client
 
     async def read(self, session_id: str) -> Optional[str]:
-        session_id = session_id.encode("utf-8")
-        data = await self.client.get(session_id)
+        data = await self.client.get(session_id.encode("utf-8"))
         if data:
             return data.decode("utf-8")
+        return None
 
     async def write(self, session_id: str, data: str) -> str:
         await self.client.set(session_id.encode("utf-8"), data.encode("utf-8"))
         return session_id
 
-    async def remove(self, session_id: str):
-        session_id = session_id.encode("utf-8")
-        await self.client.delete(session_id)
+    async def remove(self, session_id: str) -> None:
+        await self.client.delete(session_id.encode("utf-8"))
 
 
 class DatabaseBackend(SessionBackend):
@@ -119,7 +118,7 @@ class DatabaseBackend(SessionBackend):
         table: str = "sessions",
         id_column: str = "id",
         data_column: str = "data",
-    ):
+    ) -> None:
         assert databases, "databases must be installed to use DatabaseBackend"
 
         self.database = database
@@ -147,12 +146,12 @@ class DatabaseBackend(SessionBackend):
 
         return session_id
 
-    async def remove(self, session_id: str):
+    async def remove(self, session_id: str) -> None:
         sql = "DELETE FROM %s WHERE %s = :id" % (self.table, self.id_column)
         params = {"id": session_id}
         await self.database.execute(sql, params)
 
-    async def _update(self, session_id: str, data: str):
+    async def _update(self, session_id: str, data: str) -> None:
         params = {"id": session_id, "data": data}
         sql = "UPDATE %s SET %s = :data WHERE %s = :id " % (
             self.table,
@@ -161,7 +160,7 @@ class DatabaseBackend(SessionBackend):
         )
         await self.database.execute(sql, params)
 
-    async def _insert(self, session_id: str, data: str):
+    async def _insert(self, session_id: str, data: str) -> None:
         params = {"id": session_id, "data": data}
         sql = "INSERT INTO %s (%s, %s) VALUES(:id, :data)" % (
             self.table,

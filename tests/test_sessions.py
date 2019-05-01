@@ -42,7 +42,7 @@ def memcached():
     client.set.side_effect = store.set
     client.get.side_effect = store.get
     client.delete.side_effect = store.delete
-    with mock.patch('starlette.sessions.aiomcache', object()):
+    with mock.patch("starlette.sessions.aiomcache", object()):
         return MemcachedBackend(client)
 
 
@@ -53,7 +53,7 @@ def redis():
     client.set.side_effect = store.set
     client.get.side_effect = store.get
     client.delete.side_effect = store.delete
-    with mock.patch('starlette.sessions.aioredis', object()):
+    with mock.patch("starlette.sessions.aioredis", object()):
         return RedisBackend(client)
 
 

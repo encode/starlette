@@ -7,7 +7,7 @@ from itsdangerous.exc import BadTimeSignature, SignatureExpired
 
 from starlette.datastructures import MutableHeaders, Secret
 from starlette.requests import Request
-from starlette.sessions import SessionBackend, SessionNotFoundError, CookieBackend
+from starlette.sessions import CookieBackend, SessionBackend, SessionNotFoundError
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
@@ -64,8 +64,9 @@ class SessionMiddleware:
                         session_id = self.backend.generate_id()
 
                     data = b64encode(json.dumps(scope["session"]).encode("utf-8"))
-                    data = self.signer.sign(data).decode("utf-8")
-                    session_id = await self.backend.write(session_id, data)
+                    session_id = await self.backend.write(
+                        session_id, self.signer.sign(data).decode("utf-8")
+                    )
                     headers = MutableHeaders(scope=message)
                     header_value = "%s=%s; path=/; Max-Age=%d; %s" % (
                         self.session_cookie,
