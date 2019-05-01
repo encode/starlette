@@ -60,10 +60,9 @@ def test_session():
 def test_empty_session():
     backend = InMemoryBackend()
     app = create_app()
-    app.add_middleware(SessionMiddleware, backend=backend,
-                       secret_key="example")
+    app.add_middleware(SessionMiddleware, backend=backend, secret_key="example")
 
-    headers = {'cookie': 'session=someid'}
+    headers = {"cookie": "session=someid"}
     client = TestClient(app)
     response = client.get("/view_session", headers=headers)
     assert response.json() == {"session": {}}
@@ -80,17 +79,14 @@ def test_session_expires():
     # requests removes expired cookies from response.cookies, we need to
     # fetch session id from the headers and pass it explicitly
     expired_cookie_header = response.headers["set-cookie"]
-    expired_session_value = \
-        re.search(r"session=([^;]*);", expired_cookie_header)[1]
-    response = client.get("/view_session",
-                          cookies={"session": expired_session_value})
+    expired_session_value = re.search(r"session=([^;]*);", expired_cookie_header)[1]
+    response = client.get("/view_session", cookies={"session": expired_session_value})
     assert response.json() == {"session": {}}
 
 
 def test_secure_session():
     app = create_app()
-    app.add_middleware(SessionMiddleware, secret_key="example",
-                       https_only=True)
+    app.add_middleware(SessionMiddleware, secret_key="example", https_only=True)
     secure_client = TestClient(app, base_url="https://testserver")
     unsecure_client = TestClient(app, base_url="http://testserver")
 

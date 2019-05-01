@@ -28,8 +28,7 @@ class SessionBackend(abc.ABC):
         ...
 
     @abc.abstractmethod
-    async def write(self, session_id: str,
-                    data: str) -> str:  # pragma: nocover
+    async def write(self, session_id: str, data: str) -> str:  # pragma: nocover
         ...
 
     @abc.abstractmethod
@@ -99,10 +98,10 @@ class MemcachedBackend(SessionBackend):
         self.client = client
 
     async def read(self, session_id: str) -> Optional[str]:
-        session_id = session_id.encode('utf-8')
+        session_id = session_id.encode("utf-8")
         data = await self.client.get(session_id)
         if data:
-            return data.decode('utf-8')
+            return data.decode("utf-8")
 
     async def write(self, session_id: str, data: str) -> str:
         await self.client.set(session_id.encode("utf-8"), data.encode("utf-8"))
@@ -135,8 +134,7 @@ class DatabaseBackend(SessionBackend):
             f"FROM {self.table} "
             f"WHERE {self.id_column} = :id"
         )
-        data = await self.database.fetch_val(sql, {"id": session_id},
-                                             self.data_column)
+        data = await self.database.fetch_val(sql, {"id": session_id}, self.data_column)
         if data:
             self._exists = True
         return data
