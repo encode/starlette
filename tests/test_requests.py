@@ -174,8 +174,10 @@ def test_request_scope_interface():
     """
     request = Request({"type": "http", "method": "GET", "path": "/abc/"})
     assert request["method"] == "GET"
-    assert dict(request) == {"type": "http", "method": "GET", "path": "/abc/"}
-    assert len(request) == 3
+    d = dict(request)
+    d.pop("starlette_request")
+    assert d == {"type": "http", "method": "GET", "path": "/abc/"}
+    assert len(d) == 3
 
 
 def test_request_without_setting_receive():

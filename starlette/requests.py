@@ -126,6 +126,10 @@ class Request(HTTPConnection):
     def __init__(self, scope: Scope, receive: Receive = empty_receive):
         super().__init__(scope)
         assert scope["type"] == "http"
+
+        self._scope = scope
+        self._scope["starlette_request"] = self
+
         self._receive = receive
         self._stream_consumed = False
         self._is_disconnected = False
