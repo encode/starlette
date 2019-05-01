@@ -13,6 +13,7 @@ nav:
     - Applications: 'applications.md'
     - Requests: 'requests.md'
     - Responses: 'responses.md'
+    - Sessions: 'sessions.md'
     - WebSockets: 'websockets.md'
     - Routing: 'routing.md'
     - Endpoints: 'endpoints.md'
