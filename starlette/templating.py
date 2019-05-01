@@ -24,11 +24,10 @@ class _TemplateResponse(Response):
     ):
         self.template = template
         self.context = context
-        content = template.render(context)
-        super().__init__(content, status_code, headers, media_type, background)
+        super().__init__(None, status_code, headers, media_type, background)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        request = self.context.get("request", {})
+        request = scope["starlette_request"]
         extensions = request.get("extensions", {})
         if "http.response.template" in extensions:
             await send(
@@ -38,6 +37,13 @@ class _TemplateResponse(Response):
                     "context": self.context,
                 }
             )
+
+        context = self.context.copy()
+        context.setdefault("request", request)
+
+        # TODO render_async?!
+        self.body = self.template.render(context).encode()
+
         await super().__call__(scope, receive, send)
 
 
@@ -75,8 +81,6 @@ class Jinja2Templates:
         media_type: str = None,
         background: BackgroundTask = None,
     ) -> _TemplateResponse:
-        if "request" not in context:
-            raise ValueError('context must include a "request" key')
         template = self.get_template(name)
         return _TemplateResponse(
             template,
