@@ -160,7 +160,7 @@ def test_request_body_twice():
         request = Request(scope, receive)
         body = await request.body()
         new_request = Request(scope, receive)
-        new_body = await request.body()
+        new_body = await new_request.body()
         response = JSONResponse(
             {"body_one": body.decode(), "body_two": new_body.decode()}
         )
