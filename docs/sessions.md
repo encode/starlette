@@ -81,7 +81,7 @@ Optionally, you can change the used table and column names:
 DatabaseBackend(client, table='sessions', id_column='id', data_column='data')
 ```
 
-Note, that the backend does not manage database, you have to create 
+Note that the backend does not manage the database, you have to create 
 needed tables before activating this backend.
  
 
