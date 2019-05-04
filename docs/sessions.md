@@ -76,7 +76,7 @@ await client.connect()
 backend = DatabaseBackend(client)
 ```
 
-Optionally, you can change used table and column names:
+Optionally, you can change the used table and column names:
 ```python
 DatabaseBackend(client, table='sessions', id_column='id', data_column='data')
 ```
