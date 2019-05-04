@@ -87,7 +87,7 @@ needed tables before activating this backend.
 
 ## Custom backend
 
-Create a class which implements `starlette.sessions.SessionBackend` interface:
+Create a class which implements the `starlette.sessions.SessionBackend` interface:
 
 ```python
 from starlette.sessions import SessionBackend
