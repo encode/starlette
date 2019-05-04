@@ -1,6 +1,7 @@
 import typing
 
 from starlette.background import BackgroundTask
+from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import Receive, Scope, Send
 
@@ -24,11 +25,12 @@ class _TemplateResponse(Response):
     ):
         self.template = template
         self.context = context
-        content = template.render(context)
-        super().__init__(content, status_code, headers, media_type, background)
+        super().__init__(None, status_code, headers, media_type, background)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         request = self.context.get("request", {})
+        if not request:
+            request = Request(scope)
         extensions = request.get("extensions", {})
         if "http.response.template" in extensions:
             await send(
@@ -38,6 +40,13 @@ class _TemplateResponse(Response):
                     "context": self.context,
                 }
             )
+
+        context = self.context.copy()
+        context.setdefault("request", request)
+
+        # TODO async?!
+        self.body = self.template.render(context).encode()
+
         await super().__call__(scope, receive, send)
 
 
