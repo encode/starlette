@@ -111,4 +111,4 @@ class MyCustomBackend(SessionBackend):
         somedatasource.delete(session_id)
 ```
 
-Note, that `write` has to return session id. 
+Note that `write` has to return the session id. 
