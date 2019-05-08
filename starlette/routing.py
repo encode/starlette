@@ -217,7 +217,12 @@ class Route(BaseRoute):
 
 class WebSocketRoute(BaseRoute):
     def __init__(
-        self, path: str, endpoint: typing.Callable, *, name: str = None
+        self,
+        path: str,
+        endpoint: typing.Callable,
+        *,
+        name: str = None,
+        **kwargs: typing.Any,
     ) -> None:
         assert path.startswith("/"), "Routed paths must start with '/'"
         self.path = path
@@ -229,7 +234,10 @@ class WebSocketRoute(BaseRoute):
             self.app = websocket_session(endpoint)
         else:
             # Endpoint is a class. Treat it as ASGI.
-            self.app = endpoint
+            async def _asgi_app(scope: Scope, receive: Receive, send: Send) -> None:
+                return await endpoint(scope, receive, send, **kwargs)
+
+            self.app = _asgi_app
 
         regex = "^" + path + "$"
         regex = re.sub("{([a-zA-Z_][a-zA-Z0-9_]*)}", r"(?P<\1>[^/]+)", regex)

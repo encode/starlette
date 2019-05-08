@@ -1,5 +1,6 @@
 import pytest
 
+from starlette.endpoints import WebSocketEndpoint
 from starlette.responses import JSONResponse, PlainTextResponse, Response
 from starlette.routing import Host, Mount, NoMatchFound, Route, Router, WebSocketRoute
 from starlette.testclient import TestClient
@@ -205,7 +206,7 @@ def http_endpoint(request):
     return Response(f"URL: {url}", media_type="text/plain")
 
 
-class WebSocketEndpoint:
+class CallableWebSocketEndpoint:
     async def __call__(self, scope, receive, send):
         websocket = WebSocket(scope=scope, receive=receive, send=send)
         await websocket.accept()
@@ -216,7 +217,9 @@ class WebSocketEndpoint:
 mixed_protocol_app = Router(
     routes=[
         Route("/", endpoint=http_endpoint),
-        WebSocketRoute("/", endpoint=WebSocketEndpoint(), name="websocket_endpoint"),
+        WebSocketRoute(
+            "/", endpoint=CallableWebSocketEndpoint(), name="websocket_endpoint"
+        ),
     ]
 )
 
@@ -353,3 +356,29 @@ def test_subdomain_reverse_urls():
         ).make_absolute_url("https://whatever")
         == "https://foo.example.org/homepage"
     )
+
+
+class WebSocketEndpointWithConstructorArguments(WebSocketEndpoint):
+    def __init__(self, scope, receive, send, extra_thing):
+        super().__init__(scope, receive, send)
+        self.extra_thing = extra_thing
+
+    async def on_receive(self, websocket: WebSocket, data):
+        await websocket.send_text(self.extra_thing)
+
+
+web_socket_with_arguments_app = Router(
+    routes=[
+        WebSocketRoute(
+            "/", endpoint=WebSocketEndpointWithConstructorArguments, extra_thing="stuff"
+        )
+    ]
+)
+
+
+def test_web_socket_endpoint_types_can_have_extra_arguments():
+    client = TestClient(web_socket_with_arguments_app)
+
+    with client.websocket_connect("/") as session:
+        session.send_text("hello")
+        assert session.receive_text() == "stuff"
