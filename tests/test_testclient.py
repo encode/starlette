@@ -113,3 +113,44 @@ def test_websocket_blocking_receive():
     with client.websocket_connect("/") as websocket:
         data = websocket.receive_json()
         assert data == {"message": "test"}
+
+
+@pytest.mark.parametrize("raise_server_exceptions", (True, False))
+def test_error_with_middleware_and_testclient_exit(raise_server_exceptions):
+    """TestClient's __exit__ should not raise the exception again."""
+    app = Starlette()
+
+    events = []
+
+    @app.on_event("startup")
+    async def startup():
+        events.append("startup")
+
+    @app.on_event("shutdown")
+    async def shutdown():
+        events.append("shutdown")
+
+    @app.middleware("http")
+    async def http_middleware(request, call_next):
+        return await call_next(request)
+
+    if raise_server_exceptions:
+
+        @app.route("/error")
+        async def error(request):
+            pytest.fail("should_only_fail_once")
+
+        with TestClient(app, raise_server_exceptions=True) as client:
+            with pytest.raises(pytest.fail.Exception):
+                client.get("/error")
+    else:
+
+        @app.route("/error")
+        async def error(request):
+            pytest.fail("should_not_raise")
+
+        with TestClient(app, raise_server_exceptions=False) as client:
+            response = client.get("/error")
+            assert response.status_code == 500
+
+    assert events == ["startup", "shutdown"]

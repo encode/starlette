@@ -88,6 +88,8 @@ class _WrapASGI2:
 
 
 class _ASGIAdapter(requests.adapters.HTTPAdapter):
+    raised_server_exception: typing.Union[None, BaseException] = None
+
     def __init__(self, app: ASGI3App, raise_server_exceptions: bool = True) -> None:
         self.app = app
         self.raise_server_exceptions = raise_server_exceptions
@@ -231,10 +233,27 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
 
+        class WrapForServerErrors:
+            def __init__(self, adapter: _ASGIAdapter) -> None:
+                self.adapter = adapter
+
+            async def __call__(
+                self, scope: Scope, receive: Receive, send: Send
+            ) -> None:
+                try:
+                    await self.adapter.app(scope, receive, send)
+                except BaseException as exc:
+                    if self.adapter.raise_server_exceptions:
+                        if exc is not self.adapter.raised_server_exception:
+                            raise exc from None
+
+        app = WrapForServerErrors(self)
+
         try:
-            loop.run_until_complete(self.app(scope, receive, send))
+            loop.run_until_complete(app(scope, receive, send))
         except BaseException as exc:
             if self.raise_server_exceptions:
+                self.raised_server_exception = exc
                 raise exc from None
 
         if self.raise_server_exceptions:
@@ -371,7 +390,7 @@ class TestClient(requests.Session):
         else:
             app = typing.cast(ASGI2App, app)
             asgi_app = _WrapASGI2(app)  #  type: ignore
-        adapter = _ASGIAdapter(
+        adapter = self.adapter = _ASGIAdapter(
             asgi_app, raise_server_exceptions=raise_server_exceptions
         )
         self.mount("http://", adapter)
@@ -451,7 +470,11 @@ class TestClient(requests.Session):
 
     def __exit__(self, *args: typing.Any) -> None:
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.wait_shutdown())
+        try:
+            loop.run_until_complete(self.wait_shutdown())
+        except BaseException as exc:
+            if exc is not self.adapter.raised_server_exception:
+                raise
 
     async def lifespan(self) -> None:
         scope = {"type": "lifespan"}
