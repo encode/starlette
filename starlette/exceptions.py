@@ -9,11 +9,16 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
 class HTTPException(Exception):
-    def __init__(self, status_code: int, detail: str = None) -> None:
+    def __init__(
+        self, status_code: int, detail: str = None, headers: dict = None
+    ) -> None:
         if detail is None:
             detail = http.HTTPStatus(status_code).phrase
+        if headers is None:
+            headers = {}
         self.status_code = status_code
         self.detail = detail
+        self.headers = headers
 
 
 class ExceptionMiddleware:
@@ -85,5 +90,7 @@ class ExceptionMiddleware:
 
     def http_exception(self, request: Request, exc: HTTPException) -> Response:
         if exc.status_code in {204, 304}:
-            return Response(b"", status_code=exc.status_code)
-        return PlainTextResponse(exc.detail, status_code=exc.status_code)
+            return Response(b"", status_code=exc.status_code, headers=exc.headers)
+        return PlainTextResponse(
+            exc.detail, status_code=exc.status_code, headers=exc.headers
+        )
