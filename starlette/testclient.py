@@ -227,6 +227,8 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 template = message["template"]
                 context = message["context"]
 
+        self.handled_server_exception = None
+
         try:
             loop = asyncio.get_event_loop()
         except RuntimeError:
