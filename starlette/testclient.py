@@ -252,6 +252,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
         try:
             loop.run_until_complete(app(scope, receive, send))
         except BaseException as exc:
+            assert self.handled_server_exception is None
             self.handled_server_exception = exc
             if self.raise_server_exceptions:
                 raise exc from None
