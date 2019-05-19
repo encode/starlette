@@ -115,8 +115,9 @@ def test_websocket_blocking_receive():
         assert data == {"message": "test"}
 
 
+@pytest.mark.parametrize("use_middleware", (0, 1, 2))
 @pytest.mark.parametrize("raise_server_exceptions", (True, False))
-def test_error_with_middleware_and_testclient_exit(raise_server_exceptions):
+def test_error_with_middleware_and_testclient_exit(use_middleware, raise_server_exceptions):
     """TestClient's __exit__ should not raise the exception again."""
     app = Starlette()
 
@@ -130,13 +131,15 @@ def test_error_with_middleware_and_testclient_exit(raise_server_exceptions):
     async def shutdown():
         events.append("shutdown")
 
-    @app.middleware("http")
-    async def http_middleware(request, call_next):
-        return await call_next(request)
+    if use_middleware:
+        @app.middleware("http")
+        async def http_middleware(request, call_next):
+            return await call_next(request)
 
-    @app.middleware("http")
-    async def second_middleware(request, call_next):
-        return await call_next(request)
+        if use_middleware == 2:
+            @app.middleware("http")
+            async def second_middleware(request, call_next):
+                return await call_next(request)
 
     if raise_server_exceptions:
 
