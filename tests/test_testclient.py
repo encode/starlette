@@ -134,6 +134,10 @@ def test_error_with_middleware_and_testclient_exit(raise_server_exceptions):
     async def http_middleware(request, call_next):
         return await call_next(request)
 
+    @app.middleware("http")
+    async def second_middleware(request, call_next):
+        return await call_next(request)
+
     if raise_server_exceptions:
 
         @app.route("/error")
