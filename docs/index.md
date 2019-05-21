@@ -2,6 +2,9 @@
   <img width="420px" src="/img/starlette.png" alt='starlette'>
 </p>
 <p align="center">
+    <em>✨ Starlette ✨</em>
+</p>
+<p align="center">
     <em>✨ The little ASGI framework that shines. ✨</em>
 </p>
 <p align="center">

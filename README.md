@@ -2,6 +2,9 @@
   <a href="https://www.starlette.io/"><img width="420px" src="https://raw.githubusercontent.com/encode/starlette/master/docs/img/starlette.png" alt='starlette'></a>
 </p>
 <p align="center">
+    <em>✨ Starlette ✨</em>
+</p>
+<p align="center">
     <em>✨ The little ASGI framework that shines. ✨</em>
 </p>
 <p align="center">
