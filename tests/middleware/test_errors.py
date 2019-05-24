@@ -3,6 +3,7 @@ import pytest
 from starlette.middleware.errors import ServerErrorMiddleware
 from starlette.responses import JSONResponse, Response
 from starlette.testclient import TestClient
+from starlette.websockets import WebSocket, WebSocketDisconnect
 
 
 def test_handler():
@@ -55,16 +56,12 @@ def test_debug_after_response_sent():
         client.get("/")
 
 
-def test_debug_not_http():
-    """
-    DebugMiddleware should just pass through any non-http messages as-is.
-    """
-
+def test_debug_websocket():
     async def app(scope, receive, send):
         raise RuntimeError("Something went wrong")
 
     app = ServerErrorMiddleware(app)
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(WebSocketDisconnect):
         client = TestClient(app)
         client.websocket_connect("/")

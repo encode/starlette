@@ -1,13 +1,18 @@
+import asyncio
 import os
 
+import pytest
+
+from starlette import status
 from starlette.applications import Starlette
 from starlette.endpoints import HTTPEndpoint
-from starlette.exceptions import HTTPException
+from starlette.exceptions import HTTPException, WebSocketException
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.responses import JSONResponse, PlainTextResponse
 from starlette.routing import Host, Mount, Route, Router, WebSocketRoute
 from starlette.staticfiles import StaticFiles
 from starlette.testclient import TestClient
+from starlette.websockets import WebSocketDisconnect
 
 app = Starlette()
 
@@ -84,6 +89,28 @@ async def websocket_endpoint(session):
     await session.accept()
     await session.send_text("Hello, world!")
     await session.close()
+
+
+@app.websocket_route("/ws-raise-websocket")
+async def websocket_raise_websocket_exception(websocket):
+    await websocket.accept()
+    raise WebSocketException(code=status.WS_1003_UNSUPPORTED_DATA)
+
+
+class CustomWSException(Exception):
+    pass
+
+
+@app.websocket_route("/ws-raise-custom")
+async def websocket_raise_custom(websocket):
+    await websocket.accept()
+    raise CustomWSException()
+
+
+@app.exception_handler(CustomWSException)
+def custom_ws_exception_handler(websocket, exc):
+    loop = asyncio.new_event_loop()
+    loop.run_until_complete(websocket.close(code=status.WS_1013_TRY_AGAIN_LATER))
 
 
 client = TestClient(app)
@@ -164,6 +191,26 @@ def test_500():
     assert response.json() == {"detail": "Server Error"}
 
 
+def test_websocket_raise_websocket_exception():
+    client = TestClient(app)
+    with client.websocket_connect("/ws-raise-websocket") as session:
+        response = session.receive()
+        assert response == {
+            "type": "websocket.close",
+            "code": status.WS_1003_UNSUPPORTED_DATA,
+        }
+
+
+def test_websocket_raise_custom_exception():
+    client = TestClient(app)
+    with client.websocket_connect("/ws-raise-custom") as session:
+        response = session.receive()
+        assert response == {
+            "type": "websocket.close",
+            "code": status.WS_1013_TRY_AGAIN_LATER,
+        }
+
+
 def test_middleware():
     client = TestClient(app, base_url="http://incorrecthost")
     response = client.get("/func")
@@ -191,6 +238,10 @@ def test_routes():
         ),
         Route("/500", endpoint=runtime_error, methods=["GET"]),
         WebSocketRoute("/ws", endpoint=websocket_endpoint),
+        WebSocketRoute(
+            "/ws-raise-websocket", endpoint=websocket_raise_websocket_exception
+        ),
+        WebSocketRoute("/ws-raise-custom", endpoint=websocket_raise_custom),
     ]
 
 
