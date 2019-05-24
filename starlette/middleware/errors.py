@@ -2,10 +2,12 @@ import asyncio
 import traceback
 import typing
 
+from starlette import status
 from starlette.concurrency import run_in_threadpool
-from starlette.requests import Request
+from starlette.requests import Request, empty_receive
 from starlette.responses import HTMLResponse, PlainTextResponse, Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
+from starlette.websockets import WebSocket, WebSocketState
 
 STYLES = """
 .traceback-container {
@@ -83,7 +85,7 @@ class ServerErrorMiddleware:
         self.debug = debug
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] != "http":
+        if scope["type"] not in {"http", "websocket"}:
             await self.app(scope, receive, send)
             return
 
@@ -99,7 +101,7 @@ class ServerErrorMiddleware:
         try:
             await self.app(scope, receive, _send)
         except Exception as exc:
-            if not response_started:
+            if not response_started and scope["type"] == "http":
                 request = Request(scope)
                 if self.debug:
                     # In debug mode, return traceback responses.
@@ -115,6 +117,13 @@ class ServerErrorMiddleware:
                         response = await run_in_threadpool(self.handler, request, exc)
 
                 await response(scope, receive, send)
+            elif scope["type"] == "websocket":
+                websocket = WebSocket(scope, receive, send)
+                # https://tools.ietf.org/html/rfc6455#section-7.4.1
+                # 1011 indicates that a server is terminating the connection because
+                # it encountered an unexpected condition that prevented it from
+                # fulfilling the request.
+                await websocket.close(code=status.WS_1011_INTERNAL_ERROR)
 
             # We always continue to raise the exception.
             # This allows servers to log the error, or allows test clients
