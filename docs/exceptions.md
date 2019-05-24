@@ -42,6 +42,14 @@ async def http_exception(request, exc):
     return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
 ```
 
+You might also want to override how `WebSocketException` is handled:
+
+```python
+@app.exception_handler(WebSocketException)
+async def websocket_exception(websocket, exc):
+    await websocket.close(code=1008)
+```
+
 ## Errors and handled exceptions
 
 It is important to differentiate between handled exceptions and errors.
@@ -74,3 +82,11 @@ returning plain-text HTTP responses for any `HTTPException`.
 
 You should only raise `HTTPException` inside routing or endpoints. Middleware
 classes should instead just return appropriate responses directly.
+
+## WebSocketException
+
+You can use the `WebSocketException` class to raise errors inside of WebSocket endpoints.
+
+* `WebSocketException(code=1008)`
+
+You can set any code valid as defined [in the specification](https://tools.ietf.org/html/rfc6455#section-7.4.1).
