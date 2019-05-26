@@ -98,7 +98,6 @@ class CORSMiddleware:
         requested_origin = request_headers["origin"]
         requested_method = request_headers["access-control-request-method"]
         requested_headers = request_headers.get("access-control-request-headers")
-        requested_cookie = "cookie" in request_headers
 
         headers = dict(self.preflight_headers)
         failures = []
@@ -149,18 +148,18 @@ class CORSMiddleware:
 
         message.setdefault("headers", [])
         headers = MutableHeaders(scope=message)
+        headers.update(self.simple_headers)
         origin = request_headers["Origin"]
         has_cookie = "cookie" in request_headers
 
         # If request includes any cookie headers, then we must respond
         # with the specific origin instead of '*'.
         if self.allow_all_origins and has_cookie:
-            self.simple_headers["Access-Control-Allow-Origin"] = origin
+            headers["Access-Control-Allow-Origin"] = origin
 
         # If we only allow specific origins, then we have to mirror back
         # the Origin header in the response.
         elif not self.allow_all_origins and self.is_allowed_origin(origin=origin):
             headers["Access-Control-Allow-Origin"] = origin
             headers.add_vary_header("Origin")
-        headers.update(self.simple_headers)
         await send(message)
