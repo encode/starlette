@@ -7,8 +7,8 @@ to make and check passwords.
 Among these classes is a special class `PasswordChecker`.
 It is intended to be a common interface to a multiple underlying hashers.
 
-`PasswordChecker#check` will iterate over all given hashes asking each to verify
-the given password. If none of them succeed then returns `False`.
+`PasswordChecker#check` will iterate over all given hashers asking each to verify
+the given password. If none of them succeeds then it returns `False`.
 
 Note, that `PasswordChecker#make` will use only the first item from 
 the `hashers` list to encode a plain password.
@@ -34,7 +34,7 @@ print(checker.requires_update) # True if password needs to be rehashed
 
 ### InsecurePasswordHasher
 
-This class does not encode password and returns them "as is".
+This class does not encode password and returns it "as is".
 
 ### PBKDF2PasswordHasher
 
