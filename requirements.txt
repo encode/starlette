@@ -7,6 +7,8 @@ python-multipart
 pyyaml
 requests
 ujson
+bcrypt
+argon2-cffi
 
 # Testing
 autoflake
