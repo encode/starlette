@@ -14,6 +14,13 @@ def mock_service_endpoint(request):
     return JSONResponse({"mock": "example"})
 
 
+@mock_service.websocket_route("/ws")
+async def mock_service_websocket_endpoint(websocket):
+    await websocket.accept()
+    await websocket.send_json({"message": "test"})
+    await websocket.close()
+
+
 app = Starlette()
 
 
@@ -22,6 +29,14 @@ def homepage(request):
     client = TestClient(mock_service)
     response = client.get("/")
     return JSONResponse(response.json())
+
+
+@app.websocket_route("/ws")
+async def websocket_endpoint(websocket):
+    await websocket.accept()
+    with TestClient(mock_service).websocket_connect("/ws") as mock_service_ws:
+        await websocket.send_json(mock_service_ws.receive_json())
+    await websocket.close()
 
 
 startup_error_app = Starlette()
@@ -114,12 +129,17 @@ def test_websocket_blocking_receive():
         assert data == {"message": "test"}
 
 
-def test_websocket_connect_runs_use_current_loop():
+def test_use_websocket_connect_in_endpoint():
+    with TestClient(app).websocket_connect("/ws") as _ws:
+        assert _ws.receive_json() == {"message": "test"}
+
+
+def test_websocket_connect_runs_in_current_event_loop():
     app = Starlette()
 
     @app.on_event("startup")
     async def open_connection_pool():
-        app.pool = asyncio.create_task(asyncio.sleep(0.1))
+        app.pool = asyncio.ensure_future(asyncio.sleep(0.1))
 
     @app.websocket_route("/")
     async def websocket_endpoint(websocket):
@@ -128,7 +148,6 @@ def test_websocket_connect_runs_use_current_loop():
         await websocket.send_json({"message": "test"})
         await websocket.close()
 
-    client = TestClient(app)
-    with client as cli, cli.websocket_connect("/") as websocket:
+    with TestClient(app) as client, client.websocket_connect("/") as websocket:
         data = websocket.receive_json()
         assert data == {"message": "test"}

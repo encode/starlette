@@ -264,6 +264,8 @@ class WebSocketTestSession:
         self.scope = scope
         self.accepted_subprotocol = None
         self._loop = asyncio.get_event_loop()
+        if self._loop.is_running():
+            self._loop = asyncio.new_event_loop()
         self._receive_queue = queue.Queue()  # type: queue.Queue
         self._send_queue = queue.Queue()  # type: queue.Queue
         self._thread = threading.Thread(target=self._run)
@@ -423,7 +425,7 @@ class TestClient(requests.Session):
 
     def websocket_connect(
         self, url: str, subprotocols: typing.Sequence[str] = None, **kwargs: typing.Any
-    ) -> typing.Any:
+    ) -> WebSocketTestSession:
         url = urljoin("ws://testserver", url)
         headers = kwargs.get("headers", {})
         headers.setdefault("connection", "upgrade")
@@ -441,7 +443,7 @@ class TestClient(requests.Session):
 
         return session
 
-    def __enter__(self) -> requests.Session:
+    def __enter__(self) -> "TestClient":
         loop = asyncio.get_event_loop()
         self.send_queue = asyncio.Queue()  # type: asyncio.Queue
         self.receive_queue = asyncio.Queue()  # type: asyncio.Queue
