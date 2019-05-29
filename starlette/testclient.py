@@ -7,6 +7,7 @@ import queue
 import threading
 import types
 import typing
+import urllib3
 from urllib.parse import unquote, urljoin, urlsplit
 
 import requests
@@ -34,7 +35,7 @@ ASGI2App = typing.Callable[[Scope], ASGIInstance]
 ASGI3App = typing.Callable[[Scope, Receive, Send], typing.Awaitable[None]]
 
 
-class _HeaderDict(requests.packages.urllib3._collections.HTTPHeaderDict):
+class _HeaderDict(urllib3._collections.HTTPHeaderDict):
     def get_all(self, key: str, default: str) -> str:
         return self.getheaders(key)
 
@@ -250,7 +251,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 "body": io.BytesIO(),
             }
 
-        raw = requests.packages.urllib3.HTTPResponse(**raw_kwargs)
+        raw = urllib3.HTTPResponse(**raw_kwargs)
         response = self.build_response(request, raw)
         if template is not None:
             response.template = template
