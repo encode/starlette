@@ -54,8 +54,7 @@ Requires `argon2` library to be installed.
 
 ## Custom password hasher
 
-When you need to make your own password hasher 
-then create a new class and implement `starlette.passwords.PasswordHasher` interface:
+You can create your own password hasher by creating a new class and implementing the `starlette.passwords.PasswordHasher` interface:
 
 ```python
 from typing import Any
