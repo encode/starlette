@@ -23,7 +23,6 @@ ALNUM_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 class PasswordHasher(abc.ABC):
     algorithm: str = ""
-    rounds: int = 150000
 
     @abc.abstractmethod
     async def check(self, password: str, encoded: str) -> bool:
@@ -179,7 +178,7 @@ class PBKDF2PasswordHasher(PasswordHasher):
         return "%s$%d$%s$%s" % (self.algorithm, self.rounds, salt, hash_)
 
 
-class InsecurePasswordHasher(PasswordHasher):
+class PlainPasswordHasher(PasswordHasher):
     algorithm: str = "plain"
 
     async def check(self, password: str, encoded: str) -> bool:
