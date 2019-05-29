@@ -1,11 +1,11 @@
 Starlette includes several password hashing classes that let you
-to make and check passwords.
+create and check passwords.
 
 
 ## PasswordChecker
 
 Among these classes is a special class `PasswordChecker`.
-It is intended to be a common interface to a multiple underlying hashers.
+It is intended to be a common interface to multiple underlying hashers.
 
 `PasswordChecker#check` will iterate over all given hashers asking each to verify
 the given password. If none of them succeeds then it returns `False`.
@@ -34,7 +34,7 @@ print(checker.requires_update) # True if password needs to be rehashed
 
 ### InsecurePasswordHasher
 
-This class does not encode password and returns it "as is".
+This class does not encode the password and returns it "as is".
 
 ### PBKDF2PasswordHasher
 
@@ -54,8 +54,7 @@ Requires `argon2` library to be installed.
 
 ## Custom password hasher
 
-When you need to make your own password hasher 
-then create a new class and implement `starlette.passwords.PasswordHasher` interface:
+You can create your own password hasher by creating a new class and implementing the `starlette.passwords.PasswordHasher` interface:
 
 ```python
 from typing import Any
