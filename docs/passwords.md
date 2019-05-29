@@ -1,5 +1,5 @@
 Starlette includes several password hashing classes that let you
-to make and check passwords.
+create and check passwords.
 
 
 ## PasswordChecker
