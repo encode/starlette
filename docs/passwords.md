@@ -5,7 +5,7 @@ create and check passwords.
 ## PasswordChecker
 
 Among these classes is a special class `PasswordChecker`.
-It is intended to be a common interface to a multiple underlying hashers.
+It is intended to be a common interface to multiple underlying hashers.
 
 `PasswordChecker#check` will iterate over all given hashers asking each to verify
 the given password. If none of them succeeds then it returns `False`.
