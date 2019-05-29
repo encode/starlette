@@ -34,7 +34,7 @@ print(checker.requires_update) # True if password needs to be rehashed
 
 ### InsecurePasswordHasher
 
-This class does not encode password and returns it "as is".
+This class does not encode the password and returns it "as is".
 
 ### PBKDF2PasswordHasher
 
