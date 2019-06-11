@@ -12,7 +12,7 @@ from starlette.templating import Jinja2Templates
 templates = Jinja2Templates(directory='templates')
 
 app = Starlette(debug=True)
-app.mount('/static', StaticFiles(directory='statics'), name='static')
+app.mount('/static', StaticFiles(directory='static'), name='static')
 
 
 @app.route('/')
