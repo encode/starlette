@@ -20,7 +20,7 @@ class ClientDisconnect(Exception):
 
 class State:
     if typing.TYPE_CHECKING:
-        def __getattr__(self, item):
+        def __getattr__(self, item: typing.Any) -> typing.Any:
             ...
 
 
