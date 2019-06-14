@@ -19,7 +19,9 @@ class ClientDisconnect(Exception):
 
 
 class State:
-    pass
+    if typing.TYPE_CHECKING:
+        def __getattr__(self, item):
+            ...
 
 
 class HTTPConnection(Mapping):
