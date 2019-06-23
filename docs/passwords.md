@@ -19,9 +19,9 @@ that the hashed password needs to be updated (eg. algorithm has changed).
 
 ```python
 from starlette.passwords import (
-    PlainPasswordHasher, PBKDF2PasswordHasher, PasswordChecker
+    InsecurePasswordHasher, PBKDF2PasswordHasher, PasswordChecker
 )
-hashers = [PlainPasswordHasher(), PBKDF2PasswordHasher()]
+hashers = [InsecurePasswordHasher(), PBKDF2PasswordHasher()]
 checker = PasswordChecker(hashers)
 
 await checker.make('password_to_hash')
@@ -32,7 +32,7 @@ print(checker.requires_update) # True if password needs to be rehashed
 
 ## Included hashers
 
-### PlainPasswordHasher
+### InsecurePasswordHasher
 
 This class does not encode the password and returns it "as is".  
 Warning: this hasher does not offer any security and is provided exclusively 

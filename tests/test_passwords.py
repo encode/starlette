@@ -8,7 +8,7 @@ from starlette.passwords import (
     PasswordChecker,
     PasswordHasher,
     PBKDF2PasswordHasher,
-    PlainPasswordHasher,
+    InsecurePasswordHasher,
 )
 
 try:
@@ -42,10 +42,10 @@ def test_generic_password_hasher():
 
 
 @pytest.mark.asyncio
-async def test_plain_hasher():
+async def test_insecure_hasher():
     password = "pàsšўoЯd"
     invalid_password = "pàsšўord"
-    hasher = PlainPasswordHasher()
+    hasher = InsecurePasswordHasher()
     hashed = await hasher.make(password)
     assert hasher.algorithm in hashed
     assert await hasher.check(password, hashed)
@@ -112,7 +112,7 @@ class TestPasswordChecker:
     @pytest.mark.asyncio
     async def test_looksup_hashers(self):
         # this set requires password update
-        hashers = [PBKDF2PasswordHasher(), PlainPasswordHasher()]
+        hashers = [PBKDF2PasswordHasher(), InsecurePasswordHasher()]
         hashed = "plain$password"
         checker = PasswordChecker(hashers)
         assert await checker.check("password", hashed)
@@ -122,24 +122,24 @@ class TestPasswordChecker:
         # this set does not require the password update
         # because the default (the first) hasher confirms the password
         hashed = "plain$password"
-        hashers = [PlainPasswordHasher(), PBKDF2PasswordHasher()]
+        hashers = [InsecurePasswordHasher(), PBKDF2PasswordHasher()]
         checker = PasswordChecker(hashers)
         assert not await checker.check("invalid_password", hashed)
         assert not checker.requires_update
 
         # this has to fail as no hashers can verify the password
         hashed = "unsupported$password"
-        hashers = [PlainPasswordHasher(), PBKDF2PasswordHasher()]
+        hashers = [InsecurePasswordHasher(), PBKDF2PasswordHasher()]
         checker = PasswordChecker(hashers)
         assert not await checker.check("password", hashed)
 
     def test_requires_update(self):
-        checker = PasswordChecker([PlainPasswordHasher()])
+        checker = PasswordChecker([InsecurePasswordHasher()])
         with pytest.raises(ValueError):
             checker.requires_update
 
     @pytest.mark.asyncio
     async def test_make(self):
-        checker = PasswordChecker([PlainPasswordHasher(), PBKDF2PasswordHasher()])
+        checker = PasswordChecker([InsecurePasswordHasher(), PBKDF2PasswordHasher()])
         hashed = await checker.make("password")
         assert hashed == "plain$password"

@@ -178,7 +178,7 @@ class PBKDF2PasswordHasher(PasswordHasher):
         return "%s$%d$%s$%s" % (self.algorithm, self.rounds, salt, hash_)
 
 
-class PlainPasswordHasher(PasswordHasher):
+class InsecurePasswordHasher(PasswordHasher):
     algorithm: str = "plain"
 
     async def check(self, password: str, encoded: str) -> bool:
