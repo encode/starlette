@@ -35,7 +35,8 @@ print(checker.requires_update) # True if password needs to be rehashed
 ### InsecurePasswordHasher
 
 This class does not encode the password and returns it "as is".  
-Warning: this hasher does not offer any security and is provided exclusively 
+
+> **Warning**: this hasher does not offer any security and is provided exclusively 
 for making password operations faster in test suites.
 
 ### PBKDF2PasswordHasher
