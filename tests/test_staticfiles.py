@@ -187,17 +187,17 @@ def test_staticfiles_html(tmpdir):
     client = TestClient(app)
 
     response = client.get("/dir/")
-    assert response.url == "http://testserver/dir/"
+    assert str(response.url) == "http://testserver/dir/"
     assert response.status_code == 200
     assert response.text == "<h1>Hello</h1>"
 
     response = client.get("/dir")
-    assert response.url == "http://testserver/dir/"
+    assert str(response.url) == "http://testserver/dir/"
     assert response.status_code == 200
     assert response.text == "<h1>Hello</h1>"
 
     response = client.get("/dir/index.html")
-    assert response.url == "http://testserver/dir/index.html"
+    assert str(response.url) == "http://testserver/dir/index.html"
     assert response.status_code == 200
     assert response.text == "<h1>Hello</h1>"
 

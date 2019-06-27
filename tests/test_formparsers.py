@@ -77,7 +77,7 @@ def test_multipart_request_data(tmpdir):
 
 
 def test_multipart_request_files(tmpdir):
-    path = os.path.join(tmpdir, "test.txt")
+    path = os.path.join(tmpdir, "test.png")
     with open(path, "wb") as file:
         file.write(b"<file content>")
 
@@ -86,9 +86,9 @@ def test_multipart_request_files(tmpdir):
         response = client.post("/", files={"test": f})
         assert response.json() == {
             "test": {
-                "filename": "test.txt",
+                "filename": "test.png",
                 "content": "<file content>",
-                "content_type": "",
+                "content_type": "image/png",
             }
         }
 
@@ -128,7 +128,7 @@ def test_multipart_request_multiple_files(tmpdir):
             "test1": {
                 "filename": "test1.txt",
                 "content": "<file1 content>",
-                "content_type": "",
+                "content_type": "text/plain",
             },
             "test2": {
                 "filename": "test2.txt",
@@ -160,7 +160,7 @@ def test_multi_items(tmpdir):
                 {
                     "filename": "test1.txt",
                     "content": "<file1 content>",
-                    "content_type": "",
+                    "content_type": "text/plain",
                 },
                 {
                     "filename": "test2.txt",

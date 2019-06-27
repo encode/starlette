@@ -57,7 +57,7 @@ def test_redirect_response():
     client = TestClient(app)
     response = client.get("/redirect")
     assert response.text == "hello, world"
-    assert response.url == "http://testserver/"
+    assert str(response.url) == "http://testserver/"
 
 
 def test_streaming_response():
@@ -124,12 +124,12 @@ def test_response_phrase():
     app = Response(status_code=204)
     client = TestClient(app)
     response = client.get("/")
-    assert response.reason == "No Content"
+    assert response.reason_phrase == "No Content"
 
     app = Response(b"", status_code=123)
     client = TestClient(app)
     response = client.get("/")
-    assert response.reason == ""
+    assert response.reason_phrase == ""
 
 
 def test_file_response(tmpdir):

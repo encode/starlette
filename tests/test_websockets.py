@@ -74,7 +74,7 @@ def test_websocket_headers():
             "accept-encoding": "gzip, deflate",
             "connection": "upgrade",
             "host": "testserver",
-            "user-agent": "testclient",
+            "user-agent": "http3",
             "sec-websocket-key": "testserver==",
             "sec-websocket-version": "13",
         }
@@ -281,5 +281,10 @@ def test_websocket_scope_interface():
         send=mock_send,
     )
     assert websocket["type"] == "websocket"
-    assert dict(websocket) == {"type": "websocket", "path": "/abc/", "headers": [], 'state': {}}
+    assert dict(websocket) == {
+        "type": "websocket",
+        "path": "/abc/",
+        "headers": [],
+        "state": {},
+    }
     assert len(websocket) == 4
