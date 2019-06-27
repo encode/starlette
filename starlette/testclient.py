@@ -166,9 +166,9 @@ class TestClient(http3.Client):
         self,
         url: str,
         subprotocols: typing.Sequence[str] = None,
-        auth: typing.Callable = None,
-        headers: dict = None,
-        cookies: dict = None,
+        auth: http3.AuthTypes = None,
+        headers: http3.HeaderTypes = None,
+        cookies: http3.CookieTypes = None,
     ) -> typing.Any:
         url = self.base_url.join(url)
         cookies = self.merge_cookies(cookies=cookies)

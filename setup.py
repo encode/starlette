@@ -56,7 +56,7 @@ setup(
             "jinja2",
             "python-multipart",
             "pyyaml",
-            "requests",
+            "http3",
             "ujson",
         ]
     },

@@ -8,6 +8,7 @@ from starlette.background import BackgroundTask
 from starlette.requests import Request
 from starlette.responses import (
     FileResponse,
+    JSONResponse,
     RedirectResponse,
     Response,
     StreamingResponse,
@@ -44,6 +45,16 @@ def test_ujson_response():
     client = TestClient(app)
     response = client.get("/")
     assert response.json() == {"hello": "world"}
+
+
+def test_json_none_response():
+    async def app(scope, receive, send):
+        response = JSONResponse(None)
+        await response(scope, receive, send)
+
+    client = TestClient(app)
+    response = client.get("/")
+    assert response.json() is None
 
 
 def test_redirect_response():
