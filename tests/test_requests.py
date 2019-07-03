@@ -1,6 +1,7 @@
 import asyncio
 
 import pytest
+from http3 import USER_AGENT
 
 from starlette.requests import ClientDisconnect, Request, State
 from starlette.responses import JSONResponse, Response
@@ -46,7 +47,7 @@ def test_request_headers():
     assert response.json() == {
         "headers": {
             "host": "example.org",
-            "user-agent": "testclient",
+            "user-agent": USER_AGENT,
             "accept-encoding": "gzip, deflate",
             "accept": "*/*",
             "connection": "keep-alive",

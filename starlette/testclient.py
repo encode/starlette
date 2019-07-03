@@ -180,7 +180,7 @@ class TestClient(http3.Client):
                 auth = http3.auth.HTTPBasicAuth(username=auth[0], password=auth[1])
             request = auth(request)
 
-        request.headers.setdefault("connection", "upgrade")
+        request.headers["connection"] = "upgrade"
         request.headers.setdefault("sec-websocket-key", "testserver==")
         request.headers.setdefault("sec-websocket-version", "13")
         if subprotocols is not None:

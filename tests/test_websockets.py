@@ -3,6 +3,7 @@ import pytest
 from starlette import status
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocket, WebSocketDisconnect
+from http3 import USER_AGENT
 
 
 def test_websocket_url():
@@ -74,7 +75,7 @@ def test_websocket_headers():
             "accept-encoding": "gzip, deflate",
             "connection": "upgrade",
             "host": "testserver",
-            "user-agent": "http3",
+            "user-agent": USER_AGENT,
             "sec-websocket-key": "testserver==",
             "sec-websocket-version": "13",
         }
