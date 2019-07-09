@@ -602,7 +602,9 @@ class Router:
                     match, child_scope = route.matches(redirect_scope)
                     if match != Match.NONE:
                         redirect_url = URL(scope=redirect_scope)
-                        response = RedirectResponse(url=str(redirect_url))
+                        response = RedirectResponse(
+                            url=str(redirect_url), status_code=308
+                        )
                         await response(scope, receive, send)
                         return
 
