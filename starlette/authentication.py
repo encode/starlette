@@ -27,7 +27,7 @@ def requires(
         type = None
         sig = inspect.signature(func)
         for idx, parameter in enumerate(sig.parameters.values()):
-            if parameter.name == "request" or parameter.name == "websocket":
+            if parameter.name == "request" or parameter.name == "websocket" or parameter.name == "req":
                 type = parameter.name
                 break
         else:
@@ -57,8 +57,12 @@ def requires(
             async def async_wrapper(
                 *args: typing.Any, **kwargs: typing.Any
             ) -> Response:
-                request = kwargs.get("request", args[idx])
-                assert isinstance(request, Request)
+                try:
+                    request = kwargs.get("request", args[idx])
+                    assert isinstance(request, Request)
+                except AttributeError:
+                    request = kwargs.get("req", args[idx])
+                    assert isinstance(req, Request)
 
                 if not has_required_scope(request, scopes_list):
                     if redirect is not None:
@@ -72,8 +76,12 @@ def requires(
             # Handle sync request/response functions.
             @functools.wraps(func)
             def sync_wrapper(*args: typing.Any, **kwargs: typing.Any) -> Response:
-                request = kwargs.get("request", args[idx])
-                assert isinstance(request, Request)
+                try:
+                    request = kwargs.get("request", args[idx])
+                    assert isinstance(request, Request)
+                except AttributeError:
+                    request = kwargs.get("req", args[idx])
+                    assert isinstance(req, Request)
 
                 if not has_required_scope(request, scopes_list):
                     if redirect is not None:
