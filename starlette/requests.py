@@ -82,6 +82,10 @@ class HTTPConnection(Mapping):
         return self.scope.get("path_params", {})
 
     @property
+    def path_re(self) -> str:
+        return self.scope.get("path_re", "")
+
+    @property
     def cookies(self) -> typing.Dict[str, str]:
         if not hasattr(self, "_cookies"):
             cookies = {}

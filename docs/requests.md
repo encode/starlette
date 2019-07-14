@@ -52,6 +52,13 @@ Query parameters are exposed as an immutable multi-dict.
 
 For example: `request.query_params['search']`
 
+#### Path regex
+
+Regular expresion of triggered route. Represented as a string.
+
+For example: `GET /users/unitto` => `request.path_re`
+will return something like a `/users/{username}` 
+
 #### Path Parameters
 
 Router path parameters are exposed as a dictionary interface.
