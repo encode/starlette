@@ -163,7 +163,7 @@ class Route(BaseRoute):
         else:
             self.methods = set([method.upper() for method in methods])
             if "GET" in self.methods:
-                self.methods |= set(["HEAD"])
+                self.methods |= {"HEAD"}
 
         self.path_regex, self.path_format, self.param_convertors = compile_path(path)
 
@@ -179,8 +179,7 @@ class Route(BaseRoute):
                 child_scope = {"endpoint": self.endpoint, "path_params": path_params}
                 if self.methods and scope["method"] not in self.methods:
                     return Match.PARTIAL, child_scope
-                else:
-                    return Match.FULL, child_scope
+                return Match.FULL, child_scope
         return Match.NONE, {}
 
     def url_path_for(self, name: str, **path_params: str) -> URLPath:
@@ -231,8 +230,9 @@ class WebSocketRoute(BaseRoute):
             # Endpoint is a class. Treat it as ASGI.
             self.app = endpoint
 
-        regex = "^" + path + "$"
-        regex = re.sub("{([a-zA-Z_][a-zA-Z0-9_]*)}", r"(?P<\1>[^/]+)", regex)
+        # FIXME: unused variables
+        # regex = "^" + path + "$"
+        # regex = re.sub("{([a-zA-Z_][a-zA-Z0-9_]*)}", r"(?P<\1>[^/]+)", regex)
         self.path_regex, self.path_format, self.param_convertors = compile_path(path)
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
@@ -577,6 +577,7 @@ class Router:
             scope["router"] = self
 
         partial = None
+        partial_scope: typing.MutableMapping[str, typing.Any] = {}
 
         for route in self.routes:
             match, child_scope = route.matches(scope)

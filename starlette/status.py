@@ -40,6 +40,7 @@ HTTP_414_REQUEST_URI_TOO_LONG = 414
 HTTP_415_UNSUPPORTED_MEDIA_TYPE = 415
 HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE = 416
 HTTP_417_EXPECTATION_FAILED = 417
+HTTP_418_IM_TEAPOT = 418
 HTTP_422_UNPROCESSABLE_ENTITY = 422
 HTTP_423_LOCKED = 423
 HTTP_424_FAILED_DEPENDENCY = 424
@@ -55,6 +56,35 @@ HTTP_504_GATEWAY_TIMEOUT = 504
 HTTP_505_HTTP_VERSION_NOT_SUPPORTED = 505
 HTTP_507_INSUFFICIENT_STORAGE = 507
 HTTP_511_NETWORK_AUTHENTICATION_REQUIRED = 511
+
+
+def is_informational(code: int) -> bool:
+    return 100 <= code <= 199
+
+
+def is_success(code: int) -> bool:
+    return 200 <= code <= 299
+
+
+def is_redirect(code: int) -> bool:
+    return 300 <= code <= 399
+
+
+def is_client_error(code: int) -> bool:
+    return 400 <= code <= 499
+
+
+def is_server_error(code: int) -> bool:
+    return 500 <= code <= 599
+
+
+def is_teapot(code: int) -> bool:
+    """
+    ...
+    And RFC 7168 - https://tools.ietf.org/html/rfc7168
+    And RFC 2324 - https://tools.ietf.org/html/rfc2324
+    """
+    return code == HTTP_418_IM_TEAPOT
 
 
 """

@@ -145,15 +145,14 @@ class StaticFiles:
     async def lookup_path(
         self, path: str
     ) -> typing.Tuple[str, typing.Optional[os.stat_result]]:
-        stat_result = None
         for directory in self.all_directories:
             full_path = os.path.join(directory, path)
             try:
                 stat_result = await aio_stat(full_path)
-                return (full_path, stat_result)
+                return full_path, stat_result
             except FileNotFoundError:
                 pass
-        return ("", None)
+        return "", None
 
     def file_response(
         self,
