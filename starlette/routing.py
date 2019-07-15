@@ -603,7 +603,7 @@ class Router:
                     if match != Match.NONE:
                         redirect_url = URL(scope=redirect_scope)
                         response = RedirectResponse(
-                            url=str(redirect_url), status_code=308
+                            url=str(redirect_url), status_code=307
                         )
                         await response(scope, receive, send)
                         return
