@@ -1,4 +1,6 @@
 import asyncio
+import dataclasses
+import json
 import os
 
 import pytest
@@ -55,6 +57,28 @@ def test_json_none_response():
     client = TestClient(app)
     response = client.get("/")
     assert response.json() is None
+
+@dataclasses.dataclass
+class Mock:
+    foo: str
+
+class CustomEncoder(json.JSONEncoder):
+    def default(self, o):
+        if dataclasses.is_dataclass(o):
+            return dataclasses.asdict(o)
+
+
+def test_json_response_fails_with_non_serializable_objects():
+    data = Mock(foo='bar')
+
+    with pytest.raises(TypeError):
+        assert JSONResponse(content=data).body
+
+
+def test_json_response_custom_encoder():
+    data = Mock(foo='bar')
+
+    assert {'foo': 'bar'} == json.loads(JSONResponse(content=data, encoder=CustomEncoder).body)
 
 
 def test_redirect_response():

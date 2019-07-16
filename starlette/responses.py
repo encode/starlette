@@ -39,7 +39,7 @@ class Response:
         media_type: str = None,
         background: BackgroundTask = None,
     ) -> None:
-        self.body = self.render(content)
+        self.content = content
         self.status_code = status_code
         if media_type is not None:
             self.media_type = media_type
@@ -79,6 +79,10 @@ class Response:
             raw_headers.append((b"content-type", content_type.encode("latin-1")))
 
         self.raw_headers = raw_headers
+
+    @property
+    def body(self):
+        return self.render(self.content)
 
     @property
     def headers(self) -> MutableHeaders:
@@ -142,6 +146,15 @@ class PlainTextResponse(Response):
 class JSONResponse(Response):
     media_type = "application/json"
 
+    def __init__(
+        self,
+        *args,
+        encoder = json.JSONEncoder,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.encoder = encoder
+
     def render(self, content: typing.Any) -> bytes:
         return json.dumps(
             content,
@@ -149,6 +162,7 @@ class JSONResponse(Response):
             allow_nan=False,
             indent=None,
             separators=(",", ":"),
+            cls=self.encoder
         ).encode("utf-8")
 
 
