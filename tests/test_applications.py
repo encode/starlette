@@ -54,6 +54,12 @@ def all_users_page(request):
     return PlainTextResponse("Hello, everyone!")
 
 
+@users.route("/pages/{num}")
+def pages(request):
+    path_re = request.path_re
+    return PlainTextResponse(f"Handled by re: {path_re!r}")
+
+
 @users.route("/{username}")
 def user_page(request):
     username = request.path_params["username"]
@@ -113,6 +119,12 @@ def test_class_route():
     response = client.get("/class")
     assert response.status_code == 200
     assert response.text == "Hello, world!"
+
+
+def test_path_re():
+    response = client.get("/users/pages/2")
+    assert response.status_code == 200
+    assert response.text == "Handled by re: '/pages/{num}'"
 
 
 def test_mounted_route():
@@ -181,6 +193,7 @@ def test_routes():
             app=Router(
                 routes=[
                     Route("/", endpoint=all_users_page),
+                    Route("/pages/{num}", endpoint=pages),
                     Route("/{username}", endpoint=user_page),
                 ]
             ),
