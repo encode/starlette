@@ -26,10 +26,12 @@ class GraphQLApp:
         schema: "graphene.Schema",
         executor: typing.Any = None,
         executor_class: type = None,
+        response_class: type = JSONResponse,
         graphiql: bool = True,
     ) -> None:
         self.schema = schema
         self.graphiql = graphiql
+        self.response_class = response_class
         if executor is None:
             # New style in 0.10.0. Use 'executor_class'.
             # See issue https://github.com/encode/starlette/issues/242
@@ -112,7 +114,7 @@ class GraphQLApp:
             status.HTTP_400_BAD_REQUEST if result.errors else status.HTTP_200_OK
         )
 
-        return JSONResponse(
+        return self.response_class(
             response_data, status_code=status_code, background=background
         )
 
