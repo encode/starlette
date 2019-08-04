@@ -12,6 +12,7 @@ def test_config(tmpdir, monkeypatch):
         file.write("# Do not commit to source control\n")
         file.write("DATABASE_URL=postgres://user:pass@localhost/dbname\n")
         file.write("REQUEST_HOSTNAME=example.com\n")
+        file.write("REQUEST_PORT=8000 # Port \n")
         file.write("SECRET_KEY=12345\n")
         file.write("BOOL_AS_INT=0\n")
         file.write("\n")
@@ -23,6 +24,7 @@ def test_config(tmpdir, monkeypatch):
     DATABASE_URL = config("DATABASE_URL", cast=URL)
     REQUEST_TIMEOUT = config("REQUEST_TIMEOUT", cast=int, default=10)
     REQUEST_HOSTNAME = config("REQUEST_HOSTNAME")
+    REQUEST_PORT = config("REQUEST_PORT", cast=int)
     SECRET_KEY = config("SECRET_KEY", cast=Secret)
     assert config("BOOL_AS_INT", cast=bool) is False
 
@@ -32,6 +34,7 @@ def test_config(tmpdir, monkeypatch):
     assert DATABASE_URL.username == "user"
     assert REQUEST_TIMEOUT == 10
     assert REQUEST_HOSTNAME == "example.com"
+    assert REQUEST_PORT == 8000
     assert repr(SECRET_KEY) == "Secret('**********')"
     assert str(SECRET_KEY) == "12345"
 

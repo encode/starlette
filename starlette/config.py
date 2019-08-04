@@ -78,6 +78,8 @@ class Config:
                 line = line.strip()
                 if "=" in line and not line.startswith("#"):
                     key, value = line.split("=", 1)
+                    if "#" in value:
+                        value = value.split("#", 1)[0]
                     key = key.strip()
                     value = value.strip().strip("\"'")
                     file_values[key] = value
