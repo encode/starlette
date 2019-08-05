@@ -8,6 +8,7 @@ from itsdangerous.exc import BadTimeSignature, SignatureExpired
 from starlette.datastructures import MutableHeaders, Secret
 from starlette.requests import Request
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
+from starlette.websockets import WebSocket
 
 
 class SessionMiddleware:
@@ -29,11 +30,14 @@ class SessionMiddleware:
             self.security_flags += "; secure"
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] not in ("http", "websocket"):  # pragma: no cover
+        if scope["type"] == "http":
+            request = Request(scope)
+        elif scope["type"] == "websocket":
+            request = WebSocket(scope, receive, send)
+        else:
             await self.app(scope, receive, send)
             return
-
-        request = Request(scope)
+        
         initial_session_was_empty = True
 
         if self.session_cookie in request.cookies:
