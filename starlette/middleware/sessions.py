@@ -32,9 +32,9 @@ class SessionMiddleware:
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "http":  # pragma: no cover
             request = Request(scope)
-        elif scope["type"] == "websocket":
+        elif scope["type"] == "websocket":  # pragma: no cover
             request = WebSocket(scope, receive, send)
-        else:
+        else:  # pragma: no cover
             await self.app(scope, receive, send)
             return
         
