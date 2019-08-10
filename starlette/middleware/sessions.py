@@ -33,7 +33,7 @@ class SessionMiddleware:
         if scope["type"] == "http":  # pragma: no cover
             request = Request(scope)  # type: HTTPConnection
         elif scope["type"] == "websocket":  # pragma: no cover
-            request = WebSocket(scope, receive, send)  # type: HTTPConnection
+            request = WebSocket(scope, receive, send)
         else:  # pragma: no cover
             await self.app(scope, receive, send)
             return
