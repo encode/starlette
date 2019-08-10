@@ -30,11 +30,10 @@ class SessionMiddleware:
             self.security_flags += "; secure"
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        request = None  # type: HTTPConnection
         if scope["type"] == "http":  # pragma: no cover
-            request = Request(scope)
+            request = Request(scope)  # type: HTTPConnection
         elif scope["type"] == "websocket":  # pragma: no cover
-            request = WebSocket(scope, receive, send)
+            request = WebSocket(scope, receive, send)  # type: HTTPConnection
         else:  # pragma: no cover
             await self.app(scope, receive, send)
             return
