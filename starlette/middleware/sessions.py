@@ -6,7 +6,7 @@ import itsdangerous
 from itsdangerous.exc import BadTimeSignature, SignatureExpired
 
 from starlette.datastructures import MutableHeaders, Secret
-from starlette.requests import Request
+from starlette.requests import HTTPConnection, Request
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from starlette.websockets import WebSocket
 
@@ -30,6 +30,7 @@ class SessionMiddleware:
             self.security_flags += "; secure"
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        request = None  # type: HTTPConnection
         if scope["type"] == "http":  # pragma: no cover
             request = Request(scope)
         elif scope["type"] == "websocket":  # pragma: no cover
