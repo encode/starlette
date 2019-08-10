@@ -37,7 +37,7 @@ class SessionMiddleware:
         else:  # pragma: no cover
             await self.app(scope, receive, send)
             return
-        
+
         initial_session_was_empty = True
 
         if self.session_cookie in request.cookies:
