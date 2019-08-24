@@ -7,6 +7,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response
 from starlette.types import Receive, Scope, Send
+from starlette.datastructures import UploadFile, MultiDict
 
 try:
     import graphene
@@ -54,6 +55,7 @@ class GraphQLApp:
         await response(scope, receive, send)
 
     async def handle_graphql(self, request: Request) -> Response:
+        files = MultiDict()
         if request.method in ("GET", "HEAD"):
             if "text/html" in request.headers.get("Accept", ""):
                 if not self.graphiql:
@@ -75,6 +77,20 @@ class GraphQLApp:
                 data = {"query": text}
             elif "query" in request.query_params:
                 data = request.query_params
+            elif "multipart/form-data" in content_type:
+                form = await request.form()
+                data = {
+                         "query": form.get('query'),
+                         "variables": json.loads(form.get('variables')),
+                       }
+
+                for (key, value) in form.items():
+                    if type(value) is UploadFile:
+                        files.append(key, {
+                            "filename": value.filename,
+                            "content_type": value.content_type,
+                            "content": await form[key].read()
+                        })
             else:
                 return PlainTextResponse(
                     "Unsupported Media Type",
@@ -97,7 +113,7 @@ class GraphQLApp:
             )
 
         background = BackgroundTasks()
-        context = {"request": request, "background": background}
+        context = {"request": request, "background": background, "files": files }
 
         result = await self.execute(
             query, variables=variables, context=context, operation_name=operation_name
