@@ -28,6 +28,35 @@ def test_staticfiles_with_package():
     assert response.text == "123\n"
 
 
+def test_staticfiles_add_directory(tmpdir):
+    public_dir = tmpdir.mkdir("public")
+    path = os.path.join(public_dir, "example.txt")
+    with open(path, "w") as file:
+        file.write("<file content>")
+
+    private_dir = tmpdir.mkdir("private")
+    path = os.path.join(private_dir, "secret.txt")
+    with open(path, "w") as file:
+        file.write("<file content>")
+
+    app = StaticFiles(directory=public_dir)
+
+    client = TestClient(app)
+    response = client.get("/example.txt")
+    assert response.status_code == 200
+    assert response.text == "<file content>"
+
+    # We make sure `secret.txt` is not accessible
+    response = client.get("/secret.txt")
+    assert response.status_code == 404
+
+    # We expose `private_dir`
+    app.add_directory(private_dir)
+    response = client.get("/secret.txt")
+    assert response.status_code == 200
+    assert response.text == "<file content>"
+
+
 def test_staticfiles_post(tmpdir):
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:

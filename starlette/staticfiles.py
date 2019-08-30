@@ -79,6 +79,9 @@ class StaticFiles:
 
         return directories
 
+    def add_directory(self, directory: str) -> None:
+        self.all_directories = [*self.all_directories, *self.get_directories(directory)]
+
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         """
         The ASGI entry point.
