@@ -1,3 +1,4 @@
+import shutil
 import tempfile
 import typing
 from collections import namedtuple
@@ -441,6 +442,9 @@ class UploadFile:
 
     async def close(self) -> None:
         await run_in_threadpool(self.file.close)
+
+    async def copy(self, dest: typing.IO) -> None:
+        await run_in_threadpool(shutil.copyfileobj, self.file, dest)
 
 
 class FormData(ImmutableMultiDict):
