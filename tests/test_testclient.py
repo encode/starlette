@@ -87,8 +87,43 @@ def test_testclient_asgi3():
         await send({"type": "http.response.body", "body": b"Hello, world!"})
 
     client = TestClient(app)
-    response = client.get("/")
+    response = client.get("/one%2Ftwo")
     assert response.text == "Hello, world!"
+
+
+def test_testclient_scope():
+    app = Starlette()
+
+    @app.route("/one%2Ftwo")
+    def scope_route_explicit(request):
+        return JSONResponse(
+            {
+                "via_explicit_route": True,
+                "path": request.scope["path"],
+                "raw_path": str(request.scope["raw_path"]),
+            }
+        )
+
+    @app.route("/.*")
+    def scope_route_fallback(request):
+        return JSONResponse(
+            {"path": request.scope["path"], "raw_path": str(request.scope["raw_path"])}
+        )
+
+    client = TestClient(app)
+
+    # _ASGIAdapter unquotes "path", so this goes to the fallback route.
+    response = client.get("/one%2Ftwo")
+    assert response.json() == {"path": "/one/two", "raw_path": "b'/one%2Ftwo'"}
+    response = client.get("/one/two")
+    assert response.json() == {"path": "/one/two", "raw_path": "b'/one/two'"}
+
+    response = client.get("/one%252Ftwo")
+    assert response.json() == {
+        "via_explicit_route": True,
+        "path": "/one%2Ftwo",
+        "raw_path": "b'/one%252Ftwo'",
+    }
 
 
 def test_websocket_blocking_receive():
