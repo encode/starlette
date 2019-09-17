@@ -38,7 +38,9 @@ class Response:
         headers: dict = None,
         media_type: str = None,
         background: BackgroundTask = None,
+        json_encoder: object = None
     ) -> None:
+        self.json_encoder = json_encoder
         self.body = self.render(content)
         self.status_code = status_code
         if media_type is not None:
@@ -149,6 +151,7 @@ class JSONResponse(Response):
             allow_nan=False,
             indent=None,
             separators=(",", ":"),
+            default=self.json_encoder
         ).encode("utf-8")
 
 
