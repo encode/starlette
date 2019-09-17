@@ -38,7 +38,7 @@ class Response:
         headers: dict = None,
         media_type: str = None,
         background: BackgroundTask = None,
-        json_encoder: object = None
+        json_encoder: typing.Callable = None
     ) -> None:
         self.json_encoder = json_encoder
         self.body = self.render(content)
