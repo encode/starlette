@@ -28,7 +28,9 @@ class Match(Enum):
     FULL = 2
 
 
-def request_response(func: typing.Callable) -> ASGIApp:
+def request_response(
+    func: typing.Callable, request_type: typing.Type[Request] = Request
+) -> ASGIApp:
     """
     Takes a function or coroutine `func(request) -> response`,
     and returns an ASGI application.
@@ -36,7 +38,7 @@ def request_response(func: typing.Callable) -> ASGIApp:
     is_coroutine = asyncio.iscoroutinefunction(func)
 
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
-        request = Request(scope, receive=receive, send=send)
+        request = request_type(scope, receive=receive, send=send)
         if is_coroutine:
             response = await func(request)
         else:
@@ -135,6 +137,8 @@ class BaseRoute:
 
 
 class Route(BaseRoute):
+    request_type: typing.ClassVar[typing.Type[Request]] = Request
+
     def __init__(
         self,
         path: str,
@@ -152,7 +156,7 @@ class Route(BaseRoute):
 
         if inspect.isfunction(endpoint) or inspect.ismethod(endpoint):
             # Endpoint is function or method. Treat it as `func(request) -> response`.
-            self.app = request_response(endpoint)
+            self.app = request_response(endpoint, request_type=self.request_type)
             if methods is None:
                 methods = ["GET"]
         else:
@@ -484,6 +488,8 @@ class Lifespan(BaseRoute):
 
 
 class Router:
+    route_type: typing.ClassVar[typing.Type[Route]] = Route
+
     def __init__(
         self,
         routes: typing.List[BaseRoute] = None,
@@ -511,7 +517,7 @@ class Router:
         name: str = None,
         include_in_schema: bool = True,
     ) -> None:
-        route = Route(
+        route = self.route_type(
             path,
             endpoint=endpoint,
             methods=methods,
