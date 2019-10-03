@@ -53,16 +53,24 @@ class Response:
             return content
         return content.encode(self.charset)
 
-    def init_headers(self, headers: typing.Mapping[str, str] = None) -> None:
+    def init_headers(self,
+                     headers: typing.Mapping[
+                         str,
+                         typing.Union[str, typing.List[str]]] = None) -> None:
         if headers is None:
             raw_headers = []  # type: typing.List[typing.Tuple[bytes, bytes]]
             populate_content_length = True
             populate_content_type = True
         else:
-            raw_headers = [
-                (k.lower().encode("latin-1"), v.encode("latin-1"))
-                for k, v in headers.items()
-            ]
+            raw_headers = []
+            for k, v in headers.items():
+                key = k.lower().encode('latin-1')
+                if isinstance(v, list):
+                    for i in v:
+                        raw_headers.append((key, i.encode('latin-1')))
+                else:
+                    raw_headers.append((key, v.encode('latin-1')))
+
             keys = [h[0] for h in raw_headers]
             populate_content_length = b"content-length" not in keys
             populate_content_type = b"content-type" not in keys

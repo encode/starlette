@@ -131,6 +131,17 @@ def test_response_headers():
     assert response.headers["x-header-2"] == "789"
 
 
+def test_response_headers_multi():
+    async def app(scope, receive, send):
+        headers = {"x-header-1": ["123", "456"]}
+        response = Response("hello, world", media_type="text/plain", headers=headers)
+        await response(scope, receive, send)
+
+    client = TestClient(app)
+    response = client.get("/")
+    assert response.headers["x-header-1"] == "123, 456"
+
+
 def test_response_phrase():
     app = Response(status_code=204)
     client = TestClient(app)
