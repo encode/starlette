@@ -149,8 +149,29 @@ def test_route_converters():
 
 def test_url_path_for():
     assert app.url_path_for("homepage") == "/"
+    assert (
+        app.url_path_for("homepage", some_query_param="this")
+        == "/?some_query_param=this"
+    )
+    assert (
+        app.url_path_for("homepage", **{"funky[query_param]": "this"})
+        == "/?funky%5Bquery_param%5D=this"
+    )
     assert app.url_path_for("user", username="tomchristie") == "/users/tomchristie"
     assert app.url_path_for("websocket_endpoint") == "/ws"
+    assert (
+        app.url_path_for("user", username="tomchristie", some_query_param="this")
+        == "/users/tomchristie?some_query_param=this"
+    )
+    assert (
+        app.url_path_for(
+            "user",
+            username="tomchristie",
+            some_query_param="this",
+            another_query_param="that",
+        )
+        == "/users/tomchristie?some_query_param=this&another_query_param=that"
+    )
     with pytest.raises(NoMatchFound):
         assert app.url_path_for("broken")
     with pytest.raises(AssertionError):
@@ -169,6 +190,12 @@ def test_url_for():
             base_url="https://example.org"
         )
         == "https://example.org/users/tomchristie"
+    )
+    assert (
+        app.url_path_for(
+            "user", username="tomchristie", some_query_param="this"
+        ).make_absolute_url(base_url="https://example.org")
+        == "https://example.org/users/tomchristie?some_query_param=this"
     )
     assert (
         app.url_path_for("websocket_endpoint").make_absolute_url(

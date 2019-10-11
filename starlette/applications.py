@@ -126,8 +126,8 @@ class Starlette:
 
         return decorator
 
-    def url_path_for(self, name: str, **path_params: str) -> URLPath:
-        return self.router.url_path_for(name, **path_params)
+    def url_path_for(self, name: str, **path_and_query_params: str) -> URLPath:
+        return self.router.url_path_for(name, **path_and_query_params)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         scope["app"] = self

@@ -4,10 +4,11 @@ import re
 import traceback
 import typing
 from enum import Enum
+from urllib.parse import urlencode
 
 from starlette.concurrency import run_in_threadpool
 from starlette.convertors import CONVERTOR_TYPES, Convertor
-from starlette.datastructures import URL, Headers, URLPath
+from starlette.datastructures import URL, Headers, MultiDict, URLPath
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, RedirectResponse
@@ -184,18 +185,16 @@ class Route(BaseRoute):
                     return Match.FULL, child_scope
         return Match.NONE, {}
 
-    def url_path_for(self, name: str, **path_params: str) -> URLPath:
-        seen_params = set(path_params.keys())
-        expected_params = set(self.param_convertors.keys())
-
-        if name != self.name or seen_params != expected_params:
+    def url_path_for(self, name: str, **path_and_query_params: str) -> URLPath:
+        if name != self.name:
             raise NoMatchFound()
 
         path, remaining_params = replace_params(
-            self.path_format, self.param_convertors, path_params
+            self.path_format, self.param_convertors, path_and_query_params
         )
-        assert not remaining_params
-        return URLPath(path=path, protocol="http")
+        query_params = MultiDict(remaining_params)
+        query_string = urlencode(query_params.multi_items())
+        return URLPath(path=path, protocol="http", query_string=query_string)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if self.methods and scope["method"] not in self.methods:

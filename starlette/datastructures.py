@@ -157,15 +157,22 @@ class URL:
 
 class URLPath(str):
     """
-    A URL path string that may also hold an associated protocol and/or host.
+    A URL path string that may also hold an associated protocol and/or host
+    and/or query_string.
     Used by the routing to return `url_path_for` matches.
     """
 
-    def __new__(cls, path: str, protocol: str = "", host: str = "") -> "URLPath":
+    def __new__(
+        cls, path: str, protocol: str = "", host: str = "", query_string: str = ""
+    ) -> "URLPath":
         assert protocol in ("http", "websocket", "")
-        return str.__new__(cls, path)  # type: ignore
+        return str.__new__(  # type: ignore
+            cls, path if query_string == "" else "?".join((path, query_string))
+        )
 
-    def __init__(self, path: str, protocol: str = "", host: str = "") -> None:
+    def __init__(
+        self, path: str, protocol: str = "", host: str = "", query_string: str = ""
+    ) -> None:
         self.protocol = protocol
         self.host = host
 
