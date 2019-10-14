@@ -399,7 +399,9 @@ class QueryParams(ImmutableMultiDict):
         if isinstance(value, str):
             super().__init__(parse_qsl(value, keep_blank_values=True), **kwargs)
         elif isinstance(value, bytes):
-            super().__init__(parse_qsl(value.decode("latin-1"), keep_blank_values=True), **kwargs)
+            super().__init__(
+                parse_qsl(value.decode("latin-1"), keep_blank_values=True), **kwargs
+            )
         else:
             super().__init__(*args, **kwargs)  # type: ignore
         self._list = [(str(k), str(v)) for k, v in self._list]
