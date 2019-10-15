@@ -170,7 +170,7 @@ attribute on the instance if you do this.
 ```python
 class CustomHeaderMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, header_value='Example'):
-        self.app = app
+        super().__init__(app)
         self.header_value = header_value
 
     async def dispatch(self, request, call_next):
@@ -230,3 +230,7 @@ A middleware class for capturing Prometheus metrics related to requests and resp
 #### [BugsnagMiddleware](https://github.com/ashinabraham/starlette-bugsnag)
 
 A middleware class for logging exceptions to [Bugsnag](https://www.bugsnag.com/).
+
+#### [EarlyDataMiddleware](https://github.com/HarrySky/starlette-early-data)
+
+Middleware and decorator for detecting and denying [TLSv1.3 early data](https://tools.ietf.org/html/rfc8470) requests.
