@@ -2,6 +2,7 @@ import io
 
 from starlette.datastructures import (
     URL,
+    URLPath,
     CommaSeparatedStrings,
     FormData,
     Headers,
@@ -35,6 +36,36 @@ def test_url():
     assert new == "https://example.com:123/path/to/somewhere?abc=123#anchor"
     assert new.hostname == "example.com"
 
+def test_urlpath_make_absolute():
+    url_path = URLPath("/bar", "http")
+
+    # TODO: Extra test case for x-forwarded-host, depending
+    # on how it should be signalled.
+
+    base_url = URL(scope={
+        "type":"http",
+        "server":("127.0.0.1", 8000),
+        "headers": [(b"host", b"localhost:8000")],
+        "path":"/bar",
+        "query_string": b"",
+        "scheme":"http",
+    })
+
+    abs_url = url_path.make_absolute_url(base_url)
+    assert abs_url == 'http://localhost:8000/bar'
+
+    base_url = URL(scope={
+        "type":"http",
+        "server":("127.0.0.1", 8000),
+        "headers": [(b"host", b"localhost:8000")],
+        "path":"/bar",
+        "root_path":"/foo",
+        "query_string": b"",
+        "scheme":"http",
+    })
+
+    abs_url = url_path.make_absolute_url(base_url)
+    assert abs_url == 'http://localhost:8000/foo/bar'
 
 def test_url_query_params():
     u = URL("https://example.org/path/?page=3")
@@ -114,6 +145,19 @@ def test_url_from_scope():
     )
     assert u == "https://example.org/path/to/somewhere?abc=123"
     assert repr(u) == "URL('https://example.org/path/to/somewhere?abc=123')"
+
+    u = URL(
+        scope={
+            "scheme": "http",
+            "server": ("example.org", 80),
+            "path": "/path/to/somewhere",
+            "root_path":"/another",
+            "query_string": b"abc=123",
+            "headers": [],
+        }
+    )
+    assert u == "http://example.org/another/path/to/somewhere?abc=123"
+    assert repr(u) == "URL('http://example.org/another/path/to/somewhere?abc=123')"
 
 
 def test_headers():
