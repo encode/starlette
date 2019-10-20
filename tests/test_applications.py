@@ -280,3 +280,45 @@ def test_app_add_event_handler():
         assert not cleanup_complete
     assert startup_complete
     assert cleanup_complete
+
+def test_url_for_forwarded_host():
+    app = Starlette()
+
+    @app.route("/echo")
+    async def echo(request):
+        return PlainTextResponse(request.url_for('echo'))
+    
+    client = TestClient(app)
+    response = client.get("/echo")
+    assert response.text == 'http://testserver/echo'
+
+    response = client.get("/echo", headers={'x-forwarded-host':'starlette.example:8080'})
+    assert response.text == 'http://starlette.example:8080/echo'
+
+class SetRootPathMiddleware:
+    '''
+    A middleware that mimics the effect of `uvicorn --root-path="/prefix"`
+    '''
+    def __init__(self, app, root_path: str) -> None:
+        self.app = app
+        self.root_path = root_path
+
+    async def __call__(self, scope, receive, send) -> None:
+        scope['root_path'] = self.root_path
+        await self.app(scope, receive, send)
+
+def test_url_for_root_path():
+    app = Starlette()
+
+    @app.route("/echo")
+    async def echo(request):
+        return PlainTextResponse(request.url_for('echo'))
+
+    app.add_middleware(SetRootPathMiddleware, root_path='/prefix')
+
+    client = TestClient(app)
+    response = client.get("/echo")
+    assert response.text == 'http://testserver/prefix/echo'
+
+    response = client.get("/echo", headers={'x-forwarded-host':'starlette.example:8080'})
+    assert response.text == 'http://starlette.example:8080/prefix/echo'
