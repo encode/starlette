@@ -165,10 +165,22 @@ def test_url_for():
         == "https://example.org/"
     )
     assert (
+        app.url_path_for("homepage").make_absolute_url(
+            base_url="https://example.org/root_path/"
+        )
+        == "https://example.org/root_path/"
+    )
+    assert (
         app.url_path_for("user", username="tomchristie").make_absolute_url(
             base_url="https://example.org"
         )
         == "https://example.org/users/tomchristie"
+    )
+    assert (
+        app.url_path_for("user", username="tomchristie").make_absolute_url(
+            base_url="https://example.org/root_path/"
+        )
+        == "https://example.org/root_path/users/tomchristie"
     )
     assert (
         app.url_path_for("websocket_endpoint").make_absolute_url(
