@@ -18,10 +18,12 @@ class Starlette:
         exception_handlers: typing.Dict[
             typing.Union[int, typing.Type[Exception]], typing.Callable
         ] = None,
+        on_startup: typing.List[typing.Callable] = None,
+        on_shutdown: typing.List[typing.Callable] = None,
     ) -> None:
         self._debug = debug
         self.state = State()
-        self.router = Router(routes)
+        self.router = Router(routes, on_startup=on_startup, on_shutdown=on_shutdown)
         self.exception_handlers = (
             {} if exception_handlers is None else dict(exception_handlers)
         )
