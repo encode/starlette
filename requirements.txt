@@ -20,4 +20,4 @@ pytest-cov
 # Documentation
 mkdocs
 mkdocs-material
-mkautodocs
+mkautodoc
