@@ -615,17 +615,21 @@ class Router:
             return
 
         if scope["type"] == "http" and self.redirect_slashes:
-            if not scope["path"].endswith("/"):
-                redirect_scope = dict(scope)
-                redirect_scope["path"] += "/"
+            if scope["path"].endswith("/"):
+                redirect_path = scope["path"].rstrip("/")
+            else:
+                redirect_path = scope["path"] + "/"
 
-                for route in self.routes:
-                    match, child_scope = route.matches(redirect_scope)
-                    if match != Match.NONE:
-                        redirect_url = URL(scope=redirect_scope)
-                        response = RedirectResponse(url=str(redirect_url))
-                        await response(scope, receive, send)
-                        return
+            redirect_scope = dict(scope)
+            redirect_scope["path"] = redirect_path
+
+            for route in self.routes:
+                match, child_scope = route.matches(redirect_scope)
+                if match != Match.NONE:
+                    redirect_url = URL(scope=redirect_scope)
+                    response = RedirectResponse(url=str(redirect_url))
+                    await response(scope, receive, send)
+                    return
 
         if scope["type"] == "lifespan":
             await self.lifespan(scope, receive, send)
