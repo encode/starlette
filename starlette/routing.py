@@ -614,7 +614,7 @@ class Router:
             await partial(scope, receive, send)
             return
 
-        if scope["type"] == "http" and self.redirect_slashes:
+        if scope["type"] == "http" and self.redirect_slashes and scope["path"] != "/":
             if scope["path"].endswith("/"):
                 redirect_path = scope["path"].rstrip("/")
             else:
