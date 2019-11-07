@@ -161,9 +161,20 @@ class UJSONResponse(JSONResponse):
 
 class RedirectResponse(Response):
     def __init__(
-        self, url: typing.Union[str, URL], status_code: int = 307, headers: dict = None
+        self,
+        url: typing.Union[str, URL],
+        status_code: int = 307,
+        headers: dict = None,
+        media_type: str = None,
+        background: BackgroundTask = None,
     ) -> None:
-        super().__init__(content=b"", status_code=status_code, headers=headers)
+        super().__init__(
+            content=b"",
+            status_code=status_code,
+            headers=headers,
+            media_type=media_type,
+            background=background,
+        )
         self.headers["location"] = quote_plus(str(url), safe=":/%#?&=@[]!$&'()*+,;")
 
 
