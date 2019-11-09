@@ -56,16 +56,24 @@ other code introspection.
 To get the value of a `Secret` instance, you must explicitly cast it to a string.
 You should only do this at the point at which the value is used.
 
+In case you need to use the masked value e.g. in logs just to show that the secret 
+was used you may use the `masked` propery. 
+
 ```python
 >>> from myproject import settings
 >>> settings.SECRET_KEY
 Secret('**********')
 >>> str(settings.SECRET_KEY)
 '98n349$%8b8-7yjn0n8y93T$23r'
+>>> settings.SECRET_KEY.masked
+'**********'
 ```
 
 Similarly, the `URL` class will hide any password component
-in their representations.
+in their representations. 
+
+And it also provides the `masked` property which can be even
+more useful in this case.
 
 ```python
 >>> from myproject import settings
@@ -73,6 +81,8 @@ in their representations.
 URL('postgresql://admin:**********@192.168.0.8/my-application')
 >>> str(settings.DATABASE_URL)
 'postgresql://admin:Fkjh348htGee4t3@192.168.0.8/my-application'
+>>> settings.DATABASE_URL.masked
+'postgresql://admin:**********@192.168.0.8/my-application'
 ```
 
 ## CommaSeparatedStrings
