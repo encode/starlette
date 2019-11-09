@@ -156,10 +156,7 @@ class URL:
         return self._url
 
     def __repr__(self) -> str:
-        url = str(self)
-        if self.password:
-            url = str(self.replace(password="********"))
-        return f"{self.__class__.__name__}({repr(url)})"
+        return f"{self.__class__.__name__}({repr(self.masked)})"
 
 
 class URLPath(str):
