@@ -11,13 +11,13 @@ import databases
 
 from starlette.applications import Starlette
 from starlette.config import Config
-from starlette.datastructures import CommaSeparatedStrings, Secret
+from starlette.datastructures import CommaSeparatedStrings, Secret, URL
 
 # Config will be read from environment variables and/or ".env" files.
 config = Config(".env")
 
 DEBUG = config('DEBUG', cast=bool, default=False)
-DATABASE_URL = config('DATABASE_URL', cast=databases.DatabaseURL)
+DATABASE_URL = config('DATABASE_URL', cast=URL)
 SECRET_KEY = config('SECRET_KEY', cast=Secret)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=CommaSeparatedStrings)
 
@@ -70,7 +70,7 @@ in their representations.
 ```python
 >>> from myproject import settings
 >>> settings.DATABASE_URL
-DatabaseURL('postgresql://admin:**********@192.168.0.8/my-application')
+URL('postgresql://admin:**********@192.168.0.8/my-application')
 >>> str(settings.DATABASE_URL)
 'postgresql://admin:Fkjh348htGee4t3@192.168.0.8/my-application'
 ```
