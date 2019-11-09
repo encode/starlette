@@ -95,6 +95,13 @@ class URL:
     def is_secure(self) -> bool:
         return self.scheme in ("https", "wss")
 
+    @property
+    def masked(self) -> str:
+        url = str(self)
+        if self.password:
+            url = str(self.replace(password="********"))
+        return url
+
     def replace(self, **kwargs: typing.Any) -> "URL":
         if (
             "username" in kwargs
