@@ -199,12 +199,16 @@ class Secret:
     You should cast the value to `str` at the point it is required.
     """
 
+    @property
+    def masked(self) -> str:
+        return '**********'
+
     def __init__(self, value: str):
         self._value = value
 
     def __repr__(self) -> str:
         class_name = self.__class__.__name__
-        return f"{class_name}('**********')"
+        return f"{class_name}({repr(self.masked)})"
 
     def __str__(self) -> str:
         return self._value
