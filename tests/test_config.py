@@ -30,8 +30,12 @@ def test_config(tmpdir, monkeypatch):
     assert DATABASE_URL.path == "/dbname"
     assert DATABASE_URL.password == "pass"
     assert DATABASE_URL.username == "user"
+    assert DATABASE_URL.masked == "postgres://user:********@localhost/dbname"
+    assert repr(DATABASE_URL) == "URL('postgres://user:********@localhost/dbname')"
+    assert str(DATABASE_URL) == "postgres://user:pass@localhost/dbname"
     assert REQUEST_TIMEOUT == 10
     assert REQUEST_HOSTNAME == "example.com"
+    assert SECRET_KEY.masked == "**********"
     assert repr(SECRET_KEY) == "Secret('**********')"
     assert str(SECRET_KEY) == "12345"
 
