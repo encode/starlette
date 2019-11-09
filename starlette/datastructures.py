@@ -201,7 +201,7 @@ class Secret:
 
     @property
     def masked(self) -> str:
-        return '**********'
+        return "**********"
 
     def __init__(self, value: str):
         self._value = value
