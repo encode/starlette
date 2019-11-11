@@ -34,13 +34,13 @@ views](endpoints.md).
 Paths can use URI templating style to capture path components.
 
 ```python
-Route('/users/{username}', endpoint=user)
+Route('/users/{username}', user)
 ```
 
 Convertors for `int`, `float`, and `path` are also available:
 
 ```python
-Route('/users/{user_id:int}', endpoint=user)
+Route('/users/{user_id:int}', user)
 ```
 
 Path parameters are made available in the request, as the `request.path_params`
@@ -57,7 +57,7 @@ async def user(request):
 Routes can also specify which HTTP methods are handled by an endpoint:
 
 ```python
-Route('/users/{user_id:int}', endpoint=user, methods=["GET", "POST"])
+Route('/users/{user_id:int}', user, methods=["GET", "POST"])
 ```
 
 By default function endpoints will only accept `GET` requests, unless specified.
@@ -69,10 +69,10 @@ routing table, based on a common path prefix.
 
 ```python
 routes = [
-    Route('/', endpoint=homepage),
+    Route('/', homepage),
     Mount('/users', routes=[
-        Route('/', endpoint=users, methods=['GET', 'POST']),
-        Route('/{username}', endpoint=user),
+        Route('/', users, methods=['GET', 'POST']),
+        Route('/{username}', user),
     ])
 ]
 ```
@@ -84,7 +84,7 @@ different parts of your project.
 from myproject import users, auth
 
 routes = [
-    Route('/', endpoint=homepage),
+    Route('/', homepage),
     Mount('/users', routes=users.routes),
     Mount('/auth', routes=auth.routes),
 ]
@@ -107,6 +107,66 @@ routes = [
 app = Starlette(routes=routes)
 ```
 
+## Reverse URL lookups
+
+You'll often want to be able to generate the URL for a particular route,
+such as in cases where you need to return a redirect response.
+
+```python
+routes = [
+    Route("/", homepage, name="homepage")
+]
+
+# We can use the following to return a URL...
+url = request.url_for("homepage")
+```
+
+URL lookups can include path parameters...
+
+```python
+routes = [
+    Route("/users/{username}", user, name="user_detail")
+]
+
+# We can use the following to return a URL...
+url = request.url_for("user_detail", username=...)
+```
+
+If a `Mount` includes a `name`, then submounts should use a `{prefix}:{name}`
+style for reverse URL lookups.
+
+```python
+routes = [
+    Mount("/users", name="users", routes=[
+        Route("/", user, name="user_list"),
+        Route("/{username}", user, name="user_detail")
+    ])
+]
+
+# We can use the following to return URLs...
+url = request.url_for("users:user_list")
+url = request.url_for("users:user_detail", username=...)
+```
+
+Mounted applications may include a `path=...` parameter.
+
+```python
+routes = [
+    ...
+    Mount("/static", StaticFiles(directory="static"), name="static")
+]
+
+# We can use the following to return URLs...
+url = request.url_for("static", path="/css/base.css")
+```
+
+For cases where there is no `request` instance, you can make reverse lookups
+against the application, although these will only return the URL path.
+
+```python
+url = app.url_path_for("user_detail", username=...)
+```
+
 ## Route priority
 
 Incoming paths are matched against each `Route` in order.
@@ -119,14 +179,14 @@ For example:
 ```python
 # Don't do this: `/users/me` will never match incoming requests.
 routes = [
-    Route('/users/{username}', endpoint=user),
-    Route('/users/me', endpoint=current_user),
+    Route('/users/{username}', user),
+    Route('/users/me', current_user),
 ]
 
 # Do this: `/users/me` is tested first.
 routes = [
-    Route('/users/me', endpoint=current_user),
-    Route('/users/{username}', endpoint=user),
+    Route('/users/me', current_user),
+    Route('/users/{username}', user),
 ]
 ```
 
@@ -139,10 +199,10 @@ without wrapping it up in any middleware.
 
 ```python
 app = Router(routes=[
-    Route('/', endpoint=homepage),
+    Route('/', homepage),
     Mount('/users', routes=[
-        Route('/', endpoint=users, methods=['GET', 'POST']),
-        Route('/{username}', endpoint=user),
+        Route('/', users, methods=['GET', 'POST']),
+        Route('/{username}', user),
     ])
 ])
 ```
