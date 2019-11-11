@@ -644,7 +644,6 @@ class Router:
         if event_type == "startup":
             self.on_startup.append(func)
         else:
-            assert event_type == "shutdown"
             self.on_shutdown.append(func)
 
     def on_event(self, event_type: str) -> typing.Callable:
