@@ -56,11 +56,18 @@ of [webargs](https://github.com/marshmallow-code/webargs).
 Allows you to parse querystring, JSON, form, headers, and cookies using
 type annotations.
 
+### Authlib
+
+<a href="https://github.com/lepture/Authlib" target="_blank">GitHub</a> |
+<a href="https://docs.authlib.org/en/latest/" target="_blank">Documentation</a>
+
+The ultimate Python library in building OAuth and OpenID Connect clients and servers. Check out how to integrate with [Starlette](https://docs.authlib.org/en/latest/client/starlette.html).
+
 ## Frameworks
 
 ### Responder
 
-<a href="https://github.com/kennethreitz/responder" target="_blank">GitHub</a> |
+<a href="https://github.com/taoufik07/responder" target="_blank">GitHub</a> |
 <a href="https://python-responder.org/en/latest/" target="_blank">Documentation</a>
 
 Async web service framework. Some Features: flask-style route expression,
