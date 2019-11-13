@@ -17,7 +17,7 @@ routes = ...
 # Ensure that all requests include an 'example.com' or '*.example.com' host header,
 # and strictly enforce https-only access.
 middleware = [
-  Middleware(TrustedHostMiddleware, options={'allowed_hosts': ['example.com', '*.example.com']}),
+  Middleware(TrustedHostMiddleware, allowed_hosts=['example.com', '*.example.com']),
   Middleware(HTTPSRedirectMiddleware)
 ]
 
@@ -59,7 +59,7 @@ from starlette.middleware.cors import CORSMiddleware
 routes = ...
 
 middleware = [
-    Middleware(CORSMiddleware, options={'allow_origins': ['*']})
+    Middleware(CORSMiddleware, allow_origins=['*'])
 ]
 
 app = Starlette(routes=routes, middleware=middleware)
@@ -135,7 +135,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 routes = ...
 
 middleware = [
-    Middleware(TrustedHostMiddleware, options={'allowed_hosts': ['example.com', '*.example.com']})
+    Middleware(TrustedHostMiddleware, allowed_hosts=['example.com', '*.example.com'])
 ]
 
 app = Starlette(routes=routes, middleware=middleware)
@@ -164,7 +164,7 @@ from starlette.middleware.gzip import GZipMiddleware
 routes = ...
 
 middleware = [
-    Middleware(GZipMiddleware, options={'minimum_size': 1000})
+    Middleware(GZipMiddleware, minimum_size=1000)
 ]
 
 app = Starlette(routes=routes, middleware=middleware)
@@ -215,7 +215,7 @@ class CustomHeaderMiddleware(BaseHTTPMiddleware):
 
 
 middleware = [
-    Middleware(CustomHeaderMiddleware, options={'header_value'='Customized'})
+    Middleware(CustomHeaderMiddleware, header_value='Customized')
 ]
 
 app = Starlette(routes=routes, middleware=middleware)
