@@ -1,5 +1,7 @@
 import os
 
+import pytest
+
 from starlette.applications import Starlette
 from starlette.endpoints import HTTPEndpoint
 from starlette.exceptions import HTTPException
@@ -280,3 +282,29 @@ def test_app_add_event_handler():
         assert not cleanup_complete
     assert startup_complete
     assert cleanup_complete
+
+
+@pytest.mark.parametrize(
+    "method,args",
+    [
+        pytest.param("host", ("{subdomain}.example.org",), id="subdomain",),
+        pytest.param("mount", ("/subapp",), id="subapp"),
+    ],
+)
+def test_app_state(method, args):
+    app = Starlette()
+    app.state.a = 1
+    app.state.b = 2
+
+    subapp = Starlette()
+    subapp.state.a = 3
+    subapp.state.c = 4
+
+    getattr(app, method)(*args, subapp)
+
+    assert app.state.a == 1
+    assert subapp.state.a == 3
+
+    assert subapp.state.b == 2
+    with pytest.raises(AttributeError):
+        _ = app.state.c

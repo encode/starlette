@@ -84,10 +84,42 @@ generic `app.state` attribute.
 
 For example:
 
-```python
+```pydocstring
 app.state.ADMIN_EMAIL = 'admin@example.org'
+# or
+app.state['ADMIN_EMAIL'] = 'admin@example.org'
 ```
 
-### Acessing the app instance
+### Sharing state with submounted Starlette applications
+
+Include an Starlette app:
+* `app.mount(prefix, subapp)` - via mounted under the given path prefix
+* `app.host(host, subapp)` - via mounted under the given host
+
+```pydocstring
+# root state
+app.state.foo = 'bar'
+app.state.bar = 'baz'
+
+# subapp scoped state
+subapp.state.foo = 'baz'
+subapp.state.baz = 'foo'
+```
+
+```pydocstring
+>>> app.state.foo
+'bar'
+>>> subapp.state.foo
+'baz'
+>>> subapp.state.bar
+'baz'
+>>> app.state.baz
+...
+AttributeError: 'State' object has no attribute 'baz'
+>>> subapp.state.baz
+'foo'
+```
+
+### Accessing the app instance
 
 Where a `request` is available (i.e. endpoints and middleware), the app is available on `request.app`.  For other situations it can be imported from wherever it's instantiated.

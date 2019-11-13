@@ -74,9 +74,13 @@ class Starlette:
         return self.router.lifespan.on_event(event_type)
 
     def mount(self, path: str, app: ASGIApp, name: str = None) -> None:
+        if isinstance(app, self.__class__):
+            app.state.add_parent(self.state)
         self.router.mount(path, app=app, name=name)
 
     def host(self, host: str, app: ASGIApp, name: str = None) -> None:
+        if isinstance(app, self.__class__):
+            app.state.add_parent(self.state)
         self.router.host(host, app=app, name=name)
 
     def add_middleware(self, middleware_class: type, **kwargs: typing.Any) -> None:
