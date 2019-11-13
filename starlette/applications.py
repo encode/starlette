@@ -39,7 +39,7 @@ class Starlette:
         self,
         debug: bool = False,
         routes: typing.List[BaseRoute] = None,
-        middleware: typing.List[Middleware] = None,
+        middleware: typing.List[typing.Optional[Middleware]] = None,
         exception_handlers: typing.Dict[
             typing.Union[int, typing.Type[Exception]], typing.Callable
         ] = None,
@@ -52,7 +52,7 @@ class Starlette:
         self.exception_handlers = (
             {} if exception_handlers is None else dict(exception_handlers)
         )
-        self.user_middleware = list(middleware or [])
+        self.user_middleware = [item for item in middleware or [] if item is not None]
         self.middleware_stack = self.build_middleware_stack()
 
     def build_middleware_stack(self) -> ASGIApp:
