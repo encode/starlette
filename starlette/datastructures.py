@@ -11,9 +11,6 @@ from starlette.types import Scope
 Address = namedtuple("Address", ["host", "port"])
 
 
-VT_cov = typing.TypeVar("VT_cov", covariant=True)
-
-
 class URL:
     def __init__(
         self, url: str = "", scope: Scope = None, **components: typing.Any
