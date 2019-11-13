@@ -66,20 +66,19 @@ class Starlette:
             else:
                 exception_handlers[key] = value
 
-        server_errors = Middleware(
-            ServerErrorMiddleware, options={"handler": error_handler, "debug": debug},
+        middleware = (
+            [Middleware(ServerErrorMiddleware, handler=error_handler, debug=debug,)]
+            + self.user_middleware
+            + [
+                Middleware(
+                    ExceptionMiddleware, handlers=exception_handlers, debug=debug,
+                )
+            ]
         )
-        exceptions = Middleware(
-            ExceptionMiddleware,
-            options={"handlers": exception_handlers, "debug": debug},
-        )
-
-        middleware = [server_errors] + self.user_middleware + [exceptions]
 
         app = self.router
-        for cls, options, enabled in reversed(middleware):
-            if enabled:
-                app = cls(app=app, **options)
+        for cls, options in reversed(middleware):
+            app = cls(app=app, **options)
         return app
 
     @property
@@ -113,8 +112,8 @@ class Starlette:
     def host(self, host: str, app: ASGIApp, name: str = None) -> None:
         self.router.host(host, app=app, name=name)
 
-    def add_middleware(self, middleware_class: type, **kwargs: typing.Any) -> None:
-        self.user_middleware.insert(0, Middleware(middleware_class, options=kwargs))
+    def add_middleware(self, middleware_class: type, **options: typing.Any) -> None:
+        self.user_middleware.insert(0, Middleware(middleware_class, **options))
         self.middleware_stack = self.build_middleware_stack()
 
     def add_exception_handler(
