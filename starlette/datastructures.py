@@ -1,7 +1,7 @@
 import tempfile
 import typing
 from collections import namedtuple
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from shlex import shlex
 from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit
 
@@ -9,6 +9,9 @@ from starlette.concurrency import run_in_threadpool
 from starlette.types import Scope
 
 Address = namedtuple("Address", ["host", "port"])
+
+
+VT_cov = typing.TypeVar("VT_cov", covariant=True)
 
 
 class URL:
@@ -633,27 +636,50 @@ class MutableHeaders(Headers):
         self["vary"] = vary
 
 
-class State(object):
+class State(typing.ChainMap[str, typing.Any]):
     """
     An object that can be used to store arbitrary state.
 
     Used for `request.state` and `app.state`.
     """
 
-    def __init__(self, state: typing.Dict = None):
-        if state is None:
-            state = {}
-        super(State, self).__setattr__("_state", state)
+    __slots__ = ("maps",)
 
-    def __setattr__(self, key: typing.Any, value: typing.Any) -> None:
-        self._state[key] = value
+    def __init__(self, *maps: typing.Mapping[str, typing.Any]) -> None:
+        super().__init__(*self._maps_validator(*maps))
 
-    def __getattr__(self, key: typing.Any) -> typing.Any:
+    def __setattr__(self, key: str, value: typing.Any) -> None:
+        if key in self.__slots__:
+            return super().__setattr__(key, value)
+        self[key] = value
+
+    def __getattr__(self, key: str) -> typing.Any:
         try:
-            return self._state[key]
+            return self[key]
         except KeyError:
-            message = "'{}' object has no attribute '{}'"
-            raise AttributeError(message.format(self.__class__.__name__, key))
+            raise AttributeError(
+                f"'{self.__class__.__name__}' object has no attribute '{key}'"
+            ) from None
 
-    def __delattr__(self, key: typing.Any) -> None:
-        del self._state[key]
+    def __delattr__(self, key: str) -> None:
+        try:
+            del self[key]
+        except KeyError:
+            raise AttributeError(
+                f"'{self.__class__.__name__}' object has no attribute '{key}'"
+            ) from None
+
+    def add_parent(self, state: typing.Mapping[str, typing.Any]) -> None:
+        self.maps.extend(self._maps_validator(state))
+
+    @classmethod
+    def _maps_validator(
+        cls, *maps: typing.Mapping[str, typing.Any]
+    ) -> typing.Iterator[typing.Mapping[str, typing.Any]]:
+        for i, m in enumerate(maps):
+            if not isinstance(m, Mapping):
+                raise ValueError(
+                    f"item #{i} is not an instance of "
+                    f"'{Mapping.__module__}.{Mapping.__name__}' or its subtypes"
+                )
+            yield m

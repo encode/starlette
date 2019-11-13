@@ -1,5 +1,7 @@
 import io
 
+import pytest
+
 from starlette.datastructures import (
     URL,
     CommaSeparatedStrings,
@@ -8,6 +10,7 @@ from starlette.datastructures import (
     MultiDict,
     MutableHeaders,
     QueryParams,
+    State,
 )
 
 
@@ -330,3 +333,25 @@ def test_multidict():
     assert q.getlist("a") == ["123"]
     q.update([("a", "456")], a="789", b="123")
     assert q == MultiDict([("a", "456"), ("a", "789"), ("b", "123")])
+
+
+def test_state():
+    with pytest.raises(ValueError):
+        State(1)
+
+    s = State({"a": 1})
+    with pytest.raises(ValueError):
+        s.add_parent(1)
+
+    with pytest.raises(AttributeError):
+        _ = s.b
+
+    with pytest.raises(AttributeError):
+        del s.b
+
+    sc, sp = {"a": 1}, {"a": 2, "b": 3}
+    s = State(sc)
+    s.add_parent(sp)
+    assert s.maps == [sc, sp]
+    assert s["a"] == sc["a"]
+    assert s["b"] == sp["b"]
