@@ -4,9 +4,9 @@ import json
 import typing
 from collections.abc import Mapping
 
-from starlette.datastructures import URL, Address, FormData, Headers, QueryParams
+from starlette.datastructures import URL, Address, FormData, Headers, QueryParams, State
 from starlette.formparsers import FormParser, MultiPartParser
-from starlette.types import Message, Receive, Scope
+from starlette.types import Message, Receive, Scope, Send
 
 try:
     from multipart.multipart import parse_options_header
@@ -14,11 +14,16 @@ except ImportError:  # pragma: nocover
     parse_options_header = None  # type: ignore
 
 
+SERVER_PUSH_HEADERS_TO_COPY = {
+    "accept",
+    "accept-encoding",
+    "accept-language",
+    "cache-control",
+    "user-agent",
+}
+
+
 class ClientDisconnect(Exception):
-    pass
-
-
-class State:
     pass
 
 
@@ -30,42 +35,54 @@ class HTTPConnection(Mapping):
 
     def __init__(self, scope: Scope, receive: Receive = None) -> None:
         assert scope["type"] in ("http", "websocket")
-        self._scope = scope
+        self.scope = scope
 
     def __getitem__(self, key: str) -> str:
-        return self._scope[key]
+        return self.scope[key]
 
     def __iter__(self) -> typing.Iterator[str]:
-        return iter(self._scope)
+        return iter(self.scope)
 
     def __len__(self) -> int:
-        return len(self._scope)
+        return len(self.scope)
 
     @property
     def app(self) -> typing.Any:
-        return self._scope["app"]
+        return self.scope["app"]
 
     @property
     def url(self) -> URL:
         if not hasattr(self, "_url"):
-            self._url = URL(scope=self._scope)
+            self._url = URL(scope=self.scope)
         return self._url
+
+    @property
+    def base_url(self) -> URL:
+        if not hasattr(self, "_base_url"):
+            base_url_scope = dict(self.scope)
+            base_url_scope["path"] = "/"
+            base_url_scope["query_string"] = b""
+            base_url_scope["root_path"] = base_url_scope.get(
+                "app_root_path", base_url_scope.get("root_path", "")
+            )
+            self._base_url = URL(scope=base_url_scope)
+        return self._base_url
 
     @property
     def headers(self) -> Headers:
         if not hasattr(self, "_headers"):
-            self._headers = Headers(scope=self._scope)
+            self._headers = Headers(scope=self.scope)
         return self._headers
 
     @property
     def query_params(self) -> QueryParams:
         if not hasattr(self, "_query_params"):
-            self._query_params = QueryParams(self._scope["query_string"])
+            self._query_params = QueryParams(self.scope["query_string"])
         return self._query_params
 
     @property
     def path_params(self) -> dict:
-        return self._scope.get("path_params", {})
+        return self.scope.get("path_params", {})
 
     @property
     def cookies(self) -> typing.Dict[str, str]:
@@ -73,7 +90,7 @@ class HTTPConnection(Mapping):
             cookies = {}
             cookie_header = self.headers.get("cookie")
             if cookie_header:
-                cookie = http.cookies.SimpleCookie()
+                cookie = http.cookies.SimpleCookie()  # type: http.cookies.BaseCookie
                 cookie.load(cookie_header)
                 for key, morsel in cookie.items():
                     cookies[key] = morsel.value
@@ -82,57 +99,67 @@ class HTTPConnection(Mapping):
 
     @property
     def client(self) -> Address:
-        host, port = self._scope.get("client") or (None, None)
+        host, port = self.scope.get("client") or (None, None)
         return Address(host=host, port=port)
 
     @property
     def session(self) -> dict:
         assert (
-            "session" in self._scope
+            "session" in self.scope
         ), "SessionMiddleware must be installed to access request.session"
-        return self._scope["session"]
+        return self.scope["session"]
 
     @property
     def auth(self) -> typing.Any:
         assert (
-            "auth" in self._scope
+            "auth" in self.scope
         ), "AuthenticationMiddleware must be installed to access request.auth"
-        return self._scope["auth"]
+        return self.scope["auth"]
 
     @property
     def user(self) -> typing.Any:
         assert (
-            "user" in self._scope
+            "user" in self.scope
         ), "AuthenticationMiddleware must be installed to access request.user"
-        return self._scope["user"]
+        return self.scope["user"]
 
     @property
     def state(self) -> State:
-        if "state" not in self._scope:
-            self._scope["state"] = State()
-        return self._scope["state"]
+        if not hasattr(self, "_state"):
+            # Ensure 'state' has an empty dict if it's not already populated.
+            self.scope.setdefault("state", {})
+            # Create a state instance with a reference to the dict in which it should store info
+            self._state = State(self.scope["state"])
+        return self._state
 
     def url_for(self, name: str, **path_params: typing.Any) -> str:
-        router = self._scope["router"]
+        router = self.scope["router"]
         url_path = router.url_path_for(name, **path_params)
-        return url_path.make_absolute_url(base_url=self.url)
+        return url_path.make_absolute_url(base_url=self.base_url)
 
 
 async def empty_receive() -> Message:
     raise RuntimeError("Receive channel has not been made available")
 
 
+async def empty_send(message: Message) -> None:
+    raise RuntimeError("Send channel has not been made available")
+
+
 class Request(HTTPConnection):
-    def __init__(self, scope: Scope, receive: Receive = empty_receive):
+    def __init__(
+        self, scope: Scope, receive: Receive = empty_receive, send: Send = empty_send
+    ):
         super().__init__(scope)
         assert scope["type"] == "http"
         self._receive = receive
+        self._send = send
         self._stream_consumed = False
         self._is_disconnected = False
 
     @property
     def method(self) -> str:
-        return self._scope["method"]
+        return self.scope["method"]
 
     @property
     def receive(self) -> Receive:
@@ -163,10 +190,10 @@ class Request(HTTPConnection):
 
     async def body(self) -> bytes:
         if not hasattr(self, "_body"):
-            body = b""
+            chunks = []
             async for chunk in self.stream():
-                body += chunk
-            self._body = body
+                chunks.append(chunk)
+            self._body = b"".join(chunks)
         return self._body
 
     async def json(self) -> typing.Any:
@@ -207,3 +234,15 @@ class Request(HTTPConnection):
                 self._is_disconnected = True
 
         return self._is_disconnected
+
+    async def send_push_promise(self, path: str) -> None:
+        if "http.response.push" in self.scope.get("extensions", {}):
+            raw_headers = []
+            for name in SERVER_PUSH_HEADERS_TO_COPY:
+                for value in self.headers.getlist(name):
+                    raw_headers.append(
+                        (name.encode("latin-1"), value.encode("latin-1"))
+                    )
+            await self._send(
+                {"type": "http.response.push", "path": path, "headers": raw_headers}
+            )

@@ -88,14 +88,19 @@ class _WrapASGI2:
 
 
 class _ASGIAdapter(requests.adapters.HTTPAdapter):
-    def __init__(self, app: ASGI3App, raise_server_exceptions: bool = True) -> None:
+    def __init__(
+        self, app: ASGI3App, raise_server_exceptions: bool = True, root_path: str = ""
+    ) -> None:
         self.app = app
         self.raise_server_exceptions = raise_server_exceptions
+        self.root_path = root_path
 
     def send(  # type: ignore
         self, request: requests.PreparedRequest, *args: typing.Any, **kwargs: typing.Any
     ) -> requests.Response:
-        scheme, netloc, path, query, fragment = urlsplit(request.url)  # type: ignore
+        scheme, netloc, path, query, fragment = (
+            str(item) for item in urlsplit(request.url)
+        )
 
         default_port = {"http": 80, "ws": 80, "https": 443, "wss": 443}[scheme]
 
@@ -129,7 +134,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             scope = {
                 "type": "websocket",
                 "path": unquote(path),
-                "root_path": "",
+                "root_path": self.root_path,
                 "scheme": scheme,
                 "query_string": query.encode(),
                 "headers": headers,
@@ -145,7 +150,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             "http_version": "1.1",
             "method": request.method,
             "path": unquote(path),
-            "root_path": "",
+            "root_path": self.root_path,
             "scheme": scheme,
             "query_string": query.encode(),
             "headers": headers,
@@ -153,6 +158,13 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             "server": [host, port],
             "extensions": {"http.response.template": {}},
         }
+
+        request_complete = False
+        response_started = False
+        response_complete = False
+        raw_kwargs = {"body": io.BytesIO()}  # type: typing.Dict[str, typing.Any]
+        template = None
+        context = None
 
         async def receive() -> Message:
             nonlocal request_complete, response_complete
@@ -217,13 +229,6 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             elif message["type"] == "http.response.template":
                 template = message["template"]
                 context = message["context"]
-
-        request_complete = False
-        response_started = False
-        response_complete = False
-        raw_kwargs = {"body": io.BytesIO()}  # type: typing.Dict[str, typing.Any]
-        template = None
-        context = None
 
         try:
             loop = asyncio.get_event_loop()
@@ -363,6 +368,7 @@ class TestClient(requests.Session):
         app: typing.Union[ASGI2App, ASGI3App],
         base_url: str = "http://testserver",
         raise_server_exceptions: bool = True,
+        root_path: str = "",
     ) -> None:
         super(TestClient, self).__init__()
         if _is_asgi3(app):
@@ -372,7 +378,9 @@ class TestClient(requests.Session):
             app = typing.cast(ASGI2App, app)
             asgi_app = _WrapASGI2(app)  #  type: ignore
         adapter = _ASGIAdapter(
-            asgi_app, raise_server_exceptions=raise_server_exceptions
+            asgi_app,
+            raise_server_exceptions=raise_server_exceptions,
+            root_path=root_path,
         )
         self.mount("http://", adapter)
         self.mount("https://", adapter)
@@ -382,7 +390,7 @@ class TestClient(requests.Session):
         self.app = asgi_app
         self.base_url = base_url
 
-    def request(
+    def request(  # type: ignore
         self,
         method: str,
         url: str,
@@ -463,9 +471,14 @@ class TestClient(requests.Session):
     async def wait_startup(self) -> None:
         await self.receive_queue.put({"type": "lifespan.startup"})
         message = await self.send_queue.get()
-        if message is None:
-            self.task.result()
-        assert message["type"] == "lifespan.startup.complete"
+        assert message["type"] in (
+            "lifespan.startup.complete",
+            "lifespan.startup.failed",
+        )
+        if message["type"] == "lifespan.startup.failed":
+            message = await self.send_queue.get()
+            if message is None:
+                self.task.result()
 
     async def wait_shutdown(self) -> None:
         await self.receive_queue.put({"type": "lifespan.shutdown"})

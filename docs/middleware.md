@@ -1,5 +1,6 @@
 
-Starlette includes several middleware classes for adding behaviour that is applied across your entire application. These are all implemented as standard ASGI
+Starlette includes several middleware classes for adding behavior that is applied across
+your entire application. These are all implemented as standard ASGI
 middleware classes, and can be applied either to Starlette or to any other ASGI application.
 
 The Starlette application class allows you to include the ASGI middleware
@@ -7,27 +8,38 @@ in a way that ensures that it remains wrapped by the exception handler.
 
 ```python
 from starlette.applications import Starlette
+from starlette.middleware import Middleware
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-
-app = Starlette()
+routes = ...
 
 # Ensure that all requests include an 'example.com' or '*.example.com' host header,
 # and strictly enforce https-only access.
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=['example.com', '*.example.com'])
-app.add_middleware(HTTPSRedirectMiddleware)
+middleware = [
+  Middleware(TrustedHostMiddleware, allowed_hosts=['example.com', '*.example.com']),
+  Middleware(HTTPSRedirectMiddleware)
+]
+
+app = Starlette(routes=routes, middleware=middleware)
 ```
 
-Starlette also allows you to add middleware functions, using a decorator syntax:
+Every Starlette application automatically includes two pieces of middleware
+by default:
 
-```python
-@app.middleware("http")
-async def add_custom_header(request, call_next):
-    response = await call_next(request)
-    response.headers['Custom'] = 'Example'
-    return response
-```
+* `ServerErrorMiddleware` - Ensures that application exceptions may return a custom 500 page, or display an application traceback in DEBUG mode. This is *always* the outermost middleware layer.
+* `ExceptionMiddleware` - Adds exception handlers, so that particular types of expected exception cases can be associated with handler functions. For example raising `HTTPException(status_code=404)` within an endpoint will end up rendering a custom 404 page.
+
+Middleware is evaluated from top-to-bottom, so the flow of execution in our example
+application would look like this:
+
+* Middleware
+    * `ServerErrorMiddleware`
+    * `TrustedHostMiddleware`
+    * `HTTPSRedirectMiddleware`
+    * `ExceptionMiddleware`
+* Routing
+* Endpoint
 
 The following middleware implementations are available in the Starlette package:
 
@@ -41,11 +53,16 @@ for browsers to be permitted to use them in a Cross-Domain context.
 
 ```python
 from starlette.applications import Starlette
+from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 
+routes = ...
 
-app = Starlette()
-app.add_middleware(CORSMiddleware, allow_origins=['*'])
+middleware = [
+    Middleware(CORSMiddleware, allow_origins=['*'])
+]
+
+app = Starlette(routes=routes, middleware=middleware)
 ```
 
 The following arguments are supported:
@@ -62,7 +79,7 @@ The middleware responds to two particular types of HTTP request...
 
 #### CORS preflight requests
 
-These are any `OPTION` request with `Origin` and `Access-Control-Request-Method` headers.
+These are any `OPTIONS` request with `Origin` and `Access-Control-Request-Method` headers.
 In this case the middleware will intercept the incoming request and respond with
 appropriate CORS headers, and either a 200 or 400 response for informational purposes.
 
@@ -95,9 +112,13 @@ requests to `http` or `ws` will be redirected to the secure scheme instead.
 from starlette.applications import Starlette
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 
+routes = ...
 
-app = Starlette()
-app.add_middleware(HTTPSRedirectMiddleware)
+middleware = [
+    Middleware(HTTPSRedirectMiddleware)
+]
+
+app = Starlette(routes=routes, middleware=middleware)
 ```
 
 There are no configuration options for this middleware class.
@@ -109,11 +130,16 @@ to guard against HTTP Host Header attacks.
 
 ```python
 from starlette.applications import Starlette
+from starlette.middleware import Middleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+routes = ...
 
-app = Starlette()
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=['example.com', '*.example.com'])
+middleware = [
+    Middleware(TrustedHostMiddleware, allowed_hosts=['example.com', '*.example.com'])
+]
+
+app = Starlette(routes=routes, middleware=middleware)
 ```
 
 The following arguments are supported:
@@ -132,11 +158,17 @@ The middleware will handle both standard and streaming responses.
 
 ```python
 from starlette.applications import Starlette
+from starlette.middleware import Middleware
 from starlette.middleware.gzip import GZipMiddleware
 
 
-app = Starlette()
-app.add_middleware(GZipMiddleware, minimum_size=1000)
+routes = ...
+
+middleware = [
+    Middleware(GZipMiddleware, minimum_size=1000)
+]
+
+app = Starlette(routes=routes, middleware=middleware)
 ```
 
 The following arguments are supported:
@@ -158,9 +190,11 @@ class CustomHeaderMiddleware(BaseHTTPMiddleware):
         response.headers['Custom'] = 'Example'
         return response
 
+middleware = [
+    Middleware(CustomHeaderMiddleware)
+]
 
-app = Starlette()
-app.add_middleware(CustomHeaderMiddleware)
+app = Starlette(routes=routes, middleware=middleware)
 ```
 
 If you want to provide configuration options to the middleware class you should
@@ -171,7 +205,7 @@ attribute on the instance if you do this.
 ```python
 class CustomHeaderMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, header_value='Example'):
-        self.app = app
+        super().__init__(app)
         self.header_value = header_value
 
     async def dispatch(self, request, call_next):
@@ -180,8 +214,12 @@ class CustomHeaderMiddleware(BaseHTTPMiddleware):
         return response
 
 
-app = Starlette()
-app.add_middleware(CustomHeaderMiddleware, header_value='Customized')
+
+middleware = [
+    Middleware(CustomHeaderMiddleware, header_value='Customized')
+]
+
+app = Starlette(routes=routes, middleware=middleware)
 ```
 
 Middleware classes should not modify their state outside of the `__init__` method.
@@ -198,9 +236,10 @@ app = TrustedHostMiddleware(app, allowed_hosts=['example.com'])
 ```
 
 You can do this with a Starlette application instance too, but it is preferable
-to use `.add_middleware`, as it'll ensure that you don't lose the reference
-to the application object, and that the exception handling always wraps around
-any other behaviour.
+to use the `middleware=<List of Middleware instances>` style, as it will:
+
+* Ensure that everything remains wrapped in a single outermost `ServerErrorMiddleware`.
+* Preserves the top-level `app` instance.
 
 ## Third party middleware
 
@@ -217,3 +256,21 @@ when proxy servers are being used, based on the `X-Forwarded-Proto` and `X-Forwa
 
 A middleware class to emit timing information (cpu and wall time) for each request which
 passes through it.  Includes examples for how to emit these timings as statsd metrics.
+
+#### [datasette-auth-github](https://github.com/simonw/datasette-auth-github)
+
+This middleware adds authentication to any ASGI application, requiring users to sign in
+using their GitHub account (via [OAuth](https://developer.github.com/apps/building-oauth-apps/authorizing-oauth-apps/)).
+Access can be restricted to specific users or to members of specific GitHub organizations or teams.
+
+#### [PrometheusMiddleware](https://github.com/perdy/starlette-prometheus)
+
+A middleware class for capturing Prometheus metrics related to requests and responses, including in progress requests, timing...
+
+#### [BugsnagMiddleware](https://github.com/ashinabraham/starlette-bugsnag)
+
+A middleware class for logging exceptions to [Bugsnag](https://www.bugsnag.com/).
+
+#### [EarlyDataMiddleware](https://github.com/HarrySky/starlette-early-data)
+
+Middleware and decorator for detecting and denying [TLSv1.3 early data](https://tools.ietf.org/html/rfc8470) requests.

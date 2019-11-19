@@ -2,7 +2,7 @@ import pytest
 
 from starlette.applications import Starlette
 from starlette.responses import PlainTextResponse
-from starlette.routing import Lifespan, Route, Router
+from starlette.routing import Route, Router
 from starlette.testclient import TestClient
 
 
@@ -22,10 +22,9 @@ def test_routed_lifespan():
         shutdown_complete = True
 
     app = Router(
-        routes=[
-            Lifespan(on_startup=run_startup, on_shutdown=run_shutdown),
-            Route("/", hello_world),
-        ]
+        on_startup=[run_startup],
+        on_shutdown=[run_shutdown],
+        routes=[Route("/", hello_world),],
     )
 
     assert not startup_complete
@@ -42,18 +41,29 @@ def test_raise_on_startup():
     def run_startup():
         raise RuntimeError()
 
-    app = Router(routes=[Lifespan(on_startup=run_startup)])
+    router = Router(on_startup=[run_startup])
 
+    async def app(scope, receive, send):
+        async def _send(message):
+            nonlocal startup_failed
+            if message["type"] == "lifespan.startup.failed":
+                startup_failed = True
+            return await send(message)
+
+        await router(scope, receive, _send)
+
+    startup_failed = False
     with pytest.raises(RuntimeError):
         with TestClient(app):
             pass  # pragma: nocover
+    assert startup_failed
 
 
 def test_raise_on_shutdown():
     def run_shutdown():
         raise RuntimeError()
 
-    app = Router(routes=[Lifespan(on_shutdown=run_shutdown)])
+    app = Router(on_shutdown=[run_shutdown])
 
     with pytest.raises(RuntimeError):
         with TestClient(app):

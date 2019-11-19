@@ -20,6 +20,8 @@
 
 **Documentation**: [https://www.starlette.io/](https://www.starlette.io/)
 
+**Community**: [https://discuss.encode.io/c/starlette](https://discuss.encode.io/c/starlette)
+
 ---
 
 # Starlette
@@ -59,20 +61,28 @@ $ pip3 install uvicorn
 
 ## Example
 
+**example.py**:
+
 ```python
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
-import uvicorn
-
-app = Starlette(debug=True)
+from starlette.routing import Route
 
 
-@app.route('/')
 async def homepage(request):
     return JSONResponse({'hello': 'world'})
 
-if __name__ == '__main__':
-    uvicorn.run(app, host='0.0.0.0', port=8000)
+routes = [
+    Route("/", endpoint=homepage)
+]
+
+app = Starlette(debug=True, routes=routes)
+```
+
+Then run the application using Uvicorn:
+
+```shell
+$ uvicorn example:app
 ```
 
 For a more complete example, see [encode/starlette-example](https://github.com/encode/starlette-example).
@@ -101,20 +111,16 @@ an ASGI toolkit. You can use any of its components independently.
 from starlette.responses import PlainTextResponse
 
 
-class App:
-    def __init__(self, scope):
-        assert scope['type'] == 'http'
-        self.scope = scope
-
-    async def __call__(self, receive, send):
-        response = PlainTextResponse('Hello, world!')
-        await response(receive, send)
+async def app(scope, receive, send):
+    assert scope['type'] == 'http'
+    response = PlainTextResponse('Hello, world!')
+    await response(scope, receive, send)
 ```
 
-Run the `App` application in `example.py`:
+Run the `app` application in `example.py`:
 
 ```shell
-$ uvicorn example:App
+$ uvicorn example:app
 INFO: Started server process [11509]
 INFO: Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
 ```

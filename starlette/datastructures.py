@@ -21,7 +21,7 @@ class URL:
             scheme = scope.get("scheme", "http")
             server = scope.get("server", None)
             path = scope.get("root_path", "") + scope["path"]
-            query_string = scope["query_string"]
+            query_string = scope.get("query_string", b"")
 
             host_header = None
             for key, value in scope["headers"]:
@@ -44,7 +44,7 @@ class URL:
             if query_string:
                 url += "?" + query_string.decode()
         elif components:
-            assert not url, 'Cannot set both "scope" and "**components".'
+            assert not url, 'Cannot set both "url" and "**components".'
             url = URL("").replace(**components).components.geturl()
 
         self._url = url
@@ -121,6 +121,27 @@ class URL:
         components = self.components._replace(**kwargs)
         return self.__class__(components.geturl())
 
+    def include_query_params(self, **kwargs: typing.Any) -> "URL":
+        params = MultiDict(parse_qsl(self.query, keep_blank_values=True))
+        params.update({str(key): str(value) for key, value in kwargs.items()})
+        query = urlencode(params.multi_items())
+        return self.replace(query=query)
+
+    def replace_query_params(self, **kwargs: typing.Any) -> "URL":
+        query = urlencode([(str(key), str(value)) for key, value in kwargs.items()])
+        return self.replace(query=query)
+
+    def remove_query_params(
+        self, keys: typing.Union[str, typing.Sequence[str]]
+    ) -> "URL":
+        if isinstance(keys, str):
+            keys = [keys]
+        params = MultiDict(parse_qsl(self.query, keep_blank_values=True))
+        for key in keys:
+            params.pop(key, None)
+        query = urlencode(params.multi_items())
+        return self.replace(query=query)
+
     def __eq__(self, other: typing.Any) -> bool:
         return str(self) == str(other)
 
@@ -140,7 +161,7 @@ class URLPath(str):
     Used by the routing to return `url_path_for` matches.
     """
 
-    def __new__(cls, path: str, protocol: str = "", host: str = "") -> str:
+    def __new__(cls, path: str, protocol: str = "", host: str = "") -> "URLPath":
         assert protocol in ("http", "websocket", "")
         return str.__new__(cls, path)  # type: ignore
 
@@ -164,7 +185,8 @@ class URLPath(str):
         else:
             netloc = base_url.netloc
 
-        return str(URL(scheme=scheme, netloc=netloc, path=str(self)))
+        path = base_url.path.rstrip("/") + str(self)
+        return str(URL(scheme=scheme, netloc=netloc, path=path))
 
 
 class Secret:
@@ -376,9 +398,11 @@ class QueryParams(ImmutableMultiDict):
         value = args[0] if args else []
 
         if isinstance(value, str):
-            super().__init__(parse_qsl(value), **kwargs)
+            super().__init__(parse_qsl(value, keep_blank_values=True), **kwargs)
         elif isinstance(value, bytes):
-            super().__init__(parse_qsl(value.decode("latin-1")), **kwargs)
+            super().__init__(
+                parse_qsl(value.decode("latin-1"), keep_blank_values=True), **kwargs
+            )
         else:
             super().__init__(*args, **kwargs)  # type: ignore
         self._list = [(str(k), str(v)) for k, v in self._list]
@@ -398,13 +422,15 @@ class UploadFile:
     An uploaded file included as part of the request data.
     """
 
+    spool_max_size = 1024 * 1024
+
     def __init__(
         self, filename: str, file: typing.IO = None, content_type: str = ""
     ) -> None:
         self.filename = filename
         self.content_type = content_type
         if file is None:
-            file = tempfile.SpooledTemporaryFile()
+            file = tempfile.SpooledTemporaryFile(max_size=self.spool_max_size)
         self.file = file
 
     async def write(self, data: typing.Union[bytes, str]) -> None:
@@ -605,3 +631,29 @@ class MutableHeaders(Headers):
         if existing is not None:
             vary = ", ".join([existing, vary])
         self["vary"] = vary
+
+
+class State(object):
+    """
+    An object that can be used to store arbitrary state.
+
+    Used for `request.state` and `app.state`.
+    """
+
+    def __init__(self, state: typing.Dict = None):
+        if state is None:
+            state = {}
+        super(State, self).__setattr__("_state", state)
+
+    def __setattr__(self, key: typing.Any, value: typing.Any) -> None:
+        self._state[key] = value
+
+    def __getattr__(self, key: typing.Any) -> typing.Any:
+        try:
+            return self._state[key]
+        except KeyError:
+            message = "'{}' object has no attribute '{}'"
+            raise AttributeError(message.format(self.__class__.__name__, key))
+
+    def __delattr__(self, key: typing.Any) -> None:
+        del self._state[key]

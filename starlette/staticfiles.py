@@ -27,7 +27,7 @@ class NotModifiedResponse(Response):
     )
 
     def __init__(self, headers: Headers):
-        return super().__init__(
+        super().__init__(
             status_code=304,
             headers={
                 name: value
@@ -58,7 +58,7 @@ class StaticFiles:
         self, directory: str = None, packages: typing.List[str] = None
     ) -> typing.List[str]:
         """
-        Given `directory` and `packages` arugments, return a list of all the
+        Given `directory` and `packages` arguments, return a list of all the
         directories that should be used for serving static files from.
         """
         directories = []
@@ -70,11 +70,11 @@ class StaticFiles:
             assert spec is not None, f"Package {package!r} could not be found."
             assert (
                 spec.origin is not None
-            ), "Directory 'statics' in package {package!r} could not be found."
+            ), f"Directory 'statics' in package {package!r} could not be found."
             directory = os.path.normpath(os.path.join(spec.origin, "..", "statics"))
             assert os.path.isdir(
                 directory
-            ), "Directory 'statics' in package {package!r} could not be found."
+            ), f"Directory 'statics' in package {package!r} could not be found."
             directories.append(directory)
 
         return directories
@@ -145,7 +145,6 @@ class StaticFiles:
     async def lookup_path(
         self, path: str
     ) -> typing.Tuple[str, typing.Optional[os.stat_result]]:
-        stat_result = None
         for directory in self.all_directories:
             full_path = os.path.join(directory, path)
             try:

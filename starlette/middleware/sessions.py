@@ -6,7 +6,7 @@ import itsdangerous
 from itsdangerous.exc import BadTimeSignature, SignatureExpired
 
 from starlette.datastructures import MutableHeaders, Secret
-from starlette.requests import Request
+from starlette.requests import HTTPConnection
 from starlette.sessions import CookieBackend, SessionBackend, SessionNotFoundError
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
@@ -36,18 +36,19 @@ class SessionMiddleware:
             await self.app(scope, receive, send)
             return
 
-        request = Request(scope)
+        connection = HTTPConnection(scope)
         initial_session_was_empty = True
-
         session_id = None
-        if self.session_cookie in request.cookies:
+
+        if self.session_cookie in connection.cookies:
+            data = connection.cookies[self.session_cookie].encode("utf-8")
             try:
-                session_id = request.cookies[self.session_cookie]
+                session_id = connection.cookies[self.session_cookie]
                 signed_data = await self.backend.read(session_id)
                 if signed_data is None:  # there is no data for key
                     raise SessionNotFoundError()
 
-                data = self.signer.unsign(signed_data, max_age=self.max_age)
+                data = self.signer.unsign(data, max_age=self.max_age)
                 scope["session"] = json.loads(b64decode(data))
                 initial_session_was_empty = False
             except (BadTimeSignature, SignatureExpired, SessionNotFoundError):

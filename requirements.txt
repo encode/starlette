@@ -21,3 +21,4 @@ pytest-asyncio
 # Documentation
 mkdocs
 mkdocs-material
+mkautodoc

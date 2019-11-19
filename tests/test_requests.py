@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from starlette.requests import ClientDisconnect, Request
+from starlette.requests import ClientDisconnect, Request, State
 from starlette.responses import JSONResponse, Response
 from starlette.testclient import TestClient
 
@@ -240,11 +240,25 @@ def test_request_is_disconnected():
     assert disconnected_after_response
 
 
+def test_request_state_object():
+    scope = {"state": {"old": "foo"}}
+
+    s = State(scope["state"])
+
+    s.new = "value"
+    assert s.new == "value"
+
+    del s.new
+
+    with pytest.raises(AttributeError):
+        s.new
+
+
 def test_request_state():
     async def app(scope, receive, send):
         request = Request(scope, receive)
         request.state.example = 123
-        response = JSONResponse({"state.example": request["state"].example})
+        response = JSONResponse({"state.example": request.state.example})
         await response(scope, receive, send)
 
     client = TestClient(app)
@@ -286,3 +300,61 @@ def test_chunked_encoding():
 
     response = client.post("/", data=post_body())
     assert response.json() == {"body": "foobar"}
+
+
+def test_request_send_push_promise():
+    async def app(scope, receive, send):
+        # the server is push-enabled
+        scope["extensions"]["http.response.push"] = {}
+
+        request = Request(scope, receive, send)
+        await request.send_push_promise("/style.css")
+
+        response = JSONResponse({"json": "OK"})
+        await response(scope, receive, send)
+
+    client = TestClient(app)
+    response = client.get("/")
+    assert response.json() == {"json": "OK"}
+
+
+def test_request_send_push_promise_without_push_extension():
+    """
+    If server does not support the `http.response.push` extension,
+    .send_push_promise() does nothing.
+    """
+
+    async def app(scope, receive, send):
+        request = Request(scope)
+        await request.send_push_promise("/style.css")
+
+        response = JSONResponse({"json": "OK"})
+        await response(scope, receive, send)
+
+    client = TestClient(app)
+    response = client.get("/")
+    assert response.json() == {"json": "OK"}
+
+
+def test_request_send_push_promise_without_setting_send():
+    """
+    If Request is instantiated without the send channel, then
+    .send_push_promise() is not available.
+    """
+
+    async def app(scope, receive, send):
+        # the server is push-enabled
+        scope["extensions"]["http.response.push"] = {}
+
+        data = "OK"
+        request = Request(scope)
+        try:
+            await request.send_push_promise("/style.css")
+        except RuntimeError:
+            data = "Send channel not available"
+        response = JSONResponse({"json": data})
+        await response(scope, receive, send)
+
+    client = TestClient(app)
+    response = client.get("/")
+    assert response.json() == {"json": "Send channel not available"}
