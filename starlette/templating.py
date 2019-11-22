@@ -1,7 +1,7 @@
 import typing
 
 from starlette.background import BackgroundTask
-from starlette.responses import Response
+from starlette.responses import HTMLResponse
 from starlette.types import Receive, Scope, Send
 
 try:
@@ -10,22 +10,21 @@ except ImportError:  # pragma: nocover
     jinja2 = None  # type: ignore
 
 
-class _TemplateResponse(Response):
-    media_type = "text/html"
-
+class _TemplateResponse(HTMLResponse):
     def __init__(
         self,
         template: typing.Any,
         context: dict,
         status_code: int = 200,
         headers: dict = None,
-        media_type: str = None,
+        media_type: str = HTMLResponse.media_type,
         background: BackgroundTask = None,
     ):
         self.template = template
         self.context = context
-        content = template.render(context)
-        super().__init__(content, status_code, headers, media_type, background)
+        self.status_code = status_code
+        self.background = background
+        self.base_headers = headers
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         request = self.context.get("request", {})
@@ -38,6 +37,9 @@ class _TemplateResponse(Response):
                     "context": self.context,
                 }
             )
+        content = await self.template.render_async(self.context)
+        self.body = self.render(content)
+        self.init_headers(self.base_headers)
         await super().__call__(scope, receive, send)
 
 
@@ -59,7 +61,7 @@ class Jinja2Templates:
             return request.url_for(name, **path_params)
 
         loader = jinja2.FileSystemLoader(directory)
-        env = jinja2.Environment(loader=loader, autoescape=True)
+        env = jinja2.Environment(loader=loader, autoescape=True, enable_async=True)
         env.globals["url_for"] = url_for
         return env
 
@@ -72,7 +74,7 @@ class Jinja2Templates:
         context: dict,
         status_code: int = 200,
         headers: dict = None,
-        media_type: str = None,
+        media_type: str = HTMLResponse.media_type,
         background: BackgroundTask = None,
     ) -> _TemplateResponse:
         if "request" not in context:
