@@ -6,7 +6,9 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
 class GZipMiddleware:
-    def __init__(self, app: ASGIApp, minimum_size: int = 500, compresslevel: int = 9) -> None:
+    def __init__(
+        self, app: ASGIApp, minimum_size: int = 500, compresslevel: int = 9
+    ) -> None:
         self.app = app
         self.minimum_size = minimum_size
         self.compresslevel = compresslevel
@@ -15,7 +17,9 @@ class GZipMiddleware:
         if scope["type"] == "http":
             headers = Headers(scope=scope)
             if "gzip" in headers.get("Accept-Encoding", ""):
-                responder = GZipResponder(self.app, self.minimum_size, self.compresslevel)
+                responder = GZipResponder(
+                    self.app, self.minimum_size, self.compresslevel
+                )
                 await responder(scope, receive, send)
                 return
         await self.app(scope, receive, send)
@@ -30,7 +34,9 @@ class GZipResponder:
         self.initial_message = {}  # type: Message
         self.started = False
         self.gzip_buffer = io.BytesIO()
-        self.gzip_file = gzip.GzipFile(mode="wb", fileobj=self.gzip_buffer, compresslevel=self.compresslevel)
+        self.gzip_file = gzip.GzipFile(
+            mode="wb", fileobj=self.gzip_buffer, compresslevel=self.compresslevel
+        )
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         self.send = send
