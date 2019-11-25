@@ -15,9 +15,7 @@ from starlette.datastructures import URL, MutableHeaders
 from starlette.types import Receive, Scope, Send
 
 # Workaround for adding samesite support to pre 3.8 python
-from http.cookies import Morsel
-
-Morsel._reserved[str("samesite")] = str("SameSite")  # type: ignore
+http.cookies.Morsel._reserved["samesite"] = "SameSite"  # type: ignore
 
 try:
     import aiofiles
