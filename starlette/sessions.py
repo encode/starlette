@@ -2,9 +2,9 @@ import abc
 import json
 import typing
 import uuid
-from base64 import b64encode, b64decode
+from base64 import b64decode, b64encode
 
-from itsdangerous import TimestampSigner, SignatureExpired, BadSignature
+from itsdangerous import BadSignature, SignatureExpired, TimestampSigner
 
 from starlette.datastructures import Secret
 
@@ -13,15 +13,15 @@ class SessionBackend(abc.ABC):
     """Base class for session backends."""
 
     @abc.abstractmethod
-    async def read(self, session_id: str) -> typing.Dict[str, typing.Any]:  # pragma: no cover
+    async def read(
+        self, session_id: str
+    ) -> typing.Dict[str, typing.Any]:  # pragma: no cover
         """Read session data from the storage."""
         raise NotImplementedError()
 
     @abc.abstractmethod
     async def write(
-            self,
-            data: typing.Dict,
-            session_id: typing.Optional[str] = None
+        self, data: typing.Dict, session_id: typing.Optional[str] = None
     ) -> str:  # pragma: no cover
         """Write session data to the storage."""
         raise NotImplementedError()
@@ -57,9 +57,7 @@ class CookieBackend(SessionBackend):
             return {}
 
     async def write(
-            self,
-            data: typing.Dict,
-            session_id: typing.Optional[str] = None
+        self, data: typing.Dict, session_id: typing.Optional[str] = None
     ) -> str:
         """ The data is a session id in this backend. """
         encoded_data = b64encode(json.dumps(data).encode("utf-8"))
@@ -82,9 +80,7 @@ class InMemoryBackend(SessionBackend):
         return self.data.get(session_id, {}).copy()
 
     async def write(
-            self,
-            data: typing.Dict,
-            session_id: typing.Optional[str] = None
+        self, data: typing.Dict, session_id: typing.Optional[str] = None
     ) -> str:
         session_id = session_id or await self.generate_id()
         self.data[session_id] = data

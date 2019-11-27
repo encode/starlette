@@ -8,14 +8,14 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 class SessionMiddleware:
     def __init__(
-            self,
-            app: ASGIApp,
-            secret_key: typing.Union[str, Secret],
-            session_cookie: str = "session",
-            max_age: int = 14 * 24 * 60 * 60,  # 14 days, in seconds
-            same_site: str = "lax",
-            https_only: bool = False,
-            backend: SessionBackend = None,
+        self,
+        app: ASGIApp,
+        secret_key: typing.Union[str, Secret],
+        session_cookie: str = "session",
+        max_age: int = 14 * 24 * 60 * 60,  # 14 days, in seconds
+        same_site: str = "lax",
+        https_only: bool = False,
+        backend: SessionBackend = None,
     ) -> None:
         self.app = app
         self.backend = backend or CookieBackend(secret_key, max_age)
@@ -40,7 +40,7 @@ class SessionMiddleware:
                 if scope["session"].is_modified:
                     # We have session data to persist (data was changed, cleared, etc).
                     nonlocal session_id
-                    session_id = await scope['session'].persist()
+                    session_id = await scope["session"].persist()
 
                     headers = MutableHeaders(scope=message)
                     header_value = "%s=%s; path=/; Max-Age=%d; %s" % (

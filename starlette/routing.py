@@ -224,8 +224,8 @@ class Route(BaseRoute):
                 response = PlainTextResponse("Method Not Allowed", status_code=405)
             await response(scope, receive, send)
         else:
-            if 'session' in scope:
-                await scope['session'].load()
+            if "session" in scope:
+                await scope["session"].load()
             await self.app(scope, receive, send)
 
     def __eq__(self, other: typing.Any) -> bool:
