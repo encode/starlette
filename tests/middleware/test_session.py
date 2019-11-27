@@ -3,23 +3,22 @@ import re
 from starlette.applications import Starlette
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import JSONResponse
-from starlette.sessions import InMemoryBackend
 from starlette.testclient import TestClient
 
 
 def view_session(request):
-    return JSONResponse({"session": request.session})
+    return JSONResponse({"session": request.session.data})
 
 
 async def update_session(request):
     data = await request.json()
     request.session.update(data)
-    return JSONResponse({"session": request.session})
+    return JSONResponse({"session": request.session.data})
 
 
 async def clear_session(request):
     request.session.clear()
-    return JSONResponse({"session": request.session})
+    return JSONResponse({"session": request.session.data})
 
 
 def create_app():
@@ -58,9 +57,8 @@ def test_session():
 
 
 def test_empty_session():
-    backend = InMemoryBackend()
     app = create_app()
-    app.add_middleware(SessionMiddleware, backend=backend, secret_key="example")
+    app.add_middleware(SessionMiddleware, secret_key="example")
 
     headers = {"cookie": "session=someid"}
     client = TestClient(app)

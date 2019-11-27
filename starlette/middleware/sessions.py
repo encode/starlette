@@ -2,7 +2,7 @@ import typing
 
 from starlette.datastructures import MutableHeaders, Secret
 from starlette.requests import HTTPConnection
-from starlette.sessions import CookieBackend, Session, Storage
+from starlette.sessions import CookieBackend, Session, SessionBackend
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
@@ -15,7 +15,7 @@ class SessionMiddleware:
             max_age: int = 14 * 24 * 60 * 60,  # 14 days, in seconds
             same_site: str = "lax",
             https_only: bool = False,
-            backend: Storage = None,
+            backend: SessionBackend = None,
     ) -> None:
         self.app = app
         self.backend = backend or CookieBackend(secret_key, max_age)
@@ -37,8 +37,8 @@ class SessionMiddleware:
 
         async def send_wrapper(message: Message) -> None:
             if message["type"] == "http.response.start":
-                if scope["session"].is_modified and not scope["session"].is_empty:
-                    # We have session data to persist.
+                if scope["session"].is_modified:
+                    # We have session data to persist (data was changed, cleared, etc).
                     nonlocal session_id
                     session_id = await scope['session'].persist()
 
@@ -51,7 +51,7 @@ class SessionMiddleware:
                     )
                     headers.append("Set-Cookie", header_value)
                 elif scope["session"].is_empty:
-                    # The session has been cleared.
+                    # no interactions to session were done
                     headers = MutableHeaders(scope=message)
                     header_value = "%s=%s; %s" % (
                         self.session_cookie,

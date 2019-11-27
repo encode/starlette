@@ -1,28 +1,9 @@
-from unittest import mock
-
 import pytest
 
 from starlette.sessions import (
     CookieBackend,
-    DatabaseBackend,
     InMemoryBackend,
-    MemcachedBackend,
-    RedisBackend,
-)
-
-
-class _Store:
-    def __init__(self):
-        self._store = {}
-
-    async def set(self, key, value):
-        self._store[key] = value
-
-    async def get(self, key):
-        return self._store.get(key, None)
-
-    async def delete(self, key):
-        del self._store[key]
+    Session)
 
 
 @pytest.fixture()
@@ -32,208 +13,230 @@ def in_memory():
 
 @pytest.fixture()
 def cookie():
-    return CookieBackend()
+    return CookieBackend('key', 14)
 
 
 @pytest.fixture()
-def memcached():
-    store = _Store()
-    client = mock.MagicMock()
-    client.set.side_effect = store.set
-    client.get.side_effect = store.get
-    client.delete.side_effect = store.delete
-    with mock.patch("starlette.sessions.aiomcache", object()):
-        return MemcachedBackend(client)
+def in_memory_session(in_memory):
+    return Session(in_memory)
 
 
 @pytest.fixture()
-def redis():
-    store = _Store()
-    client = mock.MagicMock()
-    client.set.side_effect = store.set
-    client.get.side_effect = store.get
-    client.delete.side_effect = store.delete
-    with mock.patch("starlette.sessions.aioredis", object()):
-        return RedisBackend(client)
+def session_payload():
+    return {'key': 'value'}
 
 
-def test_generate_id(in_memory):
-    new_id = in_memory.generate_id()
+@pytest.mark.asyncio
+async def test_generate_id(in_memory):
+    new_id = await in_memory.generate_id()
     assert isinstance(new_id, str)
 
 
 class TestInMemoryBackend:
     @pytest.mark.asyncio
-    async def test_read_write(self, in_memory):
-        new_id = await in_memory.write("id", "data")
-        assert new_id == "id"
-        assert await in_memory.read("id") == "data"
+    async def test_read_write(self, in_memory, session_payload):
+        new_id = await in_memory.write(session_payload, "session_id")
+        assert new_id == "session_id"
+        assert await in_memory.read("session_id") == session_payload
 
     @pytest.mark.asyncio
-    async def test_remove(self, in_memory):
-        await in_memory.write("id", "data")
-        await in_memory.remove("id")
-        assert await in_memory.read("id") is None
+    async def test_remove(self, in_memory, session_payload):
+        await in_memory.write(session_payload, "session_id")
+        await in_memory.remove("session_id")
+        assert await in_memory.exists("session_id") is False
 
     @pytest.mark.asyncio
-    async def test_exists(self, in_memory):
-        await in_memory.write("id", "data")
-        assert await in_memory.exists("id") is True
+    async def test_exists(self, in_memory, session_payload):
+        await in_memory.write(session_payload, "session_id")
+        assert await in_memory.exists("session_id") is True
         assert await in_memory.exists("other id") is False
 
 
 class TestCookieBackend:
     @pytest.mark.asyncio
-    async def test_read_write(self, cookie):
-        new_id = await cookie.write("id", "data")
-        assert new_id == "data"
-        assert await cookie.read("id") == "id"
+    async def test_read_write(self, cookie, session_payload):
+        new_id = await cookie.write(session_payload, "session_id")
+        assert await cookie.read(new_id) == session_payload
 
     @pytest.mark.asyncio
     async def test_remove(self, cookie):
-        await cookie.remove("id")
+        await cookie.remove("session_id")
 
     @pytest.mark.asyncio
     async def test_exists(self, cookie):
-        assert await cookie.exists("id") is False
+        assert await cookie.exists("session_id") is False
 
 
-class TestRedisBackend:
-    @pytest.mark.asyncio
-    async def test_requires_aioredis(self):
-        with mock.patch("starlette.sessions.aioredis", None):
-            with pytest.raises(AssertionError):
-                RedisBackend(None)
+class TestSession:
+    def test_is_empty(self, in_memory):
+        session = Session(in_memory)
+        assert session.is_empty is True
 
-    @pytest.mark.asyncio
-    async def test_read_write(self, redis):
-        new_id = await redis.write("id", "data")
-        assert new_id == "id"
-        assert await redis.read("id") == "data"
+        session['key'] = 'value'
+        assert session.is_empty is False
 
-    @pytest.mark.asyncio
-    async def test_remove(self, redis):
-        await redis.write("id", "data")
-        await redis.remove("id")
-        assert await redis.read("id") is None
+    def test_is_modified(self, in_memory):
+        session = Session(in_memory)
+        assert session.is_modified is False
+
+        session['key'] = 'value'
+        assert session.is_modified is True
 
     @pytest.mark.asyncio
-    async def test_exists(self, redis):
-        await redis.write("id", "data")
-        assert await redis.exists("id") is True
-        assert await redis.exists("other id") is False
+    async def test_load(self, in_memory, session_payload):
+        await in_memory.write(session_payload, "session_id")
 
-
-class TestMemcachedBackend:
-    @pytest.mark.asyncio
-    async def test_requires_aiomcache(self):
-        with mock.patch("starlette.sessions.aiomcache", None):
-            with pytest.raises(AssertionError):
-                MemcachedBackend(None)
+        session = Session(in_memory, 'session_id')
+        await session.load()
+        assert session.items() == session_payload.items()
 
     @pytest.mark.asyncio
-    async def test_read_write(self, memcached):
-        new_id = await memcached.write("id", "data")
-        assert new_id == "id"
-        assert await memcached.read("id") == "data"
+    async def test_load_with_new_session(self, in_memory, session_payload):
+        session = Session(in_memory)
+        await session.load()
+        assert len(session.keys()) == 0
 
     @pytest.mark.asyncio
-    async def test_remove(self, memcached):
-        await memcached.write("id", "data")
-        await memcached.remove("id")
-        assert await memcached.read("id") is None
+    async def test_subsequent_load(self, in_memory):
+        """It should return the cached data on any sequential call to load()."""
+        await in_memory.write(dict(key='value'), "session_id")
+
+        session = Session(in_memory, 'session_id')
+        await session.load()
+
+        assert 'key' in session
+
+        # add key2 to session. this value should survive the second load() call
+        session['key2'] = 'value2'
+        await session.load()
+
+        assert 'key' in session
+        assert 'key2' in session
 
     @pytest.mark.asyncio
-    async def test_exists(self, memcached):
-        await memcached.write("id", "data")
-        assert await memcached.exists("id") is True
-        assert await memcached.exists("other id") is False
+    async def test_persist(self, in_memory):
+        session = Session(in_memory, 'session_id')
+        session['key'] = 'value'
+        new_id = await session.persist()
 
+        # session ID should no change when was passed via arguments
+        assert new_id == 'session_id'
 
-class TestDatabaseBackend:
-    @pytest.mark.asyncio
-    async def test_requires_databases(self):
-        with mock.patch("starlette.sessions.databases", None):
-            with pytest.raises(AssertionError):
-                DatabaseBackend(None)
-
-    @pytest.mark.asyncio
-    async def test_read(self):
-        async def _fetch(*args):
-            return "data"
-
-        client = mock.MagicMock()
-        client.fetch_val.side_effect = _fetch
-
-        databases = DatabaseBackend(client)
-        assert await databases.read("id") == "data"
-        assert databases._exists
+        assert in_memory.data == {
+            'session_id': {'key': 'value'}
+        }
 
     @pytest.mark.asyncio
-    async def test_read_data_not_exists(self):
-        async def _fetch(*args):
-            return None
+    async def test_persist_generates_id(self, in_memory):
+        async def _generate_id():
+            return 'new_session_id'
 
-        client = mock.MagicMock()
-        client.fetch_val.side_effect = _fetch
-
-        databases = DatabaseBackend(client)
-        assert await databases.read("id") is None
-        assert not databases._exists
+        in_memory.generate_id = _generate_id
+        session = Session(in_memory)
+        await session.persist()
+        assert session.session_id == 'new_session_id'
 
     @pytest.mark.asyncio
-    async def test_write_updates(self):
-        used_query = None
+    async def test_delete(self, in_memory):
+        await in_memory.write({}, "session_id")
 
-        async def _fn(query, *args):
-            nonlocal used_query
-            used_query = query
+        session = Session(in_memory, 'session_id')
+        session['key'] = 'value'
+        await session.delete()
 
-        client = mock.MagicMock()
-        client.execute.side_effect = _fn
-        databases = DatabaseBackend(client)
-        databases._exists = True
-        await databases.write("id", "data")
-        assert "UPDATE" in used_query
+        assert await in_memory.exists('session_id') is False
+        assert session.is_modified is True
+        assert session.is_empty is True
 
-    @pytest.mark.asyncio
-    async def test_write_inserts(self):
-        used_query = None
+        # it shouldn't fail on non-persisted session
+        session = Session(in_memory)
+        await session.delete()
 
-        async def _fn(query, *args):
-            nonlocal used_query
-            used_query = query
-
-        client = mock.MagicMock()
-        client.execute.side_effect = _fn
-        databases = DatabaseBackend(client)
-        databases._exists = False
-        await databases.write("id", "data")
-        assert "INSERT" in used_query
+        assert session.is_empty is True
+        assert session.is_modified is False
 
     @pytest.mark.asyncio
-    async def test_remove(self):
-        used_query = None
+    async def test_flush(self, in_memory):
+        await in_memory.write({'key': 'value'}, "session_id")
 
-        async def _fn(query, *args):
-            nonlocal used_query
-            used_query = query
+        session = Session(in_memory, 'session_id')
+        new_id = await session.flush()
+        assert new_id == session.session_id
+        assert new_id != 'session_id'
+        assert session.is_modified is True
+        assert session.is_empty is True
 
-        client = mock.MagicMock()
-        client.execute.side_effect = _fn
-        databases = DatabaseBackend(client)
-        await databases.remove("id")
-        assert "DELETE" in used_query
+        # it shouldn't fail on non-persisted session
+        session = Session(in_memory)
+        await session.flush()
+        assert session.is_modified is True
+        assert session.is_empty is True
 
     @pytest.mark.asyncio
-    async def test_exists(self):
-        async def _fn(query, params, *ars):
-            if params["id"] == "id":
-                return "data"
-            return None
+    async def test_regenerate_id(self, in_memory):
+        session = Session(in_memory, 'session_id')
+        new_id = await session.regenerate_id()
+        assert session.session_id == new_id
+        assert session.session_id != 'session_id'
+        assert session.is_modified is True
 
-        client = mock.MagicMock()
-        client.fetch_val.side_effect = _fn
-        databases = DatabaseBackend(client)
-        assert await databases.exists("id") is True
-        assert await databases.exists("other id") is False
+    def test_keys(self, in_memory_session):
+        in_memory_session['key'] = True
+        assert list(in_memory_session.keys()) == ['key']
+
+    def test_values(self, in_memory_session):
+        in_memory_session['key'] = 'value'
+        assert list(in_memory_session.values()) == ['value']
+
+    def test_items(self, in_memory_session):
+        in_memory_session['key'] = 'value'
+        in_memory_session['key2'] = 'value2'
+        assert list(in_memory_session.items()) == [
+            ('key', 'value'),
+            ('key2', 'value2'),
+        ]
+
+    def test_pop(self, in_memory_session):
+        in_memory_session['key'] = 'value'
+        in_memory_session.pop('key')
+        assert 'key' not in in_memory_session
+        assert in_memory_session.is_modified
+
+    def test_get(self, in_memory_session):
+        in_memory_session['key'] = 'value'
+        assert in_memory_session.get('key') == 'value'
+        assert in_memory_session.get('key2', 'miss') == 'miss'
+        assert in_memory_session.get('key3') is None
+
+    def test_setdefault(self, in_memory_session):
+        in_memory_session.setdefault('key', 'value')
+        assert in_memory_session.get('key') == 'value'
+        assert in_memory_session.is_modified is True
+
+    def test_clear(self, in_memory_session):
+        in_memory_session['key'] = 'value'
+        in_memory_session.clear()
+        assert in_memory_session.is_empty is True
+        assert in_memory_session.is_modified is True
+
+    def test_update(self, in_memory_session):
+        in_memory_session.update({
+            'key': 'value'
+        })
+        assert 'key' in in_memory_session
+        assert in_memory_session.is_modified is True
+
+    def test_setitem_and_contains(self, in_memory_session):
+        # set item
+        in_memory_session['key'] = 'value'  # __setitem__
+        assert 'key' in in_memory_session  # __contain__
+        assert in_memory_session.is_modified is True
+
+    def test_getitem(self, in_memory_session):
+        in_memory_session['key'] = 'value'  # __getitem__
+        assert in_memory_session['key'] == 'value'
+
+    def test_delitem(self, in_memory_session):
+        in_memory_session['key'] = 'value'
+        del in_memory_session['key']  # __delitem__
+        assert 'key' not in in_memory_session
