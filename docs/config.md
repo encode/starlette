@@ -192,7 +192,7 @@ and drop it once the tests complete. We'd also like to ensure
 from starlette.config import environ
 from starlette.testclient import TestClient
 from sqlalchemy import create_engine
-from sqlalchemy_utils import database_exists, create_database
+from sqlalchemy_utils import database_exists, create_database, drop_database
 
 # This line would raise an error if we use it after 'settings' has been imported.
 environ['TESTING'] = 'TRUE'
