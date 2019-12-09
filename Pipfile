@@ -4,6 +4,7 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+pytest-asyncio = "*"
 
 [packages]
 aiofiles = "*"
@@ -23,6 +24,7 @@ mkautodoc = "*"
 Jinja2 = "*"
 PyYAML = "*"
 databases = {extras = ["sqlite"],version = "*"}
+aiostream = "*"
 
 [requires]
 python_version = "3.7"
