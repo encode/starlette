@@ -4,7 +4,13 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+isort = "*"
 pytest-asyncio = "*"
+pytest = "*"
+pytest-cov = "*"
+mkdocs = "*"
+mkdocs-material = "*"
+mkautodoc = "*"
 
 [packages]
 aiofiles = "*"
@@ -14,17 +20,10 @@ python-multipart = "*"
 requests = "*"
 ujson = "*"
 autoflake = "*"
-isort = "*"
 mypy = "*"
-pytest = "*"
-pytest-cov = "*"
-mkdocs = "*"
-mkdocs-material = "*"
-mkautodoc = "*"
 Jinja2 = "*"
 PyYAML = "*"
 databases = {extras = ["sqlite"],version = "*"}
-aiostream = "*"
 
 [requires]
 python_version = "3.7"
