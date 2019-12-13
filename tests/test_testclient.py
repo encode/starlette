@@ -1,6 +1,7 @@
 import asyncio
 
 import pytest
+import requests
 
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
@@ -113,3 +114,79 @@ def test_websocket_blocking_receive():
     with client.websocket_connect("/") as websocket:
         data = websocket.receive_json()
         assert data == {"message": "test"}
+
+
+def test_timeout():
+    done = False
+
+    async def app(scope, receive, send):
+        nonlocal done
+        assert (await receive())["type"] == "http.request"
+        assert (await receive())["type"] == "http.disconnect"
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 200,
+                "headers": [[b"content-type", b"text/plain"]],
+            }
+        )
+        await send({"type": "http.response.body", "body": b"Hello, world!"})
+        done = True
+
+    client = TestClient(app)
+    with pytest.raises(requests.ReadTimeout):
+        client.get("/", timeout=0.001)
+    assert done
+
+
+def test_timeout_generator():
+    done = False
+
+    async def app(scope, receive, send):
+        nonlocal done
+        assert (await receive())["type"] == "http.request"
+        await asyncio.sleep(0.01)
+        assert (await receive())["type"] == "http.request"
+        assert (await receive())["type"] == "http.disconnect"
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 200,
+                "headers": [[b"content-type", b"text/plain"]],
+            }
+        )
+        await send({"type": "http.response.body", "body": b"Hello, world!"})
+        done = True
+
+    client = TestClient(app)
+
+    def gen():
+        yield "hello"
+
+    with pytest.raises(requests.ReadTimeout):
+        client.post("/", data=gen(), timeout=0.001)
+    assert done
+
+
+def test_timeout_early_done():
+    done = False
+
+    async def app(scope, receive, send):
+        nonlocal done
+        await asyncio.sleep(0.01)
+        assert (await receive())["type"] == "http.request"
+        assert (await receive())["type"] == "http.disconnect"
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 200,
+                "headers": [[b"content-type", b"text/plain"]],
+            }
+        )
+        await send({"type": "http.response.body", "body": b"Hello, world!"})
+        done = True
+
+    client = TestClient(app)
+    with pytest.raises(requests.ReadTimeout):
+        client.get("/", timeout=0.001)
+    assert done

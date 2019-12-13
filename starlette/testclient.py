@@ -162,16 +162,24 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
         request_complete = False
         response_started = False
         response_complete = False
+        timeout_called = False
         raw_kwargs = {"body": io.BytesIO()}  # type: typing.Dict[str, typing.Any]
         template = None
         context = None
+
+        def do_timeout() -> None:
+            nonlocal timeout_called, response_started, response_complete
+            timeout_called = True
+            if request_complete:
+                response_started = True
+                response_complete = True
+                response_complete_set.set()
 
         async def receive() -> Message:
             nonlocal request_complete, response_complete
 
             if request_complete:
-                while not response_complete:
-                    await asyncio.sleep(0.0001)
+                await response_complete_set.wait()
                 return {"type": "http.disconnect"}
 
             body = request.body
@@ -187,17 +195,23 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                     return {"type": "http.request", "body": chunk, "more_body": True}
                 except StopIteration:
                     request_complete = True
+                    if timeout_called:
+                        do_timeout()
                     return {"type": "http.request", "body": b""}
             else:
                 body_bytes = body
 
             request_complete = True
+            if timeout_called:
+                do_timeout()
             return {"type": "http.request", "body": body_bytes}
 
         async def send(message: Message) -> None:
             nonlocal raw_kwargs, response_started, response_complete, template, context
 
-            if message["type"] == "http.response.start":
+            if timeout_called:
+                pass
+            elif message["type"] == "http.response.start":
                 assert (
                     not response_started
                 ), 'Received multiple "http.response.start" messages.'
@@ -226,6 +240,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 if not more_body:
                     raw_kwargs["body"].seek(0)
                     response_complete = True
+                    response_complete_set.set()
             elif message["type"] == "http.response.template":
                 template = message["template"]
                 context = message["context"]
@@ -236,13 +251,20 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
 
+        response_complete_set = asyncio.Event()
+        timeout = kwargs.get("timeout")
+        if timeout:
+            loop.call_later(timeout, do_timeout)
+
         try:
             loop.run_until_complete(self.app(scope, receive, send))
         except BaseException as exc:
             if self.raise_server_exceptions:
                 raise exc from None
 
-        if self.raise_server_exceptions:
+        if timeout_called:
+            raise requests.exceptions.ReadTimeout()
+        elif self.raise_server_exceptions:
             assert response_started, "TestClient did not receive any response."
         elif not response_started:
             raw_kwargs = {
