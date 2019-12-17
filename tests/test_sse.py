@@ -64,12 +64,12 @@ def test_compression_not_implemented():
         ("foo", b"data: foo\r\n\r\n"),
         (dict(data="foo", event="bar"), b"event: bar\r\ndata: foo\r\n\r\n"),
         (
-                dict(data="foo", event="bar", id="xyz"),
-                b"id: xyz\r\nevent: bar\r\ndata: foo\r\n\r\n",
+            dict(data="foo", event="bar", id="xyz"),
+            b"id: xyz\r\nevent: bar\r\ndata: foo\r\n\r\n",
         ),
         (
-                dict(data="foo", event="bar", id="xyz", retry=1),
-                b"id: xyz\r\nevent: bar\r\ndata: foo\r\nretry: 1\r\n\r\n",
+            dict(data="foo", event="bar", id="xyz", retry=1),
+            b"id: xyz\r\nevent: bar\r\ndata: foo\r\nretry: 1\r\n\r\n",
         ),
     ],
 )
@@ -95,25 +95,25 @@ def test_server_sent_event(input, expected):
         ("\r\n", "\r\n"),
     ],
     ids=(
-            "stream-LF:line-LF",
-            "stream-LF:line-CR",
-            "stream-LF:line-CR+LF",
-            "stream-CR:line-LF",
-            "stream-CR:line-CR",
-            "stream-CR:line-CR+LF",
-            "stream-CR+LF:line-LF",
-            "stream-CR+LF:line-CR",
-            "stream-CR+LF:line-CR+LF",
+        "stream-LF:line-LF",
+        "stream-LF:line-CR",
+        "stream-LF:line-CR+LF",
+        "stream-CR:line-LF",
+        "stream-CR:line-CR",
+        "stream-CR:line-CR+LF",
+        "stream-CR+LF:line-LF",
+        "stream-CR+LF:line-CR",
+        "stream-CR+LF:line-CR+LF",
     ),
 )
 def test_multiline_data(stream_sep, line_sep):
     lines = line_sep.join(["foo", "bar", "xyz"])
     result = ServerSentEvent(lines, event="event", sep=stream_sep).encode()
     assert (
-            result
-            == "event: event{0}data: foo{0}data: bar{0}data: xyz{0}{0}".format(
-        stream_sep
-    ).encode()
+        result
+        == "event: event{0}data: foo{0}data: bar{0}data: xyz{0}{0}".format(
+            stream_sep
+        ).encode()
     )
 
 
@@ -130,9 +130,9 @@ def test_ping_property():
     response.ping_interval = 25
     assert response.ping_interval == 25
     with pytest.raises(TypeError) as ctx:
-        response.ping_interval = 'ten'
+        response.ping_interval = "ten"
 
-    assert str(ctx.value) == 'ping interval must be int'
+    assert str(ctx.value) == "ping interval must be int"
 
     with pytest.raises(ValueError):
         response.ping_interval = -42
@@ -144,4 +144,4 @@ def test_retry_is_int():
 
     with pytest.raises(TypeError) as ctx:
         response = ServerSentEvent(0, retry="ten").encode()
-    assert str(ctx.value) == 'retry argument must be int'
+    assert str(ctx.value) == "retry argument must be int"

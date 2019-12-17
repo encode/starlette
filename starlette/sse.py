@@ -24,13 +24,13 @@ class SseState(enum.Enum):
 
 class ServerSentEvent:
     def __init__(
-            self,
-            data: Any,
-            *,
-            event: Optional[str] = None,
-            id: Optional[int] = None,
-            retry: Optional[int] = None,
-            sep: str = None,
+        self,
+        data: Any,
+        *,
+        event: Optional[str] = None,
+        id: Optional[int] = None,
+        retry: Optional[int] = None,
+        sep: str = None,
     ) -> None:
         self.data = data
         self.event = event
@@ -88,19 +88,19 @@ class EventSourceResponse(Response):
     DEFAULT_PING_INTERVAL = 15
 
     def __init__(
-            self,
-            content: Any,
-            # content: Iterator[Any],
-            # content: Union[
-            #     Generator[Union[str, Dict], None, None],
-            #     AsyncGenerator[Union[str, Dict], None],
-            # ],
-            status_code: int = 200,
-            headers: dict = None,
-            media_type: str = "text/html",
-            background: BackgroundTask = None,
-            ping: int = None,
-            sep: str = None,
+        self,
+        content: Any,
+        # content: Iterator[Any],
+        # content: Union[
+        #     Generator[Union[str, Dict], None, None],
+        #     AsyncGenerator[Union[str, Dict], None],
+        # ],
+        status_code: int = 200,
+        headers: dict = None,
+        media_type: str = "text/html",
+        background: BackgroundTask = None,
+        ping: int = None,
+        sep: str = None,
     ) -> None:
         self.sep = sep
         if inspect.isasyncgen(content):
