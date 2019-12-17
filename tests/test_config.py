@@ -46,6 +46,10 @@ def test_config(tmpdir, monkeypatch):
     with pytest.raises(ValueError):
         config.get("REQUEST_HOSTNAME", cast=bool)
 
+    config = Config(Path(path))
+    REQUEST_HOSTNAME= config("REQUEST_HOSTNAME")
+    assert REQUEST_HOSTNAME == "example.com"
+
     config = Config()
     monkeypatch.setenv("STARLETTE_EXAMPLE_TEST", "123")
     monkeypatch.setenv("BOOL_AS_INT", "1")
@@ -55,10 +59,6 @@ def test_config(tmpdir, monkeypatch):
     monkeypatch.setenv("BOOL_AS_INT", "2")
     with pytest.raises(ValueError):
         config.get("BOOL_AS_INT", cast=bool)
-
-    config = Config(Path(path))
-    DEBUG = config("DEBUG", cast=bool)
-    assert DEBUG is True
 
 def test_environ():
     environ = Environ()
