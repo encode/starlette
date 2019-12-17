@@ -81,16 +81,15 @@ class ExceptionMiddleware:
             if handler is None:
                 raise exc from None
 
-            if response_started:
-                msg = "Caught handled exception, but response already started."
-                raise RuntimeError(msg) from exc
-
             request = Request(scope, receive=receive)
             if asyncio.iscoroutinefunction(handler):
                 response = await handler(request, exc)
             else:
                 response = await run_in_threadpool(handler, request, exc)
-            await response(scope, receive, sender)
+
+            if not response_started:
+                # Send the response only if not response started already.
+                await response(scope, receive, sender)
 
     def http_exception(self, request: Request, exc: HTTPException) -> Response:
         if exc.status_code in {204, 304}:

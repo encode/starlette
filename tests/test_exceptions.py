@@ -58,10 +58,25 @@ def test_websockets_should_raise():
 
 
 def test_handled_exc_after_response():
-    # A 406 HttpException is raised *after* the response has already been sent.
-    # The exception middleware should raise a RuntimeError.
-    with pytest.raises(RuntimeError):
+    wrapper_used = False
+
+    def handler_wrapper(func):
+        def wrapper(*args, **kwargs):
+            nonlocal wrapper_used
+            wrapper_used = True
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    try:  # Revert state no matter what happens
+        key, func = app._exception_handlers.popitem()
+        app._exception_handlers[key] = handler_wrapper(func)
+
         client.get("/handled_exc_after_response")
+
+        assert wrapper_used
+    finally:
+        app._exception_handlers[key] = func
 
     # If `raise_server_exceptions=False` then the test client will still allow
     # us to see the response as it will have been seen by the client.
