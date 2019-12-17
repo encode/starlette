@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import pytest
 
@@ -43,6 +44,10 @@ def test_config(tmpdir, monkeypatch):
 
     with pytest.raises(ValueError):
         config.get("REQUEST_HOSTNAME", cast=bool)
+
+    config = Config(Path(path))
+    REQUEST_HOSTNAME = config("REQUEST_HOSTNAME")
+    assert REQUEST_HOSTNAME == "example.com"
 
     config = Config()
     monkeypatch.setenv("STARLETTE_EXAMPLE_TEST", "123")
