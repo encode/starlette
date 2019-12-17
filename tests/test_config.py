@@ -5,6 +5,8 @@ import pytest
 from starlette.config import Config, Environ, EnvironError
 from starlette.datastructures import URL, Secret
 
+from pathlib import Path
+
 
 def test_config(tmpdir, monkeypatch):
     path = os.path.join(tmpdir, ".env")
@@ -54,6 +56,9 @@ def test_config(tmpdir, monkeypatch):
     with pytest.raises(ValueError):
         config.get("BOOL_AS_INT", cast=bool)
 
+    config = Config(Path(path))
+    DEBUG = config("DEBUG", cast=bool)
+    assert DEBUG is True
 
 def test_environ():
     environ = Environ()
