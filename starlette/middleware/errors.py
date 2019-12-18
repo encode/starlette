@@ -155,20 +155,23 @@ class ServerErrorMiddleware:
         try:
             await self.app(scope, receive, _send)
         except Exception as exc:
+            request = Request(scope)
+
+            if self.handler:
+                # Use an installed 500 error handler.
+                if asyncio.iscoroutinefunction(self.handler):
+                    response = await self.handler(request, exc)
+                else:
+                    response = await run_in_threadpool(self.handler, request, exc)
+
+            # This flow overrides the former response, if there was any.
             if not response_started:
-                request = Request(scope)
                 if self.debug:
                     # In debug mode, return traceback responses.
                     response = self.debug_response(request, exc)
                 elif self.handler is None:
                     # Use our default 500 error handler.
                     response = self.error_response(request, exc)
-                else:
-                    # Use an installed 500 error handler.
-                    if asyncio.iscoroutinefunction(self.handler):
-                        response = await self.handler(request, exc)
-                    else:
-                        response = await run_in_threadpool(self.handler, request, exc)
 
                 await response(scope, receive, send)
 
