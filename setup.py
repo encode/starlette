@@ -49,6 +49,14 @@ setup(
     package_data={"starlette": ["py.typed"]},
     data_files=[("", ["LICENSE.md"])],
     extras_require={
+        "aiofiles": ["aiofiles"],
+        "graphene": ["graphene"],
+        "itsdangerous": ["itsdangerous"],
+        "jinja2": ["jinja2"],
+        "python-multipart": ["python-multipart"],
+        "pyyaml": ["pyyaml"],
+        "requests": ["requests"],
+        "ujson": ["ujson"],
         "full": [
             "aiofiles",
             "graphene",
@@ -58,7 +66,7 @@ setup(
             "pyyaml",
             "requests",
             "ujson",
-        ]
+        ],
     },
     classifiers=[
         "Development Status :: 3 - Alpha",
