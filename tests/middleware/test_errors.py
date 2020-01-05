@@ -43,6 +43,22 @@ def test_debug_html():
     assert "RuntimeError" in response.text
 
 
+def test_debug_html_error_in_generate_html():
+    async def app(scope, receive, send):
+        raise RuntimeError("Something went wrong")
+
+    class ErrorServerErrorMiddleware(ServerErrorMiddleware):
+        def generate_html(self, exc):
+            raise RuntimeError("Error in generate_html")
+
+    app = ErrorServerErrorMiddleware(app, debug=True)
+    client = TestClient(app, raise_server_exceptions=False)
+    response = client.get("/", headers={"Accept": "text/html, */*"})
+    assert response.status_code == 500
+    assert response.headers == {}
+    assert response.text == ""
+
+
 def test_debug_after_response_sent():
     async def app(scope, receive, send):
         response = Response(b"", status_code=204)
