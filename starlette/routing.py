@@ -497,13 +497,13 @@ class Router:
         for handler in self.on_startup:
             if inspect.isasyncgenfunction(handler):
                 gen = handler()
-                await gen.asend(None)
+                await gen.__anext__()
                 self.lifecycle_generators.append(gen)
             elif asyncio.iscoroutinefunction(handler):
                 await handler()
             elif inspect.isgeneratorfunction(handler):
                 gen = handler()
-                gen.send(None)
+                next(gen)
                 self.lifecycle_generators.append(gen)
             else:
                 handler()
@@ -522,14 +522,14 @@ class Router:
             gen = self.lifecycle_generators.pop()
             if inspect.isasyncgen(gen):
                 try:
-                    await typing.cast(typing.AsyncGenerator[None, None], gen).asend(
-                        None
-                    )
+                    await typing.cast(
+                        typing.AsyncGenerator[None, None], gen
+                    ).__anext__()
                 except StopAsyncIteration:
                     pass
             else:
                 try:
-                    typing.cast(typing.Generator[None, None, None], gen).send(None)
+                    next(typing.cast(typing.Generator[None, None, None], gen))
                 except StopIteration:
                     pass
 
