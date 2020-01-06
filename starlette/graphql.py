@@ -118,7 +118,7 @@ class GraphQLApp:
             response_data, status_code=status_code, background=background
         )
 
-    async def execute(
+    async def execute(  # type: ignore
         self, query, variables=None, context=None, operation_name=None
     ):
         if self.is_async:
