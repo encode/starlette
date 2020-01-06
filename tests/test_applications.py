@@ -280,3 +280,49 @@ def test_app_add_event_handler():
         assert not cleanup_complete
     assert startup_complete
     assert cleanup_complete
+
+
+def test_app_add_event_handler_generator():
+    startup_complete = False
+    cleanup_complete = False
+    app = Starlette()
+
+    def run_startup():
+        nonlocal startup_complete
+        nonlocal cleanup_complete
+        startup_complete = True
+        yield
+        cleanup_complete = True
+
+    app.add_event_handler("startup", run_startup)
+
+    assert not startup_complete
+    assert not cleanup_complete
+    with TestClient(app):
+        assert startup_complete
+        assert not cleanup_complete
+    assert startup_complete
+    assert cleanup_complete
+
+
+def test_app_add_event_handler_async_generator():
+    startup_complete = False
+    cleanup_complete = False
+    app = Starlette()
+
+    async def run_startup():
+        nonlocal startup_complete
+        nonlocal cleanup_complete
+        startup_complete = True
+        yield
+        cleanup_complete = True
+
+    app.add_event_handler("startup", run_startup)
+
+    assert not startup_complete
+    assert not cleanup_complete
+    with TestClient(app):
+        assert startup_complete
+        assert not cleanup_complete
+    assert startup_complete
+    assert cleanup_complete
