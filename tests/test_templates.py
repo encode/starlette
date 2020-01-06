@@ -22,11 +22,11 @@ def test_templates(tmpdir):
     client = TestClient(app)
     response = client.get("/")
     assert response.text == "<html>Hello, <a href='http://testserver/'>world</a></html>"
-    assert response.template.name == "index.html"
-    assert set(response.context.keys()) == {"request"}
+    assert response.template.name == "index.html"  # type: ignore
+    assert set(response.context.keys()) == {"request"}  # type: ignore
 
 
 def test_template_response_requires_request(tmpdir):
     templates = Jinja2Templates(str(tmpdir))
     with pytest.raises(ValueError):
-        templates.TemplateResponse(None, {})
+        templates.TemplateResponse("name", {})
