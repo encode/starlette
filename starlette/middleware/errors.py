@@ -208,9 +208,7 @@ class ServerErrorMiddleware:
         return FRAME_TEMPLATE.format(**values)
 
     def generate_html(self, exc: Exception, limit: int = 7) -> str:
-        traceback_obj = traceback.TracebackException.from_exception(
-            exc, capture_locals=True
-        )
+        traceback_obj = traceback.TracebackException.from_exception(exc)
         frames = inspect.getinnerframes(
             traceback_obj.exc_traceback, limit  # type: ignore
         )
