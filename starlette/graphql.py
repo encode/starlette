@@ -14,10 +14,10 @@ try:
     from graphql.error import format_error as format_graphql_error
     from graphql.error import GraphQLError
 except ImportError:  # pragma: nocover
-    graphene = None  # type: ignore
-    AsyncioExecutor = None  # type: ignore
-    format_graphql_error = None  # type: ignore
-    GraphQLError = None  # type: ignore
+    graphene = None
+    AsyncioExecutor = None
+    format_graphql_error = None
+    GraphQLError = None
 
 
 class GraphQLApp:
@@ -118,7 +118,7 @@ class GraphQLApp:
             response_data, status_code=status_code, background=background
         )
 
-    async def execute(  # type: ignore
+    async def execute(
         self, query, variables=None, context=None, operation_name=None
     ):
         if self.is_async:
