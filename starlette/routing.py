@@ -461,6 +461,11 @@ class Router:
         self.default = self.not_found if default is None else default
         self.on_startup = [] if on_startup is None else list(on_startup)
         self.on_shutdown = [] if on_shutdown is None else list(on_shutdown)
+        self.lifecycle_generators: typing.List[
+            typing.Union[
+                typing.AsyncGenerator[None, None], typing.Generator[None, None, None]
+            ]
+        ] = []
 
     async def not_found(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "websocket":
@@ -490,8 +495,16 @@ class Router:
         Run any `.on_startup` event handlers.
         """
         for handler in self.on_startup:
-            if asyncio.iscoroutinefunction(handler):
+            if inspect.isasyncgenfunction(handler):
+                gen = handler()
+                await gen.asend(None)
+                self.lifecycle_generators.append(gen)
+            elif asyncio.iscoroutinefunction(handler):
                 await handler()
+            elif inspect.isgeneratorfunction(handler):
+                gen = handler()
+                gen.send(None)
+                self.lifecycle_generators.append(gen)
             else:
                 handler()
 
@@ -504,6 +517,21 @@ class Router:
                 await handler()
             else:
                 handler()
+
+        while self.lifecycle_generators:
+            gen = self.lifecycle_generators.pop()
+            if inspect.isasyncgen(gen):
+                try:
+                    await typing.cast(typing.AsyncGenerator[None, None], gen).asend(
+                        None
+                    )
+                except StopAsyncIteration:
+                    pass
+            else:
+                try:
+                    typing.cast(typing.Generator[None, None, None], gen).send(None)
+                except StopIteration:
+                    pass
 
     async def lifespan(self, scope: Scope, receive: Receive, send: Send) -> None:
         """
