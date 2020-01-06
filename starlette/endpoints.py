@@ -10,6 +10,14 @@ from starlette.responses import PlainTextResponse, Response
 from starlette.types import Message, Receive, Scope, Send
 from starlette.websockets import WebSocket
 
+if False:  # TYPE_CHECKING
+    import sys
+
+    if sys.version_info >= (3, 8):
+        from typing import Literal
+    else:
+        from typing_extensions import Literal
+
 
 class HTTPEndpoint:
     def __init__(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -43,7 +51,7 @@ class HTTPEndpoint:
 
 class WebSocketEndpoint:
 
-    encoding = None  # May be "text", "bytes", or "json".
+    encoding = None  # type: typing.Optional[Literal["text", "bytes", "json"]]
 
     def __init__(self, scope: Scope, receive: Receive, send: Send) -> None:
         assert scope["type"] == "websocket"
