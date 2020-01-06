@@ -124,8 +124,6 @@ def test_database():
 
 def test_database_execute_many():
     with TestClient(app) as client:
-        response = client.get("/notes")
-
         data = [
             {"text": "buy the milk", "completed": True},
             {"text": "walk the dog", "completed": False},
