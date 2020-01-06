@@ -237,11 +237,11 @@ class CommaSeparatedStrings(Sequence):
 class ImmutableMultiDict(typing.Mapping):
     def __init__(
         self,
-        *args: typing.Union[
+        *args: typing.Optional[typing.Union[
             "ImmutableMultiDict",
             typing.Mapping,
             typing.List[typing.Tuple[typing.Any, typing.Any]],
-        ],
+        ]],
         **kwargs: typing.Any,
     ) -> None:
         assert len(args) < 2, "Too many arguments."
@@ -364,11 +364,11 @@ class MultiDict(ImmutableMultiDict):
 
     def update(
         self,
-        *args: typing.Union[
+        *args: typing.Optional[typing.Union[
             "MultiDict",
             typing.Mapping,
             typing.List[typing.Tuple[typing.Any, typing.Any]],
-        ],
+        ]],
         **kwargs: typing.Any,
     ) -> None:
         value = MultiDict(*args, **kwargs)
