@@ -477,7 +477,7 @@ class Router:
             response = PlainTextResponse("Not Found", status_code=404)
         await response(scope, receive, send)
 
-    def url_path_for(self, name: str, **path_params: str) -> URLPath:
+    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         for route in self.routes:
             try:
                 return route.url_path_for(name, **path_params)
