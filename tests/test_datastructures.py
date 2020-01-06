@@ -8,6 +8,7 @@ from starlette.datastructures import (
     MultiDict,
     MutableHeaders,
     QueryParams,
+    UploadFile,
 )
 
 
@@ -211,7 +212,7 @@ def test_queryparams():
 
 
 def test_formdata():
-    upload = io.BytesIO(b"test")
+    upload = UploadFile("upload", io.BytesIO(b"test"))
     form = FormData([("a", "123"), ("a", "456"), ("b", upload)])
     assert "a" in form
     assert "A" not in form
