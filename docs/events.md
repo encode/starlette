@@ -5,8 +5,9 @@ is shutting down.
 
 ## Registering events
 
-These event handlers can either be `async` coroutines, or regular syncronous
-functions.
+These event handlers can either be `async` coroutines, or regular synchronous
+functions. In case of the startup event, it can also be an `async` generator
+or a regular synchronous generator.
 
 The event handlers should be included on the application like so:
 
@@ -20,13 +21,17 @@ async def some_startup_task():
 async def some_shutdown_task():
     pass
 
+async def some_startup_generator():
+    async with SomeContextManager():
+        yield  # Control is returned when shutdown is initiated.
+
 routes = [
     ...
 ]
 
 app = Starlette(
     routes=routes,
-    on_startup=[some_startup_task],
+    on_startup=[some_startup_task, some_startup_generator],
     on_shutdown=[some_shutdown_task]
 )
 ```
