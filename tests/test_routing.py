@@ -346,13 +346,13 @@ async def subdomain_app(scope, receive, send):
     await response(scope, receive, send)
 
 
-subdomain_app = Router(
+subdomain_router = Router(
     routes=[Host("{subdomain}.example.org", app=subdomain_app, name="subdomains")]
 )
 
 
 def test_subdomain_routing():
-    client = TestClient(subdomain_app, base_url="https://foo.example.org/")
+    client = TestClient(subdomain_router, base_url="https://foo.example.org/")
 
     response = client.get("/")
     assert response.status_code == 200
@@ -361,7 +361,7 @@ def test_subdomain_routing():
 
 def test_subdomain_reverse_urls():
     assert (
-        subdomain_app.url_path_for(
+        subdomain_router.url_path_for(
             "subdomains", subdomain="foo", path="/homepage"
         ).make_absolute_url("https://whatever")
         == "https://foo.example.org/homepage"
@@ -403,7 +403,9 @@ def test_url_for_with_root_path():
 
 
 double_mount_routes = [
-    Mount("/mount", name="mount", routes=[Mount("/static", ..., name="static")],),
+    Mount(
+        "/mount", name="mount", routes=[Mount("/static", Starlette(), name="static")],
+    ),
 ]
 
 
