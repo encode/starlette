@@ -462,7 +462,9 @@ class Router:
         self.on_startup = [] if on_startup is None else list(on_startup)
         self.on_shutdown = [] if on_shutdown is None else list(on_shutdown)
         self.lifecycle_generators: typing.List[
-            typing.Union[typing.AsyncIterator[None], typing.Iterator[None]]
+            typing.Union[
+                typing.AsyncGenerator[None, None], typing.Generator[None, None, None]
+            ]
         ] = []
 
     async def not_found(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -520,12 +522,14 @@ class Router:
             gen = self.lifecycle_generators.pop()
             if inspect.isasyncgen(gen):
                 try:
-                    await typing.cast(typing.AsyncIterator[None], gen).__anext__()
+                    await typing.cast(
+                        typing.AsyncGenerator[None, None], gen
+                    ).__anext__()
                 except StopAsyncIteration:
                     pass
             else:
                 try:
-                    next(typing.cast(typing.Iterator[None], gen))
+                    next(typing.cast(typing.Generator[None, None, None], gen))
                 except StopIteration:
                     pass
 
