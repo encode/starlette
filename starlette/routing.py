@@ -535,6 +535,8 @@ class Router:
                     pass
                 else:
                     raise RuntimeError("async generator did not exit")
+                finally:
+                    await typing.cast(typing.AsyncGenerator[None, None], gen).aclose()
             else:
                 try:
                     next(typing.cast(typing.Generator[None, None, None], gen))
@@ -542,6 +544,8 @@ class Router:
                     pass
                 else:
                     raise RuntimeError("generator did not exit")
+                finally:
+                    typing.cast(typing.Generator[None, None, None], gen).close()
 
     async def lifespan(self, scope: Scope, receive: Receive, send: Send) -> None:
         """
