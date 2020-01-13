@@ -497,13 +497,19 @@ class Router:
         for handler in self.on_startup:
             if inspect.isasyncgenfunction(handler):
                 gen = handler()
-                await gen.__anext__()
+                try:
+                    await gen.__anext__()
+                except StopAsyncIteration:
+                    raise RuntimeError("async generator did not yield")
                 self.lifecycle_generators.append(gen)
             elif asyncio.iscoroutinefunction(handler):
                 await handler()
             elif inspect.isgeneratorfunction(handler):
                 gen = handler()
-                next(gen)
+                try:
+                    next(gen)
+                except StopIteration:
+                    raise RuntimeError("generator did not yield")
                 self.lifecycle_generators.append(gen)
             else:
                 handler()
@@ -527,11 +533,15 @@ class Router:
                     ).__anext__()
                 except StopAsyncIteration:
                     pass
+                else:
+                    raise RuntimeError("async generator did not exit")
             else:
                 try:
                     next(typing.cast(typing.Generator[None, None, None], gen))
                 except StopIteration:
                     pass
+                else:
+                    raise RuntimeError("generator did not exit")
 
     async def lifespan(self, scope: Scope, receive: Receive, send: Send) -> None:
         """

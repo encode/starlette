@@ -1,5 +1,7 @@
 import os
 
+import pytest
+
 from starlette.applications import Starlette
 from starlette.endpoints import HTTPEndpoint
 from starlette.exceptions import HTTPException
@@ -305,6 +307,34 @@ def test_app_add_event_handler_generator():
     assert cleanup_complete
 
 
+def test_app_add_event_handler_non_yielding_generator():
+    app = Starlette()
+
+    def run_startup():
+        return
+        yield  # pragma: no cover
+
+    app.add_event_handler("startup", run_startup)
+
+    with pytest.raises(RuntimeError):
+        with TestClient(app):
+            pass  # pragma: no cover
+
+
+def test_app_add_event_handler_non_exiting_generator():
+    app = Starlette()
+
+    def run_startup():
+        while True:
+            yield
+
+    app.add_event_handler("startup", run_startup)
+
+    with pytest.raises(RuntimeError):
+        with TestClient(app):
+            pass
+
+
 def test_app_add_event_handler_async_generator():
     startup_complete = False
     cleanup_complete = False
@@ -326,3 +356,31 @@ def test_app_add_event_handler_async_generator():
         assert not cleanup_complete
     assert startup_complete
     assert cleanup_complete
+
+
+def test_app_add_event_handler_non_yielding_async_generator():
+    app = Starlette()
+
+    async def run_startup():
+        return
+        yield  # pragma: no cover
+
+    app.add_event_handler("startup", run_startup)
+
+    with pytest.raises(RuntimeError):
+        with TestClient(app):
+            pass  # pragma: no cover
+
+
+def test_app_add_event_handler_non_exiting_async_generator():
+    app = Starlette()
+
+    async def run_startup():
+        while True:
+            yield
+
+    app.add_event_handler("startup", run_startup)
+
+    with pytest.raises(RuntimeError):
+        with TestClient(app):
+            pass
