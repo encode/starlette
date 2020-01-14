@@ -510,21 +510,26 @@ class Router:
         Handle ASGI lifespan messages, which allows us to manage application
         startup and shutdown events.
         """
+        first = True
         message = await receive()
-        assert message["type"] == "lifespan.startup"
-
         try:
-            await self.startup()
+            async for item in self.lifespan_context():
+                assert first, "Lifespan context yielded multiple times."
+                first = False
+                await send({"type": "lifespan.startup.complete"})
+                message = await receive()
         except BaseException:
-            msg = traceback.format_exc()
-            await send({"type": "lifespan.startup.failed", "message": msg})
+            if first:
+                exc_text = traceback.format_exc()
+                await send({"type": "lifespan.startup.failed", "message": exc_text})
             raise
+        else:
+            await send({"type": "lifespan.shutdown.complete"})
 
-        await send({"type": "lifespan.startup.complete"})
-        message = await receive()
-        assert message["type"] == "lifespan.shutdown"
+    async def lifespan_context(self) -> typing.AsyncGenerator:
+        await self.startup()
+        yield
         await self.shutdown()
-        await send({"type": "lifespan.shutdown.complete"})
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         """
