@@ -455,12 +455,20 @@ class Router:
         default: ASGIApp = None,
         on_startup: typing.Sequence[typing.Callable] = None,
         on_shutdown: typing.Sequence[typing.Callable] = None,
+        lifespan: typing.Callable[[], typing.AsyncGenerator] = None,
     ) -> None:
         self.routes = [] if routes is None else list(routes)
         self.redirect_slashes = redirect_slashes
         self.default = self.not_found if default is None else default
         self.on_startup = [] if on_startup is None else list(on_startup)
         self.on_shutdown = [] if on_shutdown is None else list(on_shutdown)
+
+        async def default_lifespan() -> typing.AsyncGenerator:
+            await self.startup()
+            yield
+            await self.shutdown()
+
+        self.lifespan_context = default_lifespan if lifespan is None else lifespan
 
     async def not_found(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "websocket":
@@ -525,11 +533,6 @@ class Router:
             raise
         else:
             await send({"type": "lifespan.shutdown.complete"})
-
-    async def lifespan_context(self) -> typing.AsyncGenerator:
-        await self.startup()
-        yield
-        await self.shutdown()
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         """
