@@ -455,7 +455,7 @@ class Router:
         default: ASGIApp = None,
         on_startup: typing.Sequence[typing.Callable] = None,
         on_shutdown: typing.Sequence[typing.Callable] = None,
-        lifespan: typing.Callable[[], typing.AsyncGenerator] = None,
+        lifespan: typing.Callable[[typing.Any], typing.AsyncGenerator] = None,
     ) -> None:
         self.routes = [] if routes is None else list(routes)
         self.redirect_slashes = redirect_slashes
@@ -463,7 +463,7 @@ class Router:
         self.on_startup = [] if on_startup is None else list(on_startup)
         self.on_shutdown = [] if on_shutdown is None else list(on_shutdown)
 
-        async def default_lifespan() -> typing.AsyncGenerator:
+        async def default_lifespan(app: typing.Any) -> typing.AsyncGenerator:
             await self.startup()
             yield
             await self.shutdown()
@@ -519,9 +519,10 @@ class Router:
         startup and shutdown events.
         """
         first = True
+        app = scope.get("app")
         message = await receive()
         try:
-            async for item in self.lifespan_context():
+            async for item in self.lifespan_context(app):
                 assert first, "Lifespan context yielded multiple times."
                 first = False
                 await send({"type": "lifespan.startup.complete"})
