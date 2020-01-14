@@ -20,8 +20,9 @@ class HexConvertor(Convertor):
 
 
 @pytest.fixture(autouse=True)
-def reset_convertors(request):
-    request.addfinalizer(reset)
+def reset_convertors():
+    yield
+    reset()
 
 
 def test_add_convertor():
