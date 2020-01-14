@@ -1,6 +1,11 @@
 import pytest
 
-from starlette.convertors import CONVERTOR_TYPES, Convertor, add, reset
+from starlette.convertors import (
+    _DEFAULT_CONVERTOR_TYPES,
+    CONVERTOR_TYPES,
+    Convertor,
+    register_url_convertor,
+)
 from starlette.responses import Response
 from starlette.routing import Router
 from starlette.testclient import TestClient
@@ -22,12 +27,13 @@ class HexConvertor(Convertor):
 @pytest.fixture(autouse=True)
 def reset_convertors():
     yield
-    reset()
+    CONVERTOR_TYPES.clear()
+    CONVERTOR_TYPES.update(_DEFAULT_CONVERTOR_TYPES)
 
 
 def test_add_convertor():
     assert "hex" not in CONVERTOR_TYPES
-    add("hex", HexConvertor())
+    register_url_convertor("hex", HexConvertor())
     assert "hex" in CONVERTOR_TYPES
 
 
@@ -41,7 +47,7 @@ def test_unregistered_convertor():
 
 @pytest.fixture()
 def app():
-    add("hex", HexConvertor())
+    register_url_convertor("hex", HexConvertor())
 
     app = Router([])
 
@@ -69,4 +75,5 @@ def test_custom_convertor_match(client):
 
 
 def test_custom_convertor_reverse(app):
-    app.url_path_for("hex-convertor", param=b"\xde\xad\xbe\xef") == "/hex/deadbeef"
+    reversed_url = app.url_path_for("hex-convertor", param=b"\xde\xad\xbe\xef")
+    reversed_url == "/hex/deadbeef"

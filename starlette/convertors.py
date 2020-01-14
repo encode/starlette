@@ -71,10 +71,5 @@ _DEFAULT_CONVERTOR_TYPES = {
 CONVERTOR_TYPES = dict(_DEFAULT_CONVERTOR_TYPES)
 
 
-def add(key: str, convertor: Convertor) -> None:
+def register_url_convertor(key: str, convertor: Convertor) -> None:
     CONVERTOR_TYPES[key] = convertor
-
-
-def reset() -> None:
-    CONVERTOR_TYPES.clear()
-    CONVERTOR_TYPES.update(_DEFAULT_CONVERTOR_TYPES)
