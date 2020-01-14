@@ -191,7 +191,10 @@ def test_cors_allow_origin_regex_fullmatch():
     response = client.get("/", headers=headers)
     assert response.status_code == 200
     assert response.text == "Homepage"
-    assert response.headers["access-control-allow-origin"] == "https://subdomain.example.org"
+    assert (
+        response.headers["access-control-allow-origin"]
+        == "https://subdomain.example.org"
+    )
 
     # Test diallowed standard response
     headers = {"Origin": "https://subdomain.example.org.hacker.com"}
