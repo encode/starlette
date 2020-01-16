@@ -3,7 +3,7 @@ import asyncio
 import pytest
 
 from starlette.requests import ClientDisconnect, Request, State
-from starlette.responses import JSONResponse, Response
+from starlette.responses import JSONResponse, PlainTextResponse, Response
 from starlette.testclient import TestClient
 
 
@@ -176,6 +176,19 @@ def test_request_scope_interface():
     assert request["method"] == "GET"
     assert dict(request) == {"type": "http", "method": "GET", "path": "/abc/"}
     assert len(request) == 3
+
+
+def test_request_raw_path():
+    async def app(scope, receive, send):
+        request = Request(scope, receive)
+        path = request.scope["path"]
+        raw_path = request.scope["raw_path"]
+        response = PlainTextResponse(f"{path}, {raw_path}")
+        await response(scope, receive, send)
+
+    client = TestClient(app)
+    response = client.get("/he%2Fllo")
+    assert response.text == "/he/llo, /he%2Fllo"
 
 
 def test_request_without_setting_receive():
