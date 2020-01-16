@@ -196,7 +196,12 @@ class Route(BaseRoute):
                     matched_params[key] = self.param_convertors[key].convert(value)
                 path_params = dict(scope.get("path_params", {}))
                 path_params.update(matched_params)
-                child_scope = {"endpoint": self.endpoint, "path_params": path_params}
+                child_scope = {
+                    "endpoint": self.endpoint,
+                    "path_params": path_params,
+                    "route": self.path,
+                    "name": self.name,
+                }
                 if self.methods and scope["method"] not in self.methods:
                     return Match.PARTIAL, child_scope
                 else:
