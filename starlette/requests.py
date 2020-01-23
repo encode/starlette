@@ -204,10 +204,14 @@ class Request(HTTPConnection):
     async def json(self) -> typing.Any:
         if not hasattr(self, "_json"):
             body = await self.body()
-            if ujson is not None:
-                self._json = ujson.loads(body)
-            else:
-                self._json = json.loads(body)
+            self._json = json.loads(body)
+        return self._json
+
+    async def ujson(self) -> typing.Any:
+        if not hasattr(self, "_json"):
+            assert ujson is not None, "ujson must be installed to use Request.ujson()"
+            body = await self.body()
+            self._json = ujson.loads(body)
         return self._json
 
     async def form(self) -> FormData:
