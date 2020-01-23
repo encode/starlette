@@ -81,7 +81,7 @@ The request body as bytes: `await request.body()`
 
 The request body, parsed as form data or multipart: `await request.form()`
 
-The request body, parsed as JSON: `await request.json()`
+The request body, parsed as JSON: `await request.json()` or, if `ujson` is installed, `await request.ujson()`
 
 You can also access the request body as a stream, using the `async for` syntax:
 
