@@ -9,6 +9,11 @@ from starlette.formparsers import FormParser, MultiPartParser
 from starlette.types import Message, Receive, Scope, Send
 
 try:
+    import ujson
+except ImportError:  # pragma: nocover
+    ujson = None  # type: ignore
+
+try:
     from multipart.multipart import parse_options_header
 except ImportError:  # pragma: nocover
     parse_options_header = None
@@ -199,7 +204,10 @@ class Request(HTTPConnection):
     async def json(self) -> typing.Any:
         if not hasattr(self, "_json"):
             body = await self.body()
-            self._json = json.loads(body)
+            if ujson is not None:
+                self._json = ujson.loads(body)
+            else:
+                self._json = json.loads(body)
         return self._json
 
     async def form(self) -> FormData:
