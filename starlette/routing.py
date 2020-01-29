@@ -199,8 +199,6 @@ class Route(BaseRoute):
                 child_scope = {
                     "endpoint": self.endpoint,
                     "path_params": path_params,
-                    "route": self.path,
-                    "name": self.name,
                 }
                 if self.methods and scope["method"] not in self.methods:
                     return Match.PARTIAL, child_scope
@@ -546,17 +544,20 @@ class Router:
 
         partial = None
 
+        scope["routes"] = {"full": None, "partial": []}
         for route in self.routes:
             # Determine if any route matches the incoming scope,
             # and hand over to the matching route if found.
             match, child_scope = route.matches(scope)
             if match == Match.FULL:
                 scope.update(child_scope)
+                scope["routes"]["full"] = route
                 await route.handle(scope, receive, send)
                 return
             elif match == Match.PARTIAL and partial is None:
                 partial = route
                 partial_scope = child_scope
+                scope["routes"]["partial"].append(route)
 
         if partial is not None:
             #  Handle partial matches. These are cases where an endpoint is
