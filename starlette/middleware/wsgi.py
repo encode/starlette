@@ -88,7 +88,7 @@ class WSGIResponder:
             await run_in_threadpool(self.wsgi, environ, self.start_response)
             self.send_queue.append(None)
             self.send_event.set()
-            await asyncio.wait_for(sender, None)  # type: ignore
+            await asyncio.wait_for(sender, None)
             if self.exc_info is not None:
                 raise self.exc_info[0].with_traceback(
                     self.exc_info[1], self.exc_info[2]
@@ -120,7 +120,7 @@ class WSGIResponder:
             status_code_string, _ = status.split(" ", 1)
             status_code = int(status_code_string)
             headers = [
-                (name.strip().encode("ascii"), value.strip().encode("ascii"))
+                (name.strip().encode("ascii").lower(), value.strip().encode("ascii"))
                 for name, value in response_headers
             ]
             self.send_queue.append(
