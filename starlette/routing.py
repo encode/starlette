@@ -568,7 +568,6 @@ class Router:
             else:
                 redirect_scope["path"] = redirect_scope["path"] + "/"
 
-            print(redirect_scope)
             for route in self.routes:
                 match, child_scope = route.matches(redirect_scope)
                 if match != Match.NONE:
