@@ -188,7 +188,7 @@ def test_request_raw_path():
 
     client = TestClient(app)
     response = client.get("/he%2Fllo")
-    assert response.text == "/he/llo, /he%2Fllo"
+    assert response.text == "/he/llo, b'/he%2Fllo'"
 
 
 def test_request_without_setting_receive():

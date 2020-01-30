@@ -134,7 +134,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             scope = {
                 "type": "websocket",
                 "path": unquote(path),
-                "raw_path": path,
+                "raw_path": path.encode(),
                 "root_path": self.root_path,
                 "scheme": scheme,
                 "query_string": query.encode(),
@@ -151,7 +151,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             "http_version": "1.1",
             "method": request.method,
             "path": unquote(path),
-            "raw_path": path,
+            "raw_path": path.encode(),
             "root_path": self.root_path,
             "scheme": scheme,
             "query_string": query.encode(),
