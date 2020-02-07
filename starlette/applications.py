@@ -48,12 +48,20 @@ class Starlette:
     ) -> None:
         self._debug = debug
         self.state = State()
-        self.router = Router(routes, on_startup=on_startup, on_shutdown=on_shutdown)
+        self.router = self.create_router(routes, on_startup, on_shutdown)
         self.exception_handlers = (
             {} if exception_handlers is None else dict(exception_handlers)
         )
         self.user_middleware = [] if middleware is None else list(middleware)
         self.middleware_stack = self.build_middleware_stack()
+
+    def create_router(
+        self,
+        routes: typing.Sequence[BaseRoute] = None,
+        on_startup: typing.Sequence[typing.Callable] = None,
+        on_shutdown[typing.Callable] = None
+    ) -> Router:
+        return Router(routes, on_startup=on_startup, on_shutdown=on_shutdown)
 
     def build_middleware_stack(self) -> ASGIApp:
         debug = self.debug
