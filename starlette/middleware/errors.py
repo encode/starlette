@@ -181,7 +181,8 @@ class ServerErrorMiddleware:
         self, index: int, line: str, frame_lineno: int, frame_index: int
     ) -> str:
         values = {
-            "line": line.replace(" ", "&nbsp"),
+            # HTML escape - line could contain < or >
+            "line": html.escape(line).replace(" ", "&nbsp"),
             "lineno": (frame_lineno - frame_index) + index,
         }
 
@@ -196,9 +197,11 @@ class ServerErrorMiddleware:
         )
 
         values = {
-            "frame_filename": frame.filename,
+            # HTML escape - filename could contain < or >, especially if it's a virtual file e.g. <stdin> in the REPL
+            "frame_filename": html.escape(frame.filename),
             "frame_lineno": frame.lineno,
-            "frame_name": frame.function,
+            # HTML escape - if you try very hard it's possible to name a function with < or >
+            "frame_name": html.escape(frame.function),
             "code_context": code_context,
             "collapsed": "collapsed" if is_collapsed else "",
             "collapse_button": "+" if is_collapsed else "&#8210;",
@@ -219,7 +222,8 @@ class ServerErrorMiddleware:
             exc_html += self.generate_frame_html(frame, is_collapsed)
             is_collapsed = True
 
-        error = f"{traceback_obj.exc_type.__name__}: {html.escape(str(traceback_obj))}"
+        # escape error class and text
+        error = f"{html.escape(traceback_obj.exc_type.__name__)}: {html.escape(str(traceback_obj))}"
 
         return TEMPLATE.format(styles=STYLES, js=JS, error=error, exc_html=exc_html)
 
