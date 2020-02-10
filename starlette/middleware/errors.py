@@ -25,6 +25,10 @@ p {
 }
 .frame-line {
     padding-left: 10px;
+    font-family: monospace;
+}
+.frame-filename {
+    font-family: monospace;
 }
 .center-line {
     background-color: #038BB8;
@@ -34,12 +38,11 @@ p {
 .lineno {
     margin-right: 5px;
 }
-.frame-filename {
+.frame-title {
     font-weight: unset;
-    padding: 10px 10px 10px 0px;
+    padding: 10px 10px 10px 10px;
     background-color: #E4F4FD;
     margin-right: 10px;
-    font: #394D54;
     color: #191f21;
     font-size: 17px;
     border: 1px solid #c7dce8;
@@ -99,7 +102,7 @@ TEMPLATE = """
 
 FRAME_TEMPLATE = """
 <div>
-    <p class="frame-filename"><span class="debug-filename frame-line">File {frame_filename}</span>,
+    <p class="frame-title">File <span class="frame-filename">{frame_filename}</span>,
     line <i>{frame_lineno}</i>,
     in <b>{frame_name}</b>
     <span class="collapse-btn" data-frame-id="{frame_filename}-{frame_lineno}" onclick="collapse(this)">{collapse_button}</span>
