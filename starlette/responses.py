@@ -143,6 +143,8 @@ class JSONResponse(Response):
     media_type = "application/json"
 
     def render(self, content: typing.Any) -> bytes:
+        if not content:
+            return b""
         return json.dumps(
             content,
             ensure_ascii=False,
@@ -156,6 +158,8 @@ class UJSONResponse(JSONResponse):
     media_type = "application/json"
 
     def render(self, content: typing.Any) -> bytes:
+        if not content:
+            return b""
         assert ujson is not None, "ujson must be installed to use UJSONResponse"
         return ujson.dumps(content, ensure_ascii=False).encode("utf-8")
 
