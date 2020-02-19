@@ -1,3 +1,6 @@
+import pytest
+
+import starlette.schemas
 from starlette.applications import Starlette
 from starlette.endpoints import HTTPEndpoint
 from starlette.schemas import SchemaGenerator
@@ -218,3 +221,23 @@ def test_schema_endpoint():
     response = client.get("/schema")
     assert response.headers["Content-Type"] == "application/vnd.oai.openapi"
     assert response.text.strip() == EXPECTED_SCHEMA.strip()
+
+
+def test_schema_docstring_parsing_without_yaml(monkeypatch):
+    # Simulate the fact that yaml cannot be imported
+    monkeypatch.setattr(starlette.schemas, "yaml", None)
+
+    def dummy():
+        """
+        responses:
+          200:
+            description: This is a description.
+        """
+        pass  # pragma: no cover
+
+    with pytest.raises(AssertionError) as exception_info:
+        schemas.parse_docstring(dummy)
+    assert (
+        str(exception_info.value)
+        == "`pyyaml` must be installed to use parse_docstring."
+    )
