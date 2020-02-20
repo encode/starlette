@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import http.cookies
 import inspect
@@ -186,7 +187,13 @@ class StreamingResponse(Response):
         self.background = background
         self.init_headers(headers)
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def listen_for_disconnect(self, receive: Receive) -> None:
+        while True:
+            message = await receive()
+            if message["type"] == "http.disconnect":
+                break
+
+    async def stream_response(self, send: Send) -> None:
         await send(
             {
                 "type": "http.response.start",
@@ -198,7 +205,17 @@ class StreamingResponse(Response):
             if not isinstance(chunk, bytes):
                 chunk = chunk.encode(self.charset)
             await send({"type": "http.response.body", "body": chunk, "more_body": True})
+
         await send({"type": "http.response.body", "body": b"", "more_body": False})
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        done, pending = await asyncio.wait(
+            [self.stream_response(send), self.listen_for_disconnect(receive)],
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+
+        for task in pending:
+            task.cancel()
 
         if self.background is not None:
             await self.background()
