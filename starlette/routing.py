@@ -544,20 +544,20 @@ class Router:
 
         partial = None
 
-        scope["routes"] = {"full": None, "partial": []}
+        scope["routes"] = []
         for route in self.routes:
             # Determine if any route matches the incoming scope,
             # and hand over to the matching route if found.
             match, child_scope = route.matches(scope)
             if match == Match.FULL:
                 scope.update(child_scope)
-                scope["routes"]["full"] = route
+                scope["routes"].append(route)
                 await route.handle(scope, receive, send)
                 return
             elif match == Match.PARTIAL and partial is None:
                 partial = route
                 partial_scope = child_scope
-                scope["routes"]["partial"].append(route)
+                scope["routes"].append(route)
 
         if partial is not None:
             #  Handle partial matches. These are cases where an endpoint is
