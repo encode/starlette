@@ -1,4 +1,3 @@
-import asyncio
 import hashlib
 import http.cookies
 import inspect
