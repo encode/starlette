@@ -11,7 +11,7 @@ from mimetypes import guess_type
 from urllib.parse import quote, quote_plus
 
 from starlette.background import BackgroundTask
-from starlette.concurrency import iterate_in_threadpool
+from starlette.concurrency import iterate_in_threadpool, run_until_first_complete
 from starlette.datastructures import URL, MutableHeaders
 from starlette.types import Receive, Scope, Send
 
@@ -209,13 +209,10 @@ class StreamingResponse(Response):
         await send({"type": "http.response.body", "body": b"", "more_body": False})
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        done, pending = await asyncio.wait(
-            [self.stream_response(send), self.listen_for_disconnect(receive)],
-            return_when=asyncio.FIRST_COMPLETED,
+        await run_until_first_complete(
+            (self.stream_response, {"send": send}),
+            (self.listen_for_disconnect, {"receive": receive}),
         )
-
-        for task in pending:
-            task.cancel()
 
         if self.background is not None:
             await self.background()
