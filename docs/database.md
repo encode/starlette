@@ -1,6 +1,6 @@
 Starlette is not strictly tied to any particular database implementation.
 
-You can use it with an asynchronous ORM, such as [GINO](https://python-gino.readthedocs.io/en/latest/),
+You can use it with an asynchronous ORM, such as [GINO](https://python-gino.org/),
 or use regular non-async endpoints, and integrate with [SQLAlchemy](https://www.sqlalchemy.org/).
 
 In this documentation we'll demonstrate how to integrate against [the `databases` package](https://github.com/encode/databases),
@@ -27,6 +27,7 @@ import sqlalchemy
 from starlette.applications import Starlette
 from starlette.config import Config
 from starlette.responses import JSONResponse
+from starlette.routing import Route
 
 
 # Configuration from environment variables or '.env' file.
@@ -202,7 +203,7 @@ def create_test_database():
   We use the `sqlalchemy_utils` package here for a few helpers in consistently
   creating and dropping the database.
   """
-  url = str(app.DATABASE_URL)
+  url = str(app.TEST_DATABASE_URL)
   engine = create_engine(url)
   assert not database_exists(url), 'Test database already exists. Aborting tests.'
   create_database(url)             # Create the test database.

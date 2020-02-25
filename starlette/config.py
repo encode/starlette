@@ -1,6 +1,7 @@
 import os
 import typing
 from collections.abc import MutableMapping
+from pathlib import Path
 
 
 class undefined:
@@ -46,7 +47,9 @@ environ = Environ()
 
 class Config:
     def __init__(
-        self, env_file: str = None, environ: typing.Mapping[str, str] = environ
+        self,
+        env_file: typing.Union[str, Path] = None,
+        environ: typing.Mapping[str, str] = environ,
     ) -> None:
         self.environ = environ
         self.file_values = {}  # type: typing.Dict[str, str]
@@ -54,12 +57,12 @@ class Config:
             self.file_values = self._read_file(env_file)
 
     def __call__(
-        self, key: str, cast: type = None, default: typing.Any = undefined
+        self, key: str, cast: typing.Callable = None, default: typing.Any = undefined,
     ) -> typing.Any:
         return self.get(key, cast, default)
 
     def get(
-        self, key: str, cast: type = None, default: typing.Any = undefined
+        self, key: str, cast: typing.Callable = None, default: typing.Any = undefined,
     ) -> typing.Any:
         if key in self.environ:
             value = self.environ[key]
@@ -71,7 +74,7 @@ class Config:
             return self._perform_cast(key, default, cast)
         raise KeyError(f"Config '{key}' is missing, and has no default.")
 
-    def _read_file(self, file_name: str) -> typing.Dict[str, str]:
+    def _read_file(self, file_name: typing.Union[str, Path]) -> typing.Dict[str, str]:
         file_values = {}  # type: typing.Dict[str, str]
         with open(file_name) as input_file:
             for line in input_file.readlines():
@@ -84,7 +87,7 @@ class Config:
         return file_values
 
     def _perform_cast(
-        self, key: str, value: typing.Any, cast: type = None
+        self, key: str, value: typing.Any, cast: typing.Callable = None,
     ) -> typing.Any:
         if cast is None or value is None:
             return value
