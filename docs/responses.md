@@ -41,7 +41,7 @@ Signature: `Response.set_cookie(key, value, max_age=None, expires=None, path="/"
 * `domain` - A string that specifies the domain for which the cookie is valid. `Optional`
 * `secure` - A bool indicating that the cookie will only be sent to the server if request is made using SSL and the HTTPS protocol. `Optional`
 * `httponly` - A bool indicating that the cookie cannot be accessed via Javascript through `Document.cookie` property, the `XMLHttpRequest` or `Request` APIs. `Optional`
-* `samesite` - A string that specifies the samesite strategy for the cookie. Valid values are `'lax'`, `'strict'`, `'none'` and `None`. `Optional`
+* `samesite` - A string that specifies the samesite strategy for the cookie. Valid values are `'lax'`, `'strict'` and `'none'`. Defaults to `'lax'`. `Optional`
 
 #### Delete Cookie
 
