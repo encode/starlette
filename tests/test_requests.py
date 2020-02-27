@@ -155,6 +155,21 @@ def test_request_stream_then_body():
     assert response.json() == {"body": "<stream consumed>", "stream": "abc"}
 
 
+def test_request_body_then_request_body():
+    async def app(scope, receive, send):
+        request = Request(scope, receive)
+        body = await request.body()
+        request2 = Request(scope, request.receive)
+        body2 = await request.body()
+        response = JSONResponse({"body": body.decode(), "body2": body2.decode()})
+        await response(scope, receive, send)
+
+    client = TestClient(app)
+
+    response = client.post("/", data="abc")
+    assert response.json() == {"body": "abc", "body2": "abc"}
+
+
 def test_request_json():
     async def app(scope, receive, send):
         request = Request(scope, receive)
