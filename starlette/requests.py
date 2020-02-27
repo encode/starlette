@@ -164,7 +164,7 @@ class Request(HTTPConnection):
     @property
     def receive(self) -> Receive:
         async def _receive() -> Message:
-            if self._body:
+            if hasattr(self, "_body"):
                 return dict(type="http.request", body=self._body)
             return await self._receive()
 
