@@ -163,12 +163,12 @@ class Request(HTTPConnection):
 
     @property
     def receive(self) -> Receive:
-        async def _receive() -> Message:
-            if hasattr(self, "_body"):
-                return dict(type="http.request", body=self._body)
-            return await self._receive()
+        async def cached_receive() -> Message:
+            return dict(type="http.request", body=self._body)
 
-        return _receive
+        if hasattr(self, "_body"):
+            return cached_receive
+        return self._receive
 
     async def stream(self) -> typing.AsyncGenerator[bytes, None]:
         if hasattr(self, "_body"):
