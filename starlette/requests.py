@@ -3,6 +3,7 @@ import http.cookies
 import json
 import typing
 from collections.abc import Mapping
+from urllib import parse
 
 from starlette.datastructures import URL, Address, FormData, Headers, QueryParams, State
 from starlette.formparsers import FormParser, MultiPartParser
@@ -163,11 +164,20 @@ class Request(HTTPConnection):
 
     @property
     def receive(self) -> Receive:
-        async def cached_receive() -> Message:
-            return dict(type="http.request", body=self._body)
+        body = None
 
         if hasattr(self, "_body"):
+            body = self._body
+        elif hasattr(self, "_form"):
+            body = bytes(parse.urlencode(dict(self._form)), "utf-8")
+
+        if body:
+
+            async def cached_receive() -> Message:
+                return dict(type="http.request", body=body)
+
             return cached_receive
+
         return self._receive
 
     async def stream(self) -> typing.AsyncGenerator[bytes, None]:
