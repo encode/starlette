@@ -3,7 +3,7 @@ import http.cookies
 import json
 import typing
 from collections.abc import Mapping
-from urllib import parse
+from urllib.parse import urlencode
 
 from starlette.datastructures import URL, Address, FormData, Headers, QueryParams, State
 from starlette.formparsers import FormParser, MultiPartParser
@@ -169,9 +169,9 @@ class Request(HTTPConnection):
         if hasattr(self, "_body"):
             body = self._body
         elif hasattr(self, "_form"):
-            body = bytes(parse.urlencode(dict(self._form)), "utf-8")
+            body = bytes(urlencode(dict(self._form)), "utf-8")
 
-        if body:
+        if body is not None:
 
             async def cached_receive() -> Message:
                 return dict(type="http.request", body=body)
