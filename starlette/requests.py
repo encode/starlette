@@ -4,7 +4,15 @@ import json
 import typing
 from collections.abc import Mapping
 
-from starlette.datastructures import URL, Address, FormData, Headers, QueryParams, State
+from starlette.datastructures import (
+    URL,
+    Address,
+    FormData,
+    Headers,
+    QueryParams,
+    State,
+    RobustCookie,
+)
 from starlette.formparsers import FormParser, MultiPartParser
 from starlette.types import Message, Receive, Scope, Send
 
@@ -90,11 +98,8 @@ class HTTPConnection(Mapping):
             cookies = {}
             cookie_header = self.headers.get("cookie")
             if cookie_header:
-                cookie = http.cookies.SimpleCookie()  # type: http.cookies.BaseCookie
-                try:
-                    cookie.load(cookie_header)
-                except http.cookies.CookieError:
-                    pass
+                cookie = RobustCookie()
+                cookie.load(cookie_header)
                 for key, morsel in cookie.items():
                     cookies[key] = morsel.value
             self._cookies = cookies

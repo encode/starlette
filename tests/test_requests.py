@@ -293,7 +293,7 @@ def test_invalid_cookie():
 
     client = TestClient(app)
     response = client.get("/", cookies={"invalid/cookie": "test", "valid": "test2"})
-    assert response.json() == {"cookies": {}}
+    assert response.json() == {"cookies": {"valid": "test2"}}
 
 
 def test_chunked_encoding():
