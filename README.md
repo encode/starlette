@@ -99,6 +99,7 @@ Starlette does not have any hard dependencies, but the following are optional:
 * [`pyyaml`][pyyaml] - Required for `SchemaGenerator` support.
 * [`graphene`][graphene] - Required for `GraphQLApp` support.
 * [`ujson`][ujson] - Required if you want to use `UJSONResponse`.
+* [`orjson`][orjson] - Required if you want to use `ORJSONResponse`.
 
 You can install all of these with `pip3 install starlette[full]`.
 

@@ -58,6 +58,7 @@ setup(
             "pyyaml",
             "requests",
             "ujson",
+            "orjson",
         ]
     },
     classifiers=[

@@ -112,6 +112,25 @@ async def app(scope, receive, send):
     await response(scope, receive, send)
 ```
 
+### ORJSONResponse
+
+Another JSON response class that uses the optimised `orjson` library for serialisation.
+
+`orjson` is a fast, correct JSON library for Python. It
+[benchmarks](https://github.com/ijl/orjson#performance) as the fastest Python
+library for JSON and is more correct than the standard json library or other
+third-party libraries.
+
+```python
+from starlette.responses import ORJSONResponse
+
+
+async def app(scope, receive, send):
+    assert scope['type'] == 'http'
+    response = ORJSONResponse({'hello': 'world'})
+    await response(scope, receive, send)
+```
+
 ### RedirectResponse
 
 Returns an HTTP redirect. Uses a 307 status code by default.

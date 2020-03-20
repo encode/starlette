@@ -13,6 +13,7 @@ from starlette.responses import (
     Response,
     StreamingResponse,
     UJSONResponse,
+    ORJSONResponse,
 )
 from starlette.testclient import TestClient
 
@@ -40,6 +41,16 @@ def test_bytes_response():
 def test_ujson_response():
     async def app(scope, receive, send):
         response = UJSONResponse({"hello": "world"})
+        await response(scope, receive, send)
+
+    client = TestClient(app)
+    response = client.get("/")
+    assert response.json() == {"hello": "world"}
+
+
+def test_orjson_response():
+    async def app(scope, receive, send):
+        response = ORJSONResponse({"hello": "world"})
         await response(scope, receive, send)
 
     client = TestClient(app)
