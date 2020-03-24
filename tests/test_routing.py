@@ -4,8 +4,7 @@ from starlette.applications import Starlette
 from starlette.endpoints import HTTPEndpoint
 from starlette.requests import Request
 from starlette.responses import JSONResponse, PlainTextResponse, Response
-from starlette.routing import (Host, Mount, NoMatchFound, Route, Router,
-                               WebSocketRoute)
+from starlette.routing import Host, Mount, NoMatchFound, Route, Router, WebSocketRoute
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
@@ -152,15 +151,13 @@ def test_route_converters():
     assert response.status_code == 200
     assert response.json() == {"path": "some/example"}
     assert (
-            app.url_path_for("path-convertor",
-                             param="some/example") == "/path/some/example"
+        app.url_path_for("path-convertor", param="some/example") == "/path/some/example"
     )
 
 
 def test_url_path_for():
     assert app.url_path_for("homepage") == "/"
-    assert app.url_path_for("user",
-                            username="tomchristie") == "/users/tomchristie"
+    assert app.url_path_for("user", username="tomchristie") == "/users/tomchristie"
     assert app.url_path_for("websocket_endpoint") == "/ws"
     with pytest.raises(NoMatchFound):
         assert app.url_path_for("broken")
@@ -172,33 +169,32 @@ def test_url_path_for():
 
 def test_url_for():
     assert (
-            app.url_path_for("homepage").make_absolute_url(
-                base_url="https://example.org")
-            == "https://example.org/"
+        app.url_path_for("homepage").make_absolute_url(base_url="https://example.org")
+        == "https://example.org/"
     )
     assert (
-            app.url_path_for("homepage").make_absolute_url(
-                base_url="https://example.org/root_path/"
-            )
-            == "https://example.org/root_path/"
+        app.url_path_for("homepage").make_absolute_url(
+            base_url="https://example.org/root_path/"
+        )
+        == "https://example.org/root_path/"
     )
     assert (
-            app.url_path_for("user", username="tomchristie").make_absolute_url(
-                base_url="https://example.org"
-            )
-            == "https://example.org/users/tomchristie"
+        app.url_path_for("user", username="tomchristie").make_absolute_url(
+            base_url="https://example.org"
+        )
+        == "https://example.org/users/tomchristie"
     )
     assert (
-            app.url_path_for("user", username="tomchristie").make_absolute_url(
-                base_url="https://example.org/root_path/"
-            )
-            == "https://example.org/root_path/users/tomchristie"
+        app.url_path_for("user", username="tomchristie").make_absolute_url(
+            base_url="https://example.org/root_path/"
+        )
+        == "https://example.org/root_path/users/tomchristie"
     )
     assert (
-            app.url_path_for("websocket_endpoint").make_absolute_url(
-                base_url="https://example.org"
-            )
-            == "wss://example.org/ws"
+        app.url_path_for("websocket_endpoint").make_absolute_url(
+            base_url="https://example.org"
+        )
+        == "wss://example.org/ws"
     )
 
 
@@ -233,16 +229,14 @@ class WebSocketEndpoint:
     async def __call__(self, scope, receive, send):
         websocket = WebSocket(scope=scope, receive=receive, send=send)
         await websocket.accept()
-        await websocket.send_json(
-            {"URL": str(websocket.url_for("websocket_endpoint"))})
+        await websocket.send_json({"URL": str(websocket.url_for("websocket_endpoint"))})
         await websocket.close()
 
 
 mixed_protocol_app = Router(
     routes=[
         Route("/", endpoint=http_endpoint),
-        WebSocketRoute("/", endpoint=WebSocketEndpoint(),
-                       name="websocket_endpoint"),
+        WebSocketRoute("/", endpoint=WebSocketEndpoint(), name="websocket_endpoint"),
     ]
 )
 
@@ -281,12 +275,11 @@ def test_reverse_mount_urls():
     users = Router([Route("/{username}", ok, name="user")])
     mounted = Router([Mount("/{subpath}/users", users, name="users")])
     assert (
-            mounted.url_path_for("users:user", subpath="test", username="tom")
-            == "/test/users/tom"
+        mounted.url_path_for("users:user", subpath="test", username="tom")
+        == "/test/users/tom"
     )
     assert (
-            mounted.url_path_for("users", subpath="test",
-                                 path="/tom") == "/test/users/tom"
+        mounted.url_path_for("users", subpath="test", path="/tom") == "/test/users/tom"
     )
 
 
@@ -342,19 +335,16 @@ def test_host_routing():
 
 def test_host_reverse_urls():
     assert (
-            mixed_hosts_app.url_path_for("homepage").make_absolute_url(
-                "https://whatever")
-            == "https://www.example.org/"
+        mixed_hosts_app.url_path_for("homepage").make_absolute_url("https://whatever")
+        == "https://www.example.org/"
     )
     assert (
-            mixed_hosts_app.url_path_for("users").make_absolute_url(
-                "https://whatever")
-            == "https://www.example.org/users"
+        mixed_hosts_app.url_path_for("users").make_absolute_url("https://whatever")
+        == "https://www.example.org/users"
     )
     assert (
-            mixed_hosts_app.url_path_for("api:users").make_absolute_url(
-                "https://whatever")
-            == "https://api.example.org/users"
+        mixed_hosts_app.url_path_for("api:users").make_absolute_url("https://whatever")
+        == "https://api.example.org/users"
     )
 
 
@@ -364,8 +354,7 @@ async def subdomain_app(scope, receive, send):
 
 
 subdomain_app = Router(
-    routes=[
-        Host("{subdomain}.example.org", app=subdomain_app, name="subdomains")]
+    routes=[Host("{subdomain}.example.org", app=subdomain_app, name="subdomains")]
 )
 
 
@@ -379,10 +368,10 @@ def test_subdomain_routing():
 
 def test_subdomain_reverse_urls():
     assert (
-            subdomain_app.url_path_for(
-                "subdomains", subdomain="foo", path="/homepage"
-            ).make_absolute_url("https://whatever")
-            == "https://foo.example.org/homepage"
+        subdomain_app.url_path_for(
+            "subdomains", subdomain="foo", path="/homepage"
+        ).make_absolute_url("https://whatever")
+        == "https://foo.example.org/homepage"
     )
 
 
@@ -407,8 +396,7 @@ echo_url_routes = [
 
 def test_url_for_with_root_path():
     app = Starlette(routes=echo_url_routes)
-    client = TestClient(app, base_url="https://www.example.org/",
-                        root_path="/sub_path")
+    client = TestClient(app, base_url="https://www.example.org/", root_path="/sub_path")
     response = client.get("/")
     assert response.json() == {
         "index": "https://www.example.org/sub_path/",
@@ -422,8 +410,7 @@ def test_url_for_with_root_path():
 
 
 double_mount_routes = [
-    Mount("/mount", name="mount",
-          routes=[Mount("/static", ..., name="static")], ),
+    Mount("/mount", name="mount", routes=[Mount("/static", ..., name="static")],),
 ]
 
 
@@ -480,7 +467,7 @@ def test_endpoint_custom_request_class():
 
         def get(self, request):
             assert isinstance(request, _CustomRequest)
-            return PlainTextResponse('')
+            return PlainTextResponse("")
 
     app = Route("/", Endpoint)
     client = TestClient(app)
@@ -496,7 +483,7 @@ def test_route_overrides_request_class():
 
         def get(self, request):
             assert isinstance(request, _AnotherCustomRequest)
-            return PlainTextResponse('')
+            return PlainTextResponse("")
 
     app = Route("/", Endpoint, request_class=_AnotherCustomRequest)
     client = TestClient(app)
@@ -506,7 +493,7 @@ def test_route_overrides_request_class():
 def test_view_fn_custom_request_class():
     def index_view(request):
         assert isinstance(request, _CustomRequest)
-        return PlainTextResponse('')
+        return PlainTextResponse("")
 
     app = Route("/", index_view, request_class=_CustomRequest)
     client = TestClient(app)
