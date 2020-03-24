@@ -216,3 +216,15 @@ app = Router(routes=[
     ])
 ])
 ```
+
+## Changing request class
+
+If you want to use custom request class you can set `request_class` argument in `Route` constructor:
+
+```python
+class MyRequest(Request): ...
+
+app = Router(routes=[
+    Route('/', homepage, request_class=MyRequest),
+])
+``` 

@@ -48,6 +48,20 @@ app = Starlette(routes=routes)
 HTTP endpoint classes will respond with "405 Method not allowed" responses for any
 request methods which do not map to a corresponding handler.
 
+
+#### Custom request class
+
+You can set `request_class` attribute to change default request class:
+
+```python
+class Homepage(HTTPEndpoint):
+    request_class = MyRequest
+
+    async def get(self, request):
+        return PlainTextResponse(f"Hello, world!")
+```
+
+
 ### WebSocketEndpoint
 
 The `WebSocketEndpoint` class is an ASGI application that presents a wrapper around
