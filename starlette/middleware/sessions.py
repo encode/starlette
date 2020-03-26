@@ -50,7 +50,7 @@ class SessionMiddleware:
                         self.security_flags,
                     )
                     headers.append("Set-Cookie", header_value)
-                elif scope["session"].is_empty:
+                elif scope["session"].is_empty and scope["session"].is_loaded:
                     # no interactions to session were done
                     headers = MutableHeaders(scope=message)
                     header_value = "%s=%s; %s" % (

@@ -9,6 +9,10 @@ from itsdangerous import BadSignature, SignatureExpired, TimestampSigner
 from starlette.datastructures import Secret
 
 
+class SessionNotLoaded(Exception):
+    pass
+
+
 class SessionBackend(abc.ABC):
     """Base class for session backends."""
 
@@ -98,7 +102,7 @@ class Session:
         self.session_id = session_id
         self._data: typing.Dict[str, typing.Any] = {}
         self._backend = backend
-        self._is_loaded = False
+        self.is_loaded = False
         self._is_modified = False
 
     @property
@@ -113,28 +117,34 @@ class Session:
 
     @property
     def data(self) -> typing.Dict:
+        if not self.is_loaded:
+            raise SessionNotLoaded("Session is not loaded.")
         return self._data
+
+    @data.setter
+    def data(self, value: typing.Dict[str, typing.Any]) -> None:
+        self._data = value
 
     async def load(self) -> None:
         """Load data from the backend.
         Subsequent calls do not take any effect."""
-        if self._is_loaded:
+        if self.is_loaded:
             return
 
         if not self.session_id:
-            self._data = {}
+            self.data = {}
         else:
-            self._data = await self._backend.read(self.session_id)
+            self.data = await self._backend.read(self.session_id)
 
-        self._is_loaded = True
+        self.is_loaded = True
 
     async def persist(self) -> str:
-        self.session_id = await self._backend.write(self._data, self.session_id)
+        self.session_id = await self._backend.write(self.data, self.session_id)
         return self.session_id
 
     async def delete(self) -> None:
         if self.session_id:
-            self._data = {}
+            self.data = {}
             self._is_modified = True
             await self._backend.remove(self.session_id)
 
@@ -149,43 +159,43 @@ class Session:
         return self.session_id
 
     def keys(self) -> typing.KeysView[str]:
-        return self._data.keys()
+        return self.data.keys()
 
     def values(self) -> typing.ValuesView[typing.Any]:
-        return self._data.values()
+        return self.data.values()
 
     def items(self) -> typing.ItemsView[str, typing.Any]:
-        return self._data.items()
+        return self.data.items()
 
     def pop(self, key: str, default: typing.Any = None) -> typing.Any:
         self._is_modified = True
-        return self._data.pop(key, default)
+        return self.data.pop(key, default)
 
     def get(self, name: str, default: typing.Any = None) -> typing.Any:
-        return self._data.get(name, default)
+        return self.data.get(name, default)
 
     def setdefault(self, key: str, default: typing.Any) -> None:
         self._is_modified = True
-        self._data.setdefault(key, default)
+        self.data.setdefault(key, default)
 
     def clear(self) -> None:
         self._is_modified = True
-        self._data.clear()
+        self.data.clear()
 
     def update(self, *args: typing.Any, **kwargs: typing.Any) -> None:
         self._is_modified = True
-        self._data.update(*args, **kwargs)
+        self.data.update(*args, **kwargs)
 
     def __contains__(self, key: str) -> bool:
-        return key in self._data
+        return key in self.data
 
     def __setitem__(self, key: str, value: typing.Any) -> None:
         self._is_modified = True
-        self._data[key] = value
+        self.data[key] = value
 
     def __getitem__(self, key: str) -> typing.Any:
-        return self._data[key]
+        return self.data[key]
 
     def __delitem__(self, key: str) -> None:
         self._is_modified = True
-        del self._data[key]
+        del self.data[key]

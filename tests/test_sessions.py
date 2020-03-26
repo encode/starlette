@@ -1,6 +1,6 @@
 import pytest
 
-from starlette.sessions import CookieBackend, InMemoryBackend, Session
+from starlette.sessions import CookieBackend, InMemoryBackend, Session, SessionNotLoaded
 
 
 @pytest.fixture()
@@ -15,7 +15,9 @@ def cookie():
 
 @pytest.fixture()
 def in_memory_session(in_memory):
-    return Session(in_memory)
+    session = Session(in_memory)
+    session.is_loaded = True
+    return session
 
 
 @pytest.fixture()
@@ -78,20 +80,18 @@ async def test_in_memory_generate_id(in_memory):
     assert isinstance(new_id, str)
 
 
-def test_session_is_empty(in_memory):
-    session = Session(in_memory)
-    assert session.is_empty is True
+def test_session_is_empty(in_memory_session):
+    assert in_memory_session.is_empty is True
 
-    session["key"] = "value"
-    assert session.is_empty is False
+    in_memory_session["key"] = "value"
+    assert in_memory_session.is_empty is False
 
 
-def test_session_is_modified(in_memory):
-    session = Session(in_memory)
-    assert session.is_modified is False
+def test_session_is_modified(in_memory_session):
+    assert in_memory_session.is_modified is False
 
-    session["key"] = "value"
-    assert session.is_modified is True
+    in_memory_session["key"] = "value"
+    assert in_memory_session.is_modified is True
 
 
 # session
@@ -134,6 +134,7 @@ async def test_session_subsequent_load(in_memory):
 @pytest.mark.asyncio
 async def test_session_persist(in_memory):
     session = Session(in_memory, "session_id")
+    await session.load()
     session["key"] = "value"
     new_id = await session.persist()
 
@@ -144,14 +145,13 @@ async def test_session_persist(in_memory):
 
 
 @pytest.mark.asyncio
-async def test_session_persist_generates_id(in_memory):
+async def test_session_persist_generates_id(in_memory, in_memory_session):
     async def _generate_id():
         return "new_session_id"
 
     in_memory.generate_id = _generate_id
-    session = Session(in_memory)
-    await session.persist()
-    assert session.session_id == "new_session_id"
+    await in_memory_session.persist()
+    assert in_memory_session.session_id == "new_session_id"
 
 
 @pytest.mark.asyncio
@@ -159,6 +159,7 @@ async def test_session_delete(in_memory):
     await in_memory.write({}, "session_id")
 
     session = Session(in_memory, "session_id")
+    await session.load()
     session["key"] = "value"
     await session.delete()
 
@@ -168,6 +169,7 @@ async def test_session_delete(in_memory):
 
     # it shouldn't fail on non-persisted session
     session = Session(in_memory)
+    await session.load()
     await session.delete()
 
     assert session.is_empty is True
@@ -179,6 +181,7 @@ async def test_session_flush(in_memory):
     await in_memory.write({"key": "value"}, "session_id")
 
     session = Session(in_memory, "session_id")
+    await session.load()
     new_id = await session.flush()
     assert new_id == session.session_id
     assert new_id != "session_id"
@@ -187,6 +190,7 @@ async def test_session_flush(in_memory):
 
     # it shouldn't fail on non-persisted session
     session = Session(in_memory)
+    await session.load()
     await session.flush()
     assert session.is_modified is True
     assert session.is_empty is True
@@ -269,3 +273,12 @@ def test_session_delitem(in_memory_session):
     in_memory_session["key"] = "value"
     del in_memory_session["key"]  # __delitem__
     assert "key" not in in_memory_session
+
+
+def test_session_denies_access_if_not_loaded():
+    session = Session(in_memory)
+    with pytest.raises(SessionNotLoaded):
+        session.data.keys()
+
+    with pytest.raises(SessionNotLoaded):
+        session["key"] = "value"
