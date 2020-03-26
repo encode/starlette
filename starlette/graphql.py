@@ -10,13 +10,22 @@ from starlette.types import Receive, Scope, Send
 
 try:
     import graphene
-    from graphql.execution.executors.asyncio import AsyncioExecutor
-    from graphql.error import format_error as format_graphql_error
-    from graphql.error import GraphQLError
 except ImportError:  # pragma: nocover
     graphene = None
+
+try:
+    from graphql.execution.executors.asyncio import AsyncioExecutor
+except ImportError:  # pragma: nocover
     AsyncioExecutor = None  # type: ignore
+
+try:
+    from graphql.error import format_error as format_graphql_error
+except ImportError:  # pragma: nocover
     format_graphql_error = None  # type: ignore
+
+try:
+    from graphql.error import GraphQLError
+except ImportError:  # pragma: nocover
     GraphQLError = None  # type: ignore
 
 

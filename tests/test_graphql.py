@@ -1,5 +1,6 @@
 import graphene
 from graphql.execution.executors.asyncio import AsyncioExecutor
+from graphql.error import GraphQLError
 
 from starlette.applications import Starlette
 from starlette.datastructures import Headers
@@ -20,6 +21,7 @@ class FakeAuthMiddleware:
 class Query(graphene.ObjectType):
     hello = graphene.String(name=graphene.String(default_value="stranger"))
     whoami = graphene.String()
+    graphql_error = graphene.String()
 
     def resolve_hello(self, info, name):
         return "Hello " + name
@@ -30,6 +32,9 @@ class Query(graphene.ObjectType):
             if info.context["request"]["user"] is None
             else info.context["request"]["user"]
         )
+
+    def resolve_graphql_error(self, info):
+        raise GraphQLError("GraphQL Error")
 
 
 schema = graphene.Schema(query=Query)
@@ -99,6 +104,13 @@ def test_graphiql_get():
     response = client.get("/", headers={"accept": "text/html"})
     assert response.status_code == 200
     assert "<!DOCTYPE html>" in response.text
+
+
+def test_graphql_error():
+    response = client.get("/?query={ graphqlError }")
+    assert response.status_code == 400
+    assert response.json()["data"] == {"graphqlError": None}
+    assert response.json()["errors"][0]["message"] == "GraphQL Error"
 
 
 def test_graphiql_not_found():
