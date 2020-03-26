@@ -27,9 +27,11 @@ class GraphQLApp:
         executor: typing.Any = None,
         executor_class: type = None,
         graphiql: bool = True,
+        graphql_error_status: int = status.HTTP_400_BAD_REQUEST,
     ) -> None:
         self.schema = schema
         self.graphiql = graphiql
+        self.graphql_error_status = graphql_error_status
         if executor is None:
             # New style in 0.10.0. Use 'executor_class'.
             # See issue https://github.com/encode/starlette/issues/242
@@ -110,9 +112,7 @@ class GraphQLApp:
         response_data = {"data": result.data}
         if error_data:
             response_data["errors"] = error_data
-        status_code = (
-            status.HTTP_400_BAD_REQUEST if result.errors else status.HTTP_200_OK
-        )
+        status_code = self.graphql_error_status if result.errors else status.HTTP_200_OK
 
         return JSONResponse(
             response_data, status_code=status_code, background=background
