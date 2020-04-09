@@ -8,15 +8,25 @@ try:
 except ImportError:  # pragma: no cover
     contextvars = None  # type: ignore
 
+try:
+    from asyncio import create_task  # type: ignore
+except ImportError:  # pragma: no cover
+    create_task = None  # type: ignore
+
 T = typing.TypeVar("T")
 
 
 async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -> None:
-    tasks = [asyncio.create_task(handler(**kwargs)) for handler, kwargs in args]
+    if create_task is not None:  # pragma: no cover
+        tasks = [create_task(handler(**kwargs)) for handler, kwargs in args]  # type: ignore
+    else:  # pragma: no cover
+        tasks = [handler(**kwargs) for handler, kwargs in args]
+
     (done, pending) = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
     [task.cancel() for task in pending]
     [task.result() for task in done]
-    await asyncio.wait(waiting)
+    if pending:
+        await asyncio.wait(pending)
 
 
 async def run_in_threadpool(
