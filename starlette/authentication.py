@@ -57,7 +57,9 @@ def requires(
             async def async_wrapper(
                 *args: typing.Any, **kwargs: typing.Any
             ) -> Response:
-                request = kwargs.get("request", args[idx])
+                request = kwargs.get("request")
+                if request is None:
+                    request = args[idx]
                 assert isinstance(request, Request)
 
                 if not has_required_scope(request, scopes_list):
@@ -72,7 +74,9 @@ def requires(
             # Handle sync request/response functions.
             @functools.wraps(func)
             def sync_wrapper(*args: typing.Any, **kwargs: typing.Any) -> Response:
-                request = kwargs.get("request", args[idx])
+                request = kwargs.get("request")
+                if request is None:
+                    request = args[idx]
                 assert isinstance(request, Request)
 
                 if not has_required_scope(request, scopes_list):
