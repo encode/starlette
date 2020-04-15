@@ -285,17 +285,6 @@ def test_request_cookies():
     assert response.text == "Hello, cookies!"
 
 
-def test_invalid_cookie():
-    async def app(scope, receive, send):
-        request = Request(scope, receive)
-        response = JSONResponse({"cookies": request.cookies})
-        await response(scope, receive, send)
-
-    client = TestClient(app)
-    response = client.get("/", cookies={"invalid/cookie": "test", "valid": "test2"})
-    assert response.json() == {"cookies": {}}
-
-
 def test_cookie_lenient_parsing():
     """
     The following test is based on a cookie set by Okta, a well-known authorization service.
@@ -328,6 +317,80 @@ def test_cookie_lenient_parsing():
     result = response.json()
     assert len(result["cookies"]) == 4
     assert set(result["cookies"].keys()) == expected_keys
+
+
+# These test cases copied from Tornado's implementation
+@pytest.mark.parametrize(
+    "set_cookie,expected",
+    [
+        ("chips=ahoy; vienna=finger", {"chips": "ahoy", "vienna": "finger"}),
+        # all semicolons are delimiters, even within quotes
+        (
+            'keebler="E=mc2; L=\\"Loves\\"; fudge=\\012;"',
+            {"keebler": '"E=mc2', "L": '\\"Loves\\"', "fudge": "\\012", "": '"'},
+        ),
+        # Illegal cookies that have an '=' char in an unquoted value.
+        ("keebler=E=mc2", {"keebler": "E=mc2"}),
+        # Cookies with ':' character in their name.
+        ("key:term=value:term", {"key:term": "value:term"}),
+        # Cookies with '[' and ']'.
+        ("a=b; c=[; d=r; f=h", {"a": "b", "c": "[", "d": "r", "f": "h"}),
+        # Cookies that RFC6265 allows.
+        ("a=b; Domain=example.com", {"a": "b", "Domain": "example.com"}),
+        # parse_cookie() keeps only the last cookie with the same name.
+        ("a=b; h=i; a=c", {"a": "c", "h": "i"}),
+    ],
+)
+def test_cookies_edge_cases(set_cookie, expected):
+    async def app(scope, receive, send):
+        request = Request(scope, receive)
+        response = JSONResponse({"cookies": request.cookies})
+        await response(scope, receive, send)
+
+    client = TestClient(app)
+    response = client.get("/", headers={"cookie": set_cookie})
+    result = response.json()
+    assert result["cookies"] == expected
+
+
+@pytest.mark.parametrize(
+    "set_cookie,expected",
+    [
+        # Chunks without an equals sign appear as unnamed values per
+        # https://bugzilla.mozilla.org/show_bug.cgi?id=169091
+        (
+            "abc=def; unnamed; django_language=en",
+            {"": "unnamed", "abc": "def", "django_language": "en"},
+        ),
+        # Even a double quote may be an unamed value.
+        ('a=b; "; c=d', {"a": "b", "": '"', "c": "d"}),
+        # Spaces in names and values, and an equals sign in values.
+        ("a b c=d e = f; gh=i", {"a b c": "d e = f", "gh": "i"}),
+        # More characters the spec forbids.
+        ('a   b,c<>@:/[]?{}=d  "  =e,f g', {"a   b,c<>@:/[]?{}": 'd  "  =e,f g'}),
+        # Unicode characters. The spec only allows ASCII.
+        # ("saint=André Bessette", {"saint": "André Bessette"}),
+        # Browsers don't send extra whitespace or semicolons in Cookie headers,
+        # but parse_cookie() should parse whitespace the same way
+        # document.cookie parses whitespace.
+        # ("  =  b  ;  ;  =  ;   c  =  ;  ", {"": "b", "c": ""}),
+    ],
+)
+def test_cookies_invalid(set_cookie, expected):
+    """
+    Cookie strings that are against the RFC6265 spec but which browsers will send if set
+    via document.cookie.
+    """
+
+    async def app(scope, receive, send):
+        request = Request(scope, receive)
+        response = JSONResponse({"cookies": request.cookies})
+        await response(scope, receive, send)
+
+    client = TestClient(app)
+    response = client.get("/", headers={"cookie": set_cookie})
+    result = response.json()
+    assert result["cookies"] == expected
 
 
 def test_chunked_encoding():
