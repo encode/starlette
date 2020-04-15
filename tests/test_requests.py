@@ -371,7 +371,7 @@ def test_cookies_edge_cases(set_cookie, expected):
         # Unicode characters. The spec only allows ASCII.
         # ("saint=André Bessette", {"saint": "André Bessette"}),
         # Browsers don't send extra whitespace or semicolons in Cookie headers,
-        # but parse_cookie() should parse whitespace the same way
+        # but cookie_parser() should parse whitespace the same way
         # document.cookie parses whitespace.
         # ("  =  b  ;  ;  =  ;   c  =  ;  ", {"": "b", "c": ""}),
     ],
