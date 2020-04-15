@@ -296,6 +296,40 @@ def test_invalid_cookie():
     assert response.json() == {"cookies": {}}
 
 
+def test_cookie_lenient_parsing():
+    """
+    The following test is based on a cookie set by Okta, a well-known authorization service.
+    It turns out that it's common practice to set cookies that would be invalid according to
+    the spec.
+    """
+    tough_cookie = (
+        "provider-oauth-nonce=validAsciiblabla; "
+        'okta-oauth-redirect-params={"responseType":"code","state":"somestate",'
+        '"nonce":"somenonce","scopes":["openid","profile","email","phone"],'
+        '"urls":{"issuer":"https://subdomain.okta.com/oauth2/authServer",'
+        '"authorizeUrl":"https://subdomain.okta.com/oauth2/authServer/v1/authorize",'
+        '"userinfoUrl":"https://subdomain.okta.com/oauth2/authServer/v1/userinfo"}}; '
+        "importantCookie=importantValue; sessionCookie=importantSessionValue"
+    )
+    expected_keys = {
+        "importantCookie",
+        "okta-oauth-redirect-params",
+        "provider-oauth-nonce",
+        "sessionCookie",
+    }
+
+    async def app(scope, receive, send):
+        request = Request(scope, receive)
+        response = JSONResponse({"cookies": request.cookies})
+        await response(scope, receive, send)
+
+    client = TestClient(app)
+    response = client.get("/", headers={"cookie": tough_cookie})
+    result = response.json()
+    assert len(result["cookies"]) == 4
+    assert set(result["cookies"].keys()) == expected_keys
+
+
 def test_chunked_encoding():
     async def app(scope, receive, send):
         request = Request(scope, receive)
