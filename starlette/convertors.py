@@ -5,7 +5,7 @@ T = TypeVar("T")
 
 
 class Convertor(Generic[T]):
-    regex = ""
+    regex = r""
 
     def convert(self, value: str) -> T:
         raise NotImplementedError()  # pragma: no cover
@@ -15,7 +15,7 @@ class Convertor(Generic[T]):
 
 
 class StringConvertor(Convertor[str]):
-    regex = "[^/]+"
+    regex = r"[^/]+"
 
     def convert(self, value: str) -> str:
         return value
@@ -28,14 +28,14 @@ class StringConvertor(Convertor[str]):
 
 
 class PathConvertor(StringConvertor):
-    regex = ".*"
+    regex = r".*"
 
     def to_string(self, value: Any) -> str:
         return str(value)
 
 
 class IntegerConvertor(Convertor[int]):
-    regex = "[0-9]+"
+    regex = r"[0-9]+"
 
     def convert(self, value: str) -> int:
         return int(value)
@@ -47,7 +47,7 @@ class IntegerConvertor(Convertor[int]):
 
 
 class FloatConvertor(Convertor[float]):
-    regex = "[0-9]+(.[0-9]+)?"
+    regex = r"[0-9]+(.[0-9]+)?"
 
     def convert(self, value: str) -> float:
         return float(value)
