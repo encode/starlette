@@ -27,11 +27,8 @@ class StringConvertor(Convertor[str]):
         return value
 
 
-class PathConvertor(Convertor[str]):
+class PathConvertor(StringConvertor):
     regex = ".*"
-
-    def convert(self, value: str) -> str:
-        return str(value)
 
     def to_string(self, value: Any) -> str:
         return str(value)
