@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import http.cookies
 import inspect
@@ -202,6 +203,11 @@ class StreamingResponse(Response):
             message = await receive()
             if message["type"] == "http.disconnect":
                 break
+            # Relinquish control to the event loop to allow it to check if
+            # stream_response has completed. The receive() call above may not have
+            # handed control over to the loop, especially if there isn't actually a
+            # network between us and the client (e.g. when testing).
+            await asyncio.sleep(0)
 
     async def stream_response(self, send: Send) -> None:
         await send(
