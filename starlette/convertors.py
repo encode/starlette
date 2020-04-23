@@ -1,4 +1,5 @@
 import math
+import uuid
 from typing import Any, Dict, Generic, TypeVar
 
 T = TypeVar("T")
@@ -63,9 +64,20 @@ class FloatConvertor(Convertor[float]):
         return ("%0.20f" % value).rstrip("0").rstrip(".")
 
 
+class UUIDConvertor(Convertor[uuid.UUID]):
+    regex = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+
+    def convert(self, value: str) -> uuid.UUID:
+        return uuid.UUID(value)
+
+    def to_string(self, value: Any) -> str:
+        return str(value)
+
+
 CONVERTOR_TYPES: Dict[str, Convertor] = {
     "str": StringConvertor(),
     "path": PathConvertor(),
     "int": IntegerConvertor(),
     "float": FloatConvertor(),
+    "uuid": UUIDConvertor(),
 }
