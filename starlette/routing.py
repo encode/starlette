@@ -82,6 +82,16 @@ def replace_params(
 # Match parameters in URL paths, eg. '{param}', and '{param:int}'
 PARAM_REGEX = re.compile("{([a-zA-Z_][a-zA-Z0-9_]*)(:[a-zA-Z_][a-zA-Z0-9_]*)?}")
 
+# Match regex meta characters
+METACHAR_REGEX = re.compile(r"([][.^$*+?{}\|()])")
+
+def escape_meta(s: str) -> str:
+    """
+    Given a string, prefix any char that have special meaning for regex
+    with the quote char r'\'
+    """
+    return METACHAR_REGEX.sub(r'\\\1', s)
+
 
 def compile_path(
     path: str,
@@ -107,7 +117,7 @@ def compile_path(
         ), f"Unknown path convertor '{convertor_type}'"
         convertor = CONVERTOR_TYPES[convertor_type]
 
-        path_regex += path[idx : match.start()]
+        path_regex += escape_meta(path[idx : match.start()])
         path_regex += f"(?P<{param_name}>{convertor.regex})"
 
         path_format += path[idx : match.start()]
@@ -117,7 +127,7 @@ def compile_path(
 
         idx = match.end()
 
-    path_regex += path[idx:] + "$"
+    path_regex += escape_meta(path[idx:]) + "$"
     path_format += path[idx:]
 
     return re.compile(path_regex), path_format, param_convertors
