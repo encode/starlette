@@ -3,6 +3,7 @@ import pytest
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
 from starlette.responses import PlainTextResponse
 from starlette.routing import Route
 from starlette.testclient import TestClient
@@ -27,6 +28,14 @@ def homepage(request):
 @app.route("/exc")
 def exc(request):
     raise Exception()
+
+
+class CustomRequest(Request):
+    pass
+
+
+class BadCustomRequest:
+    pass
 
 
 @app.route("/no-response")
@@ -77,6 +86,7 @@ def test_middleware_decorator():
             return PlainTextResponse("OK")
         response = await call_next(request)
         response.headers["Custom"] = "Example"
+        response.headers["X-Request-Class"] = request.__class__.__name__
         return response
 
     client = TestClient(app)
@@ -86,6 +96,47 @@ def test_middleware_decorator():
     response = client.get("/homepage")
     assert response.text == "Homepage"
     assert response.headers["Custom"] == "Example"
+    assert response.headers["X-Request-Class"] == "Request"
+
+
+def test_middleware_decorator_custom_req():
+    app = Starlette()
+
+    @app.route("/custom-request")
+    def custom_req(request):
+        return PlainTextResponse(request.__class__.__name__)
+
+    @app.middleware("http")
+    async def plaintext(request: CustomRequest, call_next):
+        response = await call_next(request)
+        response.headers["Custom"] = "Example"
+        response.headers["X-Request-Class"] = request.__class__.__name__
+        return response
+
+    client = TestClient(app)
+
+    response = client.get("/custom-request")
+    assert response.text == "Request"
+    assert response.headers["X-Request-Class"] == "CustomRequest"
+
+
+def test_middleware_decorator_custom_req_fails():
+    app = Starlette()
+
+    @app.route("/bad-custom-request")
+    def custom_req(request):  # pragma: no cover
+        return PlainTextResponse(request.__class__.__name__)
+
+    @app.middleware("http")
+    async def plaintext(request: BadCustomRequest, call_next):  # pragma: no cover
+        response = await call_next(request)
+        response.headers["Custom"] = "Example"
+        response.headers["X-Request-Class"] = request.__class__.__name__
+        return response
+
+    client = TestClient(app)
+    with pytest.raises(TypeError):
+        client.get("/bad-custom-request")
 
 
 def test_state_data_across_multiple_middlewares():

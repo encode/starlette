@@ -1,6 +1,7 @@
 import pytest
 
 from starlette.exceptions import ExceptionMiddleware, HTTPException
+from starlette.requests import Request
 from starlette.responses import PlainTextResponse
 from starlette.routing import Route, Router, WebSocketRoute
 from starlette.testclient import TestClient
@@ -18,6 +19,28 @@ def not_modified(request):
     raise HTTPException(status_code=304)
 
 
+def sad_server(request):
+    if request.headers.get("except") == "503":
+        raise HTTPException(status_code=503)
+    raise HTTPException(status_code=504)
+
+
+class CustomRequest(Request):
+    pass
+
+
+class BadCustomRequest:
+    pass
+
+
+def fine_exception_handler(request: CustomRequest, exc):
+    return PlainTextResponse(request.__class__.__name__, status_code=exc.status_code)
+
+
+def bad_exception_handler(request: BadCustomRequest, exc):  # pragma: no cover
+    return PlainTextResponse(request.__class__.__name__, status_code=exc.status_code)
+
+
 class HandledExcAfterResponse:
     async def __call__(self, scope, receive, send):
         response = PlainTextResponse("OK", status_code=200)
@@ -31,12 +54,15 @@ router = Router(
         Route("/not_acceptable", endpoint=not_acceptable),
         Route("/not_modified", endpoint=not_modified),
         Route("/handled_exc_after_response", endpoint=HandledExcAfterResponse()),
+        Route("/sad_server", endpoint=sad_server),
         WebSocketRoute("/runtime_error", endpoint=raise_runtime_error),
     ]
 )
 
 
-app = ExceptionMiddleware(router)
+app = ExceptionMiddleware(
+    router, handlers={503: fine_exception_handler, 504: bad_exception_handler}
+)
 client = TestClient(app)
 
 
@@ -95,3 +121,14 @@ def test_repr():
     assert repr(CustomHTTPException(500, detail="Something custom")) == (
         "CustomHTTPException(status_code=500, detail='Something custom')"
     )
+
+
+def test_sad_server_custom_req():
+    response = client.get("/sad_server", headers={"except": "503"})
+    assert response.status_code == 503
+    assert response.text == "CustomRequest"
+
+
+def test_sad_server_custom_req_fail():
+    with pytest.raises(TypeError):
+        client.get("/sad_server")

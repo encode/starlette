@@ -3,6 +3,7 @@ import uuid
 import pytest
 
 from starlette.applications import Starlette
+from starlette.requests import Request
 from starlette.responses import JSONResponse, PlainTextResponse, Response
 from starlette.routing import Host, Mount, NoMatchFound, Route, Router, WebSocketRoute
 from starlette.testclient import TestClient
@@ -32,6 +33,22 @@ def user_no_match(request):  # pragma: no cover
     return Response(content, media_type="text/plain")
 
 
+class CustomRequest(Request):
+    pass
+
+
+class BadCustomRequest:
+    pass
+
+
+def custom_request(request: CustomRequest):
+    return Response(request.__class__.__name__, media_type="text/plain")
+
+
+def custom_request_exc(request: BadCustomRequest):  # pragma: no cover
+    return Response(request.__class__.__name__, media_type="text/plain")
+
+
 app = Router(
     [
         Route("/", endpoint=homepage, methods=["GET"]),
@@ -44,6 +61,8 @@ app = Router(
                 Route("/nomatch", endpoint=user_no_match),
             ],
         ),
+        Route("/custom-request", endpoint=custom_request),
+        Route("/bad-custom-request", endpoint=custom_request_exc),
         Mount("/static", app=Response("xxxxx", media_type="image/png")),
     ]
 )
@@ -133,6 +152,13 @@ def test_router():
     response = client.get("/users/nomatch")
     assert response.status_code == 200
     assert response.text == "User nomatch"
+
+    response = client.get("/custom-request")
+    assert response.status_code == 200
+    assert response.text == "CustomRequest"
+
+    with pytest.raises(TypeError):
+        response = client.get("/bad-custom-request")
 
     response = client.get("/static/123")
     assert response.status_code == 200

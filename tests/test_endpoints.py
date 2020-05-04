@@ -1,6 +1,7 @@
 import pytest
 
 from starlette.endpoints import HTTPEndpoint, WebSocketEndpoint
+from starlette.requests import Request
 from starlette.responses import PlainTextResponse
 from starlette.routing import Route, Router
 from starlette.testclient import TestClient
@@ -14,8 +15,28 @@ class Homepage(HTTPEndpoint):
         return PlainTextResponse(f"Hello, {username}!")
 
 
+class CustomRequest(Request):
+    pass
+
+
+class BadCustomRequest:
+    pass
+
+
+class CustomRequestClasses(HTTPEndpoint):
+    async def get(self, request: CustomRequest):
+        return PlainTextResponse(request.__class__.__name__)
+
+    async def post(self, request: BadCustomRequest):  # pragma: no cover
+        return PlainTextResponse(request.__class__.__name__)
+
+
 app = Router(
-    routes=[Route("/", endpoint=Homepage), Route("/{username}", endpoint=Homepage)]
+    routes=[
+        Route("/", endpoint=Homepage),
+        Route("/custom-request", endpoint=CustomRequestClasses),
+        Route("/{username}", endpoint=Homepage),
+    ]
 )
 
 client = TestClient(app)
@@ -37,6 +58,17 @@ def test_http_endpoint_route_method():
     response = client.post("/")
     assert response.status_code == 405
     assert response.text == "Method Not Allowed"
+
+
+def test_http_endpoint_custom_req():
+    response = client.get("/custom-request")
+    assert response.status_code == 200
+    assert response.text == "CustomRequest"
+
+
+def test_http_endpoint_custom_req_fail():
+    with pytest.raises(TypeError):
+        client.post("/custom-request")
 
 
 def test_websocket_endpoint_on_connect():
