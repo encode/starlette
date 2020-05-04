@@ -22,9 +22,17 @@ class HTTPEndpoint:
         return self.dispatch().__await__()
 
     async def dispatch(self) -> None:
-        request = Request(self.scope, receive=self.receive)
-        handler_name = "get" if request.method == "HEAD" else request.method.lower()
+        method = self.scope["method"]
+        handler_name = "get" if method == "HEAD" else method.lower()
         handler = getattr(self, handler_name, self.method_not_allowed)
+
+        request_class = handler.__annotations__.get("request", Request)
+        if not issubclass(request_class, Request):
+            raise TypeError(
+                "Custom Request classes must subclass `starlette.requests.Request`"
+            )
+
+        request = request_class(self.scope, receive=self.receive)
         is_async = asyncio.iscoroutinefunction(handler)
         if is_async:
             response = await handler(request)

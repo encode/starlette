@@ -85,7 +85,13 @@ class ExceptionMiddleware:
                 msg = "Caught handled exception, but response already started."
                 raise RuntimeError(msg) from exc
 
-            request = Request(scope, receive=receive)
+            request_class = handler.__annotations__.get("request", Request)
+            if not issubclass(request_class, Request):
+                raise TypeError(
+                    "Custom Request classes must subclass `starlette.requests.Request`"
+                )
+
+            request = request_class(scope, receive=receive)
             if asyncio.iscoroutinefunction(handler):
                 response = await handler(request, exc)
             else:

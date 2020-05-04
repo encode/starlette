@@ -36,7 +36,13 @@ def request_response(func: typing.Callable) -> ASGIApp:
     is_coroutine = asyncio.iscoroutinefunction(func)
 
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
-        request = Request(scope, receive=receive, send=send)
+        request_class = func.__annotations__.get("request", Request)
+        if not issubclass(request_class, Request):
+            raise TypeError(
+                "Custom Request classes must subclass `starlette.requests.Request`"
+            )
+
+        request = request_class(scope, receive=receive, send=send)
         if is_coroutine:
             response = await func(request)
         else:

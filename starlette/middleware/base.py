@@ -21,7 +21,13 @@ class BaseHTTPMiddleware:
             await self.app(scope, receive, send)
             return
 
-        request = Request(scope, receive=receive)
+        request_class = self.dispatch_func.__annotations__.get("request", Request)
+        if not issubclass(request_class, Request):
+            raise TypeError(
+                "Custom Request classes must subclass `starlette.requests.Request`"
+            )
+
+        request = request_class(scope, receive=receive)
         response = await self.dispatch_func(request, self.call_next)
         await response(scope, receive, send)
 
