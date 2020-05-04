@@ -7,6 +7,7 @@ from starlette.responses import PlainTextResponse, Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 ALL_METHODS = ("DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT")
+SAFELISTED_HEADERS = {"Accept", "Accept-Language", "Content-Language", "Content-Type"}
 
 
 class CORSMiddleware:
@@ -48,6 +49,7 @@ class CORSMiddleware:
                 "Access-Control-Max-Age": str(max_age),
             }
         )
+        allow_headers = sorted(SAFELISTED_HEADERS | set(allow_headers))
         if allow_headers and "*" not in allow_headers:
             preflight_headers["Access-Control-Allow-Headers"] = ", ".join(allow_headers)
         if allow_credentials:
