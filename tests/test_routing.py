@@ -1,7 +1,6 @@
 import uuid
 
 import pytest
-
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse, PlainTextResponse, Response
 from starlette.routing import Host, Mount, NoMatchFound, Route, Router, WebSocketRoute
@@ -83,6 +82,20 @@ def uuid_converter(request):
     return JSONResponse({"uuid": str(uuid_param)})
 
 
+# OData string entity key
+@app.route("/strentity('{param:str}')", name="strentity")
+def strentity(request):
+    text = request.path_params["param"]
+    return JSONResponse({"str": text})
+
+
+# OData integer entity key
+@app.route("/intentity({param:int})", name="intentity")
+def intentity(request):
+    number = request.path_params["param"]
+    return JSONResponse({"int": number})
+
+
 @app.websocket_route("/ws")
 async def websocket_endpoint(session):
     await session.accept()
@@ -145,6 +158,18 @@ def test_route_converters():
     assert response.status_code == 200
     assert response.json() == {"int": 5}
     assert app.url_path_for("int-convertor", param=5) == "/int/5"
+
+    # Test str for OData style path
+    response = client.get("/strentity('ascii')")
+    assert response.status_code == 200
+    assert response.json() == {"str": "ascii"}
+    assert app.url_path_for("strentity", param="ascii") == "/strentity('ascii')"
+
+    # Test integer for OData style path
+    response = client.get("/intentity(7)")
+    assert response.status_code == 200
+    assert response.json() == {"int": 7}
+    assert app.url_path_for("intentity", param=7) == "/intentity(7)"
 
     # Test float conversion
     response = client.get("/float/25.5")
