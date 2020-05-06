@@ -1,15 +1,16 @@
 import io
 
 import pytest
+
 from starlette.datastructures import (
     URL,
     CommaSeparatedStrings,
-    UploadFile,
     FormData,
     Headers,
     MultiDict,
     MutableHeaders,
     QueryParams,
+    UploadFile,
 )
 
 
