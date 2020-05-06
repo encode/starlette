@@ -48,18 +48,22 @@ class Jinja2Templates:
     return templates.TemplateResponse("index.html", {"request": request})
     """
 
-    def __init__(self, directory: str) -> None:
+    def __init__(self, directory: str, extensions=None) -> None:
+        if extensions is None:
+            extensions = ()
         assert jinja2 is not None, "jinja2 must be installed to use Jinja2Templates"
-        self.env = self.get_env(directory)
+        self.env = self.get_env(directory, extensions)
 
-    def get_env(self, directory: str) -> "jinja2.Environment":
+    def get_env(self, directory: str, extensions=None) -> "jinja2.Environment":
         @jinja2.contextfunction
         def url_for(context: dict, name: str, **path_params: typing.Any) -> str:
             request = context["request"]
             return request.url_for(name, **path_params)
 
         loader = jinja2.FileSystemLoader(directory)
-        env = jinja2.Environment(loader=loader, autoescape=True)
+        if extensions is None:
+            extensions = ()
+        env = jinja2.Environment(loader=loader, autoescape=True, extensions=extensions)
         env.globals["url_for"] = url_for
         return env
 
