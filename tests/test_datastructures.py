@@ -1,8 +1,10 @@
 import io
 
+import pytest
 from starlette.datastructures import (
     URL,
     CommaSeparatedStrings,
+    UploadFile,
     FormData,
     Headers,
     MultiDict,
@@ -208,6 +210,17 @@ def test_queryparams():
 
     q = QueryParams([("a", "123"), ("a", "456")])
     assert QueryParams(q) == q
+
+
+@pytest.mark.asyncio
+async def test_upload_file():
+    UploadFile.spool_max_size = 1024
+    big_file = UploadFile("big-file")
+    await big_file.write(b"big-data" * 512)
+    await big_file.write(b"big-data")
+    await big_file.seek(0)
+    await big_file.read(1024)
+    await big_file.close()
 
 
 def test_formdata():

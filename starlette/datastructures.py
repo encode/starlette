@@ -437,28 +437,31 @@ class UploadFile:
     def in_memory(self) -> bool:
         return (
             isinstance(self.file, tempfile.SpooledTemporaryFile)
-            and not self.file._rolled
+            and not self.file._rolled  # type: ignore
         )
 
     async def write(self, data: typing.Union[bytes, str]) -> None:
         if self.in_memory:
-            return self.file.write(data)
-        await run_in_threadpool(self.file.write, data)
+            self.file.write(data)  # type: ignore
+        else:
+            await run_in_threadpool(self.file.write, data)
 
-    async def read(self, size: int = None) -> typing.Union[bytes, str]:
+    async def read(self, size: int = -1) -> typing.Union[bytes, str]:
         if self.in_memory:
             return self.file.read(size)
         return await run_in_threadpool(self.file.read, size)
 
     async def seek(self, offset: int) -> None:
         if self.in_memory:
-            return self.file.seek(offset)
-        await run_in_threadpool(self.file.seek, offset)
+            self.file.seek(offset)
+        else:
+            await run_in_threadpool(self.file.seek, offset)
 
     async def close(self) -> None:
         if self.in_memory:
-            return self.file.close()
-        await run_in_threadpool(self.file.close)
+            self.file.close()
+        else:
+            await run_in_threadpool(self.file.close)
 
 
 class FormData(ImmutableMultiDict):
