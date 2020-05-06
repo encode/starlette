@@ -213,14 +213,17 @@ def test_queryparams():
     assert QueryParams(q) == q
 
 
+class TestUploadFile(UploadFile):
+    spool_max_size = 1024
+
+
 @pytest.mark.asyncio
 async def test_upload_file():
-    UploadFile.spool_max_size = 1024
-    big_file = UploadFile("big-file")
+    big_file = TestUploadFile("big-file")
     await big_file.write(b"big-data" * 512)
     await big_file.write(b"big-data")
     await big_file.seek(0)
-    await big_file.read(1024)
+    assert await big_file.read(1024) == b"big-data" * 128
     await big_file.close()
 
 
