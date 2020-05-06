@@ -21,7 +21,7 @@ class URL:
             scheme = scope.get("scheme", "http")
             server = scope.get("server", None)
             path = scope.get("root_path", "") + scope["path"]
-            query_string = scope["query_string"]
+            query_string = scope.get("query_string", b"")
 
             host_header = None
             for key, value in scope["headers"]:
@@ -44,7 +44,7 @@ class URL:
             if query_string:
                 url += "?" + query_string.decode()
         elif components:
-            assert not url, 'Cannot set both "scope" and "**components".'
+            assert not url, 'Cannot set both "url" and "**components".'
             url = URL("").replace(**components).components.geturl()
 
         self._url = url
@@ -122,7 +122,7 @@ class URL:
         return self.__class__(components.geturl())
 
     def include_query_params(self, **kwargs: typing.Any) -> "URL":
-        params = MultiDict(parse_qsl(self.query))
+        params = MultiDict(parse_qsl(self.query, keep_blank_values=True))
         params.update({str(key): str(value) for key, value in kwargs.items()})
         query = urlencode(params.multi_items())
         return self.replace(query=query)
@@ -136,7 +136,7 @@ class URL:
     ) -> "URL":
         if isinstance(keys, str):
             keys = [keys]
-        params = MultiDict(parse_qsl(self.query))
+        params = MultiDict(parse_qsl(self.query, keep_blank_values=True))
         for key in keys:
             params.pop(key, None)
         query = urlencode(params.multi_items())
@@ -185,7 +185,8 @@ class URLPath(str):
         else:
             netloc = base_url.netloc
 
-        return str(URL(scheme=scheme, netloc=netloc, path=str(self)))
+        path = base_url.path.rstrip("/") + str(self)
+        return str(URL(scheme=scheme, netloc=netloc, path=path))
 
 
 class Secret:
@@ -397,9 +398,11 @@ class QueryParams(ImmutableMultiDict):
         value = args[0] if args else []
 
         if isinstance(value, str):
-            super().__init__(parse_qsl(value), **kwargs)
+            super().__init__(parse_qsl(value, keep_blank_values=True), **kwargs)
         elif isinstance(value, bytes):
-            super().__init__(parse_qsl(value.decode("latin-1")), **kwargs)
+            super().__init__(
+                parse_qsl(value.decode("latin-1"), keep_blank_values=True), **kwargs
+            )
         else:
             super().__init__(*args, **kwargs)  # type: ignore
         self._list = [(str(k), str(v)) for k, v in self._list]
@@ -472,7 +475,7 @@ class FormData(ImmutableMultiDict):
         ],
         **kwargs: typing.Union[str, UploadFile],
     ) -> None:
-        super().__init__(*args, **kwargs)  # type: ignore
+        super().__init__(*args, **kwargs)
 
     async def close(self) -> None:
         for key, value in self.multi_items():

@@ -25,6 +25,10 @@ p {
 }
 .frame-line {
     padding-left: 10px;
+    font-family: monospace;
+}
+.frame-filename {
+    font-family: monospace;
 }
 .center-line {
     background-color: #038BB8;
@@ -34,12 +38,11 @@ p {
 .lineno {
     margin-right: 5px;
 }
-.frame-filename {
+.frame-title {
     font-weight: unset;
-    padding: 10px 10px 10px 0px;
+    padding: 10px 10px 10px 10px;
     background-color: #E4F4FD;
     margin-right: 10px;
-    font: #394D54;
     color: #191f21;
     font-size: 17px;
     border: 1px solid #c7dce8;
@@ -99,7 +102,7 @@ TEMPLATE = """
 
 FRAME_TEMPLATE = """
 <div>
-    <p class="frame-filename"><span class="debug-filename frame-line">File {frame_filename}</span>,
+    <p class="frame-title">File <span class="frame-filename">{frame_filename}</span>,
     line <i>{frame_lineno}</i>,
     in <b>{frame_name}</b>
     <span class="collapse-btn" data-frame-id="{frame_filename}-{frame_lineno}" onclick="collapse(this)">{collapse_button}</span>
@@ -178,29 +181,30 @@ class ServerErrorMiddleware:
             raise exc from None
 
     def format_line(
-        self, position: int, line: str, frame_lineno: int, center_lineno: int
+        self, index: int, line: str, frame_lineno: int, frame_index: int
     ) -> str:
         values = {
-            "line": line.replace(" ", "&nbsp"),
-            "lineno": frame_lineno + (position - center_lineno),
+            # HTML escape - line could contain < or >
+            "line": html.escape(line).replace(" ", "&nbsp"),
+            "lineno": (frame_lineno - frame_index) + index,
         }
 
-        if position != center_lineno:
+        if index != frame_index:
             return LINE.format(**values)
         return CENTER_LINE.format(**values)
 
-    def generate_frame_html(
-        self, frame: inspect.FrameInfo, center_lineno: int, is_collapsed: bool
-    ) -> str:
+    def generate_frame_html(self, frame: inspect.FrameInfo, is_collapsed: bool) -> str:
         code_context = "".join(
-            self.format_line(context_position, line, frame.lineno, center_lineno)
-            for context_position, line in enumerate(frame.code_context)
+            self.format_line(index, line, frame.lineno, frame.index)  # type: ignore
+            for index, line in enumerate(frame.code_context or [])
         )
 
         values = {
-            "frame_filename": frame.filename,
+            # HTML escape - filename could contain < or >, especially if it's a virtual file e.g. <stdin> in the REPL
+            "frame_filename": html.escape(frame.filename),
             "frame_lineno": frame.lineno,
-            "frame_name": frame.function,
+            # HTML escape - if you try very hard it's possible to name a function with < or >
+            "frame_name": html.escape(frame.function),
             "code_context": code_context,
             "collapsed": "collapsed" if is_collapsed else "",
             "collapse_button": "+" if is_collapsed else "&#8210;",
@@ -215,14 +219,14 @@ class ServerErrorMiddleware:
             traceback_obj.exc_traceback, limit  # type: ignore
         )
 
-        center_lineno = int((limit - 1) / 2)
         exc_html = ""
         is_collapsed = False
         for frame in reversed(frames):
-            exc_html += self.generate_frame_html(frame, center_lineno, is_collapsed)
+            exc_html += self.generate_frame_html(frame, is_collapsed)
             is_collapsed = True
 
-        error = f"{traceback_obj.exc_type.__name__}: {html.escape(str(traceback_obj))}"
+        # escape error class and text
+        error = f"{html.escape(traceback_obj.exc_type.__name__)}: {html.escape(str(traceback_obj))}"
 
         return TEMPLATE.format(styles=STYLES, js=JS, error=error, exc_html=exc_html)
 

@@ -1,5 +1,8 @@
+import uuid
+
 import pytest
 
+from starlette.applications import Starlette
 from starlette.responses import JSONResponse, PlainTextResponse, Response
 from starlette.routing import Host, Mount, NoMatchFound, Route, Router, WebSocketRoute
 from starlette.testclient import TestClient
@@ -74,6 +77,12 @@ def path_convertor(request):
     return JSONResponse({"path": path})
 
 
+@app.route("/uuid/{param:uuid}", name="uuid-convertor")
+def uuid_converter(request):
+    uuid_param = request.path_params["param"]
+    return JSONResponse({"uuid": str(uuid_param)})
+
+
 @app.websocket_route("/ws")
 async def websocket_endpoint(session):
     await session.accept()
@@ -116,6 +125,11 @@ def test_router():
     assert response.status_code == 200
     assert response.text == "User fixed me"
 
+    response = client.get("/users/tomchristie/")
+    assert response.status_code == 200
+    assert response.url == "http://testserver/users/tomchristie"
+    assert response.text == "User tomchristie"
+
     response = client.get("/users/nomatch")
     assert response.status_code == 200
     assert response.text == "User nomatch"
@@ -146,6 +160,17 @@ def test_route_converters():
         app.url_path_for("path-convertor", param="some/example") == "/path/some/example"
     )
 
+    # Test UUID conversion
+    response = client.get("/uuid/ec38df32-ceda-4cfa-9b4a-1aeb94ad551a")
+    assert response.status_code == 200
+    assert response.json() == {"uuid": "ec38df32-ceda-4cfa-9b4a-1aeb94ad551a"}
+    assert (
+        app.url_path_for(
+            "uuid-convertor", param=uuid.UUID("ec38df32-ceda-4cfa-9b4a-1aeb94ad551a")
+        )
+        == "/uuid/ec38df32-ceda-4cfa-9b4a-1aeb94ad551a"
+    )
+
 
 def test_url_path_for():
     assert app.url_path_for("homepage") == "/"
@@ -165,10 +190,22 @@ def test_url_for():
         == "https://example.org/"
     )
     assert (
+        app.url_path_for("homepage").make_absolute_url(
+            base_url="https://example.org/root_path/"
+        )
+        == "https://example.org/root_path/"
+    )
+    assert (
         app.url_path_for("user", username="tomchristie").make_absolute_url(
             base_url="https://example.org"
         )
         == "https://example.org/users/tomchristie"
+    )
+    assert (
+        app.url_path_for("user", username="tomchristie").make_absolute_url(
+            base_url="https://example.org/root_path/"
+        )
+        == "https://example.org/root_path/users/tomchristie"
     )
     assert (
         app.url_path_for("websocket_endpoint").make_absolute_url(
@@ -353,3 +390,85 @@ def test_subdomain_reverse_urls():
         ).make_absolute_url("https://whatever")
         == "https://foo.example.org/homepage"
     )
+
+
+async def echo_urls(request):
+    return JSONResponse(
+        {
+            "index": request.url_for("index"),
+            "submount": request.url_for("mount:submount"),
+        }
+    )
+
+
+echo_url_routes = [
+    Route("/", echo_urls, name="index", methods=["GET"]),
+    Mount(
+        "/submount",
+        name="mount",
+        routes=[Route("/", echo_urls, name="submount", methods=["GET"])],
+    ),
+]
+
+
+def test_url_for_with_root_path():
+    app = Starlette(routes=echo_url_routes)
+    client = TestClient(app, base_url="https://www.example.org/", root_path="/sub_path")
+    response = client.get("/")
+    assert response.json() == {
+        "index": "https://www.example.org/sub_path/",
+        "submount": "https://www.example.org/sub_path/submount/",
+    }
+    response = client.get("/submount/")
+    assert response.json() == {
+        "index": "https://www.example.org/sub_path/",
+        "submount": "https://www.example.org/sub_path/submount/",
+    }
+
+
+double_mount_routes = [
+    Mount("/mount", name="mount", routes=[Mount("/static", ..., name="static")],),
+]
+
+
+def test_url_for_with_double_mount():
+    app = Starlette(routes=double_mount_routes)
+    url = app.url_path_for("mount:static", path="123")
+    assert url == "/mount/static/123"
+
+
+def test_standalone_route_matches():
+    app = Route("/", PlainTextResponse("Hello, World!"))
+    client = TestClient(app)
+    response = client.get("/")
+    assert response.status_code == 200
+    assert response.text == "Hello, World!"
+
+
+def test_standalone_route_does_not_match():
+    app = Route("/", PlainTextResponse("Hello, World!"))
+    client = TestClient(app)
+    response = client.get("/invalid")
+    assert response.status_code == 404
+    assert response.text == "Not Found"
+
+
+async def ws_helloworld(websocket):
+    await websocket.accept()
+    await websocket.send_text("Hello, world!")
+    await websocket.close()
+
+
+def test_standalone_ws_route_matches():
+    app = WebSocketRoute("/", ws_helloworld)
+    client = TestClient(app)
+    with client.websocket_connect("/") as websocket:
+        text = websocket.receive_text()
+        assert text == "Hello, world!"
+
+
+def test_standalone_ws_route_does_not_match():
+    app = WebSocketRoute("/", ws_helloworld)
+    client = TestClient(app)
+    with pytest.raises(WebSocketDisconnect):
+        client.websocket_connect("/invalid")

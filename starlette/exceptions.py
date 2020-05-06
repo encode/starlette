@@ -15,15 +15,24 @@ class HTTPException(Exception):
         self.status_code = status_code
         self.detail = detail
 
+    def __repr__(self) -> str:
+        class_name = self.__class__.__name__
+        return f"{class_name}(status_code={self.status_code!r}, detail={self.detail!r})"
+
 
 class ExceptionMiddleware:
-    def __init__(self, app: ASGIApp, debug: bool = False) -> None:
+    def __init__(
+        self, app: ASGIApp, handlers: dict = None, debug: bool = False
+    ) -> None:
         self.app = app
         self.debug = debug  # TODO: We ought to handle 404 cases if debug is set.
         self._status_handlers = {}  # type: typing.Dict[int, typing.Callable]
         self._exception_handlers = {
             HTTPException: self.http_exception
         }  # type: typing.Dict[typing.Type[Exception], typing.Callable]
+        if handlers is not None:
+            for key, value in handlers.items():
+                self.add_exception_handler(key, value)
 
     def add_exception_handler(
         self,
