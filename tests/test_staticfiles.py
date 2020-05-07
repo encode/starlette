@@ -24,6 +24,9 @@ def test_staticfiles(tmpdir):
 
 
 def test_staticfiles_head_with_middleware(tmpdir):
+    """
+    see https://github.com/encode/starlette/pull/935
+    """
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
         file.write("x" * 100)
