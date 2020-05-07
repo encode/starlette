@@ -26,20 +26,22 @@ def test_staticfiles(tmpdir):
 def test_staticfiles_head_with_middleware(tmpdir):
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
-        file.write("x"*100)
+        file.write("x" * 100)
 
     routes = [
-        Mount('/static', app=StaticFiles(directory=tmpdir), name="static"),
+        Mount("/static", app=StaticFiles(directory=tmpdir), name="static"),
     ]
     app = Starlette(routes=routes)
+
     @app.middleware("http")
     async def does_nothing_middleware(request: Request, call_next):
         response = await call_next(request)
         return response
+
     client = TestClient(app)
     response = client.head("/static/example.txt")
     assert response.status_code == 200
-    assert response.headers.get('content-length') == '100'
+    assert response.headers.get("content-length") == "100"
 
 
 def test_staticfiles_with_package():
