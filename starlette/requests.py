@@ -191,8 +191,8 @@ class Request(HTTPConnection):
         return self._receive
 
     async def stream(self) -> typing.AsyncGenerator[bytes, None]:
-        if hasattr(self, "_body"):
-            yield self._body
+        if "body" in self.scope:
+            yield self.scope["body"]
             yield b""
             return
 
@@ -214,21 +214,18 @@ class Request(HTTPConnection):
         yield b""
 
     async def body(self) -> bytes:
-        if not hasattr(self, "_body"):
-            chunks = []
-            async for chunk in self.stream():
-                chunks.append(chunk)
-            self._body = b"".join(chunks)
-        return self._body
+        if "body" not in self.scope:
+            self.scope["body"] = b"".join([chunk async for chunk in self.stream()])
+        return self.scope["body"]
 
     async def json(self) -> typing.Any:
-        if not hasattr(self, "_json"):
+        if "json" not in self.scope:
             body = await self.body()
-            self._json = json.loads(body)
-        return self._json
+            self.scope["json"] = json.loads(body)
+        return self.scope["json"]
 
     async def form(self) -> FormData:
-        if not hasattr(self, "_form"):
+        if "form" not in self.scope:
             assert (
                 parse_options_header is not None
             ), "The `python-multipart` library must be installed to use form parsing."
@@ -236,17 +233,17 @@ class Request(HTTPConnection):
             content_type, options = parse_options_header(content_type_header)
             if content_type == b"multipart/form-data":
                 multipart_parser = MultiPartParser(self.headers, self.stream())
-                self._form = await multipart_parser.parse()
+                self.scope["form"] = await multipart_parser.parse()
             elif content_type == b"application/x-www-form-urlencoded":
                 form_parser = FormParser(self.headers, self.stream())
-                self._form = await form_parser.parse()
+                self.scope["form"] = await form_parser.parse()
             else:
-                self._form = FormData()
-        return self._form
+                self.scope["form"] = FormData()
+        return self.scope["form"]
 
     async def close(self) -> None:
-        if hasattr(self, "_form"):
-            await self._form.close()
+        if "form" in self.scope:
+            await self.scope["form"].close()
 
     async def is_disconnected(self) -> bool:
         if not self._is_disconnected:
