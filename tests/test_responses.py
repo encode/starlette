@@ -58,35 +58,17 @@ def test_json_none_response():
 
 
 def test_redirect_response():
-    filled_by_bg_task = ""
-
     async def app(scope, receive, send):
-        async def numbers(minimum, maximum):
-            for i in range(minimum, maximum + 1):
-                yield str(i)
-                if i != maximum:
-                    yield ", "
-                await asyncio.sleep(0)
-
-        async def numbers_for_cleanup(start=1, stop=5):
-            nonlocal filled_by_bg_task
-            async for thing in numbers(start, stop):
-                filled_by_bg_task = filled_by_bg_task + thing
-
-        cleanup_task = BackgroundTask(numbers_for_cleanup, start=6, stop=9)
-
         if scope["path"] == "/":
             response = Response("hello, world", media_type="text/plain")
         else:
-            response = RedirectResponse("/", background=cleanup_task)
+            response = RedirectResponse("/")
         await response(scope, receive, send)
 
-    assert filled_by_bg_task == ""
     client = TestClient(app)
     response = client.get("/redirect")
     assert response.text == "hello, world"
     assert response.url == "http://testserver/"
-    assert filled_by_bg_task == "6, 7, 8, 9"
 
 
 def test_streaming_response():
