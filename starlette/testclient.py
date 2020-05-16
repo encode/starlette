@@ -319,9 +319,9 @@ class WebSocketTestSession:
             await self._loop.run_in_executor(None, self._close_event.wait)
 
         # wait for app() and wait(), until at least one of them completes
-        coros = app(), wait()
-        tasks = map(self._loop.create_task, coros)
-        done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+        done, pending = await asyncio.wait(
+            [app(), wait()], return_when=asyncio.FIRST_COMPLETED
+        )
 
         # ensure that the executer for wait() doesn't linger
         self._close_event.set()
