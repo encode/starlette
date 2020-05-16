@@ -301,7 +301,8 @@ class WebSocketTestSession:
 
     async def _session(self):
         """
-        Execute `app` and wait for it to complete, or `close()` to invoked, whichever comes first.
+        Execute `app` and wait for it to complete,
+        or `close()` to be invoked, whichever comes first.
         """
         scope = self.scope
         receive = self._asgi_receive
