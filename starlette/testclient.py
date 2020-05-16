@@ -271,6 +271,7 @@ class WebSocketTestSession:
         self._loop = asyncio.new_event_loop()
         self._receive_queue = queue.Queue()  # type: queue.Queue
         self._send_queue = queue.Queue()  # type: queue.Queue
+        self._close_event = threading.Event()  # type: threading.Event
         self._thread = threading.Thread(target=self._run)
         self.send({"type": "websocket.connect"})
         self._thread.start()
@@ -293,13 +294,43 @@ class WebSocketTestSession:
         """
         The sub-thread in which the websocket session runs.
         """
+        try:
+            self._loop.run_until_complete(self._session())
+        except BaseException as exc:
+            self._send_queue.put(exc)
+
+    async def _session(self):
+        """
+        Execute `app` and wait for it to complete, or `close()` to invoked, whichever comes first.
+        """
         scope = self.scope
         receive = self._asgi_receive
         send = self._asgi_send
+
+        async def app():
+            await self.app(scope, receive, send)
+
+        # waits for `self._close_event` to be set,
+        # which is an indicates that `close()` was called
+        async def wait():
+            await self._loop.run_in_executor(None, self._close_event.wait)
+
+        # wait for app() and wait(), until at least one of them completes
+        coros = app(), wait()
+        tasks = map(asyncio.create_task, coros)
+        done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+
+        # ensure that the executer for wait() doesn't linger
+        self._close_event.set()
+
         try:
-            self._loop.run_until_complete(self.app(scope, receive, send))
-        except BaseException as exc:
-            self._send_queue.put(exc)
+            for task in done:
+                # pass exceptions through
+                task.result()
+        finally:
+            for task in pending:
+                # don't let tasks linger in background
+                task.cancel()
 
     async def _asgi_receive(self) -> Message:
         while self._receive_queue.empty():
@@ -332,6 +363,7 @@ class WebSocketTestSession:
 
     def close(self, code: int = 1000) -> None:
         self.send({"type": "websocket.disconnect", "code": code})
+        self._close_event.set()
 
     def receive(self) -> Message:
         message = self._send_queue.get()

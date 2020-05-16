@@ -1,4 +1,5 @@
 import asyncio
+from time import time, sleep
 
 import pytest
 
@@ -132,3 +133,32 @@ def test_websocket_blocking_receive():
     with client.websocket_connect("/") as websocket:
         data = websocket.receive_json()
         assert data == {"message": "test"}
+
+
+def test_websocket_server_long_running():
+    """
+    Make sure websocket_connect() doesn't wait for a long running server once it is closed
+    """
+
+    def app(scope):
+        async def asgi(receive, send):
+            websocket = WebSocket(scope, receive=receive, send=send)
+            await websocket.accept()
+
+            await asyncio.sleep(5)
+            print()
+
+        return asgi
+
+    client = TestClient(app)
+
+    s = time()
+
+    with client.websocket_connect("/") as websocket:
+        sleep(0.1)
+
+    e = time()
+    time_taken = e - s
+
+    # this is a proxy indicator that websocket_connect() did not wait for the server
+    assert time_taken < 1
