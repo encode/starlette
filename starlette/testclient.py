@@ -314,6 +314,8 @@ class WebSocketTestSession:
         # waits for `self._close_event` to be set,
         # which indicates that `close()` was called
         async def wait():
+            # self._close_event.wait() is a blocking operation,
+            # so invoke it in the default executor
             await self._loop.run_in_executor(None, self._close_event.wait)
 
         # wait for app() and wait(), until at least one of them completes
