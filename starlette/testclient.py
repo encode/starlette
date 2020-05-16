@@ -320,7 +320,7 @@ class WebSocketTestSession:
 
         # wait for app() and wait(), until at least one of them completes
         coros = app(), wait()
-        tasks = map(asyncio.create_task, coros)
+        tasks = map(self._loop.create_task, coros)
         done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
 
         # ensure that the executer for wait() doesn't linger
