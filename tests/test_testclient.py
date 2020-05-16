@@ -145,8 +145,8 @@ def test_websocket_server_long_running():
             websocket = WebSocket(scope, receive=receive, send=send)
             await websocket.accept()
 
+            # this emulates a long running server
             await asyncio.sleep(5)
-            print()
 
         return asgi
 
