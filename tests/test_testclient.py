@@ -1,5 +1,5 @@
 import asyncio
-from time import time, sleep
+from time import sleep, time
 
 import pytest
 
