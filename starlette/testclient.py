@@ -299,7 +299,7 @@ class WebSocketTestSession:
         except BaseException as exc:
             self._send_queue.put(exc)
 
-    async def _session(self):
+    async def _session(self) -> None:
         """
         Execute `app` and wait for it to complete,
         or `close()` to be invoked, whichever comes first.
@@ -308,12 +308,12 @@ class WebSocketTestSession:
         receive = self._asgi_receive
         send = self._asgi_send
 
-        async def app():
+        async def app() -> None:
             await self.app(scope, receive, send)
 
         # waits for `self._close_event` to be set,
         # which indicates that `close()` was called
-        async def wait():
+        async def wait() -> None:
             # self._close_event.wait() is a blocking operation,
             # so invoke it in the default executor
             await self._loop.run_in_executor(None, self._close_event.wait)
