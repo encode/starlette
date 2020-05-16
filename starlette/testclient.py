@@ -312,7 +312,7 @@ class WebSocketTestSession:
             await self.app(scope, receive, send)
 
         # waits for `self._close_event` to be set,
-        # which is an indicates that `close()` was called
+        # which indicates that `close()` was called
         async def wait():
             await self._loop.run_in_executor(None, self._close_event.wait)
 
