@@ -38,9 +38,9 @@ class Response:
         self,
         content: typing.Any = None,
         status_code: int = 200,
-        headers: dict = None,
-        media_type: str = None,
-        background: BackgroundTask = None,
+        headers: typing.Optional[dict] = None,
+        media_type: typing.Optional[str] = None,
+        background: typing.Optional[BackgroundTask] = None,
     ) -> None:
         self.status_code = status_code
         if media_type is not None:
@@ -56,7 +56,9 @@ class Response:
             return content
         return content.encode(self.charset)
 
-    def init_headers(self, headers: typing.Mapping[str, str] = None) -> None:
+    def init_headers(
+        self, headers: typing.Optional[typing.Mapping[str, str]] = None
+    ) -> None:
         if headers is None:
             raw_headers = []  # type: typing.List[typing.Tuple[bytes, bytes]]
             populate_content_length = True
@@ -93,10 +95,10 @@ class Response:
         self,
         key: str,
         value: str = "",
-        max_age: int = None,
-        expires: int = None,
+        max_age: typing.Optional[int] = None,
+        expires: typing.Optional[int] = None,
         path: str = "/",
-        domain: str = None,
+        domain: typing.Optional[str] = None,
         secure: bool = False,
         httponly: bool = False,
         samesite: str = "lax",
@@ -125,7 +127,9 @@ class Response:
         cookie_val = cookie.output(header="").strip()
         self.raw_headers.append((b"set-cookie", cookie_val.encode("latin-1")))
 
-    def delete_cookie(self, key: str, path: str = "/", domain: str = None) -> None:
+    def delete_cookie(
+        self, key: str, path: str = "/", domain: typing.Optional[str] = None
+    ) -> None:
         self.set_cookie(key, expires=0, max_age=0, path=path, domain=domain)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -176,8 +180,8 @@ class RedirectResponse(Response):
         self,
         url: typing.Union[str, URL],
         status_code: int = 307,
-        headers: dict = None,
-        background: BackgroundTask = None,
+        headers: typing.Optional[dict] = None,
+        background: typing.Optional[BackgroundTask] = None,
     ) -> None:
         super().__init__(
             content=b"", status_code=status_code, headers=headers, background=background
@@ -190,9 +194,9 @@ class StreamingResponse(Response):
         self,
         content: typing.Any,
         status_code: int = 200,
-        headers: dict = None,
-        media_type: str = None,
-        background: BackgroundTask = None,
+        headers: typing.Optional[dict] = None,
+        media_type: typing.Optional[str] = None,
+        background: typing.Optional[BackgroundTask] = None,
     ) -> None:
         if inspect.isasyncgen(content):
             self.body_iterator = content
@@ -241,12 +245,12 @@ class FileResponse(Response):
         self,
         path: str,
         status_code: int = 200,
-        headers: dict = None,
-        media_type: str = None,
-        background: BackgroundTask = None,
-        filename: str = None,
-        stat_result: os.stat_result = None,
-        method: str = None,
+        headers: typing.Optional[dict] = None,
+        media_type: typing.Optional[str] = None,
+        background: typing.Optional[BackgroundTask] = None,
+        filename: typing.Optional[str] = None,
+        stat_result: typing.Optional[os.stat_result] = None,
+        method: typing.Optional[str] = None,
     ) -> None:
         assert aiofiles is not None, "'aiofiles' must be installed to use FileResponse"
         self.path = path

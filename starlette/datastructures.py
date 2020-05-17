@@ -13,7 +13,10 @@ Address = namedtuple("Address", ["host", "port"])
 
 class URL:
     def __init__(
-        self, url: str = "", scope: Scope = None, **components: typing.Any
+        self,
+        url: str = "",
+        scope: typing.Optional[Scope] = None,
+        **components: typing.Any,
     ) -> None:
         if scope is not None:
             assert not url, 'Cannot set both "url" and "scope".'
@@ -425,7 +428,10 @@ class UploadFile:
     spool_max_size = 1024 * 1024
 
     def __init__(
-        self, filename: str, file: typing.IO = None, content_type: str = ""
+        self,
+        filename: str,
+        file: typing.Optional[typing.IO] = None,
+        content_type: str = "",
     ) -> None:
         self.filename = filename
         self.content_type = content_type
@@ -491,9 +497,9 @@ class Headers(typing.Mapping[str, str]):
 
     def __init__(
         self,
-        headers: typing.Mapping[str, str] = None,
-        raw: typing.List[typing.Tuple[bytes, bytes]] = None,
-        scope: Scope = None,
+        headers: typing.Optional[typing.Mapping[str, str]] = None,
+        raw: typing.Optional[typing.List[typing.Tuple[bytes, bytes]]] = None,
+        scope: typing.Optional[Scope] = None,
     ) -> None:
         self._list = []  # type: typing.List[typing.Tuple[bytes, bytes]]
         if headers is not None:
@@ -656,7 +662,7 @@ class State(object):
     Used for `request.state` and `app.state`.
     """
 
-    def __init__(self, state: typing.Dict = None):
+    def __init__(self, state: typing.Optional[typing.Dict] = None):
         if state is None:
             state = {}
         super(State, self).__setattr__("_state", state)

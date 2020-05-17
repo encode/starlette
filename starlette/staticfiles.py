@@ -41,8 +41,8 @@ class StaticFiles:
     def __init__(
         self,
         *,
-        directory: str = None,
-        packages: typing.List[str] = None,
+        directory: typing.Optional[str] = None,
+        packages: typing.Optional[typing.List[str]] = None,
         html: bool = False,
         check_dir: bool = True,
     ) -> None:
@@ -55,7 +55,9 @@ class StaticFiles:
             raise RuntimeError(f"Directory '{directory}' does not exist")
 
     def get_directories(
-        self, directory: str = None, packages: typing.List[str] = None
+        self,
+        directory: typing.Optional[str] = None,
+        packages: typing.Optional[typing.List[str]] = None,
     ) -> typing.List[str]:
         """
         Given `directory` and `packages` arguments, return a list of all the

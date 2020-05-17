@@ -38,14 +38,16 @@ class Starlette:
     def __init__(
         self,
         debug: bool = False,
-        routes: typing.Sequence[BaseRoute] = None,
-        middleware: typing.Sequence[Middleware] = None,
-        exception_handlers: typing.Dict[
-            typing.Union[int, typing.Type[Exception]], typing.Callable
+        routes: typing.Optional[typing.Sequence[BaseRoute]] = None,
+        middleware: typing.Optional[typing.Sequence[Middleware]] = None,
+        exception_handlers: typing.Optional[
+            typing.Dict[typing.Union[int, typing.Type[Exception]], typing.Callable]
         ] = None,
-        on_startup: typing.Sequence[typing.Callable] = None,
-        on_shutdown: typing.Sequence[typing.Callable] = None,
-        lifespan: typing.Callable[["Starlette"], typing.AsyncGenerator] = None,
+        on_startup: typing.Optional[typing.Sequence[typing.Callable]] = None,
+        on_shutdown: typing.Optional[typing.Sequence[typing.Callable]] = None,
+        lifespan: typing.Optional[
+            typing.Callable[["Starlette"], typing.AsyncGenerator]
+        ] = None,
     ) -> None:
         # The lifespan context function is a newer style that replaces
         # on_startup / on_shutdown handlers. Use one or the other, not both.
@@ -55,7 +57,7 @@ class Starlette:
 
         self._debug = debug
         self.state = State()
-        self.router = Router(
+        self.router: Router = Router(
             routes, on_startup=on_startup, on_shutdown=on_shutdown, lifespan=lifespan
         )
         self.exception_handlers = (
@@ -115,10 +117,10 @@ class Starlette:
     def on_event(self, event_type: str) -> typing.Callable:
         return self.router.on_event(event_type)
 
-    def mount(self, path: str, app: ASGIApp, name: str = None) -> None:
+    def mount(self, path: str, app: ASGIApp, name: typing.Optional[str] = None) -> None:
         self.router.mount(path, app=app, name=name)
 
-    def host(self, host: str, app: ASGIApp, name: str = None) -> None:
+    def host(self, host: str, app: ASGIApp, name: typing.Optional[str] = None) -> None:
         self.router.host(host, app=app, name=name)
 
     def add_middleware(self, middleware_class: type, **options: typing.Any) -> None:
@@ -140,8 +142,8 @@ class Starlette:
         self,
         path: str,
         route: typing.Callable,
-        methods: typing.List[str] = None,
-        name: str = None,
+        methods: typing.Optional[typing.List[str]] = None,
+        name: typing.Optional[str] = None,
         include_in_schema: bool = True,
     ) -> None:
         self.router.add_route(
@@ -149,7 +151,7 @@ class Starlette:
         )
 
     def add_websocket_route(
-        self, path: str, route: typing.Callable, name: str = None
+        self, path: str, route: typing.Callable, name: typing.Optional[str] = None
     ) -> None:
         self.router.add_websocket_route(path, route, name=name)
 
@@ -165,8 +167,8 @@ class Starlette:
     def route(
         self,
         path: str,
-        methods: typing.List[str] = None,
-        name: str = None,
+        methods: typing.Optional[typing.List[str]] = None,
+        name: typing.Optional[str] = None,
         include_in_schema: bool = True,
     ) -> typing.Callable:
         def decorator(func: typing.Callable) -> typing.Callable:
@@ -181,7 +183,9 @@ class Starlette:
 
         return decorator
 
-    def websocket_route(self, path: str, name: str = None) -> typing.Callable:
+    def websocket_route(
+        self, path: str, name: typing.Optional[str] = None
+    ) -> typing.Callable:
         def decorator(func: typing.Callable) -> typing.Callable:
             self.router.add_websocket_route(path, func, name=name)
             return func

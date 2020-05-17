@@ -9,7 +9,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
 class HTTPException(Exception):
-    def __init__(self, status_code: int, detail: str = None) -> None:
+    def __init__(self, status_code: int, detail: typing.Optional[str] = None) -> None:
         if detail is None:
             detail = http.HTTPStatus(status_code).phrase
         self.status_code = status_code
@@ -22,7 +22,7 @@ class HTTPException(Exception):
 
 class ExceptionMiddleware:
     def __init__(
-        self, app: ASGIApp, handlers: dict = None, debug: bool = False
+        self, app: ASGIApp, handlers: typing.Optional[dict] = None, debug: bool = False
     ) -> None:
         self.app = app
         self.debug = debug  # TODO: We ought to handle 404 cases if debug is set.
