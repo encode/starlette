@@ -298,6 +298,12 @@ class WebSocketTestSession:
             self._loop.run_until_complete(self._session())
         except BaseException as exc:
             self._send_queue.put(exc)
+        finally:
+            # do full cleanup, for good measure
+            for tsk in asyncio.Task.all_tasks(self._loop):
+                tsk.cancel()
+            self._loop.stop()
+            self._loop.close()
 
     async def _session(self) -> None:
         """
