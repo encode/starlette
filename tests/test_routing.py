@@ -1,3 +1,5 @@
+import uuid
+
 import pytest
 
 from starlette.applications import Starlette
@@ -75,6 +77,19 @@ def path_convertor(request):
     return JSONResponse({"path": path})
 
 
+@app.route("/uuid/{param:uuid}", name="uuid-convertor")
+def uuid_converter(request):
+    uuid_param = request.path_params["param"]
+    return JSONResponse({"uuid": str(uuid_param)})
+
+
+# Route with chars that conflict with regex meta chars
+@app.route("/path-with-parentheses({param:int})", name="path-with-parentheses")
+def path_with_parentheses(request):
+    number = request.path_params["param"]
+    return JSONResponse({"int": number})
+
+
 @app.websocket_route("/ws")
 async def websocket_endpoint(session):
     await session.accept()
@@ -138,6 +153,15 @@ def test_route_converters():
     assert response.json() == {"int": 5}
     assert app.url_path_for("int-convertor", param=5) == "/int/5"
 
+    # Test path with parentheses
+    response = client.get("/path-with-parentheses(7)")
+    assert response.status_code == 200
+    assert response.json() == {"int": 7}
+    assert (
+        app.url_path_for("path-with-parentheses", param=7)
+        == "/path-with-parentheses(7)"
+    )
+
     # Test float conversion
     response = client.get("/float/25.5")
     assert response.status_code == 200
@@ -150,6 +174,17 @@ def test_route_converters():
     assert response.json() == {"path": "some/example"}
     assert (
         app.url_path_for("path-convertor", param="some/example") == "/path/some/example"
+    )
+
+    # Test UUID conversion
+    response = client.get("/uuid/ec38df32-ceda-4cfa-9b4a-1aeb94ad551a")
+    assert response.status_code == 200
+    assert response.json() == {"uuid": "ec38df32-ceda-4cfa-9b4a-1aeb94ad551a"}
+    assert (
+        app.url_path_for(
+            "uuid-convertor", param=uuid.UUID("ec38df32-ceda-4cfa-9b4a-1aeb94ad551a")
+        )
+        == "/uuid/ec38df32-ceda-4cfa-9b4a-1aeb94ad551a"
     )
 
 
