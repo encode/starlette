@@ -100,3 +100,23 @@ routes = [
 
 app = Starlette(routes=routes)
 ```
+
+## Disable or overwrite Graphiql
+
+Disable graphiql py setting graphiql to False
+
+```python
+GraphQLApp(schema=graphene.Schema(query=Query), graphiql=False)
+```
+
+
+graphiql is rendered via a default template.
+If you want to overwrite it set the you template on app creation. 
+`{{REQUEST_PATH}}` is replaced by current path.
+See `graphql.py` for an example.
+
+ ```python
+graphiql_template = "… {{REQUEST_PATH}} …" # 
+GraphQLApp(schema=graphene.Schema(query=Query), graphiql=graphiql_template)
+```
+

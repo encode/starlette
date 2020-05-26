@@ -26,7 +26,7 @@ class GraphQLApp:
         schema: "graphene.Schema",
         executor: typing.Any = None,
         executor_class: type = None,
-        graphiql: bool = True,
+        graphiql: typing.Union[bool, str] = True,
     ) -> None:
         self.schema = schema
         self.graphiql = graphiql
@@ -140,11 +140,16 @@ class GraphQLApp:
             )
 
     async def handle_graphiql(self, request: Request) -> Response:
-        text = GRAPHIQL.replace("{{REQUEST_PATH}}", json.dumps(request.url.path))
+        graphiql_temlplate = (
+            GRAPHIQL_DEFAULT if isinstance(self.graphiql, bool) else str(self.graphiql)
+        )
+        text = graphiql_temlplate.replace(
+            "{{REQUEST_PATH}}", json.dumps(request.url.path)
+        )
         return HTMLResponse(text)
 
 
-GRAPHIQL = """
+GRAPHIQL_DEFAULT = """
 <!--
  *  Copyright (c) Facebook, Inc.
  *  All rights reserved.

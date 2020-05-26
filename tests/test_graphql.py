@@ -108,6 +108,17 @@ def test_graphiql_not_found():
     assert response.status_code == 404
     assert response.text == "Not Found"
 
+def test_graphiql_is_overwritten():
+    """
+    The default graphiql template could be overwritten
+    by using a string instead of boolean on GraphQLApp creation.
+    """
+    app = GraphQLApp(schema=schema, graphiql="overwritten template")
+    client = TestClient(app)
+    response = client.get("/", headers={"accept": "text/html"})
+    assert response.status_code == 200
+    assert response.text == "overwritten template"
+
 
 def test_add_graphql_route():
     app = Starlette()
