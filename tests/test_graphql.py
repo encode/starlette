@@ -108,6 +108,7 @@ def test_graphiql_not_found():
     assert response.status_code == 404
     assert response.text == "Not Found"
 
+
 def test_graphiql_is_overwritten():
     """
     The default graphiql template could be overwritten
