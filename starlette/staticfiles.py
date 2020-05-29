@@ -151,7 +151,11 @@ class StaticFiles:
                 stat_result = await aio_stat(full_path)
                 return (full_path, stat_result)
             except FileNotFoundError:
-                pass
+                if os.path.isfile(full_path+".html"):
+                    stat_result = await aio_stat(full_path+".html")
+                    return (full_path+".html", stat_result)
+                else:
+                    pass
         return ("", None)
 
     def file_response(
