@@ -43,10 +43,10 @@ class Response:
         background: BackgroundTask = None,
     ) -> None:
         self.status_code = status_code
-        self.body = self.render(content)
         if media_type is not None:
             self.media_type = media_type
         self.background = background
+        self.body = self.render(content)
         self.init_headers(headers)
 
     def render(self, content: typing.Any) -> bytes:
