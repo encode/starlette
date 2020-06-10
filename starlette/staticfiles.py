@@ -114,9 +114,11 @@ class StaticFiles:
             return PlainTextResponse("Not Found", status_code=404)
 
         full_path, stat_result = await self.lookup_path(path)
-        
+
         if stat_result is None and self.html:
-            full_path, stat_result = await self.lookup_path(path+".html")
+            # We're in HTML mode, and were given a path which does not exist.
+            # Check if we have a '.html' file which is otherwise at the same path.
+            full_path, stat_result = await self.lookup_path(path + ".html")
 
         if stat_result and stat.S_ISREG(stat_result.st_mode):
             # We have a static file to serve.
@@ -136,7 +138,6 @@ class StaticFiles:
                 return self.file_response(full_path, stat_result, scope)
 
         if self.html:
-
             # Check for '404.html' if we're in HTML mode.
             full_path, stat_result = await self.lookup_path("404.html")
             if stat_result is not None and stat.S_ISREG(stat_result.st_mode):
