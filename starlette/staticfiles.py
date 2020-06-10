@@ -114,6 +114,9 @@ class StaticFiles:
             return PlainTextResponse("Not Found", status_code=404)
 
         full_path, stat_result = await self.lookup_path(path)
+        
+        if stat_result is None and self.html:
+            full_path, stat_result = await self.lookup_path(path+".html")
 
         if stat_result and stat.S_ISREG(stat_result.st_mode):
             # We have a static file to serve.
@@ -133,6 +136,7 @@ class StaticFiles:
                 return self.file_response(full_path, stat_result, scope)
 
         if self.html:
+
             # Check for '404.html' if we're in HTML mode.
             full_path, stat_result = await self.lookup_path("404.html")
             if stat_result is not None and stat.S_ISREG(stat_result.st_mode):
@@ -151,11 +155,7 @@ class StaticFiles:
                 stat_result = await aio_stat(full_path)
                 return (full_path, stat_result)
             except FileNotFoundError:
-                if os.path.isfile(full_path+".html"):
-                    stat_result = await aio_stat(full_path+".html")
-                    return (full_path+".html", stat_result)
-                else:
-                    pass
+                pass
         return ("", None)
 
     def file_response(
