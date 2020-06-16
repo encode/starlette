@@ -132,3 +132,11 @@ def test_websocket_blocking_receive():
     with client.websocket_connect("/") as websocket:
         data = websocket.receive_json()
         assert data == {"message": "test"}
+
+
+def test_async():
+    async def inner():
+        async with TestClient(app) as t:
+            assert t.get("/").json() == {"mock": "example"}
+
+    asyncio.get_event_loop().run_until_complete(inner())

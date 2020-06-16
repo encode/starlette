@@ -66,6 +66,9 @@ ensure that the background thread on which the ASGI application is properly
 terminated, and that any exceptions that occur within the application are
 always raised by the test client.
 
+It can also be used as an async context manager (in `async with`
+blocks)
+
 #### Establishing a test session
 
 * `.websocket_connect(url, subprotocols=None, **options)` - Takes the same set of arguments as `requests.get()`.

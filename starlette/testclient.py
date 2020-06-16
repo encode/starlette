@@ -449,17 +449,23 @@ class TestClient(requests.Session):
 
         return session
 
+    async def __aenter__(self):
+        self.send_queue = asyncio.Queue()
+        self.receive_queue = asyncio.Queue()
+        self.task = asyncio.create_task(self.lifespan())
+        await self.wait_startup()
+        return self
+
+    async def __aexit__(self, *args: typing.Any):
+        await self.wait_shutdown()
+
     def __enter__(self) -> requests.Session:
         loop = asyncio.get_event_loop()
-        self.send_queue = asyncio.Queue()  # type: asyncio.Queue
-        self.receive_queue = asyncio.Queue()  # type: asyncio.Queue
-        self.task = loop.create_task(self.lifespan())
-        loop.run_until_complete(self.wait_startup())
-        return self
+        return loop.run_until_complete(self.__aenter__())
 
     def __exit__(self, *args: typing.Any) -> None:
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.wait_shutdown())
+        loop.run_until_complete(self.__aexit__())
 
     async def lifespan(self) -> None:
         scope = {"type": "lifespan"}
