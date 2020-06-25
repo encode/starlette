@@ -1,3 +1,4 @@
+import functools
 import uuid
 
 import pytest
@@ -488,3 +489,22 @@ def test_standalone_ws_route_does_not_match():
     client = TestClient(app)
     with pytest.raises(WebSocketDisconnect):
         client.websocket_connect("/invalid")
+
+
+async def _partial_async_endpoint(arg, request):
+    return JSONResponse({"arg": arg})
+
+
+partial_async_endpoint = functools.partial(_partial_async_endpoint, "foo")
+
+partial_async_app = Router(
+    routes=[
+        Route('/', partial_async_endpoint)
+    ]
+)
+
+
+def test_partial_async_endpoint():
+    response = TestClient(partial_async_app).get('/')
+    assert response.status_code == 200
+    assert response.json() == {"arg": "foo"}
