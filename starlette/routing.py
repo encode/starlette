@@ -1,4 +1,5 @@
 import asyncio
+import functools
 import inspect
 import re
 import traceback
@@ -33,7 +34,10 @@ def request_response(func: typing.Callable) -> ASGIApp:
     Takes a function or coroutine `func(request) -> response`,
     and returns an ASGI application.
     """
-    is_coroutine = asyncio.iscoroutinefunction(func)
+    if isinstance(func, functools.partial):
+        is_coroutine = asyncio.iscoroutinefunction(func.func)
+    else:
+        is_coroutine = asyncio.iscoroutinefunction(func)
 
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive=receive, send=send)
@@ -169,7 +173,10 @@ class Route(BaseRoute):
         self.name = get_name(endpoint) if name is None else name
         self.include_in_schema = include_in_schema
 
-        if inspect.isfunction(endpoint) or inspect.ismethod(endpoint):
+        endpoint_handler = endpoint
+        if isinstance(endpoint, functools.partial):
+            endpoint_handler = endpoint.func
+        if inspect.isfunction(endpoint_handler) or inspect.ismethod(endpoint_handler):
             # Endpoint is function or method. Treat it as `func(request) -> response`.
             self.app = request_response(endpoint)
             if methods is None:
