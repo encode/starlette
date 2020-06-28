@@ -497,14 +497,10 @@ async def _partial_async_endpoint(arg, request):
 
 partial_async_endpoint = functools.partial(_partial_async_endpoint, "foo")
 
-partial_async_app = Router(
-    routes=[
-        Route('/', partial_async_endpoint)
-    ]
-)
+partial_async_app = Router(routes=[Route("/", partial_async_endpoint)])
 
 
 def test_partial_async_endpoint():
-    response = TestClient(partial_async_app).get('/')
+    response = TestClient(partial_async_app).get("/")
     assert response.status_code == 200
     assert response.json() == {"arg": "foo"}
