@@ -154,7 +154,9 @@ async_schema = graphene.Schema(query=ASyncQuery)
 
 @pytest.fixture
 def old_style_async_app(event_loop) -> GraphQLApp:
-    old_style_async_app = GraphQLApp(schema=async_schema, executor=AsyncioExecutor(loop=event_loop))
+    old_style_async_app = GraphQLApp(
+        schema=async_schema, executor=AsyncioExecutor(loop=event_loop),
+    )
     return old_style_async_app
 
 
