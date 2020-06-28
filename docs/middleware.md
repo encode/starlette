@@ -286,4 +286,4 @@ can be used to profile and monitor distributed applications.
 
 #### [RateLimitMiddleware](https://github.com/abersheeran/asgi-ratelimit)
 
-A rate limit middleware. Regular expression matches url; flexible rules; highly customizable. But very easy to use.
+A rate limit middleware. Regular expression matches url; flexible rules; highly customizable. Very easy to use.
