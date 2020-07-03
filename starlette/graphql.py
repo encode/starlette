@@ -102,9 +102,7 @@ class GraphQLApp:
             query, variables=variables, context=context, operation_name=operation_name
         )
         error_data = (
-            [format_graphql_error(err) for err in result.errors]
-            if result.errors
-            else None
+            [self.format_error(err) for err in result.errors] if result.errors else None
         )
         response_data = {"data": result.data}
         if error_data:
@@ -116,6 +114,9 @@ class GraphQLApp:
         return JSONResponse(
             response_data, status_code=status_code, background=background
         )
+
+    def format_error(self, error: Exception) -> dict:
+        return format_graphql_error(error)
 
     async def execute(  # type: ignore
         self, query, variables=None, context=None, operation_name=None
