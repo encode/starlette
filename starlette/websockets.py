@@ -146,7 +146,7 @@ class WebSocket(HTTPConnection):
 
 
 class WebSocketClose:
-    def __init__(self, code: int = 1000, reaons: str = "") -> None:
+    def __init__(self, code: int = 1000, reason: str = "") -> None:
         self.code = code
         self.reason = reason
 
