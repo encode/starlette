@@ -239,7 +239,7 @@ class FileResponse(Response):
 
     def __init__(
         self,
-        path: str,
+        path: typing.Union[str, "os.PathLike[str]"],
         status_code: int = 200,
         headers: dict = None,
         media_type: str = None,
