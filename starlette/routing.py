@@ -117,7 +117,12 @@ def compile_path(
 
         idx = match.end()
 
-    path_regex += re.escape(path[idx:]) + "$"
+    # Prevent the escape of ? for route ending with ?
+    if path[-1] == "?":
+        path_regex += re.escape(path[idx:-1]) + "?$"
+    else:
+        path_regex += re.escape(path[idx:]) + "$"
+
     path_format += path[idx:]
 
     return re.compile(path_regex), path_format, param_convertors

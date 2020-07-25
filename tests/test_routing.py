@@ -90,6 +90,12 @@ def path_with_parentheses(request):
     return JSONResponse({"int": number})
 
 
+# Route with chars that conflict with regex meta chars
+@app.route("/optional-path/?", name="optional-path")
+def optional_path(request):
+    return Response("Optional path reached.", media_type="text/plain")
+
+
 @app.websocket_route("/ws")
 async def websocket_endpoint(session):
     await session.accept()
@@ -161,6 +167,15 @@ def test_route_converters():
         app.url_path_for("path-with-parentheses", param=7)
         == "/path-with-parentheses(7)"
     )
+
+    # Test optional path
+    response = client.get("/optional-path")
+    assert response.status_code == 200
+    assert response.text == "Optional path reached."
+
+    response = client.get("/optional-path/")
+    assert response.status_code == 200
+    assert response.text == "Optional path reached."
 
     # Test float conversion
     response = client.get("/float/25.5")
