@@ -234,6 +234,25 @@ class StreamingResponse(Response):
             await self.background()
 
 
+class InputByteRange(typing.NamedTuple):
+    start: int
+    end: typing.Optional[int] = None
+
+    def clamp(self, start: int, end: int) -> "ByteRange":
+        return ByteRange(
+            max(self.start, start), min(self.end, end) if self.end else end
+        )
+
+
+class ByteRange(typing.NamedTuple):
+    start: int
+    end: int
+
+    @property
+    def size(self) -> int:
+        return self.end - self.start + 1
+
+
 class FileResponse(Response):
     chunk_size = 4096
 
@@ -245,6 +264,7 @@ class FileResponse(Response):
         media_type: str = None,
         background: BackgroundTask = None,
         filename: str = None,
+        byte_range: typing.Optional[InputByteRange] = None,
         stat_result: os.stat_result = None,
         method: str = None,
     ) -> None:
@@ -257,6 +277,9 @@ class FileResponse(Response):
             media_type = guess_type(filename or path)[0] or "text/plain"
         self.media_type = media_type
         self.background = background
+        self._byte_range = byte_range
+        if byte_range is not None:
+            self.status_code = 206
         self.init_headers(headers)
         if self.filename is not None:
             content_disposition_filename = quote(self.filename)
@@ -268,30 +291,61 @@ class FileResponse(Response):
                 content_disposition = 'attachment; filename="{}"'.format(self.filename)
             self.headers.setdefault("content-disposition", content_disposition)
         self.stat_result = stat_result
-        if stat_result is not None:
-            self.set_stat_headers(stat_result)
 
-    def set_stat_headers(self, stat_result: os.stat_result) -> None:
-        content_length = str(stat_result.st_size)
+    def byte_range(self, stat_result: os.stat_result) -> typing.Optional[ByteRange]:
+        if not self._byte_range:
+            return None
+        return self._byte_range.clamp(0, stat_result.st_size)
+
+    @property
+    def stat_result(self) -> typing.Optional[os.stat_result]:
+        return self._stat_result
+
+    @stat_result.setter
+    def stat_result(self, stat_result: os.stat_result) -> None:
+        self._stat_result = stat_result
+        if stat_result:
+            self._set_stat_headers(stat_result)
+
+    @staticmethod
+    def _create_etag(*fields: typing.Any) -> str:
+        etag_base = "-".join(str(field) for field in fields)
+        return hashlib.md5(etag_base.encode()).hexdigest()
+
+    def _set_stat_headers(self, stat_result: os.stat_result) -> None:
+        total_length = stat_result.st_size
+        etag_hash_fields: typing.List[typing.Any] = [
+            stat_result.st_mtime,
+            stat_result.st_size,
+        ]
+        content_length = total_length
+
+        byte_range = self.byte_range(stat_result)
+        if byte_range:
+            etag_hash_fields.append("/".join((str(pos) for pos in byte_range)))
+            self.headers[
+                "content-range"
+            ] = f"bytes {byte_range[0]}-{byte_range[1]}/{total_length}"
+            content_length = byte_range.size
+
         last_modified = formatdate(stat_result.st_mtime, usegmt=True)
-        etag_base = str(stat_result.st_mtime) + "-" + str(stat_result.st_size)
-        etag = hashlib.md5(etag_base.encode()).hexdigest()
+        etag = self._create_etag(*etag_hash_fields)
 
-        self.headers.setdefault("content-length", content_length)
+        self.headers.setdefault("content-length", str(content_length))
         self.headers.setdefault("last-modified", last_modified)
         self.headers.setdefault("etag", etag)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if self.stat_result is None:
             try:
-                stat_result = await aio_stat(self.path)
-                self.set_stat_headers(stat_result)
+                self.stat_result = await aio_stat(self.path)
             except FileNotFoundError:
                 raise RuntimeError(f"File at path {self.path} does not exist.")
             else:
-                mode = stat_result.st_mode
+                mode = self.stat_result.st_mode
                 if not stat.S_ISREG(mode):
                     raise RuntimeError(f"File at path {self.path} is not a file.")
+
         await send(
             {
                 "type": "http.response.start",
@@ -302,16 +356,26 @@ class FileResponse(Response):
         if self.send_header_only:
             await send({"type": "http.response.body", "body": b"", "more_body": False})
         else:
+            byte_range = self.byte_range(self.stat_result)
             async with aiofiles.open(self.path, mode="rb") as file:
-                more_body = True
-                while more_body:
-                    chunk = await file.read(self.chunk_size)
-                    more_body = len(chunk) == self.chunk_size
+                if byte_range:
+                    await file.seek(byte_range.start)
+                    remaining_bytes = byte_range.size
+                else:
+                    remaining_bytes = self.stat_result.st_size
+
+                while remaining_bytes > 0:
+                    chunk_size = min(self.chunk_size, remaining_bytes)
+                    chunk = await file.read(chunk_size)
+                    remaining_bytes -= len(chunk)
+                    if not chunk:  # pragma: no cover
+                        # Reached EOF prematurely
+                        remaining_bytes = 0
                     await send(
                         {
                             "type": "http.response.body",
                             "body": chunk,
-                            "more_body": more_body,
+                            "more_body": remaining_bytes > 0,
                         }
                     )
         if self.background is not None:

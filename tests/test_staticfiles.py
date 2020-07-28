@@ -231,3 +231,32 @@ def test_staticfiles_html(tmpdir):
     response = client.get("/missing")
     assert response.status_code == 404
     assert response.text == "<h1>Custom not found page</h1>"
+
+
+def test_staticfiles_206_with_range(tmpdir):
+    path = os.path.join(tmpdir, "example.txt")
+    with open(path, "w") as file:
+        file.write("0123456789")
+
+    app = StaticFiles(directory=tmpdir)
+    client = TestClient(app)
+    first_resp = client.get("/example.txt")
+    assert first_resp.status_code == 200
+    assert first_resp.content == b"0123456789"
+
+    second_resp = client.get("/example.txt", headers={"range": "bytes=3-6"})
+    assert second_resp.status_code == 206
+    assert second_resp.content == b"3456"
+
+
+def test_staticfiles_with_range_bad_header(tmpdir):
+    path = os.path.join(tmpdir, "example.txt")
+    with open(path, "w") as file:
+        file.write("0123456789")
+
+    app = StaticFiles(directory=tmpdir)
+    client = TestClient(app)
+
+    resp = client.get("/example.txt", headers={"range": "asdf"})
+    assert resp.status_code == 200
+    assert resp.content == b"0123456789"

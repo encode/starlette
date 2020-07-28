@@ -1,5 +1,6 @@
 import importlib.util
 import os
+import re
 import stat
 import typing
 from email.utils import parsedate
@@ -9,11 +10,14 @@ from aiofiles.os import stat as aio_stat
 from starlette.datastructures import URL, Headers
 from starlette.responses import (
     FileResponse,
+    InputByteRange,
     PlainTextResponse,
     RedirectResponse,
     Response,
 )
 from starlette.types import Receive, Scope, Send
+
+RANGE_HEADER_VALUE_REGEX = re.compile(r"^bytes=(?P<start>\d+)-(?P<end>\d*)$")
 
 
 class NotModifiedResponse(Response):
@@ -152,6 +156,20 @@ class StaticFiles:
                 pass
         return ("", None)
 
+    @staticmethod
+    def _parse_range_header(headers: Headers) -> typing.Optional[InputByteRange]:
+        range_header = headers.get("range")
+        if not range_header:
+            return None
+
+        match = RANGE_HEADER_VALUE_REGEX.search(range_header)
+        if not match:
+            return None
+
+        start, end = match.group("start"), match.group("end")
+
+        return InputByteRange(int(start), int(end) if end else None)
+
     def file_response(
         self,
         full_path: str,
@@ -162,8 +180,13 @@ class StaticFiles:
         method = scope["method"]
         request_headers = Headers(scope=scope)
 
+        byte_range = self._parse_range_header(request_headers)
         response = FileResponse(
-            full_path, status_code=status_code, stat_result=stat_result, method=method
+            full_path,
+            status_code=status_code,
+            stat_result=stat_result,
+            method=method,
+            byte_range=byte_range,
         )
         if self.is_not_modified(response.headers, request_headers):
             return NotModifiedResponse(response.headers)
