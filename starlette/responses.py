@@ -10,6 +10,7 @@ from mimetypes import guess_type
 from urllib.parse import quote, quote_plus
 
 from starlette.background import BackgroundTask
+from starlette.cached_property import cached_property
 from starlette.concurrency import iterate_in_threadpool, run_until_first_complete
 from starlette.datastructures import URL, MutableHeaders
 from starlette.types import Receive, Scope, Send
@@ -83,11 +84,9 @@ class Response:
 
         self.raw_headers = raw_headers
 
-    @property
+    @cached_property
     def headers(self) -> MutableHeaders:
-        if not hasattr(self, "_headers"):
-            self._headers = MutableHeaders(raw=self.raw_headers)
-        return self._headers
+        return MutableHeaders(raw=self.raw_headers)
 
     def set_cookie(
         self,

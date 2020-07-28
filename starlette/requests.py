@@ -4,6 +4,7 @@ import typing
 from collections.abc import Mapping
 from http import cookies as http_cookies
 
+from starlette.cached_property import cached_property
 from starlette.datastructures import URL, Address, FormData, Headers, QueryParams, State
 from starlette.formparsers import FormParser, MultiPartParser
 from starlette.types import Message, Receive, Scope, Send
@@ -77,50 +78,41 @@ class HTTPConnection(Mapping):
     def app(self) -> typing.Any:
         return self.scope["app"]
 
-    @property
+    @cached_property
     def url(self) -> URL:
-        if not hasattr(self, "_url"):
-            self._url = URL(scope=self.scope)
-        return self._url
+        return URL(scope=self.scope)
 
-    @property
+    @cached_property
     def base_url(self) -> URL:
-        if not hasattr(self, "_base_url"):
-            base_url_scope = dict(self.scope)
-            base_url_scope["path"] = "/"
-            base_url_scope["query_string"] = b""
-            base_url_scope["root_path"] = base_url_scope.get(
-                "app_root_path", base_url_scope.get("root_path", "")
-            )
-            self._base_url = URL(scope=base_url_scope)
-        return self._base_url
+        base_url_scope = dict(self.scope)
+        base_url_scope["path"] = "/"
+        base_url_scope["query_string"] = b""
+        base_url_scope["root_path"] = base_url_scope.get(
+            "app_root_path", base_url_scope.get("root_path", "")
+        )
+        return URL(scope=base_url_scope)
 
-    @property
+    @cached_property
     def headers(self) -> Headers:
-        if not hasattr(self, "_headers"):
-            self._headers = Headers(scope=self.scope)
-        return self._headers
+        return Headers(scope=self.scope)
 
-    @property
+    @cached_property
     def query_params(self) -> QueryParams:
-        if not hasattr(self, "_query_params"):
-            self._query_params = QueryParams(self.scope["query_string"])
-        return self._query_params
+        return QueryParams(self.scope["query_string"])
 
     @property
     def path_params(self) -> dict:
         return self.scope.get("path_params", {})
 
-    @property
+    @cached_property
     def cookies(self) -> typing.Dict[str, str]:
-        if not hasattr(self, "_cookies"):
-            cookies: typing.Dict[str, str] = {}
-            cookie_header = self.headers.get("cookie")
+        cookies: typing.Dict[str, str] = {}
+        cookie_header = self.headers.get("cookie")
 
-            if cookie_header:
-                cookies = cookie_parser(cookie_header)
-            self._cookies = cookies
-        return self._cookies
+        if cookie_header:
+            cookies = cookie_parser(cookie_header)
+
+        return cookies
 
     @property
     def client(self) -> Address:
@@ -148,14 +140,12 @@ class HTTPConnection(Mapping):
         ), "AuthenticationMiddleware must be installed to access request.user"
         return self.scope["user"]
 
-    @property
+    @cached_property
     def state(self) -> State:
-        if not hasattr(self, "_state"):
-            # Ensure 'state' has an empty dict if it's not already populated.
-            self.scope.setdefault("state", {})
-            # Create a state instance with a reference to the dict in which it should store info
-            self._state = State(self.scope["state"])
-        return self._state
+        # Ensure 'state' has an empty dict if it's not already populated.
+        self.scope.setdefault("state", {})
+        # Create a state instance with a reference to the dict in which it should store info
+        return State(self.scope["state"])
 
     def url_for(self, name: str, **path_params: typing.Any) -> str:
         router = self.scope["router"]

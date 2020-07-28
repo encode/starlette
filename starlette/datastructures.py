@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from shlex import shlex
 from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit
 
+from starlette.cached_property import cached_property
 from starlette.concurrency import run_in_threadpool
 from starlette.types import Scope
 
@@ -49,11 +50,9 @@ class URL:
 
         self._url = url
 
-    @property
+    @cached_property
     def components(self) -> SplitResult:
-        if not hasattr(self, "_components"):
-            self._components = urlsplit(self._url)
-        return self._components
+        return urlsplit(self._url)
 
     @property
     def scheme(self) -> str:
