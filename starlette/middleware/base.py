@@ -5,6 +5,12 @@ from starlette.requests import Request
 from starlette.responses import Response, StreamingResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
+try:
+    from asyncio.exceptions import InvalidStateError  # type: ignore
+except ImportError:  # pragma: nocover
+    from asyncio import InvalidStateError
+
+
 RequestResponseEndpoint = typing.Callable[[Request], typing.Awaitable[Response]]
 DispatchFunction = typing.Callable[
     [Request, RequestResponseEndpoint], typing.Awaitable[Response]
@@ -74,7 +80,7 @@ class BaseHTTPMiddleware:
 
             try:
                 task.result()  # check for exceptions and raise if present
-            except asyncio.exceptions.InvalidStateError:
+            except InvalidStateError:
                 # task is not completed (which could be due to background)
                 pass
 
