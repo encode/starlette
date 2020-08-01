@@ -27,7 +27,7 @@ class BaseHTTPMiddleware:
 
     async def call_next(self, request: Request) -> Response:
         loop = asyncio.get_event_loop()
-        queue = asyncio.Queue()  # type: asyncio.Queue
+        queue = asyncio.Queue(maxsize=1)  # type: asyncio.Queue
 
         scope = request.scope
         receive = request.receive
@@ -42,18 +42,41 @@ class BaseHTTPMiddleware:
         task = loop.create_task(coro())
         message = await queue.get()
         if message is None:
+            queue.task_done()
             task.result()
             raise RuntimeError("No response returned.")
         assert message["type"] == "http.response.start"
 
         async def body_stream() -> typing.AsyncGenerator[bytes, None]:
-            while True:
+            def streaming_predicate(
+                msg: typing.Optional[dict], more_body: bool = True
+            ) -> bool:
+                return (
+                    msg is not None
+                    and msg["type"] == "http.response.body"
+                    and "more_body" in msg
+                    and msg["more_body"] is more_body
+                )
+
+            # In non-streaming responses, there will be one message to emit
+            message = await queue.get()
+            queue.task_done()
+            assert message["type"] == "http.response.body"
+            yield message.get("body", b"")
+
+            while streaming_predicate(message, more_body=True):
                 message = await queue.get()
+                queue.task_done()
                 if message is None:
                     break
                 assert message["type"] == "http.response.body"
                 yield message.get("body", b"")
-            task.result()
+
+            try:
+                task.result()  # check for exceptions and raise if present
+            except asyncio.exceptions.InvalidStateError:
+                # task is not completed (which could be due to background)
+                pass
 
         response = StreamingResponse(
             status_code=message["status"], content=body_stream()

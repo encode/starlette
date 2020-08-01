@@ -3,7 +3,7 @@ import pytest
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import PlainTextResponse
+from starlette.responses import PlainTextResponse, StreamingResponse
 from starlette.routing import Route
 from starlette.testclient import TestClient
 
@@ -143,3 +143,41 @@ def test_app_middleware_argument():
 def test_middleware_repr():
     middleware = Middleware(CustomMiddleware)
     assert repr(middleware) == "Middleware(CustomMiddleware)"
+
+
+async def numbers_stream(minimum, maximum):
+    yield ("<html><body><ul>")
+    for number in range(minimum, maximum + 1):
+        yield "<li>%d</li>" % number
+    yield ("</ul></body></html>")
+
+
+async def somthing_broken(minimum, maximum):
+    yield ("<html><body><ul>")
+    for number in range(minimum, maximum + 1):
+        yield "<li>%d</li>" % number
+        if number > 2:
+            raise RuntimeError("This is a broken stream")
+
+
+@app.route("/streaming")
+async def some_streaming(_):
+    return StreamingResponse(numbers_stream(1, 3))
+
+
+@app.route("/broken-streaming")
+async def some_broken_streaming(_):
+    return StreamingResponse(somthing_broken(1, 5))
+
+
+def test_custom_middleware_streaming():
+    client = TestClient(app)
+    response = client.get("/streaming")
+    assert response.headers["Custom-Header"] == "Example"
+    assert (
+        response.text
+        == "<html><body><ul><li>1</li><li>2</li><li>3</li></ul></body></html>"
+    )
+
+    with pytest.raises(RuntimeError):
+        response = client.get("/broken-streaming")
