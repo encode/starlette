@@ -66,9 +66,10 @@ class BaseHTTPMiddleware:
 
             # In non-streaming responses, there will be one message to emit
             message = await queue.get()
-            queue.task_done()
-            assert message["type"] == "http.response.body"
-            yield message.get("body", b"")
+            if message is not None:
+                queue.task_done()
+                assert message["type"] == "http.response.body"
+                yield message.get("body", b"")
 
             while streaming_predicate(message, more_body=True):
                 message = await queue.get()

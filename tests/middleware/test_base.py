@@ -152,11 +152,13 @@ async def numbers_stream(minimum, maximum):
     yield ("</ul></body></html>")
 
 
-async def somthing_broken(minimum, maximum):
+async def somthing_broken(minimum, maximum, error_at=2):
+    if error_at <= 0:
+        raise RuntimeError("This is a stream that breaks when it starts")
     yield ("<html><body><ul>")
     for number in range(minimum, maximum + 1):
         yield "<li>%d</li>" % number
-        if number > 2:
+        if number >= error_at:
             raise RuntimeError("This is a broken stream")
 
 
@@ -165,9 +167,10 @@ async def some_streaming(_):
     return StreamingResponse(numbers_stream(1, 3))
 
 
-@app.route("/broken-streaming")
-async def some_broken_streaming(_):
-    return StreamingResponse(somthing_broken(1, 5))
+@app.route("/broken-streaming/{error_at:int}")
+async def some_broken_streaming(request):
+    error_at = request.path_params["error_at"]
+    return StreamingResponse(somthing_broken(1, 5, error_at=error_at))
 
 
 def test_custom_middleware_streaming():
@@ -180,4 +183,9 @@ def test_custom_middleware_streaming():
     )
 
     with pytest.raises(RuntimeError):
-        response = client.get("/broken-streaming")
+        # after body streaming has started
+        response = client.get("/broken-streaming/2")
+    with pytest.raises(RuntimeError):
+        # right before body stream starts (only start message emitted)
+        # this should trigger _first_ message being None
+        response = client.get("/broken-streaming/0")
