@@ -5,12 +5,6 @@ from starlette.requests import Request
 from starlette.responses import Response, StreamingResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-try:
-    from asyncio.exceptions import InvalidStateError  # type: ignore
-except ImportError:  # pragma: nocover
-    from asyncio import InvalidStateError
-
-
 RequestResponseEndpoint = typing.Callable[[Request], typing.Awaitable[Response]]
 DispatchFunction = typing.Callable[
     [Request, RequestResponseEndpoint], typing.Awaitable[Response]
@@ -48,42 +42,28 @@ class BaseHTTPMiddleware:
         task = loop.create_task(coro())
         message = await queue.get()
         if message is None:
-            queue.task_done()
             task.result()
             raise RuntimeError("No response returned.")
         assert message["type"] == "http.response.start"
 
         async def body_stream() -> typing.AsyncGenerator[bytes, None]:
-            def streaming_predicate(
-                msg: typing.Optional[dict], more_body: bool = True
-            ) -> bool:
-                return (
-                    msg is not None
-                    and msg["type"] == "http.response.body"
-                    and "more_body" in msg
-                    and msg["more_body"] is more_body
-                )
-
-            # In non-streaming responses, there will be one message to emit
+            # In non-streaming responses, there should be one message to emit
             message = await queue.get()
             if message is not None:
-                queue.task_done()
                 assert message["type"] == "http.response.body"
                 yield message.get("body", b"")
 
-            while streaming_predicate(message, more_body=True):
-                message = await queue.get()
-                queue.task_done()
-                if message is None:
-                    break
-                assert message["type"] == "http.response.body"
-                yield message.get("body", b"")
+                while message.get("more_body"):
+                    message = await queue.get()
+                    if message is None:
+                        break
+                    assert message["type"] == "http.response.body"
+                    yield message.get("body", b"")
 
-            try:
-                task.result()  # check for exceptions and raise if present
-            except InvalidStateError:
-                # task is not completed (which could be due to background)
-                pass
+            if task.done():
+                # Check for exceptions and raise if present.
+                # Incomplete tasks may still have background tasks to run.
+                task.result()
 
         response = StreamingResponse(
             status_code=message["status"], content=body_stream()
