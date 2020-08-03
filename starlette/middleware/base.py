@@ -27,7 +27,7 @@ class BaseHTTPMiddleware:
 
     async def call_next(self, request: Request) -> Response:
         loop = asyncio.get_event_loop()
-        queue = asyncio.Queue()  # type: asyncio.Queue
+        queue = asyncio.Queue(maxsize=1)  # type: asyncio.Queue
 
         scope = request.scope
         receive = request.receive
