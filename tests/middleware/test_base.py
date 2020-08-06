@@ -149,61 +149,25 @@ def test_middleware_repr():
     assert repr(middleware) == "Middleware(CustomMiddleware)"
 
 
-@app.route("/streaming")
-async def some_streaming(_):
-    async def numbers_stream():
-        """
-        Should produce something like:
-             <html><body><ul><li>1...</li></ul></body></html>
-        """
-        yield ("<html><body><ul>")
-        for number in range(1, 4):
-            yield "<li>%d</li>" % number
-        yield ("</ul></body></html>")
-
-    return StreamingResponse(numbers_stream())
-
-
-@app.route("/broken-streaming-on-start")
-async def broken_stream_start(request):
-    async def broken():
-        raise ValueError("Oh no!")
-        yield 0  # pragma: no cover
-
-    return StreamingResponse(broken())
-
-
-@app.route("/broken-streaming-midstream")
-async def broken_stream_midstream(request):
-    async def broken():
-        yield ("<html><body><ul>")
-        for number in range(1, 3):
-            yield "<li>%d</li>" % number
-            if number >= 2:
-                raise RuntimeError("This is a broken stream")
-
-    return StreamingResponse(broken())
-
-
-@app.route("/background-after-streaming")
-async def background_after_streaming(request):
-    filepath = request.query_params["filepath"]
-
-    async def background():
-        await asyncio.sleep(1)
-        async with aiofiles.open(filepath, mode="w") as fl:  # pragma: no cover
-            await fl.write("background last")
-
-    async def numbers_stream():
-        async with aiofiles.open(filepath, mode="w") as fl:
-            await fl.write("handler first")
-        for number in range(1, 4):
-            yield "%d\n" % number
-
-    return StreamingResponse(numbers_stream(), background=BackgroundTask(background))
-
-
 def test_custom_middleware_streaming(tmp_path):
+    """
+    Ensure that a StreamingResponse completes successfully with BaseHTTPMiddleware
+    """
+
+    @app.route("/streaming")
+    async def some_streaming(_):
+        async def numbers_stream():
+            """
+            Should produce something like:
+                <html><body><ul><li>1...</li></ul></body></html>
+            """
+            yield ("<html><body><ul>")
+            for number in range(1, 4):
+                yield "<li>%d</li>" % number
+            yield ("</ul></body></html>")
+
+        return StreamingResponse(numbers_stream())
+
     client = TestClient(app)
     response = client.get("/streaming")
     assert response.headers["Custom-Header"] == "Example"
@@ -212,18 +176,84 @@ def test_custom_middleware_streaming(tmp_path):
         == "<html><body><ul><li>1</li><li>2</li><li>3</li></ul></body></html>"
     )
 
-    with pytest.raises(RuntimeError):
-        # after body streaming has started
-        response = client.get("/broken-streaming-midstream")
+
+def test_custom_middleware_streaming_exception_on_start():
+    """
+    Ensure that BaseHTTPMiddleware handles exceptions on response start
+    """
+
+    @app.route("/broken-streaming-on-start")
+    async def broken_stream_start(request):
+        async def broken():
+            raise ValueError("Oh no!")
+            yield 0  # pragma: no cover
+
+        return StreamingResponse(broken())
+
+    client = TestClient(app)
     with pytest.raises(ValueError):
         # right before body stream starts (only start message emitted)
         # this should trigger _first_ message being None
         response = client.get("/broken-streaming-on-start")
 
+
+def test_custom_middleware_streaming_exception_midstream():
+    """
+    Ensure that BaseHTTPMiddleware handles exceptions after streaming has started
+    """
+
+    @app.route("/broken-streaming-midstream")
+    async def broken_stream_midstream(request):
+        async def broken():
+            yield ("<html><body><ul>")
+            for number in range(1, 3):
+                yield "<li>%d</li>" % number
+                if number >= 2:
+                    raise RuntimeError("This is a broken stream")
+
+        return StreamingResponse(broken())
+
+    client = TestClient(app)
+    with pytest.raises(RuntimeError):
+        # after body streaming has started
+        response = client.get("/broken-streaming-midstream")
+
+
+def test_custom_middleware_streaming_background(tmp_path):
+    """
+    Ensure that BaseHTTPMiddleware with a StreamingResponse runs BackgroundTasks after response.
+
+    This test writes to a temporary file
+    """
+
+    @app.route("/background-after-streaming")
+    async def background_after_streaming(request):
+        filepath = request.query_params["filepath"]
+
+        async def background():
+            await asyncio.sleep(1)
+            async with aiofiles.open(filepath, mode="w") as fl:  # pragma: no cover
+                await fl.write("background last")
+
+        async def numbers_stream():
+            async with aiofiles.open(filepath, mode="w") as fl:
+                await fl.write("handler first")
+            for number in range(1, 4):
+                yield "%d\n" % number
+
+        return StreamingResponse(
+            numbers_stream(), background=BackgroundTask(background)
+        )
+
+    client = TestClient(app)
+
+    # Set up a file to track whether background has run
     filepath = tmp_path / "background_test.txt"
     filepath.write_text("Test Start")
+
     response = client.get("/background-after-streaming?filepath={}".format(filepath))
     assert response.headers["Custom-Header"] == "Example"
     assert response.text == "1\n2\n3\n"
     with filepath.open() as fl:
+        # background should not have run yet
         assert fl.read() == "handler first"
