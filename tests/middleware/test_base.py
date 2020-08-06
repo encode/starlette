@@ -1,6 +1,9 @@
+import aiofiles
+import asyncio
 import pytest
 
 from starlette.applications import Starlette
+from starlette.background import BackgroundTask
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import PlainTextResponse, StreamingResponse
@@ -145,35 +148,61 @@ def test_middleware_repr():
     assert repr(middleware) == "Middleware(CustomMiddleware)"
 
 
-async def numbers_stream(minimum, maximum):
-    yield ("<html><body><ul>")
-    for number in range(minimum, maximum + 1):
-        yield "<li>%d</li>" % number
-    yield ("</ul></body></html>")
-
-
-async def somthing_broken(minimum, maximum, error_at=2):
-    if error_at <= 0:
-        raise RuntimeError("This is a stream that breaks when it starts")
-    yield ("<html><body><ul>")
-    for number in range(minimum, maximum + 1):
-        yield "<li>%d</li>" % number
-        if number >= error_at:
-            raise RuntimeError("This is a broken stream")
-
-
 @app.route("/streaming")
 async def some_streaming(_):
-    return StreamingResponse(numbers_stream(1, 3))
+    async def numbers_stream():
+        """
+        Should produce something like:
+             <html><body><ul><li>1...</li></ul></body></html>
+        """
+        yield ("<html><body><ul>")
+        for number in range(1, 4):
+            yield "<li>%d</li>" % number
+        yield ("</ul></body></html>")
+
+    return StreamingResponse(numbers_stream())
 
 
-@app.route("/broken-streaming/{error_at:int}")
-async def some_broken_streaming(request):
-    error_at = request.path_params["error_at"]
-    return StreamingResponse(somthing_broken(1, 5, error_at=error_at))
+@app.route("/broken-streaming-on-start")
+async def broken_stream_start(request):
+    async def broken():
+        raise ValueError("Oh no!")
+        yield 0  # pragma: no cover
+
+    return StreamingResponse(broken())
 
 
-def test_custom_middleware_streaming():
+@app.route("/broken-streaming-midstream")
+async def broken_stream_midstream(request):
+    async def broken():
+        yield ("<html><body><ul>")
+        for number in range(1, 3):
+            yield "<li>%d</li>" % number
+            if number >= 2:
+                raise RuntimeError("This is a broken stream")
+
+    return StreamingResponse(broken())
+
+
+@app.route("/background-after-streaming")
+async def background_after_streaming(request):
+    filepath = request.query_params["filepath"]
+
+    async def background():
+        await asyncio.sleep(1)
+        async with aiofiles.open(filepath, mode="w") as fl:  # pragma: no cover
+            await fl.write("background last")
+
+    async def numbers_stream():
+        async with aiofiles.open(filepath, mode="w") as fl:
+            await fl.write("handler first")
+        for number in range(1, 4):
+            yield "%d\n" % number
+
+    return StreamingResponse(numbers_stream(), background=BackgroundTask(background))
+
+
+def test_custom_middleware_streaming(tmp_path):
     client = TestClient(app)
     response = client.get("/streaming")
     assert response.headers["Custom-Header"] == "Example"
@@ -184,8 +213,16 @@ def test_custom_middleware_streaming():
 
     with pytest.raises(RuntimeError):
         # after body streaming has started
-        response = client.get("/broken-streaming/2")
-    with pytest.raises(RuntimeError):
+        response = client.get("/broken-streaming-midstream")
+    with pytest.raises(ValueError):
         # right before body stream starts (only start message emitted)
         # this should trigger _first_ message being None
-        response = client.get("/broken-streaming/0")
+        response = client.get("/broken-streaming-on-start")
+
+    filepath = tmp_path / "background_test.txt"
+    filepath.write_text("Test Start")
+    response = client.get("/background-after-streaming?filepath={}".format(filepath))
+    assert response.headers["Custom-Header"] == "Example"
+    assert response.text == "1\n2\n3\n"
+    with filepath.open() as fl:
+        assert fl.read() == "handler first"
