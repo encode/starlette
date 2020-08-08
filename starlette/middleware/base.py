@@ -1,6 +1,7 @@
 import asyncio
 import typing
 
+from starlette.background import BackgroundTask
 from starlette.requests import Request
 from starlette.responses import Response, StreamingResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
@@ -45,30 +46,41 @@ class BaseHTTPMiddleware:
             task.result()
             raise RuntimeError("No response returned.")
         assert message["type"] == "http.response.start"
+        status = message["status"]
+        headers = message["headers"]
+
+        first_body_message = await queue.get()
+        if first_body_message is None:
+            task.result()
+            raise RuntimeError("Empty response body returned")
+        assert first_body_message["type"] == "http.response.body"
+        response_body_start = first_body_message.get("body", b"")
 
         async def body_stream() -> typing.AsyncGenerator[bytes, None]:
             # In non-streaming responses, there should be one message to emit
-            message = await queue.get()
-            if message is not None:
+            yield response_body_start
+            message = first_body_message
+            while message and message.get("more_body"):
+                message = await queue.get()
+                if message is None:
+                    break
                 assert message["type"] == "http.response.body"
                 yield message.get("body", b"")
-
-                while message.get("more_body"):
-                    message = await queue.get()
-                    if message is None:
-                        break
-                    assert message["type"] == "http.response.body"
-                    yield message.get("body", b"")
 
             if task.done():
                 # Check for exceptions and raise if present.
                 # Incomplete tasks may still have background tasks to run.
                 task.result()
 
-        response = StreamingResponse(
-            status_code=message["status"], content=body_stream()
+        # Assume non-streaming and start with a regular response
+        response: typing.Union[Response, StreamingResponse] = Response(
+            status_code=status, content=response_body_start
         )
-        response.raw_headers = message["headers"]
+
+        if first_body_message.get("more_body"):
+            response = StreamingResponse(status_code=status, content=body_stream())
+
+        response.raw_headers = headers
         return response
 
     async def dispatch(

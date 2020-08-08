@@ -257,3 +257,48 @@ def test_custom_middleware_streaming_background(tmp_path):
     with filepath.open() as fl:
         # background should not have run yet
         assert fl.read() == "handler first"
+
+
+class Custom404Middleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        resp = await call_next(request)
+        if resp.status_code == 404:
+            return PlainTextResponse("Oh no!")
+        return resp
+
+
+def test_custom_middleware_pending_tasks(tmp_path):
+    """
+    Ensure that tasks are not pending left due to call_next method
+    """
+    app.add_middleware(Custom404Middleware)
+
+    @app.route("/trivial")
+    async def trivial(_):
+        return PlainTextResponse("Working")
+
+    @app.route("/streaming_task_count")
+    async def some_streaming(_):
+        async def numbers_stream():
+            for number in range(1, 4):
+                yield "%d\n" % number
+
+        return StreamingResponse(numbers_stream())
+
+    client = TestClient(app)
+    task_count = lambda: len(asyncio.Task.all_tasks())
+    # Task_count after issuing requests must not grow
+    assert task_count() == 1
+    response = client.get("/missing")
+    assert task_count() <= 2
+    response = client.get("/missing")
+    assert task_count() <= 2
+    response = client.get("/trivial")
+    assert task_count() <= 2
+    response = client.get("/streaming_task_count")
+    assert response.text == "1\n2\n3\n"
+    assert task_count() <= 2
+    response = client.get("/missing")
+    assert task_count() <= 2
+    response = client.get("/trivial")
+    assert response.text == "Working"
