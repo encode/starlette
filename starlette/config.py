@@ -76,7 +76,7 @@ class Config:
 
     def _read_file(self, file_name: typing.Union[str, Path]) -> typing.Dict[str, str]:
         file_values = {}  # type: typing.Dict[str, str]
-        with open(file_name) as input_file:
+        with open(file_name, encoding="UTF-8") as input_file:
             for line in input_file.readlines():
                 line = line.strip()
                 if "=" in line and not line.startswith("#"):
