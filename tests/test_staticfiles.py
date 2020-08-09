@@ -270,7 +270,7 @@ def test_staticfiles_cache_invalidation_for_deleted_file_html_mode(tmpdir):
 
     resp_cached = client.get(
         "/some.html",
-        headers={"If-Modified-Since": resp_exists.headers["last-modified"]}
+        headers={"If-Modified-Since": resp_exists.headers["last-modified"]},
     )
     assert resp_cached.status_code == 304
 
@@ -278,7 +278,7 @@ def test_staticfiles_cache_invalidation_for_deleted_file_html_mode(tmpdir):
 
     resp_deleted = client.get(
         "/some.html",
-        headers={"If-Modified-Since": resp_exists.headers["last-modified"]}
+        headers={"If-Modified-Since": resp_exists.headers["last-modified"]},
     )
     assert resp_deleted.status_code == 404
     assert resp_deleted.text == "<p>404 file</p>"
