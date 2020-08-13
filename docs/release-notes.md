@@ -1,9 +1,6 @@
 ## 0.13.8
 
-* Revert `Queue(maxsize=1)` fix for `BaseHTTPMiddleware` middleware classes and streaming responses. 
-  * Before version `0.13.7`, [some users](https://github.com/encode/starlette/issues/1022) were relying on behavior where the response object would be fully evaluated within their middleware based on `BaseHTTPMiddleware`. (Of course, this was a problem for `StreamingResponse`s with this middleware, because they were also being loaded fully into memory.) The `maxsize=1` fix released in version `0.13.7` explicitly prevented the response object from being fully evaluated until later `await` calls, but any users who were dropping this response for any other created inside their middleware were likely to see pending tasks accumulate. 
-  
-  * Moving forward, using  `BaseHTTPMiddleware` middleware classes with streaming responses is **not recommended** See issues [#1022](https://github.com/encode/starlette/issues/1022), [#1012](https://github.com/encode/starlette/issues/1012), and [#919](https://github.com/encode/starlette/issues/919). Further, this middleware class will likely need to be redesigned and for now it is recommended that instead of subclassing `BaseHTTPMiddleware`, users consider writing middleware classes similar to [other examples](https://github.com/encode/starlette/blob/master/starlette/middleware/authentication.py#L14) in the codebase.
+* Revert `Queue(maxsize=1)` fix for `BaseHTTPMiddleware` middleware classes and streaming responses.
 
 * The `StaticFiles` constructor now allows `pathlib.Path` in addition to strings for its `directory` argument.
 
