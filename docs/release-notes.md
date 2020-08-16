@@ -1,3 +1,13 @@
+## 0.13.8
+
+* Revert `Queue(maxsize=1)` fix for `BaseHTTPMiddleware` middleware classes and streaming responses.
+
+* The `StaticFiles` constructor now allows `pathlib.Path` in addition to strings for its `directory` argument.
+
+## 0.13.7
+
+* Fix high memory usage when using `BaseHTTPMiddleware` middleware classes and streaming responses.
+
 ## 0.13.6
 
 * Fix 404 errors with `StaticFiles`.
