@@ -26,9 +26,11 @@ class GraphQLApp:
         executor: typing.Any = None,
         executor_class: type = None,
         graphiql: bool = True,
+        format_error: typing.Optional[typing.Callable[[Exception], dict]] = None,
     ) -> None:
         self.schema = schema
         self.graphiql = graphiql
+        self._format_error_override = format_error
         if executor is None:
             # New style in 0.10.0. Use 'executor_class'.
             # See issue https://github.com/encode/starlette/issues/242
@@ -116,7 +118,8 @@ class GraphQLApp:
         )
 
     def format_error(self, error: Exception) -> dict:
-        return format_graphql_error(error)
+        fmt = self._format_error_override or format_graphql_error
+        return fmt(error)
 
     async def execute(  # type: ignore
         self, query, variables=None, context=None, operation_name=None
