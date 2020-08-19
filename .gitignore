@@ -1,7 +1,9 @@
 *.pyc
 test.db
 .coverage
+.idea/
 .pytest_cache/
+.python-version
 .mypy_cache/
 starlette.egg-info/
 venv/
