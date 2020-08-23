@@ -232,7 +232,6 @@ class Request(HTTPConnection):
             chunks = []
             async for chunk in self.stream():
                 chunks.append(chunk)
-
             self._body = b"".join(chunks)
         return self._body
 
