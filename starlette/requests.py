@@ -215,24 +215,25 @@ class Request(HTTPConnection):
 
     async def body(self) -> bytes:
         if not hasattr(self, "_body"):
-            content_length = self.headers.get('Content-Length')
-            if content_length:
-                # Allocating a bytearray with a size that matches "content-length" header.
-                body_bytes = bytearray(int(content_length))
-                body_index = 0
-                async for chunk in self.stream():
-                    chunk_length = len(chunk)
-                    body_bytes[body_index:body_index + chunk_length] = chunk
-                    body_index += chunk_length
-                self._body = body_bytes
-                return self._body
-            else:
-                # If the header is not present, reading the chunks until the stream ends.
-                chunks = []
-                async for chunk in self.stream():
-                    chunks.append(chunk)
-                self._body = b"".join(chunks)
+            if hasattr(self, "_headers"):
+                content_length = self.headers.get('Content-Length')
+                if content_length:
+                    # Allocating a bytearray with a size that matches "content-length" header.
+                    body_bytes = bytearray(int(content_length))
+                    body_index = 0
+                    async for chunk in self.stream():
+                        chunk_length = len(chunk)
+                        body_bytes[body_index:body_index + chunk_length] = chunk
+                        body_index += chunk_length
+                    self._body = body_bytes
+                    return self._body
 
+            # If the header is not present, reading the chunks until the stream ends.
+            chunks = []
+            async for chunk in self.stream():
+                chunks.append(chunk)
+
+            self._body = b"".join(chunks)
         return self._body
 
     async def json(self) -> typing.Any:
