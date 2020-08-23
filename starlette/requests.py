@@ -216,14 +216,14 @@ class Request(HTTPConnection):
     async def body(self) -> bytes:
         if not hasattr(self, "_body"):
             if hasattr(self, "_headers"):
-                content_length = self.headers.get('Content-Length')
+                content_length = self.headers.get("Content-Length")
                 if content_length:
                     # Allocating a bytearray with a size that matches "content-length" header.
                     body_bytes = bytearray(int(content_length))
                     body_index = 0
                     async for chunk in self.stream():
                         chunk_length = len(chunk)
-                        body_bytes[body_index:body_index + chunk_length] = chunk
+                        body_bytes[body_index : body_index + chunk_length] = chunk
                         body_index += chunk_length
                     self._body = bytes(body_bytes)
                     return self._body
