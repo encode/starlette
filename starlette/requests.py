@@ -13,7 +13,6 @@ try:
 except ImportError:  # pragma: nocover
     parse_options_header = None
 
-
 SERVER_PUSH_HEADERS_TO_COPY = {
     "accept",
     "accept-encoding",
@@ -130,21 +129,21 @@ class HTTPConnection(Mapping):
     @property
     def session(self) -> dict:
         assert (
-            "session" in self.scope
+                "session" in self.scope
         ), "SessionMiddleware must be installed to access request.session"
         return self.scope["session"]
 
     @property
     def auth(self) -> typing.Any:
         assert (
-            "auth" in self.scope
+                "auth" in self.scope
         ), "AuthenticationMiddleware must be installed to access request.auth"
         return self.scope["auth"]
 
     @property
     def user(self) -> typing.Any:
         assert (
-            "user" in self.scope
+                "user" in self.scope
         ), "AuthenticationMiddleware must be installed to access request.user"
         return self.scope["user"]
 
@@ -173,7 +172,7 @@ async def empty_send(message: Message) -> None:
 
 class Request(HTTPConnection):
     def __init__(
-        self, scope: Scope, receive: Receive = empty_receive, send: Send = empty_send
+            self, scope: Scope, receive: Receive = empty_receive, send: Send = empty_send
     ):
         super().__init__(scope)
         assert scope["type"] == "http"
@@ -221,6 +220,28 @@ class Request(HTTPConnection):
             self._body = b"".join(chunks)
         return self._body
 
+    async def body(self) -> bytes:
+        if not hasattr(self, "_body"):
+            content_length = self.headers.get('content-length')
+            if content_length:
+                # Allocating a bytearray with a size that matches "content-length" header.
+                body_bytes = bytearray(int(content_length))
+                body_index = 0
+                async for chunk in self.stream():
+                    chunk_length = len(chunk)
+                    body_bytes[body_index:body_index + chunk_length] = chunk
+                    body_index += chunk_length
+                self._body = body_bytes
+                return self._body
+            else:
+                # If the header is not present, reading the chunks until the stream ends.
+                chunks = []
+                async for chunk in self.stream():
+                    chunks.append(chunk)
+                self._body = b"".join(chunks)
+
+        return self._body
+
     async def json(self) -> typing.Any:
         if not hasattr(self, "_json"):
             body = await self.body()
@@ -230,7 +251,7 @@ class Request(HTTPConnection):
     async def form(self) -> FormData:
         if not hasattr(self, "_form"):
             assert (
-                parse_options_header is not None
+                    parse_options_header is not None
             ), "The `python-multipart` library must be installed to use form parsing."
             content_type_header = self.headers.get("Content-Type")
             content_type, options = parse_options_header(content_type_header)
