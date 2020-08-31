@@ -13,7 +13,6 @@ try:
 except ImportError:  # pragma: nocover
     parse_options_header = None
 
-
 SERVER_PUSH_HEADERS_TO_COPY = {
     "accept",
     "accept-encoding",
@@ -229,9 +228,7 @@ class Request(HTTPConnection):
                     return self._body
 
             # If the header is not present, reading the chunks until the stream ends.
-            chunks = []
-            async for chunk in self.stream():
-                chunks.append(chunk)
+            chunks = [chunk async for chunk in self.stream()]
             self._body = b"".join(chunks)
         return self._body
 
