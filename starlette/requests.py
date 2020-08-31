@@ -74,6 +74,9 @@ class HTTPConnection(Mapping):
     def __len__(self) -> int:
         return len(self.scope)
 
+    __eq__ = object.__eq__
+    __hash__ = object.__hash__
+
     @property
     def app(self) -> typing.Any:
         return self.scope["app"]
