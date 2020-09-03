@@ -204,7 +204,7 @@ class StreamingResponse(Response):
         media_type: str = None,
         background: BackgroundTask = None,
     ) -> None:
-        if inspect.isasyncgen(content):
+        if hasattr(content, '__aiter__') and hasattr(content, '__anext__'):
             self.body_iterator = content
         else:
             self.body_iterator = iterate_in_threadpool(content)
