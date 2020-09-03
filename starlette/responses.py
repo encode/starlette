@@ -1,6 +1,5 @@
 import hashlib
 import http.cookies
-import inspect
 import json
 import os
 import stat
