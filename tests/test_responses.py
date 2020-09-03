@@ -269,3 +269,25 @@ def test_head_method():
     client = TestClient(app)
     response = client.head("/")
     assert response.text == ""
+
+def test_sync_custom_streaming_response():
+    async def app(scope, receive, send):
+        class CustomAsyncGenerator:
+            def __init__(self):
+                self._called = 0
+
+            def __aiter__(self):
+                return self
+
+            async def __anext__(self):
+                if self._called == 5:
+                    raise StopAsyncIteration()
+                self._called += 1
+                return str(self._called)
+
+        response = StreamingResponse(CustomAsyncGenerator(), media_type="text/plain")
+        await response(scope, receive, send)
+
+    client = TestClient(app)
+    response = client.get("/")
+    assert response.text == "12345"
