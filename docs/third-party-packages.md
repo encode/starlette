@@ -39,6 +39,13 @@ Serverless ASGI adapter for AWS Lambda & API Gateway.
 Manage and send messages to groups of channels using websockets.
 Checkout <a href="https://github.com/taoufik07/nejma-chat" target="_blank">nejma-chat</a>, a simple chat application built using `nejma` and `starlette`.
 
+### ChannelBox
+
+<a href="https://github.com/Sobolev5/channel-box" target="_blank">GitHub</a>
+
+Another solution for websocket broadcast. Send messages to channel groups from any part of your code. 
+Checkout <a href="http://backend.starlette-vue.site/chat/chat1/" target="_blank">channel-box-chat</a>, a simple chat application built using `channel-box` and `starlette`.
+
 ### Scout APM
 
 <a href="https://github.com/scoutapp/scout_apm_python" target="_blank">GitHub</a>
@@ -68,6 +75,13 @@ type annotations.
 <a href="https://docs.authlib.org/en/latest/" target="_blank">Documentation</a>
 
 The ultimate Python library in building OAuth and OpenID Connect clients and servers. Check out how to integrate with [Starlette](https://docs.authlib.org/en/latest/client/starlette.html).
+
+### Starlette OAuth2 API
+
+<a href="https://gitlab.com/jorgecarleitao/starlette-oauth2-api" target="_blank">Gitlab</a>
+
+A starlette middleware to add authentication and authorization through JWTs.
+It relies solely on an auth provider to issue access and/or id tokens to clients.
 
 ### Starlette Context
 

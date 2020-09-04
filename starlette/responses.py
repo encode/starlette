@@ -4,15 +4,19 @@ import inspect
 import json
 import os
 import stat
+import sys
 import typing
 from email.utils import formatdate
-from mimetypes import guess_type
-from urllib.parse import quote_plus
+from mimetypes import guess_type as mimetypes_guess_type
+from urllib.parse import quote, quote_plus
 
 from starlette.background import BackgroundTask
-from starlette.concurrency import iterate_in_threadpool
+from starlette.concurrency import iterate_in_threadpool, run_until_first_complete
 from starlette.datastructures import URL, MutableHeaders
 from starlette.types import Receive, Scope, Send
+
+# Workaround for adding samesite support to pre 3.8 python
+http.cookies.Morsel._reserved["samesite"] = "SameSite"  # type: ignore
 
 try:
     import aiofiles
@@ -27,6 +31,15 @@ except ImportError:  # pragma: nocover
     ujson = None  # type: ignore
 
 
+# Compatibility wrapper for `mimetypes.guess_type` to support `os.PathLike` on <py3.8
+def guess_type(
+    url: typing.Union[str, "os.PathLike[str]"], strict: bool = True
+) -> typing.Tuple[typing.Optional[str], typing.Optional[str]]:
+    if sys.version_info < (3, 8):  # pragma: no cover
+        url = os.fspath(url)
+    return mimetypes_guess_type(url, strict)
+
+
 class Response:
     media_type = None
     charset = "utf-8"
@@ -39,11 +52,11 @@ class Response:
         media_type: str = None,
         background: BackgroundTask = None,
     ) -> None:
-        self.body = self.render(content)
         self.status_code = status_code
         if media_type is not None:
             self.media_type = media_type
         self.background = background
+        self.body = self.render(content)
         self.init_headers(headers)
 
     def render(self, content: typing.Any) -> bytes:
@@ -96,6 +109,7 @@ class Response:
         domain: str = None,
         secure: bool = False,
         httponly: bool = False,
+        samesite: str = "lax",
     ) -> None:
         cookie = http.cookies.SimpleCookie()  # type: http.cookies.BaseCookie
         cookie[key] = value
@@ -111,6 +125,13 @@ class Response:
             cookie[key]["secure"] = True
         if httponly:
             cookie[key]["httponly"] = True
+        if samesite is not None:
+            assert samesite.lower() in [
+                "strict",
+                "lax",
+                "none",
+            ], "samesite must be either 'strict', 'lax' or 'none'"
+            cookie[key]["samesite"] = samesite
         cookie_val = cookie.output(header="").strip()
         self.raw_headers.append((b"set-cookie", cookie_val.encode("latin-1")))
 
@@ -162,9 +183,15 @@ class UJSONResponse(JSONResponse):
 
 class RedirectResponse(Response):
     def __init__(
-        self, url: typing.Union[str, URL], status_code: int = 307, headers: dict = None
+        self,
+        url: typing.Union[str, URL],
+        status_code: int = 307,
+        headers: dict = None,
+        background: BackgroundTask = None,
     ) -> None:
-        super().__init__(content=b"", status_code=status_code, headers=headers)
+        super().__init__(
+            content=b"", status_code=status_code, headers=headers, background=background
+        )
         self.headers["location"] = quote_plus(str(url), safe=":/%#?&=@[]!$&'()*+,;")
 
 
@@ -186,7 +213,13 @@ class StreamingResponse(Response):
         self.background = background
         self.init_headers(headers)
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def listen_for_disconnect(self, receive: Receive) -> None:
+        while True:
+            message = await receive()
+            if message["type"] == "http.disconnect":
+                break
+
+    async def stream_response(self, send: Send) -> None:
         await send(
             {
                 "type": "http.response.start",
@@ -198,7 +231,14 @@ class StreamingResponse(Response):
             if not isinstance(chunk, bytes):
                 chunk = chunk.encode(self.charset)
             await send({"type": "http.response.body", "body": chunk, "more_body": True})
+
         await send({"type": "http.response.body", "body": b"", "more_body": False})
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        await run_until_first_complete(
+            (self.stream_response, {"send": send}),
+            (self.listen_for_disconnect, {"receive": receive}),
+        )
 
         if self.background is not None:
             await self.background()
@@ -209,7 +249,7 @@ class FileResponse(Response):
 
     def __init__(
         self,
-        path: str,
+        path: typing.Union[str, "os.PathLike[str]"],
         status_code: int = 200,
         headers: dict = None,
         media_type: str = None,
@@ -229,7 +269,13 @@ class FileResponse(Response):
         self.background = background
         self.init_headers(headers)
         if self.filename is not None:
-            content_disposition = 'attachment; filename="{}"'.format(self.filename)
+            content_disposition_filename = quote(self.filename)
+            if content_disposition_filename != self.filename:
+                content_disposition = "attachment; filename*=utf-8''{}".format(
+                    content_disposition_filename
+                )
+            else:
+                content_disposition = 'attachment; filename="{}"'.format(self.filename)
             self.headers.setdefault("content-disposition", content_disposition)
         self.stat_result = stat_result
         if stat_result is not None:
@@ -264,7 +310,7 @@ class FileResponse(Response):
             }
         )
         if self.send_header_only:
-            await send({"type": "http.response.body"})
+            await send({"type": "http.response.body", "body": b"", "more_body": False})
         else:
             async with aiofiles.open(self.path, mode="rb") as file:
                 more_body = True

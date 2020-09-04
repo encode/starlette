@@ -73,7 +73,7 @@ The following arguments are supported:
 * `allow_headers` - A list of HTTP request headers that should be supported for cross-origin requests. Defaults to `[]`. You can use `['*']` to allow all headers. The `Accept`, `Accept-Language`, `Content-Language` and `Content-Type` headers are always allowed for CORS requests.
 * `allow_credentials` - Indicate that cookies should be supported for cross-origin requests. Defaults to `False`.
 * `expose_headers` - Indicate any response headers that should be made accessible to the browser. Defaults to `[]`.
-* `max_age` - Sets a maximum time in seconds for browsers to cache CORS responses. Defaults to `60`.
+* `max_age` - Sets a maximum time in seconds for browsers to cache CORS responses. Defaults to `600`.
 
 The middleware responds to two particular types of HTTP request...
 
@@ -273,3 +273,17 @@ A middleware class for logging exceptions to [Bugsnag](https://www.bugsnag.com/)
 #### [EarlyDataMiddleware](https://github.com/HarrySky/starlette-early-data)
 
 Middleware and decorator for detecting and denying [TLSv1.3 early data](https://tools.ietf.org/html/rfc8470) requests.
+
+#### [AuthlibMiddleware](https://github.com/aogier/starlette-authlib)
+
+A drop-in replacement for Starlette session middleware, using [authlib's jwt](https://docs.authlib.org/en/latest/jose/jwt.html)
+module.
+
+#### [StarletteOpentracing](https://github.com/acidjunk/starlette-opentracing)
+
+A middleware class that emits tracing info to [OpenTracing.io](https://opentracing.io/) compatible tracers and
+can be used to profile and monitor distributed applications.
+
+#### [RateLimitMiddleware](https://github.com/abersheeran/asgi-ratelimit)
+
+A rate limit middleware. Regular expression matches url; flexible rules; highly customizable. Very easy to use.
