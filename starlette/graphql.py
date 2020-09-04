@@ -26,9 +26,11 @@ class GraphQLApp:
         executor: typing.Any = None,
         executor_class: type = None,
         graphiql: bool = True,
+        middleware: list = None,
     ) -> None:
         self.schema = schema
         self.graphiql = graphiql
+        self.middleware = middleware
         if executor is None:
             # New style in 0.10.0. Use 'executor_class'.
             # See issue https://github.com/encode/starlette/issues/242
@@ -128,6 +130,7 @@ class GraphQLApp:
                 executor=self.executor,
                 return_promise=True,
                 context=context,
+                middleware=self.middleware
             )
         else:
             return await run_in_threadpool(
@@ -136,6 +139,7 @@ class GraphQLApp:
                 variables=variables,
                 operation_name=operation_name,
                 context=context,
+                middleware=self.middleware
             )
 
     async def handle_graphiql(self, request: Request) -> Response:
