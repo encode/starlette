@@ -12,6 +12,9 @@ ujson
 autoflake
 black==20.8b1
 databases[sqlite]
+flake8
+flake8-bugbear
+flake8-pie
 isort==5.*
 mypy
 pytest
@@ -22,3 +25,7 @@ pytest-asyncio
 mkdocs
 mkdocs-material
 mkautodoc
+
+# Packaging
+twine
+wheel
