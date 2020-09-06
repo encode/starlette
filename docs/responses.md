@@ -92,26 +92,6 @@ async def app(scope, receive, send):
     await response(scope, receive, send)
 ```
 
-### UJSONResponse
-
-A JSON response class that uses the optimised `ujson` library for serialisation.
-
-Using `ujson` will result in faster JSON serialisation, but is also less careful
-than Python's built-in implementation in how it handles some edge-cases.
-
-In general you *probably* want to stick with `JSONResponse` by default unless
-you are micro-optimising a particular endpoint.
-
-```python
-from starlette.responses import UJSONResponse
-
-
-async def app(scope, receive, send):
-    assert scope['type'] == 'http'
-    response = UJSONResponse({'hello': 'world'})
-    await response(scope, receive, send)
-```
-
 ### RedirectResponse
 
 Returns an HTTP redirect. Uses a 307 status code by default.
