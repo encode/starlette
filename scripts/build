@@ -1,7 +1,5 @@
 #!/bin/sh -e
 
-PYTHONPATH=.
-
 if [ -d 'venv' ] ; then
     PREFIX="venv/bin/"
 else
