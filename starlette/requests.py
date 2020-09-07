@@ -226,7 +226,7 @@ class Request(HTTPConnection):
                         chunk_length = len(chunk)
                         body_bytes[body_index : body_index + chunk_length] = chunk
                         body_index += chunk_length
-                    self._body = bytes(body_bytes)
+                    self._body = bytes(body_bytes[:body_index])
                     return self._body
 
             # If the header is not present, reading the chunks until the stream ends.
