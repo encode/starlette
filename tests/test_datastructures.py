@@ -224,7 +224,29 @@ async def test_upload_file():
     await big_file.write(b"big-data")
     await big_file.seek(0)
     assert await big_file.read(1024) == b"big-data" * 128
+    await big_file.seek(len(b"big-data") * 513)
+    await big_file.write(b"\n")
+    await big_file.write(b"data-line\n" * 11)
+    await big_file.seek(len(b"big-data") * 513 + 1)
+    assert await big_file.readline() == b"data-line\n"
+    lines = [line async for line in big_file]
+    assert len(lines) == 10
+    assert lines[-1] == b"data-line\n"
     await big_file.close()
+
+
+@pytest.mark.asyncio
+async def test_in_memory_upload_file():
+    small_file = BigUploadFile("in-memory-file")
+    await small_file.write(b"data-line\n" * 11)
+    await small_file.seek(0)
+    assert await small_file.readline() == b"data-line\n"
+    lines = [line async for line in small_file]
+    assert len(lines) == 10
+    assert lines[-1] == b"data-line\n"
+    await small_file.seek(0)
+    assert await small_file.read(20) == b"data-line\n" * 2
+    await small_file.close()
 
 
 def test_formdata():

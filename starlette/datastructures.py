@@ -433,6 +433,15 @@ class UploadFile:
             file = tempfile.SpooledTemporaryFile(max_size=self.spool_max_size)
         self.file = file
 
+    def __aiter__(self) -> "UploadFile":
+        return self
+
+    async def __anext__(self) -> typing.Union[bytes, str]:
+        line = await self.readline()
+        if line:
+            return line
+        raise StopAsyncIteration
+
     @property
     def _in_memory(self) -> bool:
         rolled_to_disk = getattr(self.file, "_rolled", True)
@@ -448,6 +457,11 @@ class UploadFile:
         if self._in_memory:
             return self.file.read(size)
         return await run_in_threadpool(self.file.read, size)
+
+    async def readline(self) -> typing.Union[bytes, str]:
+        if self._in_memory:
+            return self.file.readline()
+        return await run_in_threadpool(self.file.readline)
 
     async def seek(self, offset: int) -> None:
         if self._in_memory:

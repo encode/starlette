@@ -128,6 +128,7 @@ multidict, containing both file uploads and text input. File upload items are re
 
 * `async write(data)`: Writes `data` (`str` or `bytes`) to the file.
 * `async read(size)`: Reads `size` (`int`) bytes/characters of the file.
+* `async readline()`: Reads bytes/characters line of the file.
 * `async seek(offset)`: Goes to the byte position `offset` (`int`) in the file.
     * E.g., `await myfile.seek(0)` would go to the start of the file.
 * `async close()`: Closes the file.
@@ -140,6 +141,14 @@ For example, you can get the file name and the contents with:
 form = await request.form()
 filename = form["upload_file"].filename
 contents = await form["upload_file"].read()
+```
+
+It is also possible to read uploaded file line by line:
+
+```python
+form = await request.form()
+async for line in form["upload_file"]:
+    ...
 ```
 
 #### Application
