@@ -223,9 +223,9 @@ class Request(HTTPConnection):
                     body_bytes = bytearray(int(content_length))
                     body_index = 0
                     async for chunk in self.stream():
-                        chunk_length = len(chunk)
-                        body_bytes[body_index : body_index + chunk_length] = chunk
-                        body_index += chunk_length
+                        chunk_end_index = body_index + len(chunk)
+                        body_bytes[body_index:chunk_end_index] = chunk
+                        body_index = chunk_end_index
                     self._body = bytes(body_bytes[:body_index])
                     return self._body
 
