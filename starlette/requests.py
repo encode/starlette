@@ -218,8 +218,7 @@ class Request(HTTPConnection):
             if hasattr(self, "_headers"):
                 content_length = self.headers.get("Content-Length")
                 if content_length:
-                    # Allocating a bytearray with a fixed size,
-                    # that matches "content-length" header.
+                    # Allocating a bytearray large enough to fit "content-length" bytes.
                     body_bytes = bytearray(int(content_length))
                     body_index = 0
                     async for chunk in self.stream():
