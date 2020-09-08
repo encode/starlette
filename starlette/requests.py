@@ -229,7 +229,7 @@ class Request(HTTPConnection):
                     self._body = bytes(body_bytes[:body_index])
                     return self._body
 
-            # If the header is not present, reading the chunks until the stream ends.
+            # If the header is not present, read the chunks until the stream ends.
             chunks = [chunk async for chunk in self.stream()]
             self._body = b"".join(chunks)
         return self._body
