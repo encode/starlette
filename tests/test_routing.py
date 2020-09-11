@@ -494,7 +494,38 @@ def test_standalone_ws_route_does_not_match():
         client.websocket_connect("/invalid")
 
 
-def test_lifespan():
+def test_lifespan_async():
+    startup_complete = False
+    shutdown_complete = False
+
+    async def hello_world(request):
+        return PlainTextResponse("hello, world")
+
+    async def run_startup():
+        nonlocal startup_complete
+        startup_complete = True
+
+    async def run_shutdown():
+        nonlocal shutdown_complete
+        shutdown_complete = True
+
+    app = Router(
+        on_startup=[run_startup],
+        on_shutdown=[run_shutdown],
+        routes=[Route("/", hello_world)],
+    )
+
+    assert not startup_complete
+    assert not shutdown_complete
+    with TestClient(app) as client:
+        assert startup_complete
+        assert not shutdown_complete
+        client.get("/")
+    assert startup_complete
+    assert shutdown_complete
+
+
+def test_lifespan_sync():
     startup_complete = False
     shutdown_complete = False
 
