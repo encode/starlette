@@ -123,19 +123,19 @@ class GraphQLApp:
         if self.is_async:
             return await self.schema.execute(
                 query,
-                variables=variables,
+                variable_values=variables,
                 operation_name=operation_name,
                 executor=self.executor,
                 return_promise=True,
-                context=context,
+                context_value=context,
             )
         else:
             return await run_in_threadpool(
                 self.schema.execute,
                 query,
-                variables=variables,
+                variable_values=variables,
                 operation_name=operation_name,
-                context=context,
+                context_value=context,
             )
 
     async def handle_graphiql(self, request: Request) -> Response:
