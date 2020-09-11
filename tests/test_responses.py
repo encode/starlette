@@ -270,6 +270,7 @@ def test_head_method():
     response = client.head("/")
     assert response.text == ""
 
+
 def test_sync_custom_streaming_response():
     async def app(scope, receive, send):
         class CustomAsyncGenerator:
@@ -291,6 +292,7 @@ def test_sync_custom_streaming_response():
     client = TestClient(app)
     response = client.get("/")
     assert response.text == "12345"
+
 
 def test_sync_custom_streaming_response_no_anext():
     async def app(scope, receive, send):
