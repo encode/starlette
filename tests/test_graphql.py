@@ -38,24 +38,35 @@ app = GraphQLApp(schema=schema, graphiql=True)
 client = TestClient(app)
 
 
+filterwarnings = pytest.mark.filterwarnings(
+    r"ignore:"
+    r"The '(context|variables)' alias has been deprecated. Please use "
+    r"'(context_value|variable_values)' instead\.:DeprecationWarning"
+)
+
+
+@filterwarnings
 def test_graphql_get():
     response = client.get("/?query={ hello }")
     assert response.status_code == 200
     assert response.json() == {"data": {"hello": "Hello stranger"}}
 
 
+@filterwarnings
 def test_graphql_post():
     response = client.post("/?query={ hello }")
     assert response.status_code == 200
     assert response.json() == {"data": {"hello": "Hello stranger"}}
 
 
+@filterwarnings
 def test_graphql_post_json():
     response = client.post("/", json={"query": "{ hello }"})
     assert response.status_code == 200
     assert response.json() == {"data": {"hello": "Hello stranger"}}
 
 
+@filterwarnings
 def test_graphql_post_graphql():
     response = client.post(
         "/", data="{ hello }", headers={"content-type": "application/graphql"}
@@ -110,6 +121,7 @@ def test_graphiql_not_found():
     assert response.text == "Not Found"
 
 
+@filterwarnings
 def test_add_graphql_route():
     app = Starlette()
     app.add_route("/", GraphQLApp(schema=schema))
@@ -119,6 +131,7 @@ def test_add_graphql_route():
     assert response.json() == {"data": {"hello": "Hello stranger"}}
 
 
+@filterwarnings
 def test_graphql_context():
     app = Starlette()
     app.add_middleware(FakeAuthMiddleware)
@@ -142,6 +155,7 @@ async_schema = graphene.Schema(query=ASyncQuery)
 async_app = GraphQLApp(schema=async_schema, executor_class=AsyncioExecutor)
 
 
+@filterwarnings
 def test_graphql_async():
     client = TestClient(async_app)
     response = client.get("/?query={ hello }")
@@ -160,6 +174,7 @@ def old_style_async_app(event_loop) -> GraphQLApp:
     return old_style_async_app
 
 
+@filterwarnings
 def test_graphql_async_old_style_executor(old_style_async_app: GraphQLApp):
     # See https://github.com/encode/starlette/issues/242
     client = TestClient(old_style_async_app)
