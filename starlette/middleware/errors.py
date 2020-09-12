@@ -157,7 +157,7 @@ class ServerErrorMiddleware:
 
         try:
             await self.app(scope, receive, _send)
-        except Exception as exc:  # noqa: PIE786
+        except Exception as exc:
             if not response_started:
                 request = Request(scope)
                 if self.debug:

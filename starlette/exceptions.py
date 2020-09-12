@@ -69,7 +69,7 @@ class ExceptionMiddleware:
 
         try:
             await self.app(scope, receive, sender)
-        except Exception as exc:  # noqa: PIE786
+        except Exception as exc:
             handler = None
 
             if isinstance(exc, HTTPException):
