@@ -92,6 +92,30 @@ async def app(scope, receive, send):
     await response(scope, receive, send)
 ```
 
+#### Custom JSON serialization
+
+If you need fine-grained control over JSON serialization, you can subclass
+`JSONResponse` and override the `render` method.
+
+For example, if you wanted to use a third-party JSON library such as
+[orjson](https://pypi.org/project/orjson/):
+
+```python
+from typing import Any
+
+import orjson
+from starlette.responses import JSONResponse
+
+
+class OrjsonResponse(JSONResponse):
+    def render(self, content: Any) -> bytes:
+        return orjson.dumps(content)
+```
+
+In general you *probably* want to stick with `JSONResponse` by default unless
+you are micro-optimising a particular endpoint or need to serialize non-standard
+object types.
+
 ### RedirectResponse
 
 Returns an HTTP redirect. Uses a 307 status code by default.
