@@ -69,7 +69,7 @@ class WebSocketEndpoint:
                 elif message["type"] == "websocket.disconnect":
                     close_code = int(message.get("code", status.WS_1000_NORMAL_CLOSURE))
                     break
-        except Exception as exc:
+        except Exception as exc:  # noqa: PIE786
             close_code = status.WS_1011_INTERNAL_ERROR
             raise exc from None
         finally:

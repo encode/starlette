@@ -238,7 +238,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
 
         try:
             loop.run_until_complete(self.app(scope, receive, send))
-        except BaseException as exc:
+        except BaseException as exc:  # noqa: PIE786
             if self.raise_server_exceptions:
                 raise exc from None
 
@@ -298,7 +298,7 @@ class WebSocketTestSession:
         send = self._asgi_send
         try:
             self._loop.run_until_complete(self.app(scope, receive, send))
-        except BaseException as exc:
+        except BaseException as exc:  # noqa: PIE786
             self._send_queue.put(exc)
 
     async def _asgi_receive(self) -> Message:
