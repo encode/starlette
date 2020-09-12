@@ -63,7 +63,7 @@ def test_gzip_streaming_response():
     @app.route("/")
     def homepage(request):
         async def generator(bytes, count):
-            for index in range(count):
+            for _ in range(count):
                 yield bytes
 
         streaming = generator(bytes=b"x" * 400, count=10)
