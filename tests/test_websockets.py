@@ -305,7 +305,7 @@ def test_subprotocol():
 def test_websocket_exception():
     def app(scope):
         async def asgi(receive, send):
-            assert False
+            raise AssertionError()
 
         return asgi
 
