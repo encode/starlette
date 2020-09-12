@@ -534,7 +534,7 @@ class Router:
                     first = False
                     await send({"type": "lifespan.startup.complete"})
                     await receive()
-        except BaseException:
+        except BaseException:  # noqa: PIE786
             if first:
                 exc_text = traceback.format_exc()
                 await send({"type": "lifespan.startup.failed", "message": exc_text})
