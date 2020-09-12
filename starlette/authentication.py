@@ -24,11 +24,11 @@ def requires(
     scopes_list = [scopes] if isinstance(scopes, str) else list(scopes)
 
     def decorator(func: typing.Callable) -> typing.Callable:
-        type = None
+        idx, type = -1, None
         sig = inspect.signature(func)
-        for idx, parameter in enumerate(sig.parameters.values()):
+        for i, parameter in enumerate(sig.parameters.values()):
             if parameter.name == "request" or parameter.name == "websocket":
-                type = parameter.name
+                idx, type = i, parameter.name
                 break
         else:
             raise Exception(
