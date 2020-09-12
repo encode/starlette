@@ -479,7 +479,7 @@ class FormData(ImmutableMultiDict):
         super().__init__(*args, **kwargs)
 
     async def close(self) -> None:
-        for key, value in self.multi_items():
+        for _key, value in self.multi_items():
             if isinstance(value, UploadFile):
                 await value.close()
 
@@ -551,7 +551,7 @@ class Headers(typing.Mapping[str, str]):
 
     def __contains__(self, key: typing.Any) -> bool:
         get_header_key = key.lower().encode("latin-1")
-        for header_key, header_value in self._list:
+        for header_key, _header_value in self._list:
             if header_key == get_header_key:
                 return True
         return False
@@ -585,7 +585,7 @@ class MutableHeaders(Headers):
         set_value = value.encode("latin-1")
 
         found_indexes = []
-        for idx, (item_key, item_value) in enumerate(self._list):
+        for idx, (item_key, _item_value) in enumerate(self._list):
             if item_key == set_key:
                 found_indexes.append(idx)
 
@@ -605,7 +605,7 @@ class MutableHeaders(Headers):
         del_key = key.lower().encode("latin-1")
 
         pop_indexes = []
-        for idx, (item_key, item_value) in enumerate(self._list):
+        for idx, (item_key, _item_value) in enumerate(self._list):
             if item_key == del_key:
                 pop_indexes.append(idx)
 
@@ -624,7 +624,7 @@ class MutableHeaders(Headers):
         set_key = key.lower().encode("latin-1")
         set_value = value.encode("latin-1")
 
-        for idx, (item_key, item_value) in enumerate(self._list):
+        for item_key, item_value in self._list:
             if item_key == set_key:
                 return item_value.decode("latin-1")
         self._list.append((set_key, set_value))
