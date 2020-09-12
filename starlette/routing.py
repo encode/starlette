@@ -523,13 +523,13 @@ class Router:
         await receive()
         try:
             if inspect.isasyncgenfunction(self.lifespan_context):
-                async for item in self.lifespan_context(app):
+                async for _item in self.lifespan_context(app):
                     assert first, "Lifespan context yielded multiple times."
                     first = False
                     await send({"type": "lifespan.startup.complete"})
                     await receive()
             else:
-                for item in self.lifespan_context(app):  # type: ignore
+                for _item in self.lifespan_context(app):  # type: ignore
                     assert first, "Lifespan context yielded multiple times."
                     first = False
                     await send({"type": "lifespan.startup.complete"})
