@@ -70,7 +70,7 @@ def _is_asgi3(app: typing.Union[ASGI2App, ASGI3App]) -> bool:
         return hasattr(app, "__await__")
     elif inspect.isfunction(app):
         return asyncio.iscoroutinefunction(app)
-    call = getattr(app, "__call__", None)
+    call = getattr(app, "__call__", None)  # noqa: B004
     return asyncio.iscoroutinefunction(call)
 
 
