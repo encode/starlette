@@ -24,14 +24,16 @@ class Environ(MutableMapping):
     def __setitem__(self, key: typing.Any, value: typing.Any) -> None:
         if key in self._has_been_read:
             raise EnvironError(
-                f"Attempting to set environ['{key}'], but the value has already been read."
+                f"Attempting to set environ['{key}'], but the value has already been "
+                "read."
             )
         self._environ.__setitem__(key, value)
 
     def __delitem__(self, key: typing.Any) -> None:
         if key in self._has_been_read:
             raise EnvironError(
-                f"Attempting to delete environ['{key}'], but the value has already been read."
+                f"Attempting to delete environ['{key}'], but the value has already "
+                "been read."
             )
         self._environ.__delitem__(key)
 
@@ -57,12 +59,12 @@ class Config:
             self.file_values = self._read_file(env_file)
 
     def __call__(
-        self, key: str, cast: typing.Callable = None, default: typing.Any = undefined,
+        self, key: str, cast: typing.Callable = None, default: typing.Any = undefined
     ) -> typing.Any:
         return self.get(key, cast, default)
 
     def get(
-        self, key: str, cast: typing.Callable = None, default: typing.Any = undefined,
+        self, key: str, cast: typing.Callable = None, default: typing.Any = undefined
     ) -> typing.Any:
         if key in self.environ:
             value = self.environ[key]
@@ -87,7 +89,7 @@ class Config:
         return file_values
 
     def _perform_cast(
-        self, key: str, value: typing.Any, cast: typing.Callable = None,
+        self, key: str, value: typing.Any, cast: typing.Callable = None
     ) -> typing.Any:
         if cast is None or value is None:
             return value
