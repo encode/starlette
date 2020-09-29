@@ -1,5 +1,6 @@
 import typing
 
+
 from starlette.datastructures import URL, Headers
 from starlette.responses import PlainTextResponse, RedirectResponse, Response
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -12,11 +13,13 @@ class TrustedHostMiddleware:
         self,
         app: ASGIApp,
         allowed_hosts: typing.Sequence[str] = None,
+        except_path: typing.Sequence[str] = None,
         www_redirect: bool = True,
     ) -> None:
         if allowed_hosts is None:
             allowed_hosts = ["*"]
-
+        if except_path is None:
+            except_path = []
         for pattern in allowed_hosts:
             assert "*" not in pattern[1:], ENFORCE_DOMAIN_WILDCARD
             if pattern.startswith("*") and pattern != "*":
@@ -25,12 +28,10 @@ class TrustedHostMiddleware:
         self.allowed_hosts = list(allowed_hosts)
         self.allow_any = "*" in allowed_hosts
         self.www_redirect = www_redirect
+        self.except_path = list(except_path)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if self.allow_any or scope["type"] not in (
-            "http",
-            "websocket",
-        ):  # pragma: no cover
+        if self.allow_any or scope["type"] not in ("http", "websocket",):  # pragma: no cover
             await self.app(scope, receive, send)
             return
 
@@ -39,8 +40,10 @@ class TrustedHostMiddleware:
         is_valid_host = False
         found_www_redirect = False
         for pattern in self.allowed_hosts:
-            if host == pattern or (
-                pattern.startswith("*") and host.endswith(pattern[1:])
+            if (
+                host == pattern
+                or (pattern.startswith("*") and host.endswith(pattern[1:]))
+                or URL(scope=scope).path in self.except_path
             ):
                 is_valid_host = True
                 break
