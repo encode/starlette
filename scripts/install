@@ -1,7 +1,14 @@
 #!/bin/sh -e
 
+DEFAULT=""
+if [ command -v "python3" ]; then
+  DEFAULT="python3"
+else
+  DEFAULT="python"
+fi
+
 # Use the Python executable provided from the `-p` option, or a default.
-[ "$1" = "-p" ] && PYTHON=$2 || PYTHON="python3"
+[ "$1" = "-p" ] && PYTHON=$2 || PYTHON=$DEFAULT
 
 REQUIREMENTS="requirements.txt"
 VENV="venv"
@@ -9,10 +16,14 @@ VENV="venv"
 set -x
 
 if [ -z "$GITHUB_ACTIONS" ]; then
-    "$PYTHON" -m venv "$VENV"
+  "$PYTHON" -m venv "$VENV"
+  if [ $OSTYPE == "msys" ] || [ $OSTYPE == "cygwin" ]; then
+    PIP="$VENV/Scripts/pip"
+  else
     PIP="$VENV/bin/pip"
+  fi
 else
-    PIP="pip"
+  PIP="pip"
 fi
 
 "$PIP" install -r "$REQUIREMENTS"

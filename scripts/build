@@ -1,9 +1,13 @@
 #!/bin/sh -e
 
 if [ -d 'venv' ] ; then
-    PREFIX="venv/bin/"
+  if [ $OSTYPE == "msys" ] || [ $OSTYPE == "cygwin" ]; then
+    export PREFIX="venv/Scripts/"
+  else
+    export PREFIX="venv/bin/"
+  fi
 else
-    PREFIX=""
+  PREFIX=""
 fi
 
 set -x

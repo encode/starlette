@@ -2,7 +2,11 @@
 
 export PREFIX=""
 if [ -d 'venv' ] ; then
+  if [ $OSTYPE == "msys" ] || [ $OSTYPE == "cygwin" ]; then
+    export PREFIX="venv/Scripts/"
+  else
     export PREFIX="venv/bin/"
+  fi
 fi
 
 set -x
