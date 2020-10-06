@@ -271,9 +271,9 @@ def test_head_method():
     assert response.text == ""
 
 
-def test_sync_custom_streaming_response():
+def test_streaming_response_custom_iterator():
     async def app(scope, receive, send):
-        class CustomAsyncGenerator:
+        class CustomAsyncIterator:
             def __init__(self):
                 self._called = 0
 
