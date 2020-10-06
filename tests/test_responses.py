@@ -294,10 +294,10 @@ def test_streaming_response_custom_iterator():
     assert response.text == "12345"
 
 
-def test_sync_custom_streaming_response_no_anext():
+def test_streaming_response_custom_iterable():
     async def app(scope, receive, send):
-        class CustomAsyncGenerator:
-            async def __aiter__(self):
+        class CustomAsyncIterable:
+            def __aiter__(self):
                 for i in range(5):
                     yield str(i + 1)
 
