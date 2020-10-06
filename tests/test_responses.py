@@ -286,7 +286,7 @@ def test_streaming_response_custom_iterator():
                 self._called += 1
                 return str(self._called)
 
-        response = StreamingResponse(CustomAsyncGenerator(), media_type="text/plain")
+        response = StreamingResponse(CustomAsyncIterator(), media_type="text/plain")
         await response(scope, receive, send)
 
     client = TestClient(app)
@@ -301,7 +301,7 @@ def test_streaming_response_custom_iterable():
                 for i in range(5):
                     yield str(i + 1)
 
-        response = StreamingResponse(CustomAsyncGenerator(), media_type="text/plain")
+        response = StreamingResponse(CustomAsyncIterable(), media_type="text/plain")
         await response(scope, receive, send)
 
     client = TestClient(app)
