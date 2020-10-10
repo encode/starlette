@@ -312,13 +312,14 @@ class FileResponse(Response):
         if self.send_header_only:
             await send({"type": "http.response.body", "body": b"", "more_body": False})
         elif "http.response.zerocopysend" in scope["extensions"]:
-            await send(
-                {
-                    "type": "http.response.zerocopysend",
-                    "file": open(self.path, "rb"),
-                    "more_body": False,
-                }
-            )
+            with open(self.path, "rb") as file:
+                await send(
+                    {
+                        "type": "http.response.zerocopysend",
+                        "file": file,
+                        "more_body": False,
+                    }
+                )
         else:
             async with aiofiles.open(self.path, mode="rb") as file:
                 more_body = True
