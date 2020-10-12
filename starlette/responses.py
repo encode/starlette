@@ -22,8 +22,8 @@ try:
     import aiofiles
     from aiofiles.os import stat as aio_stat
 except ImportError:  # pragma: nocover
-    aiofiles = None
-    aio_stat = None
+    aiofiles = None  # type: ignore
+    aio_stat = None  # type: ignore
 
 try:
     import ujson
