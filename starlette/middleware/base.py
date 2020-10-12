@@ -11,6 +11,28 @@ DispatchFunction = typing.Callable[
 ]
 
 
+class _StreamingTemplateResponse(StreamingResponse):
+    template: str
+    context: dict
+
+    def __init__(
+        self, content: typing.Any, template: str, context: dict, status_code: int
+    ):
+        super().__init__(content, status_code, None, None, None)
+        self.template = template
+        self.context = context
+
+    async def stream_response(self, send: Send) -> None:
+        await send(
+            {
+                "type": "http.response.template",
+                "template": self.template,
+                "context": self.context,
+            }
+        )
+        await super().stream_response(send)
+
+
 class BaseHTTPMiddleware:
     def __init__(self, app: ASGIApp, dispatch: DispatchFunction = None) -> None:
         self.app = app
@@ -40,11 +62,6 @@ class BaseHTTPMiddleware:
                 await queue.put(None)
 
         task = loop.create_task(coro())
-        message = await queue.get()
-        if message is None:
-            task.result()
-            raise RuntimeError("No response returned.")
-        assert message["type"] == "http.response.start"
 
         async def body_stream() -> typing.AsyncGenerator[bytes, None]:
             while True:
@@ -55,9 +72,36 @@ class BaseHTTPMiddleware:
                 yield message.get("body", b"")
             task.result()
 
-        response = StreamingResponse(
-            status_code=message["status"], content=body_stream()
-        )
+        message = await queue.get()
+        if message is None:
+            task.result()
+            raise RuntimeError("No response returned.")
+
+        response: Response
+
+        extensions = request.scope.get("extensions")
+        if (
+            extensions is not None
+            and "http.response.template" in extensions
+            and message["type"] == "http.response.template"
+        ):
+            template = message["template"]
+            context = message["context"]
+            message = await queue.get()
+            assert message is not None
+            assert message["type"] == "http.response.start"
+            response = _StreamingTemplateResponse(
+                template=template,
+                context=context,
+                status_code=message["status"],
+                content=body_stream(),
+            )
+        else:
+            assert message["type"] == "http.response.start"
+            response = StreamingResponse(
+                status_code=message["status"], content=body_stream()
+            )
+
         response.raw_headers = message["headers"]
         return response
 

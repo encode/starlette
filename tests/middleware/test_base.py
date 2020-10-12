@@ -1,3 +1,5 @@
+from unittest import mock
+
 import pytest
 
 from starlette.applications import Starlette
@@ -5,6 +7,7 @@ from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import PlainTextResponse
 from starlette.routing import Route
+from starlette.templating import _TemplateResponse
 from starlette.testclient import TestClient
 
 
@@ -29,6 +32,16 @@ def exc(request):
     raise Exception()
 
 
+@app.route("/template")
+def template(request):
+    renderable = mock.Mock(render=mock.Mock(return_value=b"hello"))
+    return _TemplateResponse(
+        renderable,
+        {"request": request, "foo": "foo"},
+        headers={"Custom-Header": "Example"},
+    )
+
+
 @app.route("/no-response")
 class NoResponse:
     def __init__(self, scope, receive, send):
@@ -51,6 +64,13 @@ async def websocket_endpoint(session):
 def test_custom_middleware():
     client = TestClient(app)
     response = client.get("/")
+    assert response.headers["Custom-Header"] == "Example"
+
+    response = client.get("/template")
+    assert hasattr(response, "template")
+    assert getattr(response, "template", None).render({}) == b"hello"
+    assert getattr(response, "context", {})["foo"] == "foo"
+    assert response.content == b"hello"
     assert response.headers["Custom-Header"] == "Example"
 
     with pytest.raises(Exception):
