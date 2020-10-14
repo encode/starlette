@@ -312,7 +312,10 @@ class FileResponse(Response):
         if self.send_header_only:
             await send({"type": "http.response.body", "body": b"", "more_body": False})
         else:
-            async with aiofiles.open(self.path, mode="rb") as file:
+            # Tentatively ignoring type checking failure to work around the wrong type
+            # definitions for aiofile that come with typeshed. See
+            # https://github.com/python/typeshed/pull/4650
+            async with aiofiles.open(self.path, mode="rb") as file:  # type: ignore
                 more_body = True
                 while more_body:
                     chunk = await file.read(self.chunk_size)
