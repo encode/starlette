@@ -482,7 +482,7 @@ class FormData(ImmutableMultiDict):
         for key, value in self.multi_items():
             if isinstance(value, UploadFile):
                 await value.close()
-    
+
     def get(self, key: typing.Any, default: typing.Any = None) -> typing.Any:
         value = self.getlist(key)
         if len(value) == 0:
