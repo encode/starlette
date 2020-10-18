@@ -2,6 +2,8 @@
 name: Test Suite
 
 on:
+  push:
+    branches: ["master"]
   pull_request:
     branches: ["master"]
 
@@ -12,14 +14,20 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.6", "3.7", "3.8"]
+        python-version: ["3.6", "3.7", "3.8", "3.9"]
 
     steps:
       - uses: "actions/checkout@v2"
-      - uses: "actions/setup-python@v1"
+      - uses: "actions/setup-python@v2"
         with:
           python-version: "${{ matrix.python-version }}"
       - name: "Install dependencies"
         run: "scripts/install"
+      - name: "Run linting checks"
+        run: "scripts/check"
+      - name: "Build package & docs"
+        run: "scripts/build"
       - name: "Run tests"
         run: "scripts/test"
+      - name: "Enforce coverage"
+        run: "scripts/coverage"

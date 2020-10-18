@@ -279,4 +279,4 @@ GRAPHIQL = """
     </script>
   </body>
 </html>
-"""
+"""  # noqa: E501
