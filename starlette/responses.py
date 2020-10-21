@@ -1,6 +1,5 @@
 import hashlib
 import http.cookies
-import inspect
 import json
 import os
 import stat
@@ -22,8 +21,8 @@ try:
     import aiofiles
     from aiofiles.os import stat as aio_stat
 except ImportError:  # pragma: nocover
-    aiofiles = None
-    aio_stat = None
+    aiofiles = None  # type: ignore
+    aio_stat = None  # type: ignore
 
 
 # Compatibility wrapper for `mimetypes.guess_type` to support `os.PathLike` on <py3.8
@@ -191,7 +190,7 @@ class StreamingResponse(Response):
         media_type: str = None,
         background: BackgroundTask = None,
     ) -> None:
-        if inspect.isasyncgen(content):
+        if isinstance(content, typing.AsyncIterable):
             self.body_iterator = content
         else:
             self.body_iterator = iterate_in_threadpool(content)
@@ -299,7 +298,10 @@ class FileResponse(Response):
         if self.send_header_only:
             await send({"type": "http.response.body", "body": b"", "more_body": False})
         else:
-            async with aiofiles.open(self.path, mode="rb") as file:
+            # Tentatively ignoring type checking failure to work around the wrong type
+            # definitions for aiofile that come with typeshed. See
+            # https://github.com/python/typeshed/pull/4650
+            async with aiofiles.open(self.path, mode="rb") as file:  # type: ignore
                 more_body = True
                 while more_body:
                     chunk = await file.read(self.chunk_size)
