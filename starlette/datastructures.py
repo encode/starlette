@@ -275,6 +275,9 @@ class ImmutableMultiDict(typing.Mapping):
         self._list = _items
 
     def getlist(self, key: typing.Any) -> typing.List[str]:
+        key_list = "{key}[]".format(key=key)
+        if key_list in self._dict:
+            return self._dict[key_list].split(",")
         return [item_value for item_key, item_value in self._list if item_key == key]
 
     def keys(self) -> typing.KeysView:

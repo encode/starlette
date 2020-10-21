@@ -347,3 +347,6 @@ def test_multidict():
     assert q.getlist("a") == ["123"]
     q.update([("a", "456")], a="789", b="123")
     assert q == MultiDict([("a", "456"), ("a", "789"), ("b", "123")])
+
+    q = MultiDict([("a[]", "1,2,3,4")])
+    assert q.getlist("a") == ["1", "2", "3", "4"]
