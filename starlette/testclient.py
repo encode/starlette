@@ -455,11 +455,11 @@ class TestClient(requests.Session):
         self.receive_queue = asyncio.Queue()  # type: asyncio.Queue
         self.task = loop.create_task(self.lifespan())
         loop.run_until_complete(self.wait_startup())
+        self.loop = loop
         return self
 
     def __exit__(self, *args: typing.Any) -> None:
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.wait_shutdown())
+        self.loop.run_until_complete(self.wait_shutdown())
 
     async def lifespan(self) -> None:
         scope = {"type": "lifespan"}
