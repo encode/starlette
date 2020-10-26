@@ -102,6 +102,8 @@ The following arguments are supported:
 * `same_site` - SameSite flag prevents the browser from sending session cookie along with cross-site requests. Defaults to `'lax'`.
 * `https_only` - Indicate that Secure flag should be set (can be used with HTTPS only). Defaults to `False`.
 
+To use this middleware, you need to ensure that the optional dependency `itsdangerous` has been installed.
+
 ## HTTPSRedirectMiddleware
 
 Enforces that all incoming requests must either be `https` or `wss`. Any incoming
