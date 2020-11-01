@@ -220,9 +220,15 @@ class BigUploadFile(UploadFile):
 @pytest.mark.asyncio
 async def test_upload_file():
     big_file = BigUploadFile("big-file")
+    await big_file.seek(0)
     await big_file.write(b"big-data" * 512)
     await big_file.write(b"big-data")
-    await big_file.seek(0, 0)
+    pos = big_file.tell()
+    assert pos > 512 * len(b"big-data")
+    await big_file.seek(-10, 1)
+    assert big_file.tell() == pos - 10
+    await big_file.seek(0)
+    assert big_file.tell() == 0
     assert await big_file.read(1024) == b"big-data" * 128
     await big_file.close()
 
