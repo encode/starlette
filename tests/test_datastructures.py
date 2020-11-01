@@ -222,7 +222,7 @@ async def test_upload_file():
     big_file = BigUploadFile("big-file")
     await big_file.write(b"big-data" * 512)
     await big_file.write(b"big-data")
-    await big_file.seek(0)
+    await big_file.seek(0, 0)
     assert await big_file.read(1024) == b"big-data" * 128
     await big_file.close()
 

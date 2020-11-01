@@ -449,11 +449,11 @@ class UploadFile:
             return self.file.read(size)
         return await run_in_threadpool(self.file.read, size)
 
-    async def seek(self, offset: int) -> None:
+    async def seek(self, offset: int, whence: int = 0) -> None:
         if self._in_memory:
-            self.file.seek(offset)
+            self.file.seek(offset, whence)
         else:
-            await run_in_threadpool(self.file.seek, offset)
+            await run_in_threadpool(self.file.seek, offset, whence)
 
     async def close(self) -> None:
         if self._in_memory:
