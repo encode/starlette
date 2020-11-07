@@ -232,4 +232,3 @@ GRAPHIQL = """
   </body>
 </html>
 """
-
