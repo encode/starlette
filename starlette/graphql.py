@@ -143,13 +143,6 @@ class GraphQLApp:
         return HTMLResponse(text)
 
 
-'''
-GraphiQL example from 
-https://github.com/graphql/graphiql/blob/main/examples/graphiql-cdn/index.html
-
-Modified to enable header edition using content from 
-https://github.com/graphql/graphiql/issues/59#issuecomment-643688951
-'''
 GRAPHIQL = """
 <!--
  *  Copyright (c) 2020 GraphQL Contributors
