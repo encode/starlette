@@ -130,7 +130,7 @@ class GraphQLApp:
                 executor=self.executor,
                 return_promise=True,
                 context=context,
-                middleware=self.middleware
+                middleware=self.middleware,
             )
         else:
             return await run_in_threadpool(
@@ -139,7 +139,7 @@ class GraphQLApp:
                 variables=variables,
                 operation_name=operation_name,
                 context=context,
-                middleware=self.middleware
+                middleware=self.middleware,
             )
 
     async def handle_graphiql(self, request: Request) -> Response:
