@@ -1,3 +1,19 @@
+## 0.13.9
+
+November 8th, 2020
+
+### Added
+
+* In `StreamingResponse`, allow custom async iterator such as objects from classes implementing `__aiter__`.
+* Allow usage of `functools.partial` async handlers in Python versions 3.6 and 3.7.
+* Add 418 I'm A Teapot status code.
+
+### Changed
+
+* Create tasks from handler coroutines before sending them to `asyncio.wait`.
+* Use `format_exception` instead of `format_tb` in `ServerErrorMiddleware`'s `debug` responses.
+* Be more lenient with handler arguments when using the `requires` decorator.
+
 ## 0.13.8
 
 * Revert `Queue(maxsize=1)` fix for `BaseHTTPMiddleware` middleware classes and streaming responses.
