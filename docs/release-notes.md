@@ -1,9 +1,10 @@
-## 0.13.9
+## 0.14.0
 
 November 8th, 2020
 
 ### Added
 
+* Starlette now officially supports Python3.9.
 * In `StreamingResponse`, allow custom async iterator such as objects from classes implementing `__aiter__`.
 * Allow usage of `functools.partial` async handlers in Python versions 3.6 and 3.7.
 * Add 418 I'm A Teapot status code.
