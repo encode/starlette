@@ -1,3 +1,11 @@
+## 0.14.1
+
+November 8th, 2020
+
+### Removed
+
+* `UJSONResponse` was removed (this change was intended to be included in 0.14.0).
+
 ## 0.14.0
 
 November 8th, 2020
