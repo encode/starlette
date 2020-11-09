@@ -4,7 +4,9 @@ November 8th, 2020
 
 ### Removed
 
-* `UJSONResponse` was removed (this change was intended to be included in 0.14.0).
+* `UJSONResponse` was removed (this change was intended to be included in 0.14.0). Please see the
+  [documentation](https://www.starlette.io/responses/#custom-json-serialization) for how to
+  implement responses using custom JSON serialization.
 
 ## 0.14.0
 
