@@ -1,6 +1,6 @@
 ## 0.14.1
 
-November 8th, 2020
+November 9th, 2020
 
 ### Removed
 
