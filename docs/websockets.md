@@ -86,3 +86,7 @@ correctly updated.
 
 * `await websocket.send(message)`
 * `await websocket.receive()`
+
+#### Note
+
+The `websockets` library is required for this capability but may not automatically be installed depending on your version of `uvicorn`. Install with `pip3 install websockets` if needed.
