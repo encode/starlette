@@ -1,4 +1,5 @@
 import io
+import os
 
 import pytest
 
@@ -220,12 +221,17 @@ class BigUploadFile(UploadFile):
 @pytest.mark.asyncio
 async def test_upload_file():
     big_file = BigUploadFile("big-file")
+    await big_file.write(b"big-data")
+    assert (await big_file.tell()) == 8
     await big_file.seek(0)
-    await big_file.write(b"big-data" * 512)
+    assert (await big_file.tell()) == 0
+    await big_file.seek(0, os.SEEK_END)
+    assert (await big_file.tell()) == 8
+    await big_file.write(b"big-data" * 511)
     await big_file.write(b"big-data")
     pos = await big_file.tell()
     assert pos > 512 * len(b"big-data")
-    await big_file.seek(-10, 1)
+    await big_file.seek(-10, os.SEEK_CUR)
     assert (await big_file.tell()) == pos - 10
     await big_file.seek(0)
     assert (await big_file.tell()) == 0
