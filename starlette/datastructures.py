@@ -455,8 +455,11 @@ class UploadFile:
         else:
             await run_in_threadpool(self.file.seek, offset, whence)
 
-    def tell(self) -> int:
-        return self.file.tell()
+    async def tell(self) -> int:
+        if self._in_memory:
+            return self.file.tell()
+        else:
+            return await run_in_threadpool(self.file.tell)
 
     async def close(self) -> None:
         if self._in_memory:
