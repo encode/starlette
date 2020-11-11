@@ -12,7 +12,6 @@ from starlette.responses import (
     RedirectResponse,
     Response,
     StreamingResponse,
-    UJSONResponse,
 )
 from starlette.testclient import TestClient
 
@@ -35,16 +34,6 @@ def test_bytes_response():
     client = TestClient(app)
     response = client.get("/")
     assert response.content == b"xxxxx"
-
-
-def test_ujson_response():
-    async def app(scope, receive, send):
-        response = UJSONResponse({"hello": "world"})
-        await response(scope, receive, send)
-
-    client = TestClient(app)
-    response = client.get("/")
-    assert response.json() == {"hello": "world"}
 
 
 def test_json_none_response():
@@ -99,6 +88,44 @@ def test_streaming_response():
     response = client.get("/")
     assert response.text == "1, 2, 3, 4, 5"
     assert filled_by_bg_task == "6, 7, 8, 9"
+
+
+def test_streaming_response_custom_iterator():
+    async def app(scope, receive, send):
+        class CustomAsyncIterator:
+            def __init__(self):
+                self._called = 0
+
+            def __aiter__(self):
+                return self
+
+            async def __anext__(self):
+                if self._called == 5:
+                    raise StopAsyncIteration()
+                self._called += 1
+                return str(self._called)
+
+        response = StreamingResponse(CustomAsyncIterator(), media_type="text/plain")
+        await response(scope, receive, send)
+
+    client = TestClient(app)
+    response = client.get("/")
+    assert response.text == "12345"
+
+
+def test_streaming_response_custom_iterable():
+    async def app(scope, receive, send):
+        class CustomAsyncIterable:
+            async def __aiter__(self):
+                for i in range(5):
+                    yield str(i + 1)
+
+        response = StreamingResponse(CustomAsyncIterable(), media_type="text/plain")
+        await response(scope, receive, send)
+
+    client = TestClient(app)
+    response = client.get("/")
+    assert response.text == "12345"
 
 
 def test_sync_streaming_response():
