@@ -250,7 +250,7 @@ def test_file_response_with_offset(tmpdir):
     path = os.path.join(tmpdir, filename)
     with open(path, "wb") as f:
         f.write(content)
-    for offset in range(0,24,4): # skip blocks of 4
+    for offset in range(0, 24, 4):  # skip blocks of 4
         app = FileResponse(path=path, offset=offset)
         client = TestClient(app)
         response = client.get("/")
