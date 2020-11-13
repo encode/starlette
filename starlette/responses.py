@@ -300,7 +300,7 @@ class FileResponse(Response):
         if self.send_header_only:
             await send({"type": "http.response.body", "body": b"", "more_body": False})
         else:
-            async with aiofiles.threadpool.open(self.path, mode='rb') as file:
+            async with aiofiles.threadpool.open(self.path, mode="rb") as file:
                 await file.seek(self.offset)
                 more_body = True
                 while more_body:
