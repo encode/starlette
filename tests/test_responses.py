@@ -244,6 +244,19 @@ def test_file_response_with_chinese_filename(tmpdir):
     assert response.headers["content-disposition"] == expected_disposition
 
 
+def test_file_response_with_offset(tmpdir):
+    content = b"000 111 222 333 444 555"
+    filename = "offset"
+    path = os.path.join(tmpdir, filename)
+    with open(path, "wb") as f:
+        f.write(content)
+    for offset in range(0,24,4): # skip blocks of 4
+        app = FileResponse(path=path, offset=offset)
+        client = TestClient(app)
+        response = client.get("/")
+        assert response.content == content[offset:]
+
+
 def test_set_cookie():
     async def app(scope, receive, send):
         response = Response("Hello, world!", media_type="text/plain")
