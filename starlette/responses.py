@@ -235,7 +235,7 @@ class FileResponse(Response):
 
     def __init__(
         self,
-        path: typing.Union[str, "os.PathLike[str]"],
+        path: str,
         status_code: int = 200,
         headers: dict = None,
         media_type: str = None,
@@ -243,6 +243,7 @@ class FileResponse(Response):
         filename: str = None,
         stat_result: os.stat_result = None,
         method: str = None,
+        offset: int = 0
     ) -> None:
         assert aiofiles is not None, "'aiofiles' must be installed to use FileResponse"
         self.path = path
@@ -266,6 +267,7 @@ class FileResponse(Response):
         self.stat_result = stat_result
         if stat_result is not None:
             self.set_stat_headers(stat_result)
+        self.offset = offset
 
     def set_stat_headers(self, stat_result: os.stat_result) -> None:
         content_length = str(stat_result.st_size)
@@ -298,10 +300,8 @@ class FileResponse(Response):
         if self.send_header_only:
             await send({"type": "http.response.body", "body": b"", "more_body": False})
         else:
-            # Tentatively ignoring type checking failure to work around the wrong type
-            # definitions for aiofile that come with typeshed. See
-            # https://github.com/python/typeshed/pull/4650
-            async with aiofiles.open(self.path, mode="rb") as file:  # type: ignore
+            async with aiofiles.threadpool.open(self.path, mode='rb') as file:
+                await file.seek(self.offset)
                 more_body = True
                 while more_body:
                     chunk = await file.read(self.chunk_size)
