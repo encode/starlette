@@ -20,6 +20,7 @@ http.cookies.Morsel._reserved["samesite"] = "SameSite"  # type: ignore
 try:
     import aiofiles
     from aiofiles.os import stat as aio_stat
+    from aiofiles.threadpool import open as aio_open
 except ImportError:  # pragma: nocover
     aiofiles = None  # type: ignore
     aio_stat = None  # type: ignore
@@ -303,7 +304,7 @@ class FileResponse(Response):
             # Tentatively ignoring type checking failure to work around the wrong type
             # definitions for aiofile that come with typeshed. See
             # https://github.com/python/typeshed/pull/4650
-            async with aiofiles.threadpool.open(self.path, mode="rb") as file:  # type: ignore
+            async with aio_open(self.path, mode="rb") as file:  # type: ignore
                 await file.seek(self.offset)
                 more_body = True
                 while more_body:
