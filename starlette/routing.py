@@ -719,7 +719,6 @@ class GraphQlSubscriptionRoute(WebSocketRoute):
             await websocket.send_json({"type": "connection_ack"})
 
             request = await websocket.receive_json()
-            print(request)
             query = request["payload"]["query"]
 
             if len(query) > 0 and "subscription" not in query:
