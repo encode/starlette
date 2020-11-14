@@ -121,7 +121,7 @@ def test_add_graphql_route():
 def test_graphql_context():
     app = Starlette()
     app.add_middleware(FakeAuthMiddleware)
-    app.add_route("/", GraphQLApp(schema=schema))
+    app.add_route("/", GraphQLApp(schema=schema, execute_async=False))
     client = TestClient(app)
     response = client.post(
         "/", json={"query": "{ whoami }"}, headers={"Authorization": "Bearer 123"}
