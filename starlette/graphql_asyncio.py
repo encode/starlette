@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from asyncio import Future, get_event_loop, iscoroutine, wait
-from typing import Any
 
 from promise import Promise
 
@@ -51,7 +50,7 @@ try:
     from .asyncio_utils import asyncgen_to_observable
 except Exception:
 
-    def asyncgen_to_observable(asyncgen: Any, loop: Any = None) -> None:
+    def asyncgen_to_observable(asyncgen, loop=None):  # type: ignore
         pass
 
 
