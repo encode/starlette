@@ -752,7 +752,8 @@ class GraphQlSubscriptionRoute(WebSocketRoute):
 
             if isinstance(result, graphql.ExecutionResult):
                 output_args = {}
-                output_args["errors"] = [err.formatted for err in result.errors]
+                if result.errors is not None:
+                    output_args["errors"] = [err.formatted for err in result.errors]
                 response = {
                     "payload": {**output_args},
                     "type": "error",
