@@ -1,10 +1,8 @@
 import graphene
-import pytest
 
 from starlette.applications import Starlette
 from starlette.datastructures import Headers
 from starlette.graphql import GraphQLApp
-from starlette.graphql_asyncio import AsyncioExecutor
 from starlette.testclient import TestClient
 
 
@@ -130,42 +128,3 @@ def test_graphql_context():
     )
     assert response.status_code == 200
     assert response.json() == {"data": {"whoami": "Jane"}}
-
-
-class ASyncQuery(graphene.ObjectType):
-    hello = graphene.String(name=graphene.String(default_value="stranger"))
-
-    async def resolve_hello(self, info, name):
-        return "Hello " + name
-
-
-async_schema = graphene.Schema(query=ASyncQuery)
-async_app = GraphQLApp(schema=async_schema, executor_class=AsyncioExecutor)
-
-
-# PR: Graphene v3 doesn't seem to support the executor argument anymore.
-# def test_graphql_async():
-#     client = TestClient(async_app)
-#     response = client.get("/?query={ hello }")
-#     assert response.status_code == 200
-#     assert response.json() == {"data": {"hello": "Hello stranger"}}
-
-
-async_schema = graphene.Schema(query=ASyncQuery)
-
-
-@pytest.fixture
-def old_style_async_app(event_loop) -> GraphQLApp:
-    old_style_async_app = GraphQLApp(
-        schema=async_schema, executor=AsyncioExecutor(loop=event_loop)
-    )
-    return old_style_async_app
-
-
-# PR: Graphene v3 doesn't seem to support the executor argument anymore.
-# def test_graphql_async_old_style_executor(old_style_async_app: GraphQLApp):
-#     # See https://github.com/encode/starlette/issues/242
-#     client = TestClient(old_style_async_app)
-#     response = client.get("/?query={ hello }")
-#     assert response.status_code == 200
-#     assert response.json() == {"data": {"hello": "Hello stranger"}}
