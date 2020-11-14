@@ -691,22 +691,6 @@ class Router:
         return decorator
 
 
-def graphql_dict_ack(data: typing.Any, id: int) -> dict:
-    return {"type": "connection_ack"}
-
-
-def graphql_dict_data(data: typing.Any, id: int) -> dict:
-    return {"payload": {"data": data}, "type": "data", "id": id}
-
-
-def graphql_dict_complete(id: int) -> dict:
-    return {"type": "complete", "id": id}
-
-
-def graphql_dict_error(id: int) -> dict:
-    return {"type": "complete", "id": id}
-
-
 class GraphQlSubscriptionRoute(WebSocketRoute):
     def __init__(self, path: str, schema: graphene.Schema, *, name: str = None) -> None:
         assert path.startswith("/"), "Routed paths must start with '/'"
