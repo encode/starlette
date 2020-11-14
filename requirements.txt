@@ -1,6 +1,12 @@
 # Optionals
 aiofiles
-graphene
+
+# PR works with graphene v3
+graphene>='3'
+websockets
+promise
+pytz
+
 itsdangerous
 jinja2
 python-multipart

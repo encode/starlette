@@ -15,6 +15,9 @@ from starlette.requests import Request
 from starlette.responses import PlainTextResponse, RedirectResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketClose
+import graphene
+import websockets
+import graphql
 
 
 class NoMatchFound(Exception):
@@ -686,3 +689,106 @@ class Router:
             return func
 
         return decorator
+
+
+def graphql_dict_ack(data: typing.Any, id: int) -> dict:
+    return {"type": "connection_ack"}
+
+
+def graphql_dict_data(data: typing.Any, id: int) -> dict:
+    return {"payload": {"data": data}, "type": "data", "id": id}
+
+
+def graphql_dict_complete(id: int) -> dict:
+    return {"type": "complete", "id": id}
+
+
+def graphql_dict_error(id: int) -> dict:
+    return {"type": "complete", "id": id}
+
+
+class GraphQlSubscriptionRoute(WebSocketRoute):
+    def __init__(self, path: str, schema: graphene.Schema, *, name: str = None) -> None:
+        assert path.startswith("/"), "Routed paths must start with '/'"
+        self.path = path
+        self.schema = schema
+        self.endpoint = schema
+        self.name = get_name(schema) if name is None else name
+        if isinstance(schema, graphene.Schema):
+            # Endpoint is a Schema.
+            self.app = websocket_session(self.subscribe_forward)
+        else:
+            raise ValueError("GraphQlSubscriptionRoute requires a Schema as endpoint")
+
+        self.path_regex, self.path_format, self.param_convertors = compile_path(path)
+
+    async def subscribe_forward(self, websocket: WebSocket) -> None:
+        try:
+            await websocket.accept()
+
+            # Message "connection_init".
+            request = await websocket.receive_json()
+
+            # Confirming the communication.
+            await websocket.send_json({"type": "connection_ack"})
+
+            request = await websocket.receive_json()
+            query = request["payload"]["query"]
+
+            if len(query) > 0 and "subscription" not in query:
+                """
+                If not of subscription type, executes the query.
+                """
+                output_args = {}
+                result = self.schema.execute(query)
+
+                if result.errors is not None:
+                    output_args["errors"] = [err.formatted for err in result.errors]
+
+                if result.data is not None:
+                    output_args["data"] = result.data
+
+                response = {
+                    "payload": {**output_args},
+                    "type": "error" if result.errors is not None else "data",
+                    "id": request["id"],
+                }
+                await websocket.send_json(response)
+                return
+
+            kwargs = {}
+            if "variables" in request["payload"]:
+                kwargs["variables"] = request["payload"]["variables"]
+
+            if "operationName" in request["payload"]:
+                kwargs["operationName"] = request["payload"]["operationName"]
+
+            result = await self.schema.subscribe(query, **kwargs)
+
+            if isinstance(result, graphql.ExecutionResult):
+                output_args = {}
+                output_args["errors"] = [err.formatted for err in result.errors]
+                response = {
+                    "payload": {**output_args},
+                    "type": "error",
+                    "id": request["id"],
+                }
+                await websocket.send_json(response)
+                return
+
+            async for item in result:
+
+                # Forward subscription message.
+                await websocket.send_json(
+                    {
+                        "payload": {"data": item.data},
+                        "type": "data",
+                        "id": request["id"],
+                    }
+                )
+
+            await websocket.send_json({"type": "complete", "id": request["id"]})
+        except websockets.exceptions.ConnectionClosedOK:
+            pass
+        finally:
+            await websocket.close()
