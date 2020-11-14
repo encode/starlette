@@ -50,7 +50,7 @@ try:
     from .asyncio_utils import asyncgen_to_observable
 except Exception:
 
-    def asyncgen_to_observable(asyncgen, loop=None):
+    def asyncgen_to_observable(asyncgen: Any, loop: Any=None) -> None:
         pass
 
 
@@ -71,7 +71,7 @@ class AsyncioExecutor(object):
             self.futures = []
             self.loop.run_until_complete(wait(futures))
 
-    def clean(self):
+    def clean(self) -> None:
         self.futures = []
 
     def execute(self, fn, *args, **kwargs):
