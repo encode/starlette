@@ -9,7 +9,6 @@ from enum import Enum
 
 import graphene
 import graphql
-import websockets
 
 from starlette.concurrency import run_in_threadpool
 from starlette.convertors import CONVERTOR_TYPES, Convertor
@@ -18,7 +17,9 @@ from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, RedirectResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
-from starlette.websockets import WebSocket, WebSocketClose
+from starlette.websockets import WebSocket, WebSocketClose, WebSocketDisconnect
+
+# import websockets
 
 
 class NoMatchFound(Exception):
@@ -718,6 +719,7 @@ class GraphQlSubscriptionRoute(WebSocketRoute):
             await websocket.send_json({"type": "connection_ack"})
 
             request = await websocket.receive_json()
+            print(request)
             query = request["payload"]["query"]
 
             if len(query) > 0 and "subscription" not in query:
@@ -774,7 +776,9 @@ class GraphQlSubscriptionRoute(WebSocketRoute):
                 )
 
             await websocket.send_json({"type": "complete", "id": request["id"]})
-        except websockets.exceptions.ConnectionClosedOK:
+        except WebSocketDisconnect:
             pass
+        # except websockets.exceptions.ConnectionClosedOK:
+        #     pass
         finally:
             await websocket.close()

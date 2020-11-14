@@ -68,6 +68,9 @@ async def log_user_agent(user_agent):
 
 ## Sync or Async executors
 
+TODO PR #1091 AsyncioExecutor has been dropped by graphene v3, I've therefore dropped the
+executor references and replaced it by the graphene Schema.execute_async method.
+
 If you're working with a standard ORM, then just use regular function calls for
 your "resolve" methods, and Starlette will manage running the GraphQL query within a
 seperate thread.

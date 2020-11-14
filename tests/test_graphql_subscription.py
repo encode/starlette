@@ -3,6 +3,7 @@ from random import randint
 
 import graphene
 import graphql
+import pytest
 from graphene import Int, ObjectType, Schema, String
 from packaging import version
 
@@ -28,7 +29,7 @@ class Subscription(ObjectType):
     async def subscribe_count(root, info, up_to):
         for i in range(1, up_to):
             yield i
-            await asyncio_sleep(1.0)
+            await asyncio_sleep(0.1)
         yield up_to
 
 
@@ -115,9 +116,7 @@ def test_invalid_query_subscribe():
         connection_ack_helper(session)
         graph = {
             "id": 30,
-            "payload": {
-                "query": "subscription{ invalid }",
-            },
+            "payload": {"query": "subscription{ invalid }", "operationName": "Test"},
             "type": "data",
         }
 
@@ -152,7 +151,7 @@ def test_query_websocket():
         id = randint(10, 1000)
         graph = {
             "payload": {
-                "query": "{ hello }",
+                "query": "query Name { hello }",
             },
             "id": id,
             "type": "data",
@@ -218,3 +217,34 @@ def test_query_aliases_websocket():
             "id": id,
         }
         assert result == expected
+
+
+def test_wrong_schema():
+    with pytest.raises(ValueError):
+        Router(
+            routes=[
+                GraphQlSubscriptionRoute("/graphql", schema=None),
+            ]
+        )
+
+
+def test_connection_disconnect():
+    with context_helper() as session:
+        connection_ack_helper(session)
+
+
+def test_connection_close():
+    with context_helper() as session:
+        connection_ack_helper(session)
+        graph = {
+            "id": 30,
+            "payload": {
+                "query": "subscription($upTo: Int) { count(upTo: $upTo) }",
+                "variables": {"upTo": 3},
+            },
+            "type": "data",
+            "operationName": "toto",
+        }
+        session.send_json(graph)
+        assert_count_helper(session, 1)
+        session.close()

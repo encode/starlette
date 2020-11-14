@@ -11,11 +11,8 @@ from starlette.types import Receive, Scope, Send
 try:
     import graphene
     from graphql.error import GraphQLError, format_error as format_graphql_error
-
-    from starlette.graphql_asyncio import AsyncioExecutor
 except ImportError:  # pragma: nocover
     graphene = None
-    AsyncioExecutor = None  # type: ignore
     format_graphql_error = None  # type: ignore
     GraphQLError = None  # type: ignore
 
@@ -24,31 +21,14 @@ class GraphQLApp:
     def __init__(
         self,
         schema: "graphene.Schema",
-        executor: typing.Any = None,
-        executor_class: type = None,
         graphiql: bool = True,
+        execute_async: bool = True,
     ) -> None:
         self.schema = schema
         self.graphiql = graphiql
-        if executor is None:
-            # New style in 0.10.0. Use 'executor_class'.
-            # See issue https://github.com/encode/starlette/issues/242
-            self.executor = executor
-            self.executor_class = executor_class
-            self.is_async = executor_class is not None and issubclass(
-                executor_class, AsyncioExecutor
-            )
-        else:
-            # Old style. Use 'executor'.
-            # We should remove this in the next median/major version bump.
-            self.executor = executor
-            self.executor_class = None
-            self.is_async = isinstance(executor, AsyncioExecutor)
+        self.execute_async = execute_async
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if self.executor is None and self.executor_class is not None:
-            self.executor = self.executor_class()
-
         request = Request(scope, receive=receive)
         response = await self.handle_graphql(request)
         await response(scope, receive, send)
@@ -121,13 +101,11 @@ class GraphQLApp:
     async def execute(  # type: ignore
         self, query, variables=None, context=None, operation_name=None
     ):
-        if self.is_async:
-            return await self.schema.execute(
+        if self.execute_async:
+            return await self.schema.execute_async(
                 query,
                 variables=variables,
                 operation_name=operation_name,
-                executor=self.executor,
-                return_promise=True,
                 context=context,
             )
         else:

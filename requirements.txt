@@ -1,7 +1,7 @@
 # Optionals
 aiofiles
 
-# PR works with graphene v3
+# PR #1091 works with graphene v3
 graphene>='3'
 websockets
 promise
