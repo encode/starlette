@@ -1,7 +1,7 @@
 from __future__ import absolute_import
-from typing import Any
 
 from asyncio import Future, get_event_loop, iscoroutine, wait
+from typing import Any
 
 from promise import Promise
 
