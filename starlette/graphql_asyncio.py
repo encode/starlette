@@ -50,7 +50,7 @@ try:
     from .asyncio_utils import asyncgen_to_observable
 except Exception:
 
-    def asyncgen_to_observable(asyncgen: Any, loop: Any=None) -> None:
+    def asyncgen_to_observable(asyncgen: Any, loop: Any = None) -> None:
         pass
 
 
