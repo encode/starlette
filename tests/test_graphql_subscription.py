@@ -1,16 +1,25 @@
-import pytest
-from starlette.applications import Starlette
-from starlette.responses import JSONResponse, PlainTextResponse, Response
-from starlette.routing import Host, Mount, NoMatchFound, Route, Router, WebSocketRoute
-from starlette.testclient import TestClient
-from starlette.websockets import WebSocket, WebSocketDisconnect
-from starlette.routing import GraphQlSubscriptionRoute
-from graphene import ObjectType, String, Schema, Int
 from asyncio import sleep as asyncio_sleep
 from random import randint
-from packaging import version
-import graphql
+
 import graphene
+import graphql
+import pytest
+from graphene import Int, ObjectType, Schema, String
+from packaging import version
+
+from starlette.applications import Starlette
+from starlette.responses import JSONResponse, PlainTextResponse, Response
+from starlette.routing import (
+    GraphQlSubscriptionRoute,
+    Host,
+    Mount,
+    NoMatchFound,
+    Route,
+    Router,
+    WebSocketRoute,
+)
+from starlette.testclient import TestClient
+from starlette.websockets import WebSocket, WebSocketDisconnect
 
 
 def test_minimal_versions():

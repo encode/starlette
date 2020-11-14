@@ -7,6 +7,10 @@ import traceback
 import typing
 from enum import Enum
 
+import graphene
+import graphql
+import websockets
+
 from starlette.concurrency import run_in_threadpool
 from starlette.convertors import CONVERTOR_TYPES, Convertor
 from starlette.datastructures import URL, Headers, URLPath
@@ -15,9 +19,6 @@ from starlette.requests import Request
 from starlette.responses import PlainTextResponse, RedirectResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketClose
-import graphene
-import websockets
-import graphql
 
 
 class NoMatchFound(Exception):

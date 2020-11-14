@@ -11,6 +11,7 @@ from starlette.types import Receive, Scope, Send
 try:
     import graphene
     from graphql.error import GraphQLError, format_error as format_graphql_error
+
     from starlette.graphql_asyncio import AsyncioExecutor
 except ImportError:  # pragma: nocover
     graphene = None

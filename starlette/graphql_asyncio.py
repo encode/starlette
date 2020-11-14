@@ -12,7 +12,7 @@ But graphene v3 doesn't support it anymore.
 # Necessary for static type checking
 if False:  # flake8: noqa
     from asyncio import AbstractEventLoop
-    from typing import Optional, Any, Callable, List
+    from typing import Any, Callable, List, Optional
 
 try:
     from asyncio import ensure_future

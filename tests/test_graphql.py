@@ -1,10 +1,10 @@
 import graphene
 import pytest
 
-from starlette.graphql_asyncio import AsyncioExecutor
 from starlette.applications import Starlette
 from starlette.datastructures import Headers
 from starlette.graphql import GraphQLApp
+from starlette.graphql_asyncio import AsyncioExecutor
 from starlette.testclient import TestClient
 
 
