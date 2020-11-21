@@ -46,6 +46,8 @@ class Environ(MutableMapping):
 
 environ = Environ()
 
+T = typing.TypeVar("T")
+
 
 class Config:
     def __init__(
@@ -57,6 +59,22 @@ class Config:
         self.file_values = {}  # type: typing.Dict[str, str]
         if env_file is not None and os.path.isfile(env_file):
             self.file_values = self._read_file(env_file)
+
+    @typing.overload
+    def __call__(self, key: str, cast: typing.Type[T], default: T = ...) -> T:
+        ...
+
+    @typing.overload
+    def __call__(
+        self, key: str, cast: typing.Type[str] = ..., default: str = ...
+    ) -> str:
+        ...
+
+    @typing.overload
+    def __call__(
+        self, key: str, cast: typing.Type[str] = ..., default: T = ...
+    ) -> typing.Union[T, str]:
+        ...
 
     def __call__(
         self, key: str, cast: typing.Callable = None, default: typing.Any = undefined
