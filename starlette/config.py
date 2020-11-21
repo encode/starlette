@@ -61,19 +61,21 @@ class Config:
             self.file_values = self._read_file(env_file)
 
     @typing.overload
-    def __call__(self, key: str, cast: typing.Type[T], default: T = ...) -> T:
+    def __call__(
+        self, key: str, cast: typing.Type[T], default: T = ...
+    ) -> T:  # pragma: no cover
         ...
 
     @typing.overload
     def __call__(
         self, key: str, cast: typing.Type[str] = ..., default: str = ...
-    ) -> str:
+    ) -> str:  # pragma: no cover
         ...
 
     @typing.overload
     def __call__(
         self, key: str, cast: typing.Type[str] = ..., default: T = ...
-    ) -> typing.Union[T, str]:
+    ) -> typing.Union[T, str]:  # pragma: no cover
         ...
 
     def __call__(
