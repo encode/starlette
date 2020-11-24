@@ -1,3 +1,31 @@
+## 0.14.1
+
+November 9th, 2020
+
+### Removed
+
+* `UJSONResponse` was removed (this change was intended to be included in 0.14.0). Please see the
+  [documentation](https://www.starlette.io/responses/#custom-json-serialization) for how to
+  implement responses using custom JSON serialization -
+  [#1074](https://github.com/encode/starlette/pull/1047).
+
+## 0.14.0
+
+November 8th, 2020
+
+### Added
+
+* Starlette now officially supports Python3.9.
+* In `StreamingResponse`, allow custom async iterator such as objects from classes implementing `__aiter__`.
+* Allow usage of `functools.partial` async handlers in Python versions 3.6 and 3.7.
+* Add 418 I'm A Teapot status code.
+
+### Changed
+
+* Create tasks from handler coroutines before sending them to `asyncio.wait`.
+* Use `format_exception` instead of `format_tb` in `ServerErrorMiddleware`'s `debug` responses.
+* Be more lenient with handler arguments when using the `requires` decorator.
+
 ## 0.13.8
 
 * Revert `Queue(maxsize=1)` fix for `BaseHTTPMiddleware` middleware classes and streaming responses.
