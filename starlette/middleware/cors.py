@@ -56,6 +56,7 @@ class CORSMiddleware:
             preflight_headers["Access-Control-Allow-Credentials"] = "true"
 
         self.app = app
+        self.allow_credentials = allow_credentials
         self.allow_origins = allow_origins
         self.allow_methods = allow_methods
         self.allow_headers = [h.lower() for h in allow_headers]
@@ -105,11 +106,13 @@ class CORSMiddleware:
         failures = []
 
         if self.is_allowed_origin(origin=requested_origin):
-            if not self.allow_all_origins:
+            if not self.allow_all_origins or self.allow_credentials:
                 # If self.allow_all_origins is True, then the
                 # "Access-Control-Allow-Origin" header is already set to "*".
                 # If we only allow specific origins, then we have to mirror back
                 # the Origin header in the response.
+                # Similarly, if it's an allowed origin and credentials are
+                # allowed, we also have to mirror back the Origin header.
                 headers["Access-Control-Allow-Origin"] = requested_origin
         else:
             failures.append("origin")
