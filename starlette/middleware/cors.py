@@ -41,6 +41,8 @@ class CORSMiddleware:
         preflight_headers = {}
         if "*" in allow_origins:
             preflight_headers["Access-Control-Allow-Origin"] = "*"
+            if allow_credentials:
+                preflight_headers["Vary"] = "Origin"
         else:
             preflight_headers["Vary"] = "Origin"
         preflight_headers.update(
