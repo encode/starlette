@@ -2,7 +2,6 @@ import asyncio
 import functools
 import inspect
 import re
-import sys
 import traceback
 import typing
 from enum import Enum
@@ -35,9 +34,8 @@ def iscoroutinefunction_or_partial(obj: typing.Any) -> bool:
     Correctly determines if an object is a coroutine function,
     with a fix for partials on Python < 3.8.
     """
-    if sys.version_info < (3, 8):  # pragma: no cover
-        while isinstance(obj, functools.partial):
-            obj = obj.func
+    while isinstance(obj, functools.partial):
+        obj = obj.func
     return inspect.iscoroutinefunction(obj)
 
 
