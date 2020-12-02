@@ -32,7 +32,7 @@ class Match(Enum):
 def iscoroutinefunction_or_partial(obj: typing.Any) -> bool:
     """
     Correctly determines if an object is a coroutine function,
-    with a fix for partials on Python < 3.8.
+    by unwrapping functools.partial objects.
     """
     while isinstance(obj, functools.partial):
         obj = obj.func
