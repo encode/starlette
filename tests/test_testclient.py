@@ -153,7 +153,7 @@ def test_timeout(endpoint):
     client = TestClient(mock_service, raise_server_exceptions=True)
 
     with pytest.raises(ValueError):
-        client.get("/slow_response", timeout=(1, 1))
+        client.get(endpoint, timeout=(1, 1))
 
     with pytest.raises(asyncio.TimeoutError):
         client.get(endpoint, timeout=0.001)
