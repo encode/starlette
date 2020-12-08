@@ -10,6 +10,7 @@ import typing
 from urllib.parse import unquote, urljoin, urlsplit
 
 import requests
+from urllib3.util.timeout import Timeout
 
 from starlette.types import Message, Receive, Scope, Send
 from starlette.websockets import WebSocketDisconnect
@@ -96,7 +97,11 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
         self.root_path = root_path
 
     def send(
-        self, request: requests.PreparedRequest, *args: typing.Any, **kwargs: typing.Any
+        self,
+        request: requests.PreparedRequest,
+        *args: typing.Any,
+        timeout: Timeout = None,
+        **kwargs: typing.Any,
     ) -> requests.Response:
         scheme, netloc, path, query, fragment = (
             str(item) for item in urlsplit(request.url)
@@ -237,7 +242,15 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             asyncio.set_event_loop(loop)
 
         try:
-            loop.run_until_complete(self.app(scope, receive, send))
+            if isinstance(timeout, tuple):
+                err = (
+                    "Invalid timeout {}. testclient only supports float (not tuple)"
+                    "at this time ".format(timeout)
+                )
+                raise ValueError(err)
+            loop.run_until_complete(
+                asyncio.wait_for(self.app(scope, receive, send), timeout)
+            )
         except BaseException as exc:
             if self.raise_server_exceptions:
                 raise exc from None

@@ -1,4 +1,5 @@
 import asyncio
+import time
 
 import pytest
 
@@ -14,6 +15,19 @@ mock_service = Starlette()
 @mock_service.route("/")
 def mock_service_endpoint(request):
     return JSONResponse({"mock": "example"})
+
+
+@mock_service.route("/slow_response")
+def slow_response(request):
+    time.sleep(0.01)
+    return JSONResponse({"mock": "slow example"})
+
+
+@mock_service.route("/async_slow_response")
+async def async_slow_response(request):
+    # time.sleep(0.01)
+    await asyncio.sleep(0.01)
+    return JSONResponse({"mock": "slow example"})
 
 
 app = Starlette()
@@ -132,3 +146,20 @@ def test_websocket_blocking_receive():
     with client.websocket_connect("/") as websocket:
         data = websocket.receive_json()
         assert data == {"message": "test"}
+
+
+@pytest.mark.parametrize("endpoint", ["/slow_response", "/async_slow_response"])
+def test_timeout(endpoint):
+    client = TestClient(mock_service, raise_server_exceptions=True)
+
+    with pytest.raises(ValueError):
+        client.get("/slow_response", timeout=(1, 1))
+
+    with pytest.raises(asyncio.TimeoutError):
+        client.get(endpoint, timeout=0.001)
+
+    response = client.get(endpoint, timeout=1)
+    assert response.json() == {"mock": "slow example"}
+
+    response = client.get(endpoint)
+    assert response.json() == {"mock": "slow example"}
