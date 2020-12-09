@@ -37,6 +37,25 @@ registered startup handlers have completed.
 The shutdown handlers will run once all connections have been closed, and
 any in-process background tasks have completed.
 
+A single lifespan asyncronous generator handler can be used instead of
+separate startup and shutdown handlers:
+
+```python
+from starlette.applications import Starlette
+
+
+async def lifespan(app):
+    # Execute startup tasks.
+    yield
+    # Execute shutdown tasks.
+
+routes = [
+    ...
+]
+
+app = Starlette(routes=routes, lifespan=lifespan)
+```
+
 ## Running event handlers in tests
 
 You might want to explicitly call into your event handlers in any test setup
