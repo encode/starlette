@@ -157,16 +157,16 @@ class CORSMiddleware:
         # If request includes any cookie headers, then we must respond
         # with the specific origin instead of '*'.
         if self.allow_all_origins and has_cookie:
-            self.allow_explicit_origin(origin, headers)
+            self.allow_explicit_origin(headers, origin)
 
         # If we only allow specific origins, then we have to mirror back
         # the Origin header in the response.
         elif not self.allow_all_origins and self.is_allowed_origin(origin=origin):
-            self.allow_explicit_origin(origin, headers)
+            self.allow_explicit_origin(headers, origin)
 
         await send(message)
 
     @staticmethod
-    def allow_explicit_origin(origin, headers):
+    def allow_explicit_origin(headers: MutableHeaders, origin: str) -> None:
         headers["Access-Control-Allow-Origin"] = origin
         headers.add_vary_header("Origin")
