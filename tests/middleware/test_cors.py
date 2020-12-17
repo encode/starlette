@@ -165,7 +165,7 @@ def test_cors_allow_all_methods():
 
     for method in ("delete", "get", "head", "options", "patch", "post", "put"):
         response = getattr(client, method)("/", headers=headers, json={})
-        assert response.status_code / 100 == 2
+        assert response.status_code == 200
 
 
 def test_cors_allow_origin_regex():
