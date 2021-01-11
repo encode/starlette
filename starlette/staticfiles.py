@@ -153,7 +153,7 @@ class StaticFiles:
             try:
                 stat_result = await aio_stat(full_path)
                 return (full_path, stat_result)
-            except FileNotFoundError:
+            except (FileNotFoundError, NotADirectoryError):
                 pass
         return ("", None)
 

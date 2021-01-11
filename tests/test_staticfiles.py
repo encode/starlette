@@ -243,3 +243,15 @@ def test_staticfiles_html(tmpdir):
     response = client.get("/missing")
     assert response.status_code == 404
     assert response.text == "<h1>Custom not found page</h1>"
+
+
+def test_staticfiles_access_file_as_directory(tmpdir):
+    path = os.path.join(tmpdir, "example.txt")
+    with open(path, "w") as file:
+        file.write("<file content>")
+
+    app = StaticFiles(directory=tmpdir)
+    client = TestClient(app)
+    response = client.get("/example.txt/foo")
+    assert response.status_code == 404
+    assert response.text == "Not Found"
