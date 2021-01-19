@@ -26,9 +26,7 @@ class GZipMiddleware:
 
 
 class GZipResponder:
-    def __init__(
-        self, app: ASGIApp, minimum_size: int, compresslevel: int
-    ) -> None:
+    def __init__(self, app: ASGIApp, minimum_size: int, compresslevel: int) -> None:
         self.app = app
         self.minimum_size = minimum_size
         self.send = unattached_send  # type: Send
