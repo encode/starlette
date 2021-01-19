@@ -6,7 +6,9 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
 class GZipMiddleware:
-    def __init__(self, app: ASGIApp, minimum_size: int = 500, compresslevel: int = 1) -> None:
+    def __init__(
+        self, app: ASGIApp, minimum_size: int = 500, compresslevel: int = 1
+    ) -> None:
         self.app = app
         self.minimum_size = minimum_size
         self.compresslevel = compresslevel
@@ -24,7 +26,9 @@ class GZipMiddleware:
 
 
 class GZipResponder:
-    def __init__(self, app: ASGIApp, minimum_size: int, compresslevel: int) -> None:
+    def __init__(
+        self, app: ASGIApp, minimum_size: int, compresslevel: int
+    ) -> None:
         self.app = app
         self.minimum_size = minimum_size
         self.send = unattached_send  # type: Send
