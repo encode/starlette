@@ -15,7 +15,9 @@ class GZipMiddleware:
         if scope["type"] == "http":
             headers = Headers(scope=scope)
             if "gzip" in headers.get("Accept-Encoding", ""):
-                responder = GZipResponder(self.app, self.minimum_size, compresslevel=self.compresslevel)
+                responder = GZipResponder(
+                    self.app, self.minimum_size, compresslevel=self.compresslevel
+                )
                 await responder(scope, receive, send)
                 return
         await self.app(scope, receive, send)
