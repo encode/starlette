@@ -2,7 +2,7 @@
 
 February 2, 2021
 
-### Changed
+### Fixed
 
 * Fixed `ServerErrorMiddleware` compatibility with Python 3.9.1/3.8.7 when debug mode is enabled -
   [#1132](https://github.com/encode/starlette/pull/1132).
