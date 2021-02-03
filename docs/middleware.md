@@ -249,7 +249,13 @@ A middleware class for logging exceptions to [Sentry](https://sentry.io/).
 #### [ProxyHeadersMiddleware](https://github.com/encode/uvicorn/blob/master/uvicorn/middleware/proxy_headers.py)
 
 Uvicorn includes a middleware class for determining the client IP address,
-when proxy servers are being used, based on the `X-Forwarded-Proto` and `X-Forwarded-For` headers. For more complex proxy configurations, you might want to adapt this middleware.
+when proxy servers are being used, based on the `X-Forwarded-Proto` and `X-Forwarded-For` headers. For more complex proxy configurations, you might want to adapt this middleware. E.g. [Deployment to an Azure Application Service](https://docs.microsoft.com/en-us/azure/app-service/configure-language-python#detect-https-session).
+Import the full `uvicorn.middleware.proxy_headers.ProxyHeadersMiddleware` package, specifying a specific trusted host to check for headers, or use a wildcard for all hosts.
+```python
+    Middleware(
+        uvicorn.middleware.proxy_headers.ProxyHeadersMiddleware, trusted_hosts="*"
+    ),
+```
 
 #### [TimingMiddleware](https://github.com/steinnes/timing-asgi)
 
