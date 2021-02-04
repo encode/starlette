@@ -10,8 +10,9 @@ from starlette.responses import HTMLResponse, JSONResponse, PlainTextResponse, R
 from starlette.types import Receive, Scope, Send
 
 warnings.warn(
-    "GraphQLApp is deprecated as of Starlette 0.15 and will be removed in a "
-    "future release. Consider using a third-party GraphQL implementation.",
+    "GraphQLApp is deprecated and will be removed in a future release. "
+    "Consider using a third-party GraphQL implementation. "
+    "See https://github.com/encode/starlette/issues/619.",
     DeprecationWarning,
 )
 
