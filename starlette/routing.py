@@ -1,4 +1,5 @@
 import asyncio
+import functools
 import inspect
 import re
 import traceback
@@ -28,12 +29,22 @@ class Match(Enum):
     FULL = 2
 
 
+def iscoroutinefunction_or_partial(obj: typing.Any) -> bool:
+    """
+    Correctly determines if an object is a coroutine function,
+    including those wrapped in functools.partial objects.
+    """
+    while isinstance(obj, functools.partial):
+        obj = obj.func
+    return inspect.iscoroutinefunction(obj)
+
+
 def request_response(func: typing.Callable) -> ASGIApp:
     """
     Takes a function or coroutine `func(request) -> response`,
     and returns an ASGI application.
     """
-    is_coroutine = asyncio.iscoroutinefunction(func)
+    is_coroutine = iscoroutinefunction_or_partial(func)
 
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive=receive, send=send)
@@ -169,7 +180,10 @@ class Route(BaseRoute):
         self.name = get_name(endpoint) if name is None else name
         self.include_in_schema = include_in_schema
 
-        if inspect.isfunction(endpoint) or inspect.ismethod(endpoint):
+        endpoint_handler = endpoint
+        while isinstance(endpoint_handler, functools.partial):
+            endpoint_handler = endpoint_handler.func
+        if inspect.isfunction(endpoint_handler) or inspect.ismethod(endpoint_handler):
             # Endpoint is function or method. Treat it as `func(request) -> response`.
             self.app = request_response(endpoint)
             if methods is None:
@@ -181,7 +195,7 @@ class Route(BaseRoute):
         if methods is None:
             self.methods = None
         else:
-            self.methods = set(method.upper() for method in methods)
+            self.methods = {method.upper() for method in methods}
             if "GET" in self.methods:
                 self.methods.add("HEAD")
 
@@ -520,20 +534,20 @@ class Router:
         """
         first = True
         app = scope.get("app")
-        message = await receive()
+        await receive()
         try:
             if inspect.isasyncgenfunction(self.lifespan_context):
                 async for item in self.lifespan_context(app):
                     assert first, "Lifespan context yielded multiple times."
                     first = False
                     await send({"type": "lifespan.startup.complete"})
-                    message = await receive()
+                    await receive()
             else:
                 for item in self.lifespan_context(app):  # type: ignore
                     assert first, "Lifespan context yielded multiple times."
                     first = False
                     await send({"type": "lifespan.startup.complete"})
-                    message = await receive()
+                    await receive()
         except BaseException:
             if first:
                 exc_text = traceback.format_exc()

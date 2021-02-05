@@ -20,13 +20,14 @@ class Starlette:
     * **middleware** - A list of middleware to run for every request. A starlette
     application will always automatically include two middleware classes.
     `ServerErrorMiddleware` is added as the very outermost middleware, to handle
-    any uncaught errors occuring anywhere in the entire stack.
+    any uncaught errors occurring anywhere in the entire stack.
     `ExceptionMiddleware` is added as the very innermost middleware, to deal
-    with handled exception cases occuring in the routing or endpoints.
+    with handled exception cases occurring in the routing or endpoints.
     * **exception_handlers** - A dictionary mapping either integer status codes,
     or exception class types onto callables which handle the exceptions.
-    Exception handler callables should be of the form `handler(request, exc) -> response`
-    and may be be either standard functions, or async functions.
+    Exception handler callables should be of the form
+    `handler(request, exc) -> response` and may be be either standard functions, or
+    async functions.
     * **on_startup** - A list of callables to run on application startup.
     Startup handler callables do not take any arguments, and may be be either
     standard functions, or async functions.
@@ -76,11 +77,11 @@ class Starlette:
                 exception_handlers[key] = value
 
         middleware = (
-            [Middleware(ServerErrorMiddleware, handler=error_handler, debug=debug,)]
+            [Middleware(ServerErrorMiddleware, handler=error_handler, debug=debug)]
             + self.user_middleware
             + [
                 Middleware(
-                    ExceptionMiddleware, handlers=exception_handlers, debug=debug,
+                    ExceptionMiddleware, handlers=exception_handlers, debug=debug
                 )
             ]
         )
