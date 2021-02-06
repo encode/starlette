@@ -33,10 +33,10 @@ nav:
     - Release Notes: 'release-notes.md'
 
 markdown_extensions:
-  - markdown.extensions.codehilite:
-      guess_lang: false
   - mkautodoc
   - admonition
+  - pymdownx.highlight
+  - pymdownx.superfences
 
 extra_javascript:
   - 'js/chat.js'
