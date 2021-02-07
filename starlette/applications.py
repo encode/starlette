@@ -23,11 +23,10 @@ class Starlette:
     any uncaught errors occurring anywhere in the entire stack.
     `ExceptionMiddleware` is added as the very innermost middleware, to deal
     with handled exception cases occurring in the routing or endpoints.
-    * **exception_handlers** - A dictionary mapping either integer status codes,
-    or exception class types onto callables which handle the exceptions.
-    Exception handler callables should be of the form
-    `handler(request, exc) -> response` and may be be either standard functions, or
-    async functions.
+    * **exception_handlers** - A mapping of either integer status codes, or exception
+    class types onto callables which handle the exceptions. Exception handler
+    callables should be of the form `handler(request, exc) -> response` and may be
+    either standard functions, or async functions.
     * **on_startup** - A list of callables to run on application startup.
     Startup handler callables do not take any arguments, and may be be either
     standard functions, or async functions.
@@ -41,7 +40,7 @@ class Starlette:
         debug: bool = False,
         routes: typing.Sequence[BaseRoute] = None,
         middleware: typing.Sequence[Middleware] = None,
-        exception_handlers: typing.Dict[
+        exception_handlers: typing.Mapping[
             typing.Union[int, typing.Type[Exception]], typing.Callable
         ] = None,
         on_startup: typing.Sequence[typing.Callable] = None,
