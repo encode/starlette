@@ -1,3 +1,4 @@
+import functools
 import uuid
 
 import pytest
@@ -587,3 +588,37 @@ def test_raise_on_shutdown():
     with pytest.raises(RuntimeError):
         with TestClient(app):
             pass  # pragma: nocover
+
+
+class AsyncEndpointClassMethod:
+    @classmethod
+    async def async_endpoint(cls, arg, request):
+        return JSONResponse({"arg": arg})
+
+
+async def _partial_async_endpoint(arg, request):
+    return JSONResponse({"arg": arg})
+
+
+partial_async_endpoint = functools.partial(_partial_async_endpoint, "foo")
+partial_cls_async_endpoint = functools.partial(
+    AsyncEndpointClassMethod.async_endpoint, "foo"
+)
+
+partial_async_app = Router(
+    routes=[
+        Route("/", partial_async_endpoint),
+        Route("/cls", partial_cls_async_endpoint),
+    ]
+)
+
+
+def test_partial_async_endpoint():
+    test_client = TestClient(partial_async_app)
+    response = test_client.get("/")
+    assert response.status_code == 200
+    assert response.json() == {"arg": "foo"}
+
+    cls_method_response = test_client.get("/cls")
+    assert cls_method_response.status_code == 200
+    assert cls_method_response.json() == {"arg": "foo"}
