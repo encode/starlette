@@ -66,11 +66,11 @@ class Config:
     def get(
         self, key: str, cast: typing.Callable = None, default: typing.Any = undefined
     ) -> typing.Any:
-        if key in self.environ:
-            value = self.environ[key]
-            return self._perform_cast(key, value, cast)
         if key in self.file_values:
             value = self.file_values[key]
+            return self._perform_cast(key, value, cast)
+        if key in self.environ:
+            value = self.environ[key]
             return self._perform_cast(key, value, cast)
         if default is not undefined:
             return self._perform_cast(key, default, cast)
