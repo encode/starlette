@@ -35,8 +35,8 @@ nav:
 markdown_extensions:
   - mkautodoc
   - admonition
-  - pymdownx.highlight
-  - pymdownx.superfences
+  - codehilite:
+      css_class: highlight
 
 extra_javascript:
   - 'js/chat.js'
