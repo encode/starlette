@@ -49,7 +49,6 @@ class SessionMiddleware:
 
         async def send_wrapper(message: Message) -> None:
             if message["type"] == "http.response.start":
-                # Detect ASGI root path
                 path = scope.get("root_path", "") or "/"
                 if scope["session"]:
                     # We have session data to persist.
