@@ -16,7 +16,7 @@ class BaseHTTPMiddleware:
         self.app = app
         self.dispatch_func = self.dispatch if dispatch is None else dispatch
         if hasattr(app, "routes"):
-            self.routes = self.app.routes
+            self.routes = self.app.routes  # type: ignore
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
