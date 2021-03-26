@@ -1,5 +1,6 @@
-import asyncio
 import typing
+
+import anyio
 
 from starlette.requests import Request
 from starlette.responses import Response, StreamingResponse
@@ -26,34 +27,30 @@ class BaseHTTPMiddleware:
         await response(scope, receive, send)
 
     async def call_next(self, request: Request) -> Response:
-        loop = asyncio.get_event_loop()
-        queue: "asyncio.Queue[typing.Optional[Message]]" = asyncio.Queue()
+        send_stream, recv_stream = anyio.create_memory_object_stream(0, item_type=Message)  # XXX size
 
         scope = request.scope
-        receive = request.receive
-        send = queue.put
+        task_group = scope["task_group"]
 
         async def coro() -> None:
-            try:
-                await self.app(scope, receive, send)
-            finally:
-                await queue.put(None)
+            async with send_stream:
+                await self.app(scope, recv_stream.receive, send_stream.send)
 
-        task = loop.create_task(coro())
-        message = await queue.get()
-        if message is None:
-            task.result()
+        await task_group.spawn(coro)
+
+        try:
+            message = await recv_stream.receive()
+        except anyio.EndOfStream:
+            print("WHAT " * 10)
             raise RuntimeError("No response returned.")
+
         assert message["type"] == "http.response.start"
 
         async def body_stream() -> typing.AsyncGenerator[bytes, None]:
-            while True:
-                message = await queue.get()
-                if message is None:
-                    break
-                assert message["type"] == "http.response.body"
-                yield message.get("body", b"")
-            task.result()
+            async with recv_stream:
+                async for message in recv_stream:
+                    assert message["type"] == "http.response.body"
+                    yield message.get("body", b"")
 
         response = StreamingResponse(
             status_code=message["status"], content=body_stream()

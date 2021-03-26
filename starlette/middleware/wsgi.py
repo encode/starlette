@@ -1,7 +1,8 @@
-import asyncio
 import io
 import sys
 import typing
+
+import anyio
 
 from starlette.concurrency import run_in_threadpool
 from starlette.types import Message, Receive, Scope, Send
@@ -69,9 +70,8 @@ class WSGIResponder:
         self.scope = scope
         self.status = None
         self.response_headers = None
-        self.send_event = asyncio.Event()
+        self.send_event = anyio.create_event()
         self.send_queue = []  # type: typing.List[typing.Optional[Message]]
-        self.loop = asyncio.get_event_loop()
         self.response_started = False
         self.exc_info = None  # type: typing.Any
 
@@ -83,31 +83,35 @@ class WSGIResponder:
             body += message.get("body", b"")
             more_body = message.get("more_body", False)
         environ = build_environ(self.scope, body)
-        sender = None
-        try:
-            sender = self.loop.create_task(self.sender(send))
-            await run_in_threadpool(self.wsgi, environ, self.start_response)
-            self.send_queue.append(None)
-            self.send_event.set()
-            await asyncio.wait_for(sender, None)
-            if self.exc_info is not None:
-                raise self.exc_info[0].with_traceback(
-                    self.exc_info[1], self.exc_info[2]
-                )
-        finally:
-            if sender and not sender.done():
-                sender.cancel()  # pragma: no cover
 
-    async def sender(self, send: Send) -> None:
-        while True:
-            if self.send_queue:
-                message = self.send_queue.pop(0)
-                if message is None:
-                    return
-                await send(message)
-            else:
-                await self.send_event.wait()
-                self.send_event.clear()
+        async with anyio.create_task_group() as task_group:
+            sender_finished = anyio.create_event()
+            try:
+                await task_group.spawn(self.sender, send, sender_finished)
+                await anyio.run_sync_in_worker_thread(self.wsgi, environ, self.start_response)
+                self.send_queue.append(None)
+                await self.send_event.set()
+                await sender_finished.wait()
+                if self.exc_info is not None:
+                    raise self.exc_info[0].with_traceback(
+                        self.exc_info[1], self.exc_info[2]
+                    )
+            finally:
+                await task_group.cancel_scope.cancel()
+
+    async def sender(self, send: Send, finished) -> None:
+        try:
+            while True:
+                if self.send_queue:
+                    message = self.send_queue.pop(0)
+                    if message is None:
+                        return
+                    await send(message)
+                else:
+                    await self.send_event.wait()
+                    self.send_event = anyio.create_event()
+        finally:
+            await finished.set()
 
     def start_response(
         self,
@@ -131,14 +135,14 @@ class WSGIResponder:
                     "headers": headers,
                 }
             )
-            self.loop.call_soon_threadsafe(self.send_event.set)
+            anyio.run_async_from_thread(self.send_event.set)
 
     def wsgi(self, environ: dict, start_response: typing.Callable) -> None:
         for chunk in self.app(environ, start_response):
             self.send_queue.append(
                 {"type": "http.response.body", "body": chunk, "more_body": True}
             )
-            self.loop.call_soon_threadsafe(self.send_event.set)
+            anyio.run_async_from_thread(self.send_event.set)
 
         self.send_queue.append({"type": "http.response.body", "body": b""})
-        self.loop.call_soon_threadsafe(self.send_event.set)
+        anyio.run_async_from_thread(self.send_event.set)

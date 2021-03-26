@@ -1,5 +1,7 @@
 import typing
 
+import anyio
+
 from starlette.datastructures import State, URLPath
 from starlette.exceptions import ExceptionMiddleware
 from starlette.middleware import Middleware
@@ -109,7 +111,9 @@ class Starlette:
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         scope["app"] = self
-        await self.middleware_stack(scope, receive, send)
+        task_group = scope["task_group"] = anyio.create_task_group()
+        async with task_group:
+            await self.middleware_stack(scope, receive, send)
 
     # The following usages are now discouraged in favour of configuration
     #  during Starlette.__init__(...)

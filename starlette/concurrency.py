@@ -1,33 +1,36 @@
-import asyncio
 import functools
 import sys
 import typing
 from typing import Any, AsyncGenerator, Iterator
+
+import anyio
 
 try:
     import contextvars  # Python 3.7+ only or via contextvars backport.
 except ImportError:  # pragma: no cover
     contextvars = None  # type: ignore
 
-if sys.version_info >= (3, 7):  # pragma: no cover
-    from asyncio import create_task
-else:  # pragma: no cover
-    from asyncio import ensure_future as create_task
 
 T = typing.TypeVar("T")
 
 
 async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -> None:
-    tasks = [create_task(handler(**kwargs)) for handler, kwargs in args]
-    (done, pending) = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-    [task.cancel() for task in pending]
-    [task.result() for task in done]
+    result: Any = None
+    async with anyio.create_task_group() as task_group:
 
+        async def task(_handler, _kwargs) -> Any:
+            nonlocal result
+            result = await _handler(**_kwargs)
+            await task_group.cancel_scope.cancel()
+
+        for handler, kwargs in args:
+            await task_group.spawn(task, handler, kwargs)
+
+    return result
 
 async def run_in_threadpool(
     func: typing.Callable[..., T], *args: typing.Any, **kwargs: typing.Any
 ) -> T:
-    loop = asyncio.get_event_loop()
     if contextvars is not None:  # pragma: no cover
         # Ensure we run in the same context
         child = functools.partial(func, *args, **kwargs)
@@ -35,9 +38,9 @@ async def run_in_threadpool(
         func = context.run
         args = (child,)
     elif kwargs:  # pragma: no cover
-        # loop.run_in_executor doesn't accept 'kwargs', so bind them in here
+        # run_sync doesn't accept 'kwargs', so bind them in here
         func = functools.partial(func, **kwargs)
-    return await loop.run_in_executor(None, func, *args)
+    return await anyio.run_sync_in_worker_thread(func, *args)
 
 
 class _StopIteration(Exception):
@@ -57,6 +60,6 @@ def _next(iterator: Iterator) -> Any:
 async def iterate_in_threadpool(iterator: Iterator) -> AsyncGenerator:
     while True:
         try:
-            yield await run_in_threadpool(_next, iterator)
+            yield await anyio.run_sync_in_worker_thread(_next, iterator)
         except _StopIteration:
             break

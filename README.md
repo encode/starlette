@@ -24,7 +24,7 @@
 # Starlette
 
 Starlette is a lightweight [ASGI](https://asgi.readthedocs.io/en/latest/) framework/toolkit,
-which is ideal for building high performance asyncio services.
+which is ideal for building high performance async services.
 
 It is production-ready, and gives you the following:
 
@@ -38,7 +38,8 @@ It is production-ready, and gives you the following:
 * Session and Cookie support.
 * 100% test coverage.
 * 100% type annotated codebase.
-* Zero hard dependencies.
+* Few hard dependencies.
+* Compatible with `asyncio and `trio` backends.
 
 ## Requirements
 
@@ -86,7 +87,7 @@ For a more complete example, see [encode/starlette-example](https://github.com/e
 
 ## Dependencies
 
-Starlette does not have any hard dependencies, but the following are optional:
+Starlette only requires `anyio`, and the following are optional:
 
 * [`requests`][requests] - Required if you want to use the `TestClient`.
 * [`aiofiles`][aiofiles] - Required if you want to use `FileResponse` or `StaticFiles`.
