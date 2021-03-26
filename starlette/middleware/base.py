@@ -29,7 +29,7 @@ class BaseHTTPMiddleware:
     async def call_next(self, request: Request) -> Response:
         send_stream, recv_stream = anyio.create_memory_object_stream(
             0, item_type=Message
-        )  # XXX size
+        )
 
         scope = request.scope
         task_group = scope["task_group"]
@@ -43,7 +43,6 @@ class BaseHTTPMiddleware:
         try:
             message = await recv_stream.receive()
         except anyio.EndOfStream:
-            print("WHAT " * 10)
             raise RuntimeError("No response returned.")
 
         assert message["type"] == "http.response.start"
