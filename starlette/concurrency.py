@@ -28,6 +28,7 @@ async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -
 
     return result
 
+
 async def run_in_threadpool(
     func: typing.Callable[..., T], *args: typing.Any, **kwargs: typing.Any
 ) -> T:

@@ -88,7 +88,9 @@ class WSGIResponder:
             sender_finished = anyio.create_event()
             try:
                 await task_group.spawn(self.sender, send, sender_finished)
-                await anyio.run_sync_in_worker_thread(self.wsgi, environ, self.start_response)
+                await anyio.run_sync_in_worker_thread(
+                    self.wsgi, environ, self.start_response
+                )
                 self.send_queue.append(None)
                 await self.send_event.set()
                 await sender_finished.wait()
