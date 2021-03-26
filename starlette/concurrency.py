@@ -18,7 +18,7 @@ async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -
     result: Any = None
     async with anyio.create_task_group() as task_group:
 
-        async def task(_handler, _kwargs) -> Any:
+        async def task(_handler: typing.Callable, _kwargs: dict) -> Any:
             nonlocal result
             result = await _handler(**_kwargs)
             await task_group.cancel_scope.cancel()

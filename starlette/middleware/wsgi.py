@@ -101,7 +101,7 @@ class WSGIResponder:
             finally:
                 await task_group.cancel_scope.cancel()
 
-    async def sender(self, send: Send, finished) -> None:
+    async def sender(self, send: Send, finished: anyio.abc.Event) -> None:
         try:
             while True:
                 if self.send_queue:

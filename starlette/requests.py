@@ -252,7 +252,7 @@ class Request(HTTPConnection):
 
     async def is_disconnected(self) -> bool:
         if not self._is_disconnected:
-            message = {}
+            message: Message = {}
             async with anyio.move_on_after(0.0000001):
                 message = await self._receive()
 

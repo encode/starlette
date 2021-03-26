@@ -27,10 +27,7 @@ class BaseHTTPMiddleware:
         await response(scope, receive, send)
 
     async def call_next(self, request: Request) -> Response:
-        send_stream, recv_stream = anyio.create_memory_object_stream(
-            0, item_type=Message
-        )
-
+        send_stream, recv_stream = anyio.create_memory_object_stream()
         scope = request.scope
         task_group = scope["task_group"]
 
