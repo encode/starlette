@@ -1,4 +1,5 @@
 import io
+import math
 import sys
 import typing
 
@@ -69,7 +70,9 @@ class WSGIResponder:
         self.scope = scope
         self.status = None
         self.response_headers = None
-        self.stream_send, self.stream_receive = anyio.create_memory_object_stream()
+        self.stream_send, self.stream_receive = anyio.create_memory_object_stream(
+            math.inf
+        )
         self.response_started = False
         self.exc_info = None  # type: typing.Any
 
@@ -84,7 +87,7 @@ class WSGIResponder:
 
         async with anyio.create_task_group() as task_group:
             try:
-                await task_group.spawn(self.sender, send)
+                task_group.spawn(self.sender, send)
                 async with self.stream_send:
                     await anyio.run_sync_in_worker_thread(
                         self.wsgi, environ, self.start_response
@@ -94,7 +97,7 @@ class WSGIResponder:
                         self.exc_info[1], self.exc_info[2]
                     )
             finally:
-                await task_group.cancel_scope.cancel()
+                task_group.cancel_scope.cancel()
 
     async def sender(self, send: Send) -> None:
         async with self.stream_receive:
@@ -116,8 +119,7 @@ class WSGIResponder:
                 (name.strip().encode("ascii").lower(), value.strip().encode("ascii"))
                 for name, value in response_headers
             ]
-            anyio.run_async_from_thread(
-                self.stream_send.send,
+            self.stream_send.send_nowait(
                 {
                     "type": "http.response.start",
                     "status": status_code,
@@ -127,11 +129,8 @@ class WSGIResponder:
 
     def wsgi(self, environ: dict, start_response: typing.Callable) -> None:
         for chunk in self.app(environ, start_response):
-            anyio.run_async_from_thread(
-                self.stream_send.send,
+            self.stream_send.send_nowait(
                 {"type": "http.response.body", "body": chunk, "more_body": True},
             )
 
-        anyio.run_async_from_thread(
-            self.stream_send.send, {"type": "http.response.body", "body": b""}
-        )
+        self.stream_send.send_nowait({"type": "http.response.body", "body": b""})

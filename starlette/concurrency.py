@@ -20,10 +20,10 @@ async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -
         async def task(_handler: typing.Callable, _kwargs: dict) -> Any:
             nonlocal result
             result = await _handler(**_kwargs)
-            await task_group.cancel_scope.cancel()
+            task_group.cancel_scope.cancel()
 
         for handler, kwargs in args:
-            await task_group.spawn(task, handler, kwargs)
+            task_group.spawn(task, handler, kwargs)
 
     return result
 

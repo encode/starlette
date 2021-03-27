@@ -1,8 +1,10 @@
 import asyncio
+import contextlib
 import http
 import inspect
 import io
 import json
+import math
 import queue
 import types
 import typing
@@ -263,7 +265,10 @@ class WebSocketTestSession:
         self.app = app
         self.scope = scope
         self.accepted_subprotocol = None
-        self.portal = anyio.start_blocking_portal(backend_options={"debug": True})
+        self.exit_stack = contextlib.ExitStack()
+        self.portal = self.exit_stack.enter_context(
+            anyio.start_blocking_portal(backend_options={"debug": True})
+        )
         self._receive_queue = queue.Queue()  # type: queue.Queue
         self._send_queue = queue.Queue()  # type: queue.Queue
         self.portal.spawn_task(self._run)
@@ -279,7 +284,7 @@ class WebSocketTestSession:
         try:
             self.close(1000)
         finally:
-            self.portal.stop_from_external_thread()
+            self.exit_stack.close()
         while not self._send_queue.empty():
             message = self._send_queue.get()
             if isinstance(message, BaseException):
@@ -446,56 +451,52 @@ class TestClient(requests.Session):
         return session
 
     def __enter__(self) -> "TestClient":
-        self.stream_send, self.stream_receive = anyio.create_memory_object_stream()
-        self.portal = anyio.start_blocking_portal(
-            backend_options={"debug": True}
+        self.exit_stack = contextlib.ExitStack()
+        self.portal = self.exit_stack.enter_context(
+            anyio.start_blocking_portal(backend_options={"debug": True})
         )  # XXX backend
+        self.stream_send, self.stream_receive = anyio.create_memory_object_stream(
+            math.inf
+        )
         self.task = self.portal.spawn_task(self.lifespan)
-        self.portal.call(self.wait_startup)
+        try:
+            self.portal.call(self.wait_startup)
+        except Exception:
+            self.exit_stack.close()
+            raise
         return self
 
     def __exit__(self, *args: typing.Any) -> None:
         try:
             self.portal.call(self.wait_shutdown)
         finally:
-            self.portal.stop_from_external_thread()
+            self.exit_stack.close()
 
     async def lifespan(self) -> None:
         scope = {"type": "lifespan"}
-        async with self.stream_send:
+        try:
             await self.app(scope, self.stream_receive.receive, self.stream_send.send)
+        finally:
+            await self.stream_send.send(None)
 
     async def wait_startup(self) -> None:
-        try:
-            await self.stream_send.send({"type": "lifespan.startup"})
-        except anyio.ClosedResourceError:
+        await self.stream_send.send({"type": "lifespan.startup"})
+        message = await self.stream_receive.receive()
+        if message is None:
             self.task.result()
-            return
-        try:
-            message = await self.stream_receive.receive()
-        except anyio.EndOfStream:
-            self.task.result()
-            return
         assert message["type"] in (
             "lifespan.startup.complete",
             "lifespan.startup.failed",
         )
         if message["type"] == "lifespan.startup.failed":
-            try:
-                message = await self.stream_receive.receive()
-            except anyio.EndOfStream:
+            message = await self.stream_receive.receive()
+            if message is None:
                 self.task.result()
 
     async def wait_shutdown(self) -> None:
-        try:
+        async with self.stream_send:
             await self.stream_send.send({"type": "lifespan.shutdown"})
-        except anyio.ClosedResourceError:
-            self.task.result()
-            return
-        try:
             message = await self.stream_receive.receive()
-        except anyio.EndOfStream:
-            self.task.result()
-            return
-        assert message["type"] == "lifespan.shutdown.complete"
-        self.task.result()
+            if message is None:
+                self.task.result()
+            assert message["type"] == "lifespan.shutdown.complete"
