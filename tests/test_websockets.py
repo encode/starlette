@@ -1,5 +1,4 @@
-import asyncio
-
+import anyio
 import pytest
 
 from starlette import status
@@ -208,22 +207,24 @@ def test_websocket_iter_json():
 
 def test_websocket_concurrency_pattern():
     def app(scope):
-        async def reader(websocket, queue):
-            async for data in websocket.iter_json():
-                await queue.put(data)
+        stream_send, stream_receive = anyio.create_memory_object_stream()
 
-        async def writer(websocket, queue):
-            while True:
-                message = await queue.get()
-                await websocket.send_json(message)
+        async def reader(websocket):
+            async with stream_send:
+                async for data in websocket.iter_json():
+                    await stream_send.send(data)
+
+        async def writer(websocket):
+            async with stream_receive:
+                async for message in stream_receive:
+                    await websocket.send_json(message)
 
         async def asgi(receive, send):
             websocket = WebSocket(scope, receive=receive, send=send)
-            queue = asyncio.Queue()
             await websocket.accept()
             await run_until_first_complete(
-                (reader, {"websocket": websocket, "queue": queue}),
-                (writer, {"websocket": websocket, "queue": queue}),
+                (reader, {"websocket": websocket}),
+                (writer, {"websocket": websocket}),
             )
             await websocket.close()
 
