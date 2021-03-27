@@ -4,7 +4,7 @@ import typing
 
 import anyio
 
-from starlette.types import Message, Receive, Scope, Send
+from starlette.types import Receive, Scope, Send
 
 
 def build_environ(scope: Scope, body: bytes) -> dict:
@@ -69,8 +69,7 @@ class WSGIResponder:
         self.scope = scope
         self.status = None
         self.response_headers = None
-        self.send_event = anyio.create_event()
-        self.send_queue = []  # type: typing.List[typing.Optional[Message]]
+        self.stream_send, self.stream_receive = anyio.create_memory_object_stream()
         self.response_started = False
         self.exc_info = None  # type: typing.Any
 
@@ -84,15 +83,12 @@ class WSGIResponder:
         environ = build_environ(self.scope, body)
 
         async with anyio.create_task_group() as task_group:
-            sender_finished = anyio.create_event()
             try:
-                await task_group.spawn(self.sender, send, sender_finished)
-                await anyio.run_sync_in_worker_thread(
-                    self.wsgi, environ, self.start_response
-                )
-                self.send_queue.append(None)
-                await self.send_event.set()
-                await sender_finished.wait()
+                await task_group.spawn(self.sender, send)
+                async with self.stream_send:
+                    await anyio.run_sync_in_worker_thread(
+                        self.wsgi, environ, self.start_response
+                    )
                 if self.exc_info is not None:
                     raise self.exc_info[0].with_traceback(
                         self.exc_info[1], self.exc_info[2]
@@ -100,19 +96,10 @@ class WSGIResponder:
             finally:
                 await task_group.cancel_scope.cancel()
 
-    async def sender(self, send: Send, finished: anyio.abc.Event) -> None:
-        try:
-            while True:
-                if self.send_queue:
-                    message = self.send_queue.pop(0)
-                    if message is None:
-                        return
-                    await send(message)
-                else:
-                    await self.send_event.wait()
-                    self.send_event = anyio.create_event()
-        finally:
-            await finished.set()
+    async def sender(self, send: Send) -> None:
+        async with self.stream_receive:
+            async for message in self.stream_receive:
+                await send(message)
 
     def start_response(
         self,
@@ -129,21 +116,22 @@ class WSGIResponder:
                 (name.strip().encode("ascii").lower(), value.strip().encode("ascii"))
                 for name, value in response_headers
             ]
-            self.send_queue.append(
+            anyio.run_async_from_thread(
+                self.stream_send.send,
                 {
                     "type": "http.response.start",
                     "status": status_code,
                     "headers": headers,
-                }
+                },
             )
-            anyio.run_async_from_thread(self.send_event.set)
 
     def wsgi(self, environ: dict, start_response: typing.Callable) -> None:
         for chunk in self.app(environ, start_response):
-            self.send_queue.append(
-                {"type": "http.response.body", "body": chunk, "more_body": True}
+            anyio.run_async_from_thread(
+                self.stream_send.send,
+                {"type": "http.response.body", "body": chunk, "more_body": True},
             )
-            anyio.run_async_from_thread(self.send_event.set)
 
-        self.send_queue.append({"type": "http.response.body", "body": b""})
-        anyio.run_async_from_thread(self.send_event.set)
+        anyio.run_async_from_thread(
+            self.stream_send.send, {"type": "http.response.body", "body": b""}
+        )
