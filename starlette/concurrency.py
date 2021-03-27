@@ -1,5 +1,4 @@
 import functools
-import sys
 import typing
 from typing import Any, AsyncGenerator, Iterator
 

@@ -4,7 +4,6 @@ import typing
 
 import anyio
 
-from starlette.concurrency import run_in_threadpool
 from starlette.types import Message, Receive, Scope, Send
 
 
