@@ -48,7 +48,7 @@ setup(
     packages=get_packages("starlette"),
     package_data={"starlette": ["py.typed"]},
     include_package_data=True,
-    install_requires=["anyio<3,>=2"],
+    install_requires=["anyio>=3.0.0rc1"],
     extras_require={
         "full": [
             "aiofiles",
