@@ -39,7 +39,7 @@ It is production-ready, and gives you the following:
 * 100% test coverage.
 * 100% type annotated codebase.
 * Few hard dependencies.
-* Compatible with `asyncio and `trio` backends.
+* Compatible with `asyncio` and `trio` backends.
 
 ## Requirements
 
