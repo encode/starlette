@@ -147,23 +147,3 @@ def test_graphql_async():
     response = client.get("/?query={ hello }")
     assert response.status_code == 200
     assert response.json() == {"data": {"hello": "Hello stranger"}}
-
-
-async_schema = graphene.Schema(query=ASyncQuery)
-
-
-@pytest.fixture
-def old_style_async_app(event_loop) -> GraphQLApp:
-    old_style_async_app = GraphQLApp(
-        schema=async_schema, executor=AsyncioExecutor(loop=event_loop)
-    )
-    return old_style_async_app
-
-
-@pytest.mark.skip("XXX")
-def test_graphql_async_old_style_executor(old_style_async_app: GraphQLApp):
-    # See https://github.com/encode/starlette/issues/242
-    client = TestClient(old_style_async_app)
-    response = client.get("/?query={ hello }")
-    assert response.status_code == 200
-    assert response.json() == {"data": {"hello": "Hello stranger"}}
