@@ -233,7 +233,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 context = message["context"]
 
         try:
-            with anyio.start_blocking_portal(backend_options={"debug": True}) as portal:
+            with anyio.start_blocking_portal() as portal:
                 portal.call(self.app, scope, receive, send)
         except BaseException as exc:
             if self.raise_server_exceptions:
@@ -266,9 +266,7 @@ class WebSocketTestSession:
         self.scope = scope
         self.accepted_subprotocol = None
         self.exit_stack = contextlib.ExitStack()
-        self.portal = self.exit_stack.enter_context(
-            anyio.start_blocking_portal(backend_options={"debug": True})
-        )
+        self.portal = self.exit_stack.enter_context(anyio.start_blocking_portal())
         self._receive_queue = queue.Queue()  # type: queue.Queue
         self._send_queue = queue.Queue()  # type: queue.Queue
         self.portal.spawn_task(self._run)
@@ -453,7 +451,7 @@ class TestClient(requests.Session):
     def __enter__(self) -> "TestClient":
         self.exit_stack = contextlib.ExitStack()
         self.portal = self.exit_stack.enter_context(
-            anyio.start_blocking_portal(backend_options={"debug": True})
+            anyio.start_blocking_portal()
         )  # XXX backend
         self.stream_send, self.stream_receive = anyio.create_memory_object_stream(
             math.inf
