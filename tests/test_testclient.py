@@ -1,4 +1,4 @@
-import asyncio
+import anyio
 
 import pytest
 
@@ -118,13 +118,14 @@ def test_websocket_blocking_receive():
         async def asgi(receive, send):
             websocket = WebSocket(scope, receive=receive, send=send)
             await websocket.accept()
-            asyncio.ensure_future(respond(websocket))
-            try:
-                # this will block as the client does not send us data
-                # it should not prevent `respond` from executing though
-                await websocket.receive_json()
-            except WebSocketDisconnect:
-                pass
+            async with anyio.create_task_group() as task_group:
+                task_group.spawn(respond, websocket)
+                try:
+                    # this will block as the client does not send us data
+                    # it should not prevent `respond` from executing though
+                    await websocket.receive_json()
+                except WebSocketDisconnect:
+                    pass
 
         return asgi
 
