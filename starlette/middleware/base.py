@@ -31,15 +31,9 @@ class BaseHTTPMiddleware:
         scope = request.scope
         task_group = scope["task_group"]
 
-        coro_exc = None
-
         async def coro() -> None:
             async with send_stream:
-                try:
-                    await self.app(scope, request.receive, send_stream.send)
-                except BaseException as exc:
-                    nonlocal coro_exc
-                    coro_exc = exc
+                await self.app(scope, request.receive, send_stream.send)
 
         task_group.spawn(coro)
 
@@ -55,8 +49,6 @@ class BaseHTTPMiddleware:
                 async for message in recv_stream:
                     assert message["type"] == "http.response.body"
                     yield message.get("body", b"")
-                if coro_exc is not None:
-                    raise coro_exc
 
         response = StreamingResponse(
             status_code=message["status"], content=body_stream()
