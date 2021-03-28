@@ -92,7 +92,11 @@ class _WrapASGI2:
 
 class _ASGIAdapter(requests.adapters.HTTPAdapter):
     def __init__(
-        self, app: ASGI3App, raise_server_exceptions: bool = True, root_path: str = "", async_backend: str = ""
+        self,
+        app: ASGI3App,
+        raise_server_exceptions: bool = True,
+        root_path: str = "",
+        async_backend: str = "",
     ) -> None:
         self.app = app
         self.raise_server_exceptions = raise_server_exceptions
@@ -268,7 +272,9 @@ class WebSocketTestSession:
         self.scope = scope
         self.accepted_subprotocol = None
         self.exit_stack = contextlib.ExitStack()
-        self.portal = self.exit_stack.enter_context(anyio.start_blocking_portal(async_backend))
+        self.portal = self.exit_stack.enter_context(
+            anyio.start_blocking_portal(async_backend)
+        )
         self._receive_queue = queue.Queue()  # type: queue.Queue
         self._send_queue = queue.Queue()  # type: queue.Queue
         self.portal.spawn_task(self._run)
@@ -374,7 +380,9 @@ class TestClient(requests.Session):
     ) -> None:
         super(TestClient, self).__init__()
         if async_backend is None:
-            self.async_backend = os.environ.get("STARLETTE_TESTCLIENT_ASYNC_BACKEND", "asyncio")
+            self.async_backend = os.environ.get(
+                "STARLETTE_TESTCLIENT_ASYNC_BACKEND", "asyncio"
+            )
         else:
             self.async_backend = async_backend
 

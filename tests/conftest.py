@@ -2,8 +2,6 @@ import os
 
 import pytest
 
-from starlette import config
-
 
 @pytest.fixture(
     params=[

@@ -11,7 +11,6 @@ from starlette.routing import Mount
 from starlette.staticfiles import StaticFiles
 from starlette.testclient import TestClient
 
-
 pytestmark = pytest.mark.usefixtures("no_trio_support")
 
 

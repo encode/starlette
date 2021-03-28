@@ -1,5 +1,4 @@
 import anyio
-
 import pytest
 
 from starlette.applications import Starlette
