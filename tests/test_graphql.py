@@ -141,7 +141,7 @@ async_schema = graphene.Schema(query=ASyncQuery)
 async_app = GraphQLApp(schema=async_schema, executor_class=AsyncioExecutor)
 
 
-def test_graphql_async():
+def test_graphql_async(no_trio_support):
     client = TestClient(async_app)
     response = client.get("/?query={ hello }")
     assert response.status_code == 200

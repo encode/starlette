@@ -170,7 +170,7 @@ def test_response_phrase():
     assert response.reason == ""
 
 
-def test_file_response(tmpdir):
+def test_file_response(tmpdir, no_trio_support):
     path = os.path.join(tmpdir, "xyz")
     content = b"<file content>" * 1000
     with open(path, "wb") as file:
@@ -212,7 +212,7 @@ def test_file_response(tmpdir):
     assert filled_by_bg_task == "6, 7, 8, 9"
 
 
-def test_file_response_with_directory_raises_error(tmpdir):
+def test_file_response_with_directory_raises_error(tmpdir, no_trio_support):
     app = FileResponse(path=tmpdir, filename="example.png")
     client = TestClient(app)
     with pytest.raises(RuntimeError) as exc_info:
@@ -220,7 +220,7 @@ def test_file_response_with_directory_raises_error(tmpdir):
     assert "is not a file" in str(exc_info.value)
 
 
-def test_file_response_with_missing_file_raises_error(tmpdir):
+def test_file_response_with_missing_file_raises_error(tmpdir, no_trio_support):
     path = os.path.join(tmpdir, "404.txt")
     app = FileResponse(path=path, filename="404.txt")
     client = TestClient(app)
@@ -229,7 +229,7 @@ def test_file_response_with_missing_file_raises_error(tmpdir):
     assert "does not exist" in str(exc_info.value)
 
 
-def test_file_response_with_chinese_filename(tmpdir):
+def test_file_response_with_chinese_filename(tmpdir, no_trio_support):
     content = b"file content"
     filename = "你好.txt"  # probably "Hello.txt" in Chinese
     path = os.path.join(tmpdir, filename)

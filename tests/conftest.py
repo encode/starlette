@@ -1,4 +1,8 @@
+import os
+
 import pytest
+
+from starlette import config
 
 
 @pytest.fixture(
@@ -12,4 +16,11 @@ import pytest
     autouse=True,
 )
 def anyio_backend(request):
+    os.environ["STARLETTE_TESTCLIENT_ASYNC_BACKEND"] = request.param[0]
     return request.param
+
+
+@pytest.fixture
+def no_trio_support(request):
+    if request.keywords.get("trio"):
+        pytest.skip("Trio not supported (yet!)")

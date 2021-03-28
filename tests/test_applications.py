@@ -194,7 +194,7 @@ def test_routes():
     ]
 
 
-def test_app_mount(tmpdir):
+def test_app_mount(tmpdir, no_trio_support):
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
         file.write("<file content>")
