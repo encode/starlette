@@ -5,6 +5,7 @@ import inspect
 import io
 import json
 import math
+import os
 import queue
 import types
 import typing
@@ -91,11 +92,12 @@ class _WrapASGI2:
 
 class _ASGIAdapter(requests.adapters.HTTPAdapter):
     def __init__(
-        self, app: ASGI3App, raise_server_exceptions: bool = True, root_path: str = ""
+        self, app: ASGI3App, raise_server_exceptions: bool = True, root_path: str = "", async_backend: str = ""
     ) -> None:
         self.app = app
         self.raise_server_exceptions = raise_server_exceptions
         self.root_path = root_path
+        self.async_backend = async_backend
 
     def send(
         self, request: requests.PreparedRequest, *args: typing.Any, **kwargs: typing.Any
@@ -144,7 +146,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 "server": [host, port],
                 "subprotocols": subprotocols,
             }
-            session = WebSocketTestSession(self.app, scope)
+            session = WebSocketTestSession(self.app, scope, self.async_backend)
             raise _Upgrade(session)
 
         scope = {
@@ -233,7 +235,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 context = message["context"]
 
         try:
-            with anyio.start_blocking_portal() as portal:
+            with anyio.start_blocking_portal(self.async_backend) as portal:
                 portal.call(self.app, scope, receive, send)
         except BaseException as exc:
             if self.raise_server_exceptions:
@@ -261,12 +263,12 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
 
 
 class WebSocketTestSession:
-    def __init__(self, app: ASGI3App, scope: Scope) -> None:
+    def __init__(self, app: ASGI3App, scope: Scope, async_backend: str) -> None:
         self.app = app
         self.scope = scope
         self.accepted_subprotocol = None
         self.exit_stack = contextlib.ExitStack()
-        self.portal = self.exit_stack.enter_context(anyio.start_blocking_portal())
+        self.portal = self.exit_stack.enter_context(anyio.start_blocking_portal(async_backend))
         self._receive_queue = queue.Queue()  # type: queue.Queue
         self._send_queue = queue.Queue()  # type: queue.Queue
         self.portal.spawn_task(self._run)
@@ -368,8 +370,14 @@ class TestClient(requests.Session):
         base_url: str = "http://testserver",
         raise_server_exceptions: bool = True,
         root_path: str = "",
+        async_backend: str = None,
     ) -> None:
         super(TestClient, self).__init__()
+        if async_backend is None:
+            self.async_backend = os.environ.get("STARLETTE_TESTCLIENT_ASYNC_BACKEND", "asyncio")
+        else:
+            self.async_backend = async_backend
+
         if _is_asgi3(app):
             app = typing.cast(ASGI3App, app)
             asgi_app = app
@@ -380,6 +388,7 @@ class TestClient(requests.Session):
             asgi_app,
             raise_server_exceptions=raise_server_exceptions,
             root_path=root_path,
+            async_backend=self.async_backend,
         )
         self.mount("http://", adapter)
         self.mount("https://", adapter)
@@ -451,7 +460,7 @@ class TestClient(requests.Session):
     def __enter__(self) -> "TestClient":
         self.exit_stack = contextlib.ExitStack()
         self.portal = self.exit_stack.enter_context(
-            anyio.start_blocking_portal()
+            anyio.start_blocking_portal(self.async_backend)
         )  # XXX backend
         self.stream_send, self.stream_receive = anyio.create_memory_object_stream(
             math.inf
