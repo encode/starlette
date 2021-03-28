@@ -14,18 +14,14 @@ T = typing.TypeVar("T")
 
 
 async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -> None:
-    result: Any = None
     async with anyio.create_task_group() as task_group:
 
         async def task(_handler: typing.Callable, _kwargs: dict) -> Any:
-            nonlocal result
-            result = await _handler(**_kwargs)
+            await _handler(**_kwargs)
             task_group.cancel_scope.cancel()
 
         for handler, kwargs in args:
             task_group.spawn(task, handler, kwargs)
-
-    return result
 
 
 async def run_in_threadpool(
