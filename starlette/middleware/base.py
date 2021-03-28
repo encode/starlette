@@ -36,7 +36,7 @@ class BaseHTTPMiddleware:
         async def coro() -> None:
             async with send_stream:
                 try:
-                    await self.app(scope, recv_stream.receive, send_stream.send)
+                    await self.app(scope, request.receive, send_stream.send)
                 except BaseException as exc:
                     nonlocal coro_exc
                     coro_exc = exc
