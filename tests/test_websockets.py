@@ -284,7 +284,8 @@ def test_rejected_connection():
 
     client = TestClient(app)
     with pytest.raises(WebSocketDisconnect) as exc:
-        client.websocket_connect("/")
+        with client.websocket_connect("/"):
+            pass
     assert exc.value.code == status.WS_1001_GOING_AWAY
 
 
@@ -312,7 +313,8 @@ def test_websocket_exception():
 
     client = TestClient(app)
     with pytest.raises(AssertionError):
-        client.websocket_connect("/123?a=abc")
+        with client.websocket_connect("/123?a=abc"):
+            pass
 
 
 def test_duplicate_close():

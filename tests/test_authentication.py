@@ -261,10 +261,14 @@ def test_authentication_required():
 def test_websocket_authentication_required():
     with TestClient(app) as client:
         with pytest.raises(WebSocketDisconnect):
-            client.websocket_connect("/ws")
+            with client.websocket_connect("/ws"):
+                pass
 
         with pytest.raises(WebSocketDisconnect):
-            client.websocket_connect("/ws", headers={"Authorization": "basic foobar"})
+            with client.websocket_connect(
+                "/ws", headers={"Authorization": "basic foobar"}
+            ):
+                pass
 
         with client.websocket_connect(
             "/ws", auth=("tomchristie", "example")
@@ -273,12 +277,14 @@ def test_websocket_authentication_required():
             assert data == {"authenticated": True, "user": "tomchristie"}
 
         with pytest.raises(WebSocketDisconnect):
-            client.websocket_connect("/ws/decorated")
+            with client.websocket_connect("/ws/decorated"):
+                pass
 
         with pytest.raises(WebSocketDisconnect):
-            client.websocket_connect(
+            with client.websocket_connect(
                 "/ws/decorated", headers={"Authorization": "basic foobar"}
-            )
+            ):
+                pass
 
         with client.websocket_connect(
             "/ws/decorated", auth=("tomchristie", "example")
