@@ -243,7 +243,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 portal.call(self.app, scope, receive, send)
         except BaseException as exc:
             if self.raise_server_exceptions:
-                raise exc from None
+                raise exc
 
         if self.raise_server_exceptions:
             assert response_started, "TestClient did not receive any response."
