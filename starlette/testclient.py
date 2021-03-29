@@ -5,7 +5,6 @@ import inspect
 import io
 import json
 import math
-import os
 import queue
 import types
 import typing
@@ -13,6 +12,7 @@ from urllib.parse import unquote, urljoin, urlsplit
 
 import anyio
 import requests
+from anyio.streams.stapled import StapledObjectStream
 
 from starlette.types import Message, Receive, Scope, Send
 from starlette.websockets import WebSocketDisconnect
@@ -94,9 +94,9 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
     def __init__(
         self,
         app: ASGI3App,
+        async_backend: typing.Dict[str, typing.Any],
         raise_server_exceptions: bool = True,
         root_path: str = "",
-        async_backend: str = "",
     ) -> None:
         self.app = app
         self.raise_server_exceptions = raise_server_exceptions
@@ -239,7 +239,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 context = message["context"]
 
         try:
-            with anyio.start_blocking_portal(self.async_backend) as portal:
+            with anyio.start_blocking_portal(**self.async_backend) as portal:
                 portal.call(self.app, scope, receive, send)
         except BaseException as exc:
             if self.raise_server_exceptions:
@@ -267,23 +267,31 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
 
 
 class WebSocketTestSession:
-    def __init__(self, app: ASGI3App, scope: Scope, async_backend: str) -> None:
+    def __init__(
+        self, app: ASGI3App, scope: Scope, async_backend: typing.Dict[str, typing.Any]
+    ) -> None:
         self.app = app
         self.scope = scope
         self.accepted_subprotocol = None
-        self.exit_stack = contextlib.ExitStack()
-        self.portal = self.exit_stack.enter_context(
-            anyio.start_blocking_portal(async_backend)
-        )
+        self.async_backend = async_backend
         self._receive_queue = queue.Queue()  # type: queue.Queue
         self._send_queue = queue.Queue()  # type: queue.Queue
-        self.portal.spawn_task(self._run)
-        self.send({"type": "websocket.connect"})
-        message = self.receive()
-        self._raise_on_close(message)
-        self.accepted_subprotocol = message.get("subprotocol", None)
 
     def __enter__(self) -> "WebSocketTestSession":
+        self.exit_stack = contextlib.ExitStack()
+        self.portal = self.exit_stack.enter_context(
+            anyio.start_blocking_portal(**self.async_backend)
+        )
+
+        try:
+            self.portal.spawn_task(self._run)
+            self.send({"type": "websocket.connect"})
+            message = self.receive()
+            self._raise_on_close(message)
+        except Exception:
+            self.exit_stack.close()
+            raise
+        self.accepted_subprotocol = message.get("subprotocol", None)
         return self
 
     def __exit__(self, *args: typing.Any) -> None:
@@ -307,6 +315,7 @@ class WebSocketTestSession:
             await self.app(scope, receive, send)
         except BaseException as exc:
             self._send_queue.put(exc)
+            raise
 
     async def _asgi_receive(self) -> Message:
         while self._receive_queue.empty():
@@ -370,22 +379,17 @@ class WebSocketTestSession:
 class TestClient(requests.Session):
     __test__ = False  # For pytest to not discover this up.
 
+    #: These options are passed to `anyio.start_blocking_portal()`
+    async_backend = {"backend": "asyncio", "backend_options": {}}  # type: typing.Dict[str, typing.Any]
+
     def __init__(
         self,
         app: typing.Union[ASGI2App, ASGI3App],
         base_url: str = "http://testserver",
         raise_server_exceptions: bool = True,
         root_path: str = "",
-        async_backend: str = None,
     ) -> None:
         super(TestClient, self).__init__()
-        if async_backend is None:
-            self.async_backend = os.environ.get(
-                "STARLETTE_TESTCLIENT_ASYNC_BACKEND", "asyncio"
-            )
-        else:
-            self.async_backend = async_backend
-
         if _is_asgi3(app):
             app = typing.cast(ASGI3App, app)
             asgi_app = app
@@ -394,9 +398,9 @@ class TestClient(requests.Session):
             asgi_app = _WrapASGI2(app)  #  type: ignore
         adapter = _ASGIAdapter(
             asgi_app,
+            self.async_backend,
             raise_server_exceptions=raise_server_exceptions,
             root_path=root_path,
-            async_backend=self.async_backend,
         )
         self.mount("http://", adapter)
         self.mount("https://", adapter)
@@ -468,13 +472,16 @@ class TestClient(requests.Session):
     def __enter__(self) -> "TestClient":
         self.exit_stack = contextlib.ExitStack()
         self.portal = self.exit_stack.enter_context(
-            anyio.start_blocking_portal(self.async_backend)
-        )  # XXX backend
-        self.stream_send, self.stream_receive = anyio.create_memory_object_stream(
-            math.inf
+            anyio.start_blocking_portal(**self.async_backend)
         )
-        self.task = self.portal.spawn_task(self.lifespan)
+        self.stream_send = StapledObjectStream(
+            *anyio.create_memory_object_stream(math.inf)
+        )
+        self.stream_receive = StapledObjectStream(
+            *anyio.create_memory_object_stream(math.inf)
+        )
         try:
+            self.task = self.portal.spawn_task(self.lifespan)
             self.portal.call(self.wait_startup)
         except Exception:
             self.exit_stack.close()
@@ -495,8 +502,8 @@ class TestClient(requests.Session):
             await self.stream_send.send(None)
 
     async def wait_startup(self) -> None:
-        await self.stream_send.send({"type": "lifespan.startup"})
-        message = await self.stream_receive.receive()
+        await self.stream_receive.send({"type": "lifespan.startup"})
+        message = await self.stream_send.receive()
         if message is None:
             self.task.result()
         assert message["type"] in (
@@ -504,14 +511,14 @@ class TestClient(requests.Session):
             "lifespan.startup.failed",
         )
         if message["type"] == "lifespan.startup.failed":
-            message = await self.stream_receive.receive()
+            message = await self.stream_send.receive()
             if message is None:
                 self.task.result()
 
     async def wait_shutdown(self) -> None:
         async with self.stream_send:
-            await self.stream_send.send({"type": "lifespan.shutdown"})
-            message = await self.stream_receive.receive()
+            await self.stream_receive.send({"type": "lifespan.shutdown"})
+            message = await self.stream_send.receive()
             if message is None:
                 self.task.result()
             assert message["type"] == "lifespan.shutdown.complete"

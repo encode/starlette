@@ -1,21 +1,21 @@
-import os
-
 import pytest
+
+from starlette.testclient import TestClient
 
 
 @pytest.fixture(
     params=[
-        pytest.param(("asyncio", {"use_uvloop": True}), id="asyncio+uvloop"),
-        pytest.param(("asyncio", {"use_uvloop": False}), id="asyncio"),
         pytest.param(
-            ("trio", {"restrict_keyboard_interrupt_to_checkpoints": True}), id="trio"
+            {"backend": "asyncio", "backend_options": {"use_uvloop": False}},
+            id="asyncio",
         ),
+        pytest.param({"backend": "trio", "backend_options": {}}, id="trio"),
     ],
     autouse=True,
 )
-def anyio_backend(request):
-    os.environ["STARLETTE_TESTCLIENT_ASYNC_BACKEND"] = request.param[0]
-    return request.param
+def anyio_backend(request, monkeypatch):
+    monkeypatch.setattr(TestClient, "async_backend", request.param)
+    return request.param["backend"]
 
 
 @pytest.fixture
