@@ -287,7 +287,7 @@ def test_protocol_switch():
 
     with pytest.raises(WebSocketDisconnect):
         with client.websocket_connect("/404"):
-            pass
+            pass  # pragma: nocover
 
 
 ok = PlainTextResponse("OK")
@@ -494,7 +494,7 @@ def test_standalone_ws_route_does_not_match():
     client = TestClient(app)
     with pytest.raises(WebSocketDisconnect):
         with client.websocket_connect("/invalid"):
-            pass
+            pass  # pragma: nocover
 
 
 def test_lifespan_async():

@@ -285,7 +285,7 @@ def test_rejected_connection():
     client = TestClient(app)
     with pytest.raises(WebSocketDisconnect) as exc:
         with client.websocket_connect("/"):
-            pass
+            pass  # pragma: nocover
     assert exc.value.code == status.WS_1001_GOING_AWAY
 
 
@@ -314,7 +314,7 @@ def test_websocket_exception():
     client = TestClient(app)
     with pytest.raises(AssertionError):
         with client.websocket_connect("/123?a=abc"):
-            pass
+            pass  # pragma: nocover
 
 
 def test_duplicate_close():
@@ -330,7 +330,7 @@ def test_duplicate_close():
     client = TestClient(app)
     with pytest.raises(RuntimeError):
         with client.websocket_connect("/"):
-            pass
+            pass  # pragma: nocover
 
 
 def test_duplicate_disconnect():

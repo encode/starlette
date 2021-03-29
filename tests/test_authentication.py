@@ -262,13 +262,13 @@ def test_websocket_authentication_required():
     with TestClient(app) as client:
         with pytest.raises(WebSocketDisconnect):
             with client.websocket_connect("/ws"):
-                pass
+                pass  # pragma: nocover
 
         with pytest.raises(WebSocketDisconnect):
             with client.websocket_connect(
                 "/ws", headers={"Authorization": "basic foobar"}
             ):
-                pass
+                pass  # pragma: nocover
 
         with client.websocket_connect(
             "/ws", auth=("tomchristie", "example")
@@ -278,13 +278,13 @@ def test_websocket_authentication_required():
 
         with pytest.raises(WebSocketDisconnect):
             with client.websocket_connect("/ws/decorated"):
-                pass
+                pass  # pragma: nocover
 
         with pytest.raises(WebSocketDisconnect):
             with client.websocket_connect(
                 "/ws/decorated", headers={"Authorization": "basic foobar"}
             ):
-                pass
+                pass  # pragma: nocover
 
         with client.websocket_connect(
             "/ws/decorated", auth=("tomchristie", "example")
