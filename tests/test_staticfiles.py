@@ -11,8 +11,6 @@ from starlette.routing import Mount
 from starlette.staticfiles import StaticFiles
 from starlette.testclient import TestClient
 
-pytestmark = pytest.mark.usefixtures("no_trio_support")
-
 
 def test_staticfiles(tmpdir):
     path = os.path.join(tmpdir, "example.txt")

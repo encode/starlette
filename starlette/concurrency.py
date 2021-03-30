@@ -36,7 +36,7 @@ async def run_in_threadpool(
     elif kwargs:  # pragma: no cover
         # run_sync doesn't accept 'kwargs', so bind them in here
         func = functools.partial(func, **kwargs)
-    return await anyio.run_sync_in_worker_thread(func, *args)
+    return await anyio.to_thread.run_sync(func, *args)
 
 
 class _StopIteration(Exception):
@@ -56,6 +56,6 @@ def _next(iterator: Iterator) -> Any:
 async def iterate_in_threadpool(iterator: Iterator) -> AsyncGenerator:
     while True:
         try:
-            yield await anyio.run_sync_in_worker_thread(_next, iterator)
+            yield await anyio.to_thread.run_sync(_next, iterator)
         except _StopIteration:
             break

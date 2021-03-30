@@ -88,9 +88,7 @@ class WSGIResponder:
         async with anyio.create_task_group() as task_group:
             task_group.spawn(self.sender, send)
             async with self.stream_send:
-                await anyio.run_sync_in_worker_thread(
-                    self.wsgi, environ, self.start_response
-                )
+                await anyio.to_thread.run_sync(self.wsgi, environ, self.start_response)
         if self.exc_info is not None:
             raise self.exc_info[0].with_traceback(self.exc_info[1], self.exc_info[2])
 
@@ -114,7 +112,7 @@ class WSGIResponder:
                 (name.strip().encode("ascii").lower(), value.strip().encode("ascii"))
                 for name, value in response_headers
             ]
-            anyio.run_async_from_thread(
+            anyio.from_thread.run(
                 self.stream_send.send,
                 {
                     "type": "http.response.start",
@@ -125,11 +123,11 @@ class WSGIResponder:
 
     def wsgi(self, environ: dict, start_response: typing.Callable) -> None:
         for chunk in self.app(environ, start_response):
-            anyio.run_async_from_thread(
+            anyio.from_thread.run(
                 self.stream_send.send,
                 {"type": "http.response.body", "body": chunk, "more_body": True},
             )
 
-        anyio.run_async_from_thread(
+        anyio.from_thread.run(
             self.stream_send.send, {"type": "http.response.body", "body": b""}
         )
