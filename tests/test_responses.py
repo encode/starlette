@@ -1,5 +1,6 @@
 import asyncio
 import os
+from io import BytesIO
 
 import pytest
 
@@ -143,6 +144,19 @@ def test_sync_streaming_response():
     client = TestClient(app)
     response = client.get("/")
     assert response.text == "1, 2, 3, 4, 5"
+
+
+def test_streaming_response_with_japanese_filename():
+    filename = "こんにちは.txt"  # "Hello.txt" in Japanese
+    content = b"1, 2, 3, 4, 5"
+    client = TestClient(StreamingResponse(BytesIO(content), filename=filename))
+    response = client.get("/")
+    expected_disposition = (
+        "attachment; filename*=utf-8''%E3%81%93%E3%82%93%E3%81%AB%E3%81%A1%E3%81%AF.txt"
+    )
+    assert response.status_code == status.HTTP_200_OK
+    assert response.content == content
+    assert response.headers["content-disposition"] == expected_disposition
 
 
 def test_response_headers():
