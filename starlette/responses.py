@@ -34,6 +34,18 @@ def guess_type(
     return mimetypes_guess_type(url, strict)
 
 
+# Build Content Disposition Header from filename
+def build_content_disposition_header(filename: str) -> str:
+    content_disposition_filename = quote(filename)
+    if content_disposition_filename != filename:
+        content_disposition = "attachment; filename*=utf-8''{}".format(
+            content_disposition_filename
+        )
+    else:
+        content_disposition = 'attachment; filename="{}"'.format(filename)
+    return content_disposition
+
+
 class Response:
     media_type = None
     charset = "utf-8"
@@ -189,15 +201,22 @@ class StreamingResponse(Response):
         headers: dict = None,
         media_type: str = None,
         background: BackgroundTask = None,
+        filename: str = None,
     ) -> None:
         if isinstance(content, typing.AsyncIterable):
             self.body_iterator = content
         else:
             self.body_iterator = iterate_in_threadpool(content)
         self.status_code = status_code
+        self.filename = filename
         self.media_type = self.media_type if media_type is None else media_type
         self.background = background
         self.init_headers(headers)
+        if self.filename is not None:
+            self.headers.setdefault(
+                "content-disposition",
+                build_content_disposition_header(self.filename),
+            )
 
     async def listen_for_disconnect(self, receive: Receive) -> None:
         while True:
@@ -255,14 +274,10 @@ class FileResponse(Response):
         self.background = background
         self.init_headers(headers)
         if self.filename is not None:
-            content_disposition_filename = quote(self.filename)
-            if content_disposition_filename != self.filename:
-                content_disposition = "attachment; filename*=utf-8''{}".format(
-                    content_disposition_filename
-                )
-            else:
-                content_disposition = 'attachment; filename="{}"'.format(self.filename)
-            self.headers.setdefault("content-disposition", content_disposition)
+            self.headers.setdefault(
+                "content-disposition",
+                build_content_disposition_header(self.filename),
+            )
         self.stat_result = stat_result
         if stat_result is not None:
             self.set_stat_headers(stat_result)
