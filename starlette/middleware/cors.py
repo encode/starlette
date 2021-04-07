@@ -64,7 +64,6 @@ class CORSMiddleware:
         self.allow_origins = allow_origins
         self.allow_methods = allow_methods
         self.allow_headers = [h.lower() for h in allow_headers]
-        self.allow_credentials = allow_credentials
         self.allow_all_origins = allow_all_origins
         self.allow_all_headers = allow_all_headers
         self.preflight_explicit_allow_origin = preflight_explicit_allow_origin
