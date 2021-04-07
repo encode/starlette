@@ -6,7 +6,7 @@ from starlette.datastructures import Headers, MutableHeaders
 from starlette.responses import PlainTextResponse, Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-ALL_METHODS = ("DELETE", "GET", "OPTIONS", "PATCH", "POST", "PUT")
+ALL_METHODS = ("DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT")
 SAFELISTED_HEADERS = {"Accept", "Accept-Language", "Content-Language", "Content-Type"}
 
 
@@ -162,11 +162,16 @@ class CORSMiddleware:
         # If request includes any cookie headers, then we must respond
         # with the specific origin instead of '*'.
         if self.allow_all_origins and has_cookie:
-            headers["Access-Control-Allow-Origin"] = origin
+            self.allow_explicit_origin(headers, origin)
 
         # If we only allow specific origins, then we have to mirror back
         # the Origin header in the response.
         elif not self.allow_all_origins and self.is_allowed_origin(origin=origin):
-            headers["Access-Control-Allow-Origin"] = origin
-            headers.add_vary_header("Origin")
+            self.allow_explicit_origin(headers, origin)
+
         await send(message)
+
+    @staticmethod
+    def allow_explicit_origin(headers: MutableHeaders, origin: str) -> None:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers.add_vary_header("Origin")
