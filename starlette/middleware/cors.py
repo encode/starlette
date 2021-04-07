@@ -41,10 +41,6 @@ class CORSMiddleware:
         preflight_headers = {}
         if "*" in allow_origins:
             preflight_headers["Access-Control-Allow-Origin"] = "*"
-            if allow_credentials:
-                preflight_headers["Vary"] = "Origin"
-        else:
-            preflight_headers["Vary"] = "Origin"
         preflight_headers.update(
             {
                 "Access-Control-Allow-Methods": ", ".join(allow_methods),
@@ -104,7 +100,7 @@ class CORSMiddleware:
         requested_method = request_headers["access-control-request-method"]
         requested_headers = request_headers.get("access-control-request-headers")
 
-        headers = dict(self.preflight_headers)
+        headers = MutableHeaders(headers=self.preflight_headers)
         failures = []
 
         if self.is_allowed_origin(origin=requested_origin):
@@ -115,7 +111,7 @@ class CORSMiddleware:
                 # the Origin header in the response.
                 # Similarly, if it's an allowed origin and credentials are
                 # allowed, we also have to mirror back the Origin header.
-                headers["Access-Control-Allow-Origin"] = requested_origin
+                self.allow_explicit_origin(headers, requested_origin)
         else:
             failures.append("origin")
 
