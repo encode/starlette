@@ -132,9 +132,9 @@ class CORSMiddleware:
         # if we do.
         if failures:
             failure_text = "Disallowed CORS " + ", ".join(failures)
-            return PlainTextResponse(failure_text, status_code=400, headers=headers)
+            return PlainTextResponse(failure_text, status_code=400, headers=dict(headers))
 
-        return PlainTextResponse("OK", status_code=200, headers=headers)
+        return PlainTextResponse("OK", status_code=200, headers=dict(headers))
 
     async def simple_response(
         self, scope: Scope, receive: Receive, send: Send, request_headers: Headers
