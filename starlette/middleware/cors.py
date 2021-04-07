@@ -30,8 +30,12 @@ class CORSMiddleware:
         if allow_origin_regex is not None:
             compiled_allow_origin_regex = re.compile(allow_origin_regex)
 
+        allow_all_origins = "*" in allow_origins
+        allow_all_headers = "*" in allow_headers
+        preflight_explicit_allow_origin = not allow_all_origins or allow_credentials
+
         simple_headers = {}
-        if "*" in allow_origins:
+        if allow_all_origins:
             simple_headers["Access-Control-Allow-Origin"] = "*"
         if allow_credentials:
             simple_headers["Access-Control-Allow-Credentials"] = "true"
@@ -39,7 +43,9 @@ class CORSMiddleware:
             simple_headers["Access-Control-Expose-Headers"] = ", ".join(expose_headers)
 
         preflight_headers = {}
-        if "*" in allow_origins:
+        if preflight_explicit_allow_origin:
+            preflight_headers["Vary"] = "Origin"
+        else:
             preflight_headers["Access-Control-Allow-Origin"] = "*"
         preflight_headers.update(
             {
@@ -48,18 +54,19 @@ class CORSMiddleware:
             }
         )
         allow_headers = sorted(SAFELISTED_HEADERS | set(allow_headers))
-        if allow_headers and "*" not in allow_headers:
+        if allow_headers and not allow_all_headers:
             preflight_headers["Access-Control-Allow-Headers"] = ", ".join(allow_headers)
         if allow_credentials:
             preflight_headers["Access-Control-Allow-Credentials"] = "true"
 
         self.app = app
-        self.allow_credentials = allow_credentials
         self.allow_origins = allow_origins
         self.allow_methods = allow_methods
         self.allow_headers = [h.lower() for h in allow_headers]
-        self.allow_all_origins = "*" in allow_origins
-        self.allow_all_headers = "*" in allow_headers
+        self.allow_credentials = allow_credentials
+        self.allow_all_origins = allow_all_origins
+        self.allow_all_headers = allow_all_headers
+        self.preflight_explicit_allow_origin = preflight_explicit_allow_origin
         self.allow_origin_regex = compiled_allow_origin_regex
         self.simple_headers = simple_headers
         self.preflight_headers = preflight_headers
@@ -100,18 +107,18 @@ class CORSMiddleware:
         requested_method = request_headers["access-control-request-method"]
         requested_headers = request_headers.get("access-control-request-headers")
 
-        headers = MutableHeaders(headers=self.preflight_headers)
+        headers = dict(self.preflight_headers)
         failures = []
 
         if self.is_allowed_origin(origin=requested_origin):
-            if not self.allow_all_origins or self.allow_credentials:
+            if self.preflight_explicit_allow_origin:
                 # If self.allow_all_origins is True, then the
                 # "Access-Control-Allow-Origin" header is already set to "*".
                 # If we only allow specific origins, then we have to mirror back
                 # the Origin header in the response.
                 # Similarly, if it's an allowed origin and credentials are
                 # allowed, we also have to mirror back the Origin header.
-                self.allow_explicit_origin(headers, requested_origin)
+                headers["Access-Control-Allow-Origin"] = requested_origin
         else:
             failures.append("origin")
 
@@ -132,9 +139,9 @@ class CORSMiddleware:
         # if we do.
         if failures:
             failure_text = "Disallowed CORS " + ", ".join(failures)
-            return PlainTextResponse(failure_text, status_code=400, headers=dict(headers))
+            return PlainTextResponse(failure_text, status_code=400, headers=headers)
 
-        return PlainTextResponse("OK", status_code=200, headers=dict(headers))
+        return PlainTextResponse("OK", status_code=200, headers=headers)
 
     async def simple_response(
         self, scope: Scope, receive: Receive, send: Send, request_headers: Headers
