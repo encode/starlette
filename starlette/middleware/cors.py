@@ -44,6 +44,7 @@ class CORSMiddleware:
 
         preflight_headers = {}
         if preflight_explicit_allow_origin:
+            # The origin value will be set in preflight_response() if it is allowed.
             preflight_headers["Vary"] = "Origin"
         else:
             preflight_headers["Access-Control-Allow-Origin"] = "*"
@@ -112,12 +113,8 @@ class CORSMiddleware:
 
         if self.is_allowed_origin(origin=requested_origin):
             if self.preflight_explicit_allow_origin:
-                # If self.allow_all_origins is True, then the
-                # "Access-Control-Allow-Origin" header is already set to "*".
-                # If we only allow specific origins, then we have to mirror back
-                # the Origin header in the response.
-                # Similarly, if it's an allowed origin and credentials are
-                # allowed, we also have to mirror back the Origin header.
+                # The "else" case is already accounted for in self.preflight_headers
+                # and the value would be "*".
                 headers["Access-Control-Allow-Origin"] = requested_origin
         else:
             failures.append("origin")
