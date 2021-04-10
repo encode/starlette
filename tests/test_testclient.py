@@ -118,7 +118,7 @@ def test_websocket_blocking_receive():
             websocket = WebSocket(scope, receive=receive, send=send)
             await websocket.accept()
             async with anyio.create_task_group() as task_group:
-                task_group.spawn(respond, websocket)
+                task_group.start_soon(respond, websocket)
                 try:
                     # this will block as the client does not send us data
                     # it should not prevent `respond` from executing though

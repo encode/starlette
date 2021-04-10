@@ -86,7 +86,7 @@ class WSGIResponder:
         environ = build_environ(self.scope, body)
 
         async with anyio.create_task_group() as task_group:
-            task_group.spawn(self.sender, send)
+            task_group.start_soon(self.sender, send)
             async with self.stream_send:
                 await anyio.to_thread.run_sync(self.wsgi, environ, self.start_response)
         if self.exc_info is not None:

@@ -284,7 +284,7 @@ class WebSocketTestSession:
         )
 
         try:
-            self.portal.spawn_task(self._run)
+            self.portal.start_task_soon(self._run)
             self.send({"type": "websocket.connect"})
             message = self.receive()
             self._raise_on_close(message)
@@ -484,7 +484,7 @@ class TestClient(requests.Session):
             *anyio.create_memory_object_stream(math.inf)
         )
         try:
-            self.task = self.portal.spawn_task(self.lifespan)
+            self.task = self.portal.start_task_soon(self.lifespan)
             self.portal.call(self.wait_startup)
         except Exception:
             self.exit_stack.close()

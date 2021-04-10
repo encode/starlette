@@ -35,7 +35,7 @@ class BaseHTTPMiddleware:
             async with send_stream:
                 await self.app(scope, request.receive, send_stream.send)
 
-        task_group.spawn(coro)
+        task_group.start_soon(coro)
 
         try:
             message = await recv_stream.receive()

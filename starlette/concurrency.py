@@ -21,7 +21,7 @@ async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -
             task_group.cancel_scope.cancel()
 
         for handler, kwargs in args:
-            task_group.spawn(task, handler, kwargs)
+            task_group.start_soon(task, handler, kwargs)
 
 
 async def run_in_threadpool(
