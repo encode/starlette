@@ -7,7 +7,7 @@ import sys
 import typing
 from email.utils import formatdate
 from mimetypes import guess_type as mimetypes_guess_type
-from urllib.parse import quote, quote_plus
+from urllib.parse import quote
 
 from starlette.background import BackgroundTask
 from starlette.concurrency import iterate_in_threadpool, run_until_first_complete
