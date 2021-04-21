@@ -37,7 +37,7 @@ setup(
     packages=find_packages(exclude=["tests*"]),
     package_data={"starlette": ["py.typed"]},
     include_package_data=True,
-    install_requires=["anyio>=3.0.0rc4"],
+    install_requires=["anyio>=3.0.0,<4"],
     extras_require={
         "full": [
             "graphene",
