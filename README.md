@@ -90,7 +90,6 @@ For a more complete example, see [encode/starlette-example](https://github.com/e
 Starlette only requires `anyio`, and the following are optional:
 
 * [`requests`][requests] - Required if you want to use the `TestClient`.
-* [`aiofiles`][aiofiles] - Required if you want to use `FileResponse` or `StaticFiles`.
 * [`jinja2`][jinja2] - Required if you want to use `Jinja2Templates`.
 * [`python-multipart`][python-multipart] - Required if you want to support form parsing, with `request.form()`.
 * [`itsdangerous`][itsdangerous] - Required for `SessionMiddleware` support.
@@ -170,7 +169,6 @@ gunicorn -k uvicorn.workers.UvicornH11Worker ...
 <p align="center"><i>Starlette is <a href="https://github.com/encode/starlette/blob/master/LICENSE.md">BSD licensed</a> code. Designed & built in Brighton, England.</i></p>
 
 [requests]: http://docs.python-requests.org/en/master/
-[aiofiles]: https://github.com/Tinche/aiofiles
 [jinja2]: http://jinja.pocoo.org/
 [python-multipart]: https://andrew-d.github.io/python-multipart/
 [graphene]: https://graphene-python.org/
