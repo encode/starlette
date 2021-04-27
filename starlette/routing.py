@@ -134,6 +134,43 @@ def compile_path(
     return re.compile(path_regex), path_format, param_convertors
 
 
+def get_child_scope(match: re.Match,
+                    scope: Scope,
+                    endpoint: typing.Callable,
+                    param_convertors: typing.Dict[str, Convertor]) \
+        -> typing.Dict[str, typing.Any[typing.Callable, dict]]:
+    """
+    Given match object return the dict of endpoint callable and dict of path parameters
+    """
+    matched_params = match.groupdict()
+    for key, value in matched_params.items():
+        matched_params[key] = param_convertors[key].convert(value)
+    path_params = dict(scope.get("path_params", {}))
+    path_params.update(matched_params)
+    return {"endpoint": endpoint, "path_params": path_params}
+
+
+def get_path(name: str,
+             self_name: str,
+             path_format: str,
+             param_convertors: typing.Dict[str, Convertor],
+             **path_params: str) -> str:
+    """
+    Return path after replacing the params
+    """
+    seen_params = set(path_params.keys())
+    expected_params = set(param_convertors.keys())
+
+    if name != self_name or seen_params != expected_params:
+        raise NoMatchFound()
+
+    path, remaining_params = replace_params(
+        path_format, param_convertors, path_params
+    )
+    assert not remaining_params
+    return path
+
+
 class BaseRoute:
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         raise NotImplementedError()  # pragma: no cover
@@ -205,12 +242,9 @@ class Route(BaseRoute):
         if scope["type"] == "http":
             match = self.path_regex.match(scope["path"])
             if match:
-                matched_params = match.groupdict()
-                for key, value in matched_params.items():
-                    matched_params[key] = self.param_convertors[key].convert(value)
-                path_params = dict(scope.get("path_params", {}))
-                path_params.update(matched_params)
-                child_scope = {"endpoint": self.endpoint, "path_params": path_params}
+                child_scope = get_child_scope(match, scope,
+                                              endpoint=self.endpoint,
+                                              param_convertors=self.param_convertors)
                 if self.methods and scope["method"] not in self.methods:
                     return Match.PARTIAL, child_scope
                 else:
@@ -218,16 +252,11 @@ class Route(BaseRoute):
         return Match.NONE, {}
 
     def url_path_for(self, name: str, **path_params: str) -> URLPath:
-        seen_params = set(path_params.keys())
-        expected_params = set(self.param_convertors.keys())
-
-        if name != self.name or seen_params != expected_params:
-            raise NoMatchFound()
-
-        path, remaining_params = replace_params(
-            self.path_format, self.param_convertors, path_params
-        )
-        assert not remaining_params
+        path = get_path(name,
+                        self.name,
+                        path_format=self.path_format,
+                        param_convertors=self.param_convertors,
+                        **path_params)
         return URLPath(path=path, protocol="http")
 
     async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -271,26 +300,18 @@ class WebSocketRoute(BaseRoute):
         if scope["type"] == "websocket":
             match = self.path_regex.match(scope["path"])
             if match:
-                matched_params = match.groupdict()
-                for key, value in matched_params.items():
-                    matched_params[key] = self.param_convertors[key].convert(value)
-                path_params = dict(scope.get("path_params", {}))
-                path_params.update(matched_params)
-                child_scope = {"endpoint": self.endpoint, "path_params": path_params}
+                child_scope = get_child_scope(match, scope,
+                                              endpoint=self.endpoint,
+                                              param_convertors=self.param_convertors)
                 return Match.FULL, child_scope
         return Match.NONE, {}
 
     def url_path_for(self, name: str, **path_params: str) -> URLPath:
-        seen_params = set(path_params.keys())
-        expected_params = set(self.param_convertors.keys())
-
-        if name != self.name or seen_params != expected_params:
-            raise NoMatchFound()
-
-        path, remaining_params = replace_params(
-            self.path_format, self.param_convertors, path_params
-        )
-        assert not remaining_params
+        path = get_path(name,
+                        path_format=self.path_format,
+                        self_name=self.name,
+                        param_convertors=self.param_convertors,
+                        **path_params)
         return URLPath(path=path, protocol="websocket")
 
     async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
