@@ -129,17 +129,23 @@ class ServerErrorMiddleware:
     If 'debug' is set, then traceback responses will be returned,
     otherwise the designated 'handler' will be called.
 
+    If 'reraise' is set to 'False', then caught exceptions are silently handled.
+    Useful when errors are manually sent by the 'handler' to an external monitoring
+    platform like Sentry. This avoids exceptions to be recorded twice.
+
     This middleware class should generally be used to wrap *everything*
     else up, so that unhandled exceptions anywhere in the stack
     always result in an appropriate 500 response.
     """
 
     def __init__(
-        self, app: ASGIApp, handler: typing.Callable = None, debug: bool = False
+        self, app: ASGIApp, handler: typing.Callable = None, debug: bool = False,
+        reraise: bool = True,
     ) -> None:
         self.app = app
         self.handler = handler
         self.debug = debug
+        self.reraise = reraise
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
@@ -175,10 +181,10 @@ class ServerErrorMiddleware:
 
                 await response(scope, receive, send)
 
-            # We always continue to raise the exception.
-            # This allows servers to log the error, or allows test clients
-            # to optionally raise the error within the test case.
-            raise exc
+            if self.reraise:
+                # This allows servers to log the error, or allows test clients
+                # to optionally raise the error within the test case.
+                raise exc
 
     def format_line(
         self, index: int, line: str, frame_lineno: int, frame_index: int
