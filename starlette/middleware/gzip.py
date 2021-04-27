@@ -46,8 +46,7 @@ class GZipResponder:
             more_body = message.get("more_body", False)
             if len(body) < self.minimum_size and not more_body:
                 # Don't apply GZip to small outgoing responses.
-                await self.send(self.initial_message)
-                await self.send(message)
+                pass
             elif not more_body:
                 # Standard GZip response.
                 self.gzip_file.write(body)
@@ -60,8 +59,6 @@ class GZipResponder:
                 headers.add_vary_header("Accept-Encoding")
                 message["body"] = body
 
-                await self.send(self.initial_message)
-                await self.send(message)
             else:
                 # Initial body in streaming GZip response.
                 headers = MutableHeaders(raw=self.initial_message["headers"])
@@ -74,9 +71,8 @@ class GZipResponder:
                 self.gzip_buffer.seek(0)
                 self.gzip_buffer.truncate()
 
-                await self.send(self.initial_message)
-                await self.send(message)
-
+            await self.send(self.initial_message)
+            await self.send(message)
         elif message_type == "http.response.body":
             # Remaining body in streaming GZip response.
             body = message.get("body", b"")
