@@ -11,3 +11,6 @@ venv*/
 .python-version
 build/
 dist/
+.idea/
+.venv/
+.vscode/

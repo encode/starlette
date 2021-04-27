@@ -180,11 +180,7 @@ class URLPath(str):
         else:
             scheme = base_url.scheme
 
-        if self.host:
-            netloc = self.host
-        else:
-            netloc = base_url.netloc
-
+        netloc = self.host or base_url.netloc
         path = base_url.path.rstrip("/") + str(self)
         return str(URL(scheme=scheme, netloc=netloc, path=path))
 
@@ -246,11 +242,7 @@ class ImmutableMultiDict(typing.Mapping):
     ) -> None:
         assert len(args) < 2, "Too many arguments."
 
-        if args:
-            value = args[0]
-        else:
-            value = []
-
+        value = args[0] if args else []
         if kwargs:
             value = (
                 ImmutableMultiDict(value).multi_items()
@@ -584,10 +576,11 @@ class MutableHeaders(Headers):
         set_key = key.lower().encode("latin-1")
         set_value = value.encode("latin-1")
 
-        found_indexes = []
-        for idx, (item_key, item_value) in enumerate(self._list):
-            if item_key == set_key:
-                found_indexes.append(idx)
+        found_indexes = [
+            idx
+            for idx, (item_key, item_value) in enumerate(self._list)
+            if item_key == set_key
+        ]
 
         for idx in reversed(found_indexes[1:]):
             del self._list[idx]
@@ -604,10 +597,11 @@ class MutableHeaders(Headers):
         """
         del_key = key.lower().encode("latin-1")
 
-        pop_indexes = []
-        for idx, (item_key, item_value) in enumerate(self._list):
-            if item_key == del_key:
-                pop_indexes.append(idx)
+        pop_indexes = [
+            idx
+            for idx, (item_key, item_value) in enumerate(self._list)
+            if item_key == del_key
+        ]
 
         for idx in reversed(pop_indexes):
             del self._list[idx]
