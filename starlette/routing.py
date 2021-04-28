@@ -135,7 +135,7 @@ def compile_path(
 
 
 def get_child_scope(
-    match: re.Match,
+    match: typing.Match,
     scope: Scope,
     endpoint: typing.Callable,
     param_convertors: typing.Dict[str, Convertor],
