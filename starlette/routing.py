@@ -139,7 +139,7 @@ def get_child_scope(
     scope: Scope,
     endpoint: typing.Callable,
     param_convertors: typing.Dict[str, Convertor],
-) -> typing.Dict[str, typing.Any[typing.Callable, dict]]:
+) -> typing.Dict[str, typing.Union[typing.Callable, dict]]:
     """
     Given match object return the dict of endpoint callable and dict of path parameters
     """
