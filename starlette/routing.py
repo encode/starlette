@@ -138,7 +138,7 @@ def get_child_scope(
     match: re.Match,
     scope: Scope,
     endpoint: typing.Callable,
-    param_convertors: typing.Dict[str, Convertor]
+    param_convertors: typing.Dict[str, Convertor],
 ) -> typing.Dict[str, typing.Any[typing.Callable, dict]]:
     """
     Given match object return the dict of endpoint callable and dict of path parameters
@@ -156,7 +156,7 @@ def get_path(
     self_name: str,
     path_format: str,
     param_convertors: typing.Dict[str, Convertor],
-    **path_params: str
+    **path_params: str,
 ) -> str:
     """
     Return path after replacing the params
@@ -167,9 +167,7 @@ def get_path(
     if name != self_name or seen_params != expected_params:
         raise NoMatchFound()
 
-    path, remaining_params = replace_params(
-        path_format, param_convertors, path_params
-    )
+    path, remaining_params = replace_params(path_format, param_convertors, path_params)
     assert not remaining_params
     return path
 
