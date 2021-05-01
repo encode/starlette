@@ -9,6 +9,12 @@ from starlette.routing import BaseRoute, Router
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 
+MiddlewareList = typing.Sequence[typing.Union[
+    Middleware,
+    typing.Tuple[typing.Callable[..., ASGIApp], typing.Dict[str, typing.Any]]
+]]
+
+
 class Starlette:
     """
     Creates an application instance.
@@ -40,7 +46,7 @@ class Starlette:
         self,
         debug: bool = False,
         routes: typing.Sequence[BaseRoute] = None,
-        middleware: typing.Sequence[Middleware] = None,
+        middleware: MiddlewareList = None,
         exception_handlers: typing.Dict[
             typing.Union[int, typing.Type[Exception]], typing.Callable
         ] = None,
@@ -76,15 +82,13 @@ class Starlette:
             else:
                 exception_handlers[key] = value
 
-        middleware = (
-            [Middleware(ServerErrorMiddleware, handler=error_handler, debug=debug)]
-            + self.user_middleware
-            + [
-                Middleware(
-                    ExceptionMiddleware, handlers=exception_handlers, debug=debug
-                )
-            ]
-        )
+        middleware = [
+            Middleware(ServerErrorMiddleware, handler=error_handler, debug=debug),
+            *self.user_middleware,
+            Middleware(
+                ExceptionMiddleware, handlers=exception_handlers, debug=debug
+            )
+        ]
 
         app = self.router
         for cls, options in reversed(middleware):
