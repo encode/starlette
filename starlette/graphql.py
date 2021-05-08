@@ -1,5 +1,6 @@
 import json
 import typing
+import warnings
 
 from starlette import status
 from starlette.background import BackgroundTasks
@@ -8,13 +9,19 @@ from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response
 from starlette.types import Receive, Scope, Send
 
+warnings.warn(
+    "GraphQLApp is deprecated and will be removed in a future release. "
+    "Consider using a third-party GraphQL implementation. "
+    "See https://github.com/encode/starlette/issues/619.",
+    DeprecationWarning,
+)
+
 try:
     import graphene
+    from graphql.error import GraphQLError, format_error as format_graphql_error
     from graphql.execution.executors.asyncio import AsyncioExecutor
-    from graphql.error import format_error as format_graphql_error
-    from graphql.error import GraphQLError
 except ImportError:  # pragma: nocover
-    graphene = None  # type: ignore
+    graphene = None
     AsyncioExecutor = None  # type: ignore
     format_graphql_error = None  # type: ignore
     GraphQLError = None  # type: ignore
@@ -276,4 +283,4 @@ GRAPHIQL = """
     </script>
   </body>
 </html>
-"""
+"""  # noqa: E501

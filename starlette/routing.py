@@ -1,4 +1,5 @@
 import asyncio
+import functools
 import inspect
 import re
 import traceback
@@ -28,12 +29,22 @@ class Match(Enum):
     FULL = 2
 
 
+def iscoroutinefunction_or_partial(obj: typing.Any) -> bool:
+    """
+    Correctly determines if an object is a coroutine function,
+    including those wrapped in functools.partial objects.
+    """
+    while isinstance(obj, functools.partial):
+        obj = obj.func
+    return inspect.iscoroutinefunction(obj)
+
+
 def request_response(func: typing.Callable) -> ASGIApp:
     """
     Takes a function or coroutine `func(request) -> response`,
     and returns an ASGI application.
     """
-    is_coroutine = asyncio.iscoroutinefunction(func)
+    is_coroutine = iscoroutinefunction_or_partial(func)
 
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive=receive, send=send)
@@ -96,6 +107,7 @@ def compile_path(
     """
     path_regex = "^"
     path_format = ""
+    duplicated_params = set()
 
     idx = 0
     param_convertors = {}
@@ -107,17 +119,25 @@ def compile_path(
         ), f"Unknown path convertor '{convertor_type}'"
         convertor = CONVERTOR_TYPES[convertor_type]
 
-        path_regex += path[idx : match.start()]
+        path_regex += re.escape(path[idx : match.start()])
         path_regex += f"(?P<{param_name}>{convertor.regex})"
 
         path_format += path[idx : match.start()]
         path_format += "{%s}" % param_name
 
+        if param_name in param_convertors:
+            duplicated_params.add(param_name)
+
         param_convertors[param_name] = convertor
 
         idx = match.end()
 
-    path_regex += path[idx:] + "$"
+    if duplicated_params:
+        names = ", ".join(sorted(duplicated_params))
+        ending = "s" if len(duplicated_params) > 1 else ""
+        raise ValueError(f"Duplicated param name{ending} {names} at path {path}")
+
+    path_regex += re.escape(path[idx:]) + "$"
     path_format += path[idx:]
 
     return re.compile(path_regex), path_format, param_convertors
@@ -169,7 +189,10 @@ class Route(BaseRoute):
         self.name = get_name(endpoint) if name is None else name
         self.include_in_schema = include_in_schema
 
-        if inspect.isfunction(endpoint) or inspect.ismethod(endpoint):
+        endpoint_handler = endpoint
+        while isinstance(endpoint_handler, functools.partial):
+            endpoint_handler = endpoint_handler.func
+        if inspect.isfunction(endpoint_handler) or inspect.ismethod(endpoint_handler):
             # Endpoint is function or method. Treat it as `func(request) -> response`.
             self.app = request_response(endpoint)
             if methods is None:
@@ -181,7 +204,7 @@ class Route(BaseRoute):
         if methods is None:
             self.methods = None
         else:
-            self.methods = set(method.upper() for method in methods)
+            self.methods = {method.upper() for method in methods}
             if "GET" in self.methods:
                 self.methods.add("HEAD")
 
@@ -295,7 +318,7 @@ class Mount(BaseRoute):
         self,
         path: str,
         app: ASGIApp = None,
-        routes: typing.List[BaseRoute] = None,
+        routes: typing.Sequence[BaseRoute] = None,
         name: str = None,
     ) -> None:
         assert path == "" or path.startswith("/"), "Routed paths must start with '/'"
@@ -455,12 +478,20 @@ class Router:
         default: ASGIApp = None,
         on_startup: typing.Sequence[typing.Callable] = None,
         on_shutdown: typing.Sequence[typing.Callable] = None,
+        lifespan: typing.Callable[[typing.Any], typing.AsyncGenerator] = None,
     ) -> None:
         self.routes = [] if routes is None else list(routes)
         self.redirect_slashes = redirect_slashes
         self.default = self.not_found if default is None else default
         self.on_startup = [] if on_startup is None else list(on_startup)
         self.on_shutdown = [] if on_shutdown is None else list(on_shutdown)
+
+        async def default_lifespan(app: typing.Any) -> typing.AsyncGenerator:
+            await self.startup()
+            yield
+            await self.shutdown()
+
+        self.lifespan_context = default_lifespan if lifespan is None else lifespan
 
     async def not_found(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "websocket":
@@ -510,21 +541,29 @@ class Router:
         Handle ASGI lifespan messages, which allows us to manage application
         startup and shutdown events.
         """
-        message = await receive()
-        assert message["type"] == "lifespan.startup"
-
+        first = True
+        app = scope.get("app")
+        await receive()
         try:
-            await self.startup()
+            if inspect.isasyncgenfunction(self.lifespan_context):
+                async for item in self.lifespan_context(app):
+                    assert first, "Lifespan context yielded multiple times."
+                    first = False
+                    await send({"type": "lifespan.startup.complete"})
+                    await receive()
+            else:
+                for item in self.lifespan_context(app):  # type: ignore
+                    assert first, "Lifespan context yielded multiple times."
+                    first = False
+                    await send({"type": "lifespan.startup.complete"})
+                    await receive()
         except BaseException:
-            msg = traceback.format_exc()
-            await send({"type": "lifespan.startup.failed", "message": msg})
+            if first:
+                exc_text = traceback.format_exc()
+                await send({"type": "lifespan.startup.failed", "message": exc_text})
             raise
-
-        await send({"type": "lifespan.startup.complete"})
-        message = await receive()
-        assert message["type"] == "lifespan.shutdown"
-        await self.shutdown()
-        await send({"type": "lifespan.shutdown.complete"})
+        else:
+            await send({"type": "lifespan.shutdown.complete"})
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         """
@@ -556,23 +595,25 @@ class Router:
         if partial is not None:
             #  Handle partial matches. These are cases where an endpoint is
             # able to handle the request, but is not a preferred option.
-            # We use this in particular to deal with "406 Method Not Found".
+            # We use this in particular to deal with "405 Method Not Allowed".
             scope.update(partial_scope)
             await partial.handle(scope, receive, send)
             return
 
-        if scope["type"] == "http" and self.redirect_slashes:
-            if not scope["path"].endswith("/"):
-                redirect_scope = dict(scope)
-                redirect_scope["path"] += "/"
+        if scope["type"] == "http" and self.redirect_slashes and scope["path"] != "/":
+            redirect_scope = dict(scope)
+            if scope["path"].endswith("/"):
+                redirect_scope["path"] = redirect_scope["path"].rstrip("/")
+            else:
+                redirect_scope["path"] = redirect_scope["path"] + "/"
 
-                for route in self.routes:
-                    match, child_scope = route.matches(redirect_scope)
-                    if match != Match.NONE:
-                        redirect_url = URL(scope=redirect_scope)
-                        response = RedirectResponse(url=str(redirect_url))
-                        await response(scope, receive, send)
-                        return
+            for route in self.routes:
+                match, child_scope = route.matches(redirect_scope)
+                if match != Match.NONE:
+                    redirect_url = URL(scope=redirect_scope)
+                    response = RedirectResponse(url=str(redirect_url))
+                    await response(scope, receive, send)
+                    return
 
         await self.default(scope, receive, send)
 

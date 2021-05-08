@@ -1,3 +1,6 @@
+import functools
+import uuid
+
 import pytest
 
 from starlette.applications import Starlette
@@ -75,6 +78,19 @@ def path_convertor(request):
     return JSONResponse({"path": path})
 
 
+@app.route("/uuid/{param:uuid}", name="uuid-convertor")
+def uuid_converter(request):
+    uuid_param = request.path_params["param"]
+    return JSONResponse({"uuid": str(uuid_param)})
+
+
+# Route with chars that conflict with regex meta chars
+@app.route("/path-with-parentheses({param:int})", name="path-with-parentheses")
+def path_with_parentheses(request):
+    number = request.path_params["param"]
+    return JSONResponse({"int": number})
+
+
 @app.websocket_route("/ws")
 async def websocket_endpoint(session):
     await session.accept()
@@ -117,6 +133,11 @@ def test_router():
     assert response.status_code == 200
     assert response.text == "User fixed me"
 
+    response = client.get("/users/tomchristie/")
+    assert response.status_code == 200
+    assert response.url == "http://testserver/users/tomchristie"
+    assert response.text == "User tomchristie"
+
     response = client.get("/users/nomatch")
     assert response.status_code == 200
     assert response.text == "User nomatch"
@@ -133,6 +154,15 @@ def test_route_converters():
     assert response.json() == {"int": 5}
     assert app.url_path_for("int-convertor", param=5) == "/int/5"
 
+    # Test path with parentheses
+    response = client.get("/path-with-parentheses(7)")
+    assert response.status_code == 200
+    assert response.json() == {"int": 7}
+    assert (
+        app.url_path_for("path-with-parentheses", param=7)
+        == "/path-with-parentheses(7)"
+    )
+
     # Test float conversion
     response = client.get("/float/25.5")
     assert response.status_code == 200
@@ -145,6 +175,17 @@ def test_route_converters():
     assert response.json() == {"path": "some/example"}
     assert (
         app.url_path_for("path-convertor", param="some/example") == "/path/some/example"
+    )
+
+    # Test UUID conversion
+    response = client.get("/uuid/ec38df32-ceda-4cfa-9b4a-1aeb94ad551a")
+    assert response.status_code == 200
+    assert response.json() == {"uuid": "ec38df32-ceda-4cfa-9b4a-1aeb94ad551a"}
+    assert (
+        app.url_path_for(
+            "uuid-convertor", param=uuid.UUID("ec38df32-ceda-4cfa-9b4a-1aeb94ad551a")
+        )
+        == "/uuid/ec38df32-ceda-4cfa-9b4a-1aeb94ad551a"
     )
 
 
@@ -402,8 +443,12 @@ def test_url_for_with_root_path():
     }
 
 
+async def stub_app(scope, receive, send):
+    pass  # pragma: no cover
+
+
 double_mount_routes = [
-    Mount("/mount", name="mount", routes=[Mount("/static", ..., name="static")],),
+    Mount("/mount", name="mount", routes=[Mount("/static", stub_app, name="static")]),
 ]
 
 
@@ -448,3 +493,146 @@ def test_standalone_ws_route_does_not_match():
     client = TestClient(app)
     with pytest.raises(WebSocketDisconnect):
         client.websocket_connect("/invalid")
+
+
+def test_lifespan_async():
+    startup_complete = False
+    shutdown_complete = False
+
+    async def hello_world(request):
+        return PlainTextResponse("hello, world")
+
+    async def run_startup():
+        nonlocal startup_complete
+        startup_complete = True
+
+    async def run_shutdown():
+        nonlocal shutdown_complete
+        shutdown_complete = True
+
+    app = Router(
+        on_startup=[run_startup],
+        on_shutdown=[run_shutdown],
+        routes=[Route("/", hello_world)],
+    )
+
+    assert not startup_complete
+    assert not shutdown_complete
+    with TestClient(app) as client:
+        assert startup_complete
+        assert not shutdown_complete
+        client.get("/")
+    assert startup_complete
+    assert shutdown_complete
+
+
+def test_lifespan_sync():
+    startup_complete = False
+    shutdown_complete = False
+
+    def hello_world(request):
+        return PlainTextResponse("hello, world")
+
+    def run_startup():
+        nonlocal startup_complete
+        startup_complete = True
+
+    def run_shutdown():
+        nonlocal shutdown_complete
+        shutdown_complete = True
+
+    app = Router(
+        on_startup=[run_startup],
+        on_shutdown=[run_shutdown],
+        routes=[Route("/", hello_world)],
+    )
+
+    assert not startup_complete
+    assert not shutdown_complete
+    with TestClient(app) as client:
+        assert startup_complete
+        assert not shutdown_complete
+        client.get("/")
+    assert startup_complete
+    assert shutdown_complete
+
+
+def test_raise_on_startup():
+    def run_startup():
+        raise RuntimeError()
+
+    router = Router(on_startup=[run_startup])
+
+    async def app(scope, receive, send):
+        async def _send(message):
+            nonlocal startup_failed
+            if message["type"] == "lifespan.startup.failed":
+                startup_failed = True
+            return await send(message)
+
+        await router(scope, receive, _send)
+
+    startup_failed = False
+    with pytest.raises(RuntimeError):
+        with TestClient(app):
+            pass  # pragma: nocover
+    assert startup_failed
+
+
+def test_raise_on_shutdown():
+    def run_shutdown():
+        raise RuntimeError()
+
+    app = Router(on_shutdown=[run_shutdown])
+
+    with pytest.raises(RuntimeError):
+        with TestClient(app):
+            pass  # pragma: nocover
+
+
+class AsyncEndpointClassMethod:
+    @classmethod
+    async def async_endpoint(cls, arg, request):
+        return JSONResponse({"arg": arg})
+
+
+async def _partial_async_endpoint(arg, request):
+    return JSONResponse({"arg": arg})
+
+
+partial_async_endpoint = functools.partial(_partial_async_endpoint, "foo")
+partial_cls_async_endpoint = functools.partial(
+    AsyncEndpointClassMethod.async_endpoint, "foo"
+)
+
+partial_async_app = Router(
+    routes=[
+        Route("/", partial_async_endpoint),
+        Route("/cls", partial_cls_async_endpoint),
+    ]
+)
+
+
+def test_partial_async_endpoint():
+    test_client = TestClient(partial_async_app)
+    response = test_client.get("/")
+    assert response.status_code == 200
+    assert response.json() == {"arg": "foo"}
+
+    cls_method_response = test_client.get("/cls")
+    assert cls_method_response.status_code == 200
+    assert cls_method_response.json() == {"arg": "foo"}
+
+
+def test_duplicated_param_names():
+    with pytest.raises(
+        ValueError,
+        match="Duplicated param name id at path /{id}/{id}",
+    ):
+        Route("/{id}/{id}", user)
+
+    with pytest.raises(
+        ValueError,
+        match="Duplicated param names id, name at path /{id}/{name}/{id}/{name}",
+    ):
+        Route("/{id}/{name}/{id}/{name}", user)

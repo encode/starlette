@@ -1,3 +1,78 @@
+## 0.15.0
+
+Unreleased
+
+### Deprecated
+
+* Built-in GraphQL support via the `GraphQLApp` class has been deprecated and will be removed in a
+  future release. Please see [#619](https://github.com/encode/starlette/issues/619).
+
+## 0.14.2
+
+February 2, 2021
+
+### Fixed
+
+* Fixed `ServerErrorMiddleware` compatibility with Python 3.9.1/3.8.7 when debug mode is enabled -
+  [#1132](https://github.com/encode/starlette/pull/1132).
+* Fixed unclosed socket `ResourceWarning`s when using the `TestClient` with WebSocket endpoints -
+  #1132.
+* Improved detection of `async` endpoints wrapped in `functools.partial` on Python 3.8+ -
+  [#1106](https://github.com/encode/starlette/pull/1106).
+
+
+## 0.14.1
+
+November 9th, 2020
+
+### Removed
+
+* `UJSONResponse` was removed (this change was intended to be included in 0.14.0). Please see the
+  [documentation](https://www.starlette.io/responses/#custom-json-serialization) for how to
+  implement responses using custom JSON serialization -
+  [#1074](https://github.com/encode/starlette/pull/1047).
+
+## 0.14.0
+
+November 8th, 2020
+
+### Added
+
+* Starlette now officially supports Python3.9.
+* In `StreamingResponse`, allow custom async iterator such as objects from classes implementing `__aiter__`.
+* Allow usage of `functools.partial` async handlers in Python versions 3.6 and 3.7.
+* Add 418 I'm A Teapot status code.
+
+### Changed
+
+* Create tasks from handler coroutines before sending them to `asyncio.wait`.
+* Use `format_exception` instead of `format_tb` in `ServerErrorMiddleware`'s `debug` responses.
+* Be more lenient with handler arguments when using the `requires` decorator.
+
+## 0.13.8
+
+* Revert `Queue(maxsize=1)` fix for `BaseHTTPMiddleware` middleware classes and streaming responses.
+
+* The `StaticFiles` constructor now allows `pathlib.Path` in addition to strings for its `directory` argument.
+
+## 0.13.7
+
+* Fix high memory usage when using `BaseHTTPMiddleware` middleware classes and streaming responses.
+
+## 0.13.6
+
+* Fix 404 errors with `StaticFiles`.
+
+## 0.13.5
+
+* Add support for `Starlette(lifespan=...)` functions.
+* More robust path-traversal check in StaticFiles app.
+* Fix WSGI PATH_INFO encoding.
+* RedirectResponse now accepts optional background parameter
+* Allow path routes to contain regex meta characters
+* Treat ASGI HTTP 'body' as an optional key.
+* Don't use thread pooling for writing to in-memory upload files.
+
 ## 0.13.0
 
 * Switch to promoting application configuration on init style everywhere.

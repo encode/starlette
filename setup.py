@@ -4,7 +4,7 @@
 import os
 import re
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
 def get_version(package):
@@ -23,17 +23,6 @@ def get_long_description():
         return f.read()
 
 
-def get_packages(package):
-    """
-    Return root package and all sub-packages.
-    """
-    return [
-        dirpath
-        for dirpath, dirnames, filenames in os.walk(package)
-        if os.path.exists(os.path.join(dirpath, "__init__.py"))
-    ]
-
-
 setup(
     name="starlette",
     python_requires=">=3.6",
@@ -45,9 +34,9 @@ setup(
     long_description_content_type="text/markdown",
     author="Tom Christie",
     author_email="tom@tomchristie.com",
-    packages=get_packages("starlette"),
+    packages=find_packages(exclude=["tests*"]),
     package_data={"starlette": ["py.typed"]},
-    data_files=[("", ["LICENSE.md"])],
+    include_package_data=True,
     extras_require={
         "aiofiles": ["aiofiles"],
         "graphene": ["graphene"],
@@ -56,7 +45,6 @@ setup(
         "python-multipart": ["python-multipart"],
         "pyyaml": ["pyyaml"],
         "requests": ["requests"],
-        "ujson": ["ujson"],
         "full": [
             "aiofiles",
             "graphene",
@@ -65,8 +53,7 @@ setup(
             "python-multipart",
             "pyyaml",
             "requests",
-            "ujson",
-        ],
+        ]
     },
     classifiers=[
         "Development Status :: 3 - Alpha",
@@ -78,6 +65,8 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
     ],
     zip_safe=False,
 )

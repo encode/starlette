@@ -12,7 +12,6 @@ from starlette.responses import (
     RedirectResponse,
     Response,
     StreamingResponse,
-    UJSONResponse,
 )
 from starlette.testclient import TestClient
 
@@ -37,16 +36,6 @@ def test_bytes_response():
     assert response.content == b"xxxxx"
 
 
-def test_ujson_response():
-    async def app(scope, receive, send):
-        response = UJSONResponse({"hello": "world"})
-        await response(scope, receive, send)
-
-    client = TestClient(app)
-    response = client.get("/")
-    assert response.json() == {"hello": "world"}
-
-
 def test_json_none_response():
     async def app(scope, receive, send):
         response = JSONResponse(None)
@@ -69,6 +58,20 @@ def test_redirect_response():
     response = client.get("/redirect")
     assert response.text == "hello, world"
     assert response.url == "http://testserver/"
+
+
+def test_quoting_redirect_response():
+    async def app(scope, receive, send):
+        if scope["path"] == "/I ♥ Starlette/":
+            response = Response("hello, world", media_type="text/plain")
+        else:
+            response = RedirectResponse("/I ♥ Starlette/")
+        await response(scope, receive, send)
+
+    client = TestClient(app)
+    response = client.get("/redirect")
+    assert response.text == "hello, world"
+    assert response.url == "http://testserver/I%20%E2%99%A5%20Starlette/"
 
 
 def test_streaming_response():
@@ -99,6 +102,44 @@ def test_streaming_response():
     response = client.get("/")
     assert response.text == "1, 2, 3, 4, 5"
     assert filled_by_bg_task == "6, 7, 8, 9"
+
+
+def test_streaming_response_custom_iterator():
+    async def app(scope, receive, send):
+        class CustomAsyncIterator:
+            def __init__(self):
+                self._called = 0
+
+            def __aiter__(self):
+                return self
+
+            async def __anext__(self):
+                if self._called == 5:
+                    raise StopAsyncIteration()
+                self._called += 1
+                return str(self._called)
+
+        response = StreamingResponse(CustomAsyncIterator(), media_type="text/plain")
+        await response(scope, receive, send)
+
+    client = TestClient(app)
+    response = client.get("/")
+    assert response.text == "12345"
+
+
+def test_streaming_response_custom_iterable():
+    async def app(scope, receive, send):
+        class CustomAsyncIterable:
+            async def __aiter__(self):
+                for i in range(5):
+                    yield str(i + 1)
+
+        response = StreamingResponse(CustomAsyncIterable(), media_type="text/plain")
+        await response(scope, receive, send)
+
+    client = TestClient(app)
+    response = client.get("/")
+    assert response.text == "12345"
 
 
 def test_sync_streaming_response():
@@ -202,6 +243,21 @@ def test_file_response_with_missing_file_raises_error(tmpdir):
     assert "does not exist" in str(exc_info.value)
 
 
+def test_file_response_with_chinese_filename(tmpdir):
+    content = b"file content"
+    filename = "你好.txt"  # probably "Hello.txt" in Chinese
+    path = os.path.join(tmpdir, filename)
+    with open(path, "wb") as f:
+        f.write(content)
+    app = FileResponse(path=path, filename=filename)
+    client = TestClient(app)
+    response = client.get("/")
+    expected_disposition = "attachment; filename*=utf-8''%E4%BD%A0%E5%A5%BD.txt"
+    assert response.status_code == status.HTTP_200_OK
+    assert response.content == content
+    assert response.headers["content-disposition"] == expected_disposition
+
+
 def test_set_cookie():
     async def app(scope, receive, send):
         response = Response("Hello, world!", media_type="text/plain")
@@ -214,6 +270,7 @@ def test_set_cookie():
             domain="localhost",
             secure=True,
             httponly=True,
+            samesite="none",
         )
         await response(scope, receive, send)
 

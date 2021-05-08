@@ -5,11 +5,8 @@
     <em>✨ The little ASGI framework that shines. ✨</em>
 </p>
 <p align="center">
-<a href="https://travis-ci.org/encode/starlette">
-    <img src="https://travis-ci.org/encode/starlette.svg?branch=master" alt="Build Status">
-</a>
-<a href="https://codecov.io/gh/encode/starlette">
-    <img src="https://codecov.io/gh/encode/starlette/branch/master/graph/badge.svg" alt="Coverage">
+<a href="https://github.com/encode/starlette/actions">
+    <img src="https://github.com/encode/starlette/workflows/Test%20Suite/badge.svg" alt="Build Status">
 </a>
 <a href="https://pypi.org/project/starlette/">
     <img src="https://badge.fury.io/py/starlette.svg" alt="Package version">
@@ -98,7 +95,6 @@ Starlette does not have any hard dependencies, but the following are optional:
 * [`itsdangerous`][itsdangerous] - Required for `SessionMiddleware` support.
 * [`pyyaml`][pyyaml] - Required for `SchemaGenerator` support.
 * [`graphene`][graphene] - Required for `GraphQLApp` support.
-* [`ujson`][ujson] - Required if you want to use `UJSONResponse`.
 
 You can install all of these with `pip3 install starlette[full]`.
 
@@ -143,7 +139,6 @@ as [one of the fastest Python frameworks available](https://www.techempower.com/
 
 For high throughput loads you should:
 
-* Make sure to install `ujson` and use `UJSONResponse`.
 * Run using gunicorn using the `uvicorn` worker class.
 * Use one or two workers per-CPU core. (You might need to experiment with this.)
 * Disable access logging.
@@ -181,4 +176,3 @@ gunicorn -k uvicorn.workers.UvicornH11Worker ...
 [itsdangerous]: https://pythonhosted.org/itsdangerous/
 [sqlalchemy]: https://www.sqlalchemy.org
 [pyyaml]: https://pyyaml.org/wiki/PyYAMLDocumentation
-[ujson]: https://github.com/esnme/ultrajson
