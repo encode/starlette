@@ -34,9 +34,11 @@ class GraphQLApp:
         executor: typing.Any = None,
         executor_class: type = None,
         graphiql: bool = True,
+        graphiql_welcome_message: typing.Optional[str] = None
     ) -> None:
         self.schema = schema
         self.graphiql = graphiql
+        self.graphiql_welcome_message = graphiql_welcome_message
         if executor is None:
             # New style in 0.10.0. Use 'executor_class'.
             # See issue https://github.com/encode/starlette/issues/242
@@ -147,7 +149,9 @@ class GraphQLApp:
             )
 
     async def handle_graphiql(self, request: Request) -> Response:
-        text = GRAPHIQL.replace("{{REQUEST_PATH}}", json.dumps(request.url.path))
+        text = GRAPHIQL.replace("{{REQUEST_PATH}}", json.dumps(request.url.path)).\
+            replace("{{DEFAULT_QUERY}}", "defaultQuery: {},".format(json.dumps(self.graphiql_welcome_message))
+            if self.graphiql_welcome_message else "")
         return HTMLResponse(text)
 
 
@@ -270,6 +274,7 @@ GRAPHIQL = """
       // additional child elements.
       ReactDOM.render(
         React.createElement(GraphiQL, {
+          {{DEFAULT_QUERY}}
           fetcher: graphQLFetcher,
           query: parameters.query,
           variables: parameters.variables,
