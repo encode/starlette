@@ -34,9 +34,11 @@ class GraphQLApp:
         executor: typing.Any = None,
         executor_class: type = None,
         graphiql: bool = True,
+        context: typing.Optional[typing.Dict] = None
     ) -> None:
         self.schema = schema
         self.graphiql = graphiql
+        self.context = context or {}
         if executor is None:
             # New style in 0.10.0. Use 'executor_class'.
             # See issue https://github.com/encode/starlette/issues/242
@@ -104,7 +106,7 @@ class GraphQLApp:
             )
 
         background = BackgroundTasks()
-        context = {"request": request, "background": background}
+        context = {**self.context, "request": request, "background": background}
 
         result = await self.execute(
             query, variables=variables, context=context, operation_name=operation_name
