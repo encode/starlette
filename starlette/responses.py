@@ -219,8 +219,8 @@ class StreamingResponse(Response):
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         async with anyio.create_task_group() as task_group:
 
-            async def wrap(coro: typing.Callable[[], typing.Coroutine]) -> None:
-                await coro()
+            async def wrap(func: typing.Callable[[], typing.Coroutine]) -> None:
+                await func()
                 task_group.cancel_scope.cancel()
 
             task_group.start_soon(wrap, partial(self.stream_response, send))
