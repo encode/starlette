@@ -13,17 +13,6 @@ except ImportError:  # pragma: no cover
 T = typing.TypeVar("T")
 
 
-async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -> None:
-    async with anyio.create_task_group() as task_group:
-
-        async def task(_handler: typing.Callable, _kwargs: dict) -> Any:
-            await _handler(**_kwargs)
-            task_group.cancel_scope.cancel()
-
-        for handler, kwargs in args:
-            task_group.start_soon(task, handler, kwargs)
-
-
 async def run_in_threadpool(
     func: typing.Callable[..., T], *args: typing.Any, **kwargs: typing.Any
 ) -> T:

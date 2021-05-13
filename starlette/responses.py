@@ -6,13 +6,14 @@ import stat
 import sys
 import typing
 from email.utils import formatdate
+from functools import partial
 from mimetypes import guess_type as mimetypes_guess_type
 from urllib.parse import quote
 
 import anyio
 
 from starlette.background import BackgroundTask
-from starlette.concurrency import iterate_in_threadpool, run_until_first_complete
+from starlette.concurrency import iterate_in_threadpool
 from starlette.datastructures import URL, MutableHeaders
 from starlette.types import Receive, Scope, Send
 
@@ -216,10 +217,14 @@ class StreamingResponse(Response):
         await send({"type": "http.response.body", "body": b"", "more_body": False})
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        await run_until_first_complete(
-            (self.stream_response, {"send": send}),
-            (self.listen_for_disconnect, {"receive": receive}),
-        )
+        async with anyio.create_task_group() as task_group:
+
+            async def wrap(coro: typing.Callable[..., typing.Awaitable]) -> None:
+                await coro()
+                task_group.cancel_scope.cancel()
+
+            task_group.start_soon(wrap, partial(self.stream_response, send))
+            task_group.start_soon(wrap, partial(self.listen_for_disconnect, receive))
 
         if self.background is not None:
             await self.background()

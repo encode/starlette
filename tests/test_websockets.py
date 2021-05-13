@@ -2,7 +2,6 @@ import anyio
 import pytest
 
 from starlette import status
-from starlette.concurrency import run_until_first_complete
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
@@ -222,10 +221,9 @@ def test_websocket_concurrency_pattern():
         async def asgi(receive, send):
             websocket = WebSocket(scope, receive=receive, send=send)
             await websocket.accept()
-            await run_until_first_complete(
-                (reader, {"websocket": websocket}),
-                (writer, {"websocket": websocket}),
-            )
+            async with anyio.create_task_group() as task_group:
+                task_group.start_soon(reader, websocket)
+                task_group.start_soon(writer, websocket)
             await websocket.close()
 
         return asgi
