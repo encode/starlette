@@ -223,7 +223,7 @@ def test_websocket_concurrency_pattern():
             await websocket.accept()
             async with anyio.create_task_group() as task_group:
                 task_group.start_soon(reader, websocket)
-                task_group.start_soon(writer, websocket)
+                await writer(websocket)
             await websocket.close()
 
         return asgi
