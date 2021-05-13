@@ -29,13 +29,12 @@ class BaseHTTPMiddleware:
     async def call_next(self, request: Request) -> Response:
         send_stream, recv_stream = anyio.create_memory_object_stream()
         scope = request.scope
-        task_group = scope["task_group"]
 
         async def coro() -> None:
             async with send_stream:
                 await self.app(scope, request.receive, send_stream.send)
 
-        task_group.start_soon(coro)
+        scope["app"].task_group.start_soon(coro)
 
         try:
             message = await recv_stream.receive()
