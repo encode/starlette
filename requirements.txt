@@ -2,7 +2,7 @@
 aiofiles
 graphene
 itsdangerous
-jinja2<3
+jinja2
 python-multipart
 pyyaml
 requests
