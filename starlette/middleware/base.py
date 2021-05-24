@@ -22,38 +22,38 @@ class BaseHTTPMiddleware:
             await self.app(scope, receive, send)
             return
 
-        request = Request(scope, receive=receive)
-        response = await self.dispatch_func(request, self.call_next)
-        await response(scope, receive, send)
+        async def call_next(request: Request) -> Response:
+            send_stream, recv_stream = anyio.create_memory_object_stream()
 
-    async def call_next(self, request: Request) -> Response:
-        send_stream, recv_stream = anyio.create_memory_object_stream()
-        scope = request.scope
+            async def coro() -> None:
+                async with send_stream:
+                    await self.app(scope, request.receive, send_stream.send)
 
-        async def coro() -> None:
-            async with send_stream:
-                await self.app(scope, request.receive, send_stream.send)
+            task_group.start_soon(coro)
 
-        scope["app"].task_group.start_soon(coro)
+            try:
+                message = await recv_stream.receive()
+            except anyio.EndOfStream:
+                raise RuntimeError("No response returned.")
 
-        try:
-            message = await recv_stream.receive()
-        except anyio.EndOfStream:
-            raise RuntimeError("No response returned.")
+            assert message["type"] == "http.response.start"
 
-        assert message["type"] == "http.response.start"
+            async def body_stream() -> typing.AsyncGenerator[bytes, None]:
+                async with recv_stream:
+                    async for message in recv_stream:
+                        assert message["type"] == "http.response.body"
+                        yield message.get("body", b"")
 
-        async def body_stream() -> typing.AsyncGenerator[bytes, None]:
-            async with recv_stream:
-                async for message in recv_stream:
-                    assert message["type"] == "http.response.body"
-                    yield message.get("body", b"")
+            response = StreamingResponse(
+                status_code=message["status"], content=body_stream()
+            )
+            response.raw_headers = message["headers"]
+            return response
 
-        response = StreamingResponse(
-            status_code=message["status"], content=body_stream()
-        )
-        response.raw_headers = message["headers"]
-        return response
+        async with anyio.create_task_group() as task_group:
+            request = Request(scope, receive=receive)
+            response = await self.dispatch_func(request, call_next)
+            await response(scope, receive, send)
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint

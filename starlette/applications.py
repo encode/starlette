@@ -1,8 +1,5 @@
 import typing
 
-import anyio
-from anyio.abc import TaskGroup
-
 from starlette.datastructures import State, URLPath
 from starlette.exceptions import ExceptionMiddleware
 from starlette.middleware import Middleware
@@ -38,8 +35,6 @@ class Starlette:
     Shutdown handler callables do not take any arguments, and may be be either
     standard functions, or async functions.
     """
-
-    task_group: TaskGroup
 
     def __init__(
         self,
@@ -114,9 +109,7 @@ class Starlette:
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         scope["app"] = self
-        self.task_group = anyio.create_task_group()
-        async with self.task_group:
-            await self.middleware_stack(scope, receive, send)
+        await self.middleware_stack(scope, receive, send)
 
     # The following usages are now discouraged in favour of configuration
     #  during Starlette.__init__(...)
