@@ -8,6 +8,7 @@ import math
 import queue
 import types
 import typing
+from concurrent.futures import Future
 from urllib.parse import unquote, urljoin, urlsplit
 
 import anyio
@@ -284,7 +285,7 @@ class WebSocketTestSession:
         )
 
         try:
-            self.portal.start_task_soon(self._run)
+            _: "Future[None]" = self.portal.start_task_soon(self._run)
             self.send({"type": "websocket.connect"})
             message = self.receive()
             self._raise_on_close(message)
@@ -384,6 +385,8 @@ class TestClient(requests.Session):
         "backend": "asyncio",
         "backend_options": {},
     }  # type: typing.Dict[str, typing.Any]
+
+    task: "Future[None]"
 
     def __init__(
         self,
