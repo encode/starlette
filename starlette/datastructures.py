@@ -258,7 +258,7 @@ class ImmutableMultiDict(typing.Mapping):
             )
 
         if not value:
-            _items = []  # type: typing.List[typing.Tuple[typing.Any, typing.Any]]
+            _items: typing.List[typing.Tuple[typing.Any, typing.Any]] = []
         elif hasattr(value, "multi_items"):
             value = typing.cast(ImmutableMultiDict, value)
             _items = list(value.multi_items())
@@ -495,7 +495,7 @@ class Headers(typing.Mapping[str, str]):
         raw: typing.List[typing.Tuple[bytes, bytes]] = None,
         scope: Scope = None,
     ) -> None:
-        self._list = []  # type: typing.List[typing.Tuple[bytes, bytes]]
+        self._list: typing.List[typing.Tuple[bytes, bytes]] = []
         if headers is not None:
             assert raw is None, 'Cannot set both "headers" and "raw".'
             assert scope is None, 'Cannot set both "headers" and "scope".'
