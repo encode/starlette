@@ -254,7 +254,9 @@ class Request(HTTPConnection):
         if not self._is_disconnected:
             message: Message = {}
 
-            with anyio.move_on_after(0):
+            # If message isn't immediately available, move on
+            with anyio.CancelScope() as cs:
+                cs.cancel()
                 message = await self._receive()
 
             if message.get("type") == "http.disconnect":
