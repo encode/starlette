@@ -74,7 +74,7 @@ class WSGIResponder:
             math.inf
         )
         self.response_started = False
-        self.exc_info = None  # type: typing.Any
+        self.exc_info: typing.Any = None
 
     async def __call__(self, receive: Receive, send: Send) -> None:
         body = b""
