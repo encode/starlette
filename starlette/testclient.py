@@ -268,8 +268,8 @@ class WebSocketTestSession:
         self.app = app
         self.scope = scope
         self.accepted_subprotocol = None
-        self._receive_queue: queue.Queue = queue.Queue()
-        self._send_queue: queue.Queue = queue.Queue()
+        self._receive_queue: "queue.Queue[typing.Any]" = queue.Queue()
+        self._send_queue: "queue.Queue[typing.Any]" = queue.Queue()
         self._thread = threading.Thread(target=self._run)
         self.send({"type": "websocket.connect"})
         self._thread.start()
@@ -453,8 +453,8 @@ class TestClient(requests.Session):
 
     def __enter__(self) -> "TestClient":
         loop = asyncio.get_event_loop()
-        self.send_queue: asyncio.Queue = asyncio.Queue()
-        self.receive_queue: asyncio.Queue = asyncio.Queue()
+        self.send_queue: "asyncio.Queue[typing.Any]" = asyncio.Queue()
+        self.receive_queue: "asyncio.Queue[typing.Any]" = asyncio.Queue()
         self.task = loop.create_task(self.lifespan())
         loop.run_until_complete(self.wait_startup())
         return self
