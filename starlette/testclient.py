@@ -382,10 +382,10 @@ class TestClient(requests.Session):
     __test__ = False  # For pytest to not discover this up.
 
     #: These options are passed to `anyio.start_blocking_portal()`
-    async_backend = {
+    async_backend: typing.Dict[str, typing.Any] = {
         "backend": "asyncio",
         "backend_options": {},
-    }  # type: typing.Dict[str, typing.Any]
+    }
 
     task: "Future[None]"
 
