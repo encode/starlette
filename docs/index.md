@@ -32,7 +32,7 @@ It is production-ready, and gives you the following:
 * Session and Cookie support.
 * 100% test coverage.
 * 100% type annotated codebase.
-* Zero hard dependencies.
+* Few hard dependencies.
 
 ## Requirements
 
@@ -79,7 +79,7 @@ For a more complete example, [see here](https://github.com/encode/starlette-exam
 
 ## Dependencies
 
-Starlette does not have any hard dependencies, but the following are optional:
+Starlette only requires `anyio`, and the following dependencies are optional:
 
 * [`requests`][requests] - Required if you want to use the `TestClient`.
 * [`jinja2`][jinja2] - Required if you want to use `Jinja2Templates`.
