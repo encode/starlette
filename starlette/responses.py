@@ -261,7 +261,7 @@ class FileResponse(Response):
                     content_disposition_filename
                 )
             else:
-                content_disposition = 'attachment; filename="{}"'.format(self.filename)
+                content_disposition = f'attachment; filename="{self.filename}"'
             self.headers.setdefault("content-disposition", content_disposition)
         self.stat_result = stat_result
         if stat_result is not None:

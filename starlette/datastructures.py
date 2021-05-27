@@ -231,7 +231,7 @@ class CommaSeparatedStrings(Sequence):
         return f"{class_name}({items!r})"
 
     def __str__(self) -> str:
-        return ", ".join([repr(item) for item in self])
+        return ", ".join(repr(item) for item in self)
 
 
 class ImmutableMultiDict(typing.Mapping):
@@ -649,7 +649,7 @@ class MutableHeaders(Headers):
         self["vary"] = vary
 
 
-class State(object):
+class State:
     """
     An object that can be used to store arbitrary state.
 
@@ -659,7 +659,7 @@ class State(object):
     def __init__(self, state: typing.Dict = None):
         if state is None:
             state = {}
-        super(State, self).__setattr__("_state", state)
+        super().__setattr__("_state", state)
 
     def __setattr__(self, key: typing.Any, value: typing.Any) -> None:
         self._state[key] = value

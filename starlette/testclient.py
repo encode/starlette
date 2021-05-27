@@ -372,7 +372,7 @@ class TestClient(requests.Session):
         raise_server_exceptions: bool = True,
         root_path: str = "",
     ) -> None:
-        super(TestClient, self).__init__()
+        super().__init__()
         if _is_asgi3(app):
             app = typing.cast(ASGI3App, app)
             asgi_app = app
