@@ -253,8 +253,8 @@ class Request(HTTPConnection):
     async def is_disconnected(self) -> bool:
         if not self._is_disconnected:
             message: Message = {}
-            with anyio.move_on_after(0.001):
-                # XXX: to small of a deadline and this blocks
+
+            with anyio.move_on_after(0):
                 message = await self._receive()
 
             if message.get("type") == "http.disconnect":

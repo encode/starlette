@@ -179,7 +179,8 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             nonlocal request_complete
 
             if request_complete:
-                await response_complete.wait()
+                if not response_complete.is_set():
+                    await response_complete.wait()
                 return {"type": "http.disconnect"}
 
             body = request.body
