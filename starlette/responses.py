@@ -7,7 +7,7 @@ import sys
 import typing
 from email.utils import formatdate
 from mimetypes import guess_type as mimetypes_guess_type
-from urllib.parse import quote, quote_plus
+from urllib.parse import quote
 
 from starlette.background import BackgroundTask
 from starlette.concurrency import iterate_in_threadpool, run_until_first_complete
@@ -74,7 +74,7 @@ class Response:
 
     def init_headers(self, headers: typing.Mapping[str, str] = None) -> None:
         if headers is None:
-            raw_headers = []  # type: typing.List[typing.Tuple[bytes, bytes]]
+            raw_headers: typing.List[typing.Tuple[bytes, bytes]] = []
             populate_content_length = True
             populate_content_type = True
         else:
@@ -117,7 +117,7 @@ class Response:
         httponly: bool = False,
         samesite: str = "lax",
     ) -> None:
-        cookie = http.cookies.SimpleCookie()  # type: http.cookies.BaseCookie
+        cookie: http.cookies.BaseCookie = http.cookies.SimpleCookie()
         cookie[key] = value
         if max_age is not None:
             cookie[key]["max-age"] = max_age
@@ -190,7 +190,7 @@ class RedirectResponse(Response):
         super().__init__(
             content=b"", status_code=status_code, headers=headers, background=background
         )
-        self.headers["location"] = quote_plus(str(url), safe=":/%#?&=@[]!$&'()*+,;")
+        self.headers["location"] = quote(str(url), safe=":/%#?=@[]!$&'()*+,;")
 
 
 class StreamingResponse(Response):
