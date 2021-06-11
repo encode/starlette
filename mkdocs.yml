@@ -20,7 +20,6 @@ nav:
   - Static Files: 'staticfiles.md'
   - Templates: 'templates.md'
   - Database: 'database.md'
-  - GraphQL: 'graphql.md'
   - Authentication: 'authentication.md'
   - API Schemas: 'schemas.md'
   - Events: 'events.md'
