@@ -227,7 +227,7 @@ class CommaSeparatedStrings(Sequence):
         return f"{class_name}({items!r})"
 
     def __str__(self) -> str:
-        return ", ".join([repr(item) for item in self])
+        return ", ".join(repr(item) for item in self)
 
 
 class ImmutableMultiDict(typing.Mapping):
@@ -250,7 +250,7 @@ class ImmutableMultiDict(typing.Mapping):
             )
 
         if not value:
-            _items = []  # type: typing.List[typing.Tuple[typing.Any, typing.Any]]
+            _items: typing.List[typing.Tuple[typing.Any, typing.Any]] = []
         elif hasattr(value, "multi_items"):
             value = typing.cast(ImmutableMultiDict, value)
             _items = list(value.multi_items())
@@ -487,7 +487,7 @@ class Headers(typing.Mapping[str, str]):
         raw: typing.List[typing.Tuple[bytes, bytes]] = None,
         scope: Scope = None,
     ) -> None:
-        self._list = []  # type: typing.List[typing.Tuple[bytes, bytes]]
+        self._list: typing.List[typing.Tuple[bytes, bytes]] = []
         if headers is not None:
             assert raw is None, 'Cannot set both "headers" and "raw".'
             assert scope is None, 'Cannot set both "headers" and "scope".'
@@ -641,7 +641,7 @@ class MutableHeaders(Headers):
         self["vary"] = vary
 
 
-class State(object):
+class State:
     """
     An object that can be used to store arbitrary state.
 
@@ -651,7 +651,7 @@ class State(object):
     def __init__(self, state: typing.Dict = None):
         if state is None:
             state = {}
-        super(State, self).__setattr__("_state", state)
+        super().__setattr__("_state", state)
 
     def __setattr__(self, key: typing.Any, value: typing.Any) -> None:
         self._state[key] = value
