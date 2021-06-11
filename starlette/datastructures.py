@@ -576,11 +576,10 @@ class MutableHeaders(Headers):
         set_key = key.lower().encode("latin-1")
         set_value = value.encode("latin-1")
 
-        found_indexes = [
-            idx
-            for idx, (item_key, item_value) in enumerate(self._list)
-            if item_key == set_key
-        ]
+        found_indexes = []
+        for idx, (item_key, item_value) in enumerate(self._list):
+            if item_key == set_key:
+                found_indexes.append(idx)
 
         for idx in reversed(found_indexes[1:]):
             del self._list[idx]
@@ -597,11 +596,10 @@ class MutableHeaders(Headers):
         """
         del_key = key.lower().encode("latin-1")
 
-        pop_indexes = [
-            idx
-            for idx, (item_key, item_value) in enumerate(self._list)
-            if item_key == del_key
-        ]
+        pop_indexes = []
+        for idx, (item_key, item_value) in enumerate(self._list):
+            if item_key == del_key:
+                pop_indexes.append(idx)
 
         for idx in reversed(pop_indexes):
             del self._list[idx]
