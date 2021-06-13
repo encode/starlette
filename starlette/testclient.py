@@ -29,7 +29,7 @@ FileType = typing.MutableMapping[str, typing.IO]
 AuthType = typing.Union[
     typing.Tuple[str, str],
     requests.auth.AuthBase,
-    typing.Callable[[requests.Request], requests.Request],
+    typing.Callable[[requests.PreparedRequest], requests.PreparedRequest],
 ]
 
 
