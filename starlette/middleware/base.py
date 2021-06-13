@@ -54,6 +54,7 @@ class BaseHTTPMiddleware:
             request = Request(scope, receive=receive)
             response = await self.dispatch_func(request, call_next)
             await response(scope, receive, send)
+            task_group.cancel_scope.cancel()
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
