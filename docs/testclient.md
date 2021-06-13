@@ -35,7 +35,8 @@ case you should use `client = TestClient(app, raise_server_exceptions=False)`.
 
 `TestClient.async_backend` is a dictionary which allows you to set the options
 for the backend used to run tests.  These options are passed to
-`anyio.start_blocking_portal()`.  By default, `asyncio` is used.
+`anyio.start_blocking_portal()`. See the [anyio documentation](https://anyio.readthedocs.io/en/stable/basics.html#backend-options)
+for more information about backend options.  By default, `asyncio` is used.
 
 To run `Trio`, set `async_backend["backend"] = "trio"`, for example:
 
