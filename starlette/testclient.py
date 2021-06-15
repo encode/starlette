@@ -205,7 +205,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 raw_kwargs["status"] = message["status"]
                 raw_kwargs["reason"] = _get_reason_phrase(message["status"])
                 raw_kwargs["headers"] = [
-                    (key.decode(), value.decode()) 
+                    (key.decode(), value.decode())
                     for key, value in message.get("headers", [])
                 ]
                 raw_kwargs["preload_content"] = False
