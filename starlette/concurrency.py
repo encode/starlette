@@ -14,7 +14,7 @@ T = typing.TypeVar("T")
 
 
 async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -> None:
-    async def run(handler: typing.Callable[..., typing.Coroutine]) -> None:
+    async def run(handler: typing.Callable[[], typing.Coroutine]) -> None:
         await handler()
         tg.cancel_scope.cancel()
 
