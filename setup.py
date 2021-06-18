@@ -40,7 +40,7 @@ setup(
     extras_require={
         "full": [
             "aiofiles",
-            "graphene",
+            "graphene; python_version<'3.10'",
             "itsdangerous",
             "jinja2",
             "python-multipart",
