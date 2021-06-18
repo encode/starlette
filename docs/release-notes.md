@@ -6,6 +6,7 @@ Unreleased
 * Starlette now supports [Trio](https://trio.readthedocs.io/en/stable/) as an async runtime via
   [AnyIO](https://anyio.readthedocs.io/en/stable/) -
   [#1157](https://github.com/encode/starlette/pull/1157).
+* `TestClient.websocket_connect()` now must be used as a context manager.
 * Initial support for Python 3.10 - [#1201](https://github.com/encode/starlette/pull/1201).
 * The compression level used in `GZipMiddleware` is now adjustable -
   [#1128](https://github.com/encode/starlette/pull/1128).
