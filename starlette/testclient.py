@@ -528,4 +528,11 @@ class TestClient(requests.Session):
             message = await self.stream_send.receive()
             if message is None:
                 self.task.result()
-            assert message["type"] == "lifespan.shutdown.complete"
+            assert message["type"] in (
+                "lifespan.shutdown.complete",
+                "lifespan.shutdown.failed",
+            )
+            if message["type"] == "lifespan.shutdown.failed":
+                message = await self.stream_send.receive()
+                if message is None:
+                    self.task.result()

@@ -585,11 +585,22 @@ def test_raise_on_shutdown():
     def run_shutdown():
         raise RuntimeError()
 
-    app = Router(on_shutdown=[run_shutdown])
+    router = Router(on_shutdown=[run_shutdown])
 
+    async def app(scope, receive, send):
+        async def _send(message):
+            nonlocal shutdown_failed
+            if message["type"] == "lifespan.shutdown.failed":
+                shutdown_failed = True
+            return await send(message)
+
+        await router(scope, receive, _send)
+
+    shutdown_failed = False
     with pytest.raises(RuntimeError):
         with TestClient(app):
             pass  # pragma: nocover
+    assert shutdown_failed
 
 
 class AsyncEndpointClassMethod:

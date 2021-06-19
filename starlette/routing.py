@@ -541,29 +541,46 @@ class Router:
         Handle ASGI lifespan messages, which allows us to manage application
         startup and shutdown events.
         """
-        first = True
         app = scope.get("app")
         await receive()
+
+        async def as_aiter(gen: typing.Generator) -> typing.AsyncGenerator:
+            for val in gen:
+                yield val
+
+        lifespan_gen = (
+            self.lifespan_context(app)
+            if inspect.isasyncgenfunction(self.lifespan_context)
+            else as_aiter(self.lifespan_context(app))  # type: ignore
+        )
+
+        await self._lifespan_iter(lifespan_gen, receive, send)
+
+    async def _lifespan_iter(
+        self, gen: typing.AsyncGenerator, receive: Receive, send: Send
+    ) -> None:
         try:
-            if inspect.isasyncgenfunction(self.lifespan_context):
-                async for item in self.lifespan_context(app):
-                    assert first, "Lifespan context yielded multiple times."
-                    first = False
-                    await send({"type": "lifespan.startup.complete"})
-                    await receive()
-            else:
-                for item in self.lifespan_context(app):  # type: ignore
-                    assert first, "Lifespan context yielded multiple times."
-                    first = False
-                    await send({"type": "lifespan.startup.complete"})
-                    await receive()
-        except BaseException:
-            if first:
-                exc_text = traceback.format_exc()
-                await send({"type": "lifespan.startup.failed", "message": exc_text})
+            await gen.asend(None)
+        except StopAsyncIteration:
+            raise RuntimeError("Lifespan context never yielded.")
+        except Exception:
+            exc_text = traceback.format_exc()
+            await send({"type": "lifespan.startup.failed", "message": exc_text})
             raise
         else:
+            await send({"type": "lifespan.startup.complete"})
+            await receive()
+
+        try:
+            await gen.asend(None)
+        except StopAsyncIteration:
             await send({"type": "lifespan.shutdown.complete"})
+        except Exception:
+            exc_text = traceback.format_exc()
+            await send({"type": "lifespan.shutdown.failed", "message": exc_text})
+            raise
+        else:
+            raise RuntimeError("Lifespan context yielded multiple times.")
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         """
