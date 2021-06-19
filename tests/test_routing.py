@@ -528,6 +528,31 @@ def test_lifespan_async():
     assert shutdown_complete
 
 
+def test_lifespan_context_async():
+    startup_complete = False
+    shutdown_complete = False
+
+    async def hello_world(request):
+        return PlainTextResponse("hello, world")
+
+    async def lifespan(app):
+        nonlocal startup_complete, shutdown_complete
+        startup_complete = True
+        yield
+        shutdown_complete = True
+
+    app = Router(lifespan=lifespan, routes=[Route("/", hello_world)])
+
+    assert not startup_complete
+    assert not shutdown_complete
+    with TestClient(app) as client:
+        assert startup_complete
+        assert not shutdown_complete
+        client.get("/")
+    assert startup_complete
+    assert shutdown_complete
+
+
 def test_lifespan_sync():
     startup_complete = False
     shutdown_complete = False
@@ -548,6 +573,31 @@ def test_lifespan_sync():
         on_shutdown=[run_shutdown],
         routes=[Route("/", hello_world)],
     )
+
+    assert not startup_complete
+    assert not shutdown_complete
+    with TestClient(app) as client:
+        assert startup_complete
+        assert not shutdown_complete
+        client.get("/")
+    assert startup_complete
+    assert shutdown_complete
+
+
+def test_lifespan_context_sync():
+    startup_complete = False
+    shutdown_complete = False
+
+    def hello_world(request):
+        return PlainTextResponse("hello, world")
+
+    def lifespan(app):
+        nonlocal startup_complete, shutdown_complete
+        startup_complete = True
+        yield
+        shutdown_complete = True
+
+    app = Router(lifespan=lifespan, routes=[Route("/", hello_world)])
 
     assert not startup_complete
     assert not shutdown_complete
