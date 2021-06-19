@@ -653,6 +653,45 @@ def test_raise_on_shutdown():
     assert shutdown_failed
 
 
+def test_lifespan_yield_too_many():
+    startup_complete = False
+    shutdown_complete = False
+
+    async def hello_world(request):
+        return PlainTextResponse("hello, world")
+
+    async def yield_too_many(app):
+        nonlocal startup_complete, shutdown_complete
+        startup_complete = True
+        yield
+        yield
+        shutdown_complete = True  # pragma: nocover
+
+    app = Router(lifespan=yield_too_many, routes=[Route("/", hello_world)])
+
+    assert not startup_complete
+    assert not shutdown_complete
+    with pytest.raises(RuntimeError, match="yielded multiple times"):
+        with TestClient(app) as client:
+            assert startup_complete
+            assert not shutdown_complete
+            client.get("/")
+
+    assert startup_complete
+    assert not shutdown_complete
+
+
+def test_lifespan_yield_too_few():
+    async def yield_too_few(app):
+        for _ in []:
+            yield _  # pragma: nocover
+
+    app = Router(lifespan=yield_too_few)
+    with pytest.raises(RuntimeError, match="never yielded"):
+        with TestClient(app):
+            pass  # pragma: nocover
+
+
 class AsyncEndpointClassMethod:
     @classmethod
     async def async_endpoint(cls, arg, request):
