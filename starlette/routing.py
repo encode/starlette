@@ -580,6 +580,7 @@ class Router:
             await send({"type": "lifespan.shutdown.failed", "message": exc_text})
             raise
         else:
+            await gen.aclose()
             raise RuntimeError("Lifespan context yielded multiple times.")
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
