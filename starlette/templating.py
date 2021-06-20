@@ -1,8 +1,9 @@
 import typing
 
+from asgiref.typing import ASGIReceiveCallable, ASGISendCallable, Scope
+
 from starlette.background import BackgroundTask
 from starlette.responses import Response
-from starlette.types import Receive, Scope, Send
 
 try:
     import jinja2
@@ -33,7 +34,9 @@ class _TemplateResponse(Response):
         content = template.render(context)
         super().__init__(content, status_code, headers, media_type, background)
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    ) -> None:
         request = self.context.get("request", {})
         extensions = request.get("extensions", {})
         if "http.response.template" in extensions:

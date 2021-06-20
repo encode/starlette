@@ -2,9 +2,16 @@ import functools
 import re
 import typing
 
+from asgiref.typing import (
+    ASGI3Application,
+    ASGIReceiveCallable,
+    ASGISendCallable,
+    ASGISendEvent,
+    Scope,
+)
+
 from starlette.datastructures import Headers, MutableHeaders
 from starlette.responses import PlainTextResponse, Response
-from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 ALL_METHODS = ("DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT")
 SAFELISTED_HEADERS = {"Accept", "Accept-Language", "Content-Language", "Content-Type"}
@@ -13,7 +20,7 @@ SAFELISTED_HEADERS = {"Accept", "Accept-Language", "Content-Language", "Content-
 class CORSMiddleware:
     def __init__(
         self,
-        app: ASGIApp,
+        app: ASGI3Application,
         allow_origins: typing.Sequence[str] = (),
         allow_methods: typing.Sequence[str] = ("GET",),
         allow_headers: typing.Sequence[str] = (),
@@ -71,7 +78,9 @@ class CORSMiddleware:
         self.simple_headers = simple_headers
         self.preflight_headers = preflight_headers
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    ) -> None:
         if scope["type"] != "http":  # pragma: no cover
             await self.app(scope, receive, send)
             return
@@ -141,13 +150,17 @@ class CORSMiddleware:
         return PlainTextResponse("OK", status_code=200, headers=headers)
 
     async def simple_response(
-        self, scope: Scope, receive: Receive, send: Send, request_headers: Headers
+        self,
+        scope: Scope,
+        receive: ASGIReceiveCallable,
+        send: ASGISendCallable,
+        request_headers: Headers,
     ) -> None:
         send = functools.partial(self.send, send=send, request_headers=request_headers)
         await self.app(scope, receive, send)
 
     async def send(
-        self, message: Message, send: Send, request_headers: Headers
+        self, message: ASGISendEvent, send: ASGISendCallable, request_headers: Headers
     ) -> None:
         if message["type"] != "http.response.start":
             await send(message)

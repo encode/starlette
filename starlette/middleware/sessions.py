@@ -3,17 +3,23 @@ import typing
 from base64 import b64decode, b64encode
 
 import itsdangerous
+from asgiref.typing import (
+    ASGI3Application,
+    ASGIReceiveCallable,
+    ASGISendCallable,
+    ASGISendEvent,
+    Scope,
+)
 from itsdangerous.exc import BadTimeSignature, SignatureExpired
 
 from starlette.datastructures import MutableHeaders, Secret
 from starlette.requests import HTTPConnection
-from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
 class SessionMiddleware:
     def __init__(
         self,
-        app: ASGIApp,
+        app: ASGI3Application,
         secret_key: typing.Union[str, Secret],
         session_cookie: str = "session",
         max_age: int = 14 * 24 * 60 * 60,  # 14 days, in seconds
@@ -28,7 +34,9 @@ class SessionMiddleware:
         if https_only:  # Secure flag can be used with HTTPS only
             self.security_flags += "; secure"
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    ) -> None:
         if scope["type"] not in ("http", "websocket"):  # pragma: no cover
             await self.app(scope, receive, send)
             return
@@ -47,7 +55,7 @@ class SessionMiddleware:
         else:
             scope["session"] = {}
 
-        async def send_wrapper(message: Message) -> None:
+        async def send_wrapper(message: ASGISendEvent) -> None:
             if message["type"] == "http.response.start":
                 path = scope.get("root_path", "") or "/"
                 if scope["session"]:

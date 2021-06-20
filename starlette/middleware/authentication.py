@@ -1,5 +1,12 @@
 import typing
 
+from asgiref.typing import (
+    ASGI3Application,
+    ASGIReceiveCallable,
+    ASGISendCallable,
+    Scope,
+)
+
 from starlette.authentication import (
     AuthCredentials,
     AuthenticationBackend,
@@ -8,13 +15,12 @@ from starlette.authentication import (
 )
 from starlette.requests import HTTPConnection
 from starlette.responses import PlainTextResponse, Response
-from starlette.types import ASGIApp, Receive, Scope, Send
 
 
 class AuthenticationMiddleware:
     def __init__(
         self,
-        app: ASGIApp,
+        app: ASGI3Application,
         backend: AuthenticationBackend,
         on_error: typing.Callable[
             [HTTPConnection, AuthenticationError], Response
@@ -26,7 +32,9 @@ class AuthenticationMiddleware:
             [HTTPConnection, AuthenticationError], Response
         ] = (on_error if on_error is not None else self.default_on_error)
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    ) -> None:
         if scope["type"] not in ["http", "websocket"]:
             await self.app(scope, receive, send)
             return

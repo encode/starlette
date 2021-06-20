@@ -5,6 +5,7 @@ import typing
 from email.utils import parsedate
 
 import anyio
+from asgiref.typing import ASGIReceiveCallable, ASGISendCallable, Scope
 
 from starlette.datastructures import URL, Headers
 from starlette.responses import (
@@ -13,7 +14,6 @@ from starlette.responses import (
     RedirectResponse,
     Response,
 )
-from starlette.types import Receive, Scope, Send
 
 PathLike = typing.Union[str, "os.PathLike[str]"]
 
@@ -83,7 +83,9 @@ class StaticFiles:
 
         return directories
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    ) -> None:
         """
         The ASGI entry point.
         """

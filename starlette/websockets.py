@@ -2,8 +2,15 @@ import enum
 import json
 import typing
 
+from asgiref.typing import (
+    ASGIReceiveCallable,
+    ASGIReceiveEvent,
+    ASGISendCallable,
+    ASGISendEvent,
+    Scope,
+)
+
 from starlette.requests import HTTPConnection
-from starlette.types import Message, Receive, Scope, Send
 
 
 class WebSocketState(enum.Enum):
@@ -18,7 +25,9 @@ class WebSocketDisconnect(Exception):
 
 
 class WebSocket(HTTPConnection):
-    def __init__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    def __init__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    ) -> None:
         super().__init__(scope)
         assert scope["type"] == "websocket"
         self._receive = receive
@@ -26,9 +35,9 @@ class WebSocket(HTTPConnection):
         self.client_state = WebSocketState.CONNECTING
         self.application_state = WebSocketState.CONNECTING
 
-    async def receive(self) -> Message:
+    async def receive(self) -> ASGIReceiveEvent:
         """
-        Receive ASGI websocket messages, ensuring valid state transitions.
+        ASGIReceiveCallable ASGI websocket messages, ensuring valid state transitions.
         """
         if self.client_state == WebSocketState.CONNECTING:
             message = await self._receive()
@@ -48,9 +57,9 @@ class WebSocket(HTTPConnection):
                 'Cannot call "receive" once a disconnect message has been received.'
             )
 
-    async def send(self, message: Message) -> None:
+    async def send(self, message: ASGISendEvent) -> None:
         """
-        Send ASGI websocket messages, ensuring valid state transitions.
+        ASGISendCallable ASGI websocket messages, ensuring valid state transitions.
         """
         if self.application_state == WebSocketState.CONNECTING:
             message_type = message["type"]
@@ -75,7 +84,7 @@ class WebSocket(HTTPConnection):
             await self.receive()
         await self.send({"type": "websocket.accept", "subprotocol": subprotocol})
 
-    def _raise_on_disconnect(self, message: Message) -> None:
+    def _raise_on_disconnect(self, message: ASGISendEvent) -> None:
         if message["type"] == "websocket.disconnect":
             raise WebSocketDisconnect(message["code"])
 
@@ -146,5 +155,7 @@ class WebSocketClose:
     def __init__(self, code: int = 1000) -> None:
         self.code = code
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    ) -> None:
         await send({"type": "websocket.close", "code": self.code})

@@ -2,17 +2,25 @@ import asyncio
 import json
 import typing
 
+from asgiref.typing import (
+    ASGIReceiveCallable,
+    ASGISendCallable,
+    Scope,
+    WebsocketReceiveEvent,
+)
+
 from starlette import status
 from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, Response
-from starlette.types import Message, Receive, Scope, Send
 from starlette.websockets import WebSocket
 
 
 class HTTPEndpoint:
-    def __init__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    def __init__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    ) -> None:
         assert scope["type"] == "http"
         self.scope = scope
         self.receive = receive
@@ -45,7 +53,9 @@ class WebSocketEndpoint:
 
     encoding: typing.Optional[str] = None  # May be "text", "bytes", or "json".
 
-    def __init__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    def __init__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    ) -> None:
         assert scope["type"] == "websocket"
         self.scope = scope
         self.receive = receive
@@ -75,7 +85,9 @@ class WebSocketEndpoint:
         finally:
             await self.on_disconnect(websocket, close_code)
 
-    async def decode(self, websocket: WebSocket, message: Message) -> typing.Any:
+    async def decode(
+        self, websocket: WebSocket, message: WebsocketReceiveEvent
+    ) -> typing.Any:
 
         if self.encoding == "text":
             if "text" not in message:

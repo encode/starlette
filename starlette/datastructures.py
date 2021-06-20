@@ -5,8 +5,9 @@ from collections.abc import Sequence
 from shlex import shlex
 from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit
 
+from asgiref.typing import Scope
+
 from starlette.concurrency import run_in_threadpool
-from starlette.types import Scope
 
 Address = namedtuple("Address", ["host", "port"])
 

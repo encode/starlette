@@ -4,10 +4,16 @@ from collections.abc import Mapping
 from http import cookies as http_cookies
 
 import anyio
+from asgiref.typing import (
+    ASGIReceiveCallable,
+    ASGIReceiveEvent,
+    ASGISendCallable,
+    ASGISendEvent,
+    Scope,
+)
 
 from starlette.datastructures import URL, Address, FormData, Headers, QueryParams, State
 from starlette.formparsers import FormParser, MultiPartParser
-from starlette.types import Message, Receive, Scope, Send
 
 try:
     from multipart.multipart import parse_options_header
@@ -61,7 +67,7 @@ class HTTPConnection(Mapping):
     any functionality that is common to both `Request` and `WebSocket`.
     """
 
-    def __init__(self, scope: Scope, receive: Receive = None) -> None:
+    def __init__(self, scope: Scope, receive: ASGIReceiveCallable = None) -> None:
         assert scope["type"] in ("http", "websocket")
         self.scope = scope
 
@@ -165,17 +171,20 @@ class HTTPConnection(Mapping):
         return url_path.make_absolute_url(base_url=self.base_url)
 
 
-async def empty_receive() -> Message:
+async def empty_receive() -> ASGIReceiveEvent:
     raise RuntimeError("Receive channel has not been made available")
 
 
-async def empty_send(message: Message) -> None:
+async def empty_send(message: ASGISendEvent) -> None:
     raise RuntimeError("Send channel has not been made available")
 
 
 class Request(HTTPConnection):
     def __init__(
-        self, scope: Scope, receive: Receive = empty_receive, send: Send = empty_send
+        self,
+        scope: Scope,
+        receive: ASGIReceiveCallable = empty_receive,
+        send: ASGISendCallable = empty_send,
     ):
         super().__init__(scope)
         assert scope["type"] == "http"
@@ -189,7 +198,7 @@ class Request(HTTPConnection):
         return self.scope["method"]
 
     @property
-    def receive(self) -> Receive:
+    def receive(self) -> ASGIReceiveEvent:
         return self._receive
 
     async def stream(self) -> typing.AsyncGenerator[bytes, None]:
@@ -252,7 +261,7 @@ class Request(HTTPConnection):
 
     async def is_disconnected(self) -> bool:
         if not self._is_disconnected:
-            message: Message = {}
+            message: ASGIReceiveEvent = {}
 
             # If message isn't immediately available, move on
             with anyio.CancelScope() as cs:

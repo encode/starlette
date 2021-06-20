@@ -2,12 +2,13 @@ import json
 import typing
 import warnings
 
+from asgiref.typing import ASGIReceiveCallable, ASGISendCallable, Scope
+
 from starlette import status
 from starlette.background import BackgroundTasks
 from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse, PlainTextResponse, Response
-from starlette.types import Receive, Scope, Send
 
 warnings.warn(
     "GraphQLApp is deprecated and will be removed in a future release. "
@@ -41,7 +42,9 @@ class GraphQLApp:
             executor_class, AsyncioExecutor
         )
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    ) -> None:
         if self.executor_class is not None:
             self.executor = self.executor_class()
 

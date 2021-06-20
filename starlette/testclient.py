@@ -14,8 +14,14 @@ from urllib.parse import unquote, urljoin, urlsplit
 import anyio
 import requests
 from anyio.streams.stapled import StapledObjectStream
+from asgiref.typing import (
+    ASGIReceiveCallable,
+    ASGIReceiveEvent,
+    ASGISendCallable,
+    ASGISendEvent,
+    Scope,
+)
 
-from starlette.types import Message, Receive, Scope, Send
 from starlette.websockets import WebSocketDisconnect
 
 # Annotations for `Session.request()`
@@ -33,9 +39,13 @@ AuthType = typing.Union[
 ]
 
 
-ASGIInstance = typing.Callable[[Receive, Send], typing.Awaitable[None]]
+ASGIInstance = typing.Callable[
+    [ASGIReceiveCallable, ASGISendCallable], typing.Awaitable[None]
+]
 ASGI2App = typing.Callable[[Scope], ASGIInstance]
-ASGI3App = typing.Callable[[Scope, Receive, Send], typing.Awaitable[None]]
+ASGI3App = typing.Callable[
+    [Scope, ASGIReceiveCallable, ASGISendCallable], typing.Awaitable[None]
+]
 
 
 class _HeaderDict(requests.packages.urllib3._collections.HTTPHeaderDict):
@@ -86,7 +96,9 @@ class _WrapASGI2:
     def __init__(self, app: ASGI2App) -> None:
         self.app = app
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    ) -> None:
         instance = self.app(scope)
         await instance(receive, send)
 
@@ -175,7 +187,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
         template = None
         context = None
 
-        async def receive() -> Message:
+        async def receive() -> ASGIReceiveEvent:
             nonlocal request_complete
 
             if request_complete:
@@ -203,13 +215,13 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             request_complete = True
             return {"type": "http.request", "body": body_bytes}
 
-        async def send(message: Message) -> None:
+        async def send(message: ASGISendEvent) -> None:
             nonlocal raw_kwargs, response_started, template, context
 
             if message["type"] == "http.response.start":
                 assert (
                     not response_started
-                ), 'Received multiple "http.response.start" messages.'
+                ), 'ASGIReceiveCallabled multiple "http.response.start" messages.'
                 raw_kwargs["version"] = 11
                 raw_kwargs["status"] = message["status"]
                 raw_kwargs["reason"] = _get_reason_phrase(message["status"])
@@ -319,19 +331,19 @@ class WebSocketTestSession:
             self._send_queue.put(exc)
             raise
 
-    async def _asgi_receive(self) -> Message:
+    async def _asgi_receive(self) -> ASGIReceiveEvent:
         while self._receive_queue.empty():
             await anyio.sleep(0)
         return self._receive_queue.get()
 
-    async def _asgi_send(self, message: Message) -> None:
+    async def _asgi_send(self, message: ASGISendEvent) -> None:
         self._send_queue.put(message)
 
-    def _raise_on_close(self, message: Message) -> None:
+    def _raise_on_close(self, message: ASGISendEvent) -> None:
         if message["type"] == "websocket.close":
             raise WebSocketDisconnect(message.get("code", 1000))
 
-    def send(self, message: Message) -> None:
+    def send(self, message: ASGISendEvent) -> None:
         self._receive_queue.put(message)
 
     def send_text(self, data: str) -> None:
@@ -351,7 +363,7 @@ class WebSocketTestSession:
     def close(self, code: int = 1000) -> None:
         self.send({"type": "websocket.disconnect", "code": code})
 
-    def receive(self) -> Message:
+    def receive(self) -> ASGIReceiveEvent:
         message = self._send_queue.get()
         if isinstance(message, BaseException):
             raise message
