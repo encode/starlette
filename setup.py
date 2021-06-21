@@ -37,10 +37,10 @@ setup(
     packages=find_packages(exclude=["tests*"]),
     package_data={"starlette": ["py.typed"]},
     include_package_data=True,
+    install_requires=["anyio>=3.0.0,<4"],
     extras_require={
         "full": [
-            "aiofiles",
-            "graphene",
+            "graphene; python_version<'3.10'",
             "itsdangerous",
             "jinja2",
             "python-multipart",
@@ -60,6 +60,7 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
     ],
     zip_safe=False,
 )
