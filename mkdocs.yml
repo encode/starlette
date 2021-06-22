@@ -35,7 +35,8 @@ nav:
 markdown_extensions:
   - mkautodoc
   - admonition
-  - pymdownx.highlight
+  - codehilite:
+      css_class: highlight
   - pymdownx.superfences
 
 extra_javascript:
