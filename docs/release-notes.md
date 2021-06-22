@@ -1,11 +1,15 @@
 ## 0.15.0
 
-Unreleased
+June 23, 2021
+
+This release includes major changes to the low-level asynchronous parts of Starlette. As a result,
+**Starlette now depends on [AnyIO](https://anyio.readthedocs.io/en/stable/)** and some minor API
+changes have occurred. Another significant change with this release is the
+**deprecation of built-in GraphQL support**.
 
 ### Added
 * Starlette now supports [Trio](https://trio.readthedocs.io/en/stable/) as an async runtime via
-  [AnyIO](https://anyio.readthedocs.io/en/stable/) -
-  [#1157](https://github.com/encode/starlette/pull/1157).
+  AnyIO - [#1157](https://github.com/encode/starlette/pull/1157).
 * `TestClient.websocket_connect()` now must be used as a context manager.
 * Initial support for Python 3.10 - [#1201](https://github.com/encode/starlette/pull/1201).
 * The compression level used in `GZipMiddleware` is now adjustable -
