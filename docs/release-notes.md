@@ -31,6 +31,8 @@ changes have occurred. Another significant change with this release is the
   [#1147](https://github.com/encode/starlette/pull/1147).
 * Fixed a cache invalidation bug when static files were deleted in certain circumstances -
   [#1023](https://github.com/encode/starlette/pull/1023).
+* Improved memory usage of `BaseHTTPMiddleware` when handling large responses -
+  [#1012](https://github.com/encode/starlette/issues/1012) fixed via #1157
 
 ### Deprecated/removed
 
