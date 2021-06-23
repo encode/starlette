@@ -132,3 +132,22 @@ def test_websocket_blocking_receive():
     with client.websocket_connect("/") as websocket:
         data = websocket.receive_json()
         assert data == {"message": "test"}
+
+
+def test_backend_name(request):
+    """
+    Test that the tests are defaulting to the correct backend and that a new
+    instance of TestClient can be created using different backend options.
+    """
+    # client created using monkeypatched async_backend
+    client1 = TestClient(mock_service)
+    if "trio" in request.keywords:
+        client2 = TestClient(mock_service, backend="asyncio")
+        assert client1.async_backend["backend"] == "trio"
+        assert client2.async_backend["backend"] == "asyncio"
+    elif "asyncio" in request.keywords:
+        client2 = TestClient(mock_service, backend="trio")
+        assert client1.async_backend["backend"] == "asyncio"
+        assert client2.async_backend["backend"] == "trio"
+    else:
+        pytest.fail("Unknown backend")  # pragma: nocover

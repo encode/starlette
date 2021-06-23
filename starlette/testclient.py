@@ -380,13 +380,11 @@ class WebSocketTestSession:
 
 class TestClient(requests.Session):
     __test__ = False  # For pytest to not discover this up.
-
-    #: These options are passed to `anyio.start_blocking_portal()`
+    #: These are the default options for the constructor arguments
     async_backend: typing.Dict[str, typing.Any] = {
         "backend": "asyncio",
         "backend_options": {},
     }
-
     task: "Future[None]"
 
     def __init__(
@@ -395,8 +393,14 @@ class TestClient(requests.Session):
         base_url: str = "http://testserver",
         raise_server_exceptions: bool = True,
         root_path: str = "",
+        backend: typing.Optional[str] = None,
+        backend_options: typing.Optional[typing.Dict[str, typing.Any]] = None,
     ) -> None:
         super().__init__()
+        self.async_backend = {
+            "backend": backend or self.async_backend["backend"],
+            "backend_options": backend_options or self.async_backend["backend_options"],
+        }
         if _is_asgi3(app):
             app = typing.cast(ASGI3App, app)
             asgi_app = app
