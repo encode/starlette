@@ -1,3 +1,5 @@
+import itertools
+
 import anyio
 import pytest
 
@@ -14,14 +16,40 @@ def mock_service_endpoint(request):
     return JSONResponse({"mock": "example"})
 
 
-def create_app(test_client_factory):
+_identity_runvar: anyio.lowlevel.RunVar[int] = anyio.lowlevel.RunVar("_identity_runvar")
+
+
+def get_identity(counter):
+    try:
+        return _identity_runvar.get()
+    except LookupError:
+        token = next(counter)
+        _identity_runvar.set(token)
+        return token
+
+
+def create_app(test_client_factory, counter=itertools.count()):
     app = Starlette()
+
+    @app.on_event("startup")
+    async def get_startup_thread():
+        app.startup_task = anyio.get_current_task().id
+        app.startup_loop = get_identity(counter)
+
+    @app.on_event("shutdown")
+    async def get_shutdown_thread():
+        app.shutdown_task = anyio.get_current_task().id
+        app.shutdown_loop = get_identity(counter)
 
     @app.route("/")
     def homepage(request):
         client = test_client_factory(mock_service)
         response = client.get("/")
         return JSONResponse(response.json())
+
+    @app.route("/thread")
+    async def thread(request):
+        return JSONResponse(get_identity(counter))
 
     return app
 
@@ -46,9 +74,50 @@ def test_use_testclient_in_endpoint(test_client_factory):
     assert response.json() == {"mock": "example"}
 
 
-def test_use_testclient_as_contextmanager(test_client_factory):
-    with test_client_factory(create_app(test_client_factory)):
-        pass
+def test_use_testclient_as_contextmanager(test_client_factory, anyio_backend_name):
+    """
+    This test asserts a number of properties that are important for an
+    app level task_group
+    """
+    app = create_app(test_client_factory, counter=itertools.count())
+    client = test_client_factory(app)
+
+    with client:
+        # within a TestClient context every async request runs in the same thread
+        assert client.get("/thread").json() == 0
+        assert client.get("/thread").json() == 0
+
+    # that thread is also the same as the lifespan thread
+    assert app.startup_loop == 0
+    assert app.shutdown_loop == 0
+
+    # lifespan events run in the same task, this is important because a task
+    # group must be entered and exited in the same task.
+    assert app.startup_task == app.shutdown_task
+
+    # outside the TestClient context, new requests continue to spawn in new
+    # eventloops in new threads
+    assert client.get("/thread").json() == 1
+    assert client.get("/thread").json() == 2
+
+    first_task = app.startup_task
+
+    with client:
+        # the TestClient context can be re-used, starting a new lifespan task
+        # in a new thread
+        assert client.get("/thread").json() == 3
+        assert client.get("/thread").json() == 3
+
+    assert app.startup_loop == 3
+    assert app.shutdown_loop == 3
+
+    # lifespan events still run in the same task, with the context but...
+    assert app.startup_task == app.shutdown_task
+
+    if anyio_backend_name != "asyncio":
+        # https://github.com/agronholm/anyio/issues/324
+        # ... the second TestClient context creates a new lifespan task.
+        assert first_task != app.startup_task
 
 
 def test_error_on_startup(test_client_factory):
