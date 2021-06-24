@@ -19,6 +19,7 @@ types-contextvars
 types-PyYAML
 types-dataclasses
 pytest
+pytest-asyncio
 trio
 
 # Documentation

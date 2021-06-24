@@ -7,18 +7,18 @@ from starlette.testclient import TestClient
 
 
 def view_session(request):
-    return JSONResponse({"session": request.session})
+    return JSONResponse({"session": request.session.data})
 
 
 async def update_session(request):
     data = await request.json()
     request.session.update(data)
-    return JSONResponse({"session": request.session})
+    return JSONResponse({"session": request.session.data})
 
 
 async def clear_session(request):
     request.session.clear()
-    return JSONResponse({"session": request.session})
+    return JSONResponse({"session": request.session.data})
 
 
 def create_app():
@@ -53,6 +53,16 @@ def test_session():
     assert response.json() == {"session": {}}
 
     response = client.get("/view_session")
+    assert response.json() == {"session": {}}
+
+
+def test_empty_session():
+    app = create_app()
+    app.add_middleware(SessionMiddleware, secret_key="example")
+
+    headers = {"cookie": "session=someid"}
+    client = TestClient(app)
+    response = client.get("/view_session", headers=headers)
     assert response.json() == {"session": {}}
 
 

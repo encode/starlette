@@ -90,7 +90,7 @@ request through as normal, but will include appropriate CORS headers on the resp
 
 ## SessionMiddleware
 
-Adds signed cookie-based HTTP sessions. Session information is readable but not modifiable.
+Adds sessions supports using various session backends. Session information is readable but not modifiable.
 
 Access or modify the session data using the `request.session` dictionary interface.
 
@@ -101,6 +101,7 @@ The following arguments are supported:
 * `max_age` - Session expiry time in seconds. Defaults to 2 weeks.
 * `same_site` - SameSite flag prevents the browser from sending session cookie along with cross-site requests. Defaults to `'lax'`.
 * `https_only` - Indicate that Secure flag should be set (can be used with HTTPS only). Defaults to `False`.
+* `backend` - Session backend instance to use. Defaults to `CookieBackend`.
 
 ## HTTPSRedirectMiddleware
 
