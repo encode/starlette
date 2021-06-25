@@ -1,31 +1,25 @@
-# Optionals
-graphene; python_version<'3.10'
-itsdangerous
-jinja2
-python-multipart
-pyyaml
-requests
+-e .[full]
 
 # Testing
-autoflake
+autoflake==1.4
 black==20.8b1
-coverage>=5.3
-databases[sqlite]
-flake8
-isort==5.*
-mypy
-types-requests
-types-contextvars
-types-PyYAML
-types-dataclasses
-pytest
-trio
+coverage==5.3
+databases[sqlite]==0.4.3
+flake8==3.9.2
+isort==5.9.1
+mypy==0.910
+types-requests==2.25.0
+types-contextvars==0.1.4
+types-PyYAML==5.4.3
+types-dataclasses==0.1.5
+pytest==6.2.4
+trio==0.19.0
 
 # Documentation
-mkdocs
-mkdocs-material
-mkautodoc
+mkdocs==1.2.1
+mkdocs-material==7.1.9
+mkautodoc==0.1.0
 
 # Packaging
-twine
-wheel
+twine==3.4.1
+wheel==0.36.2
