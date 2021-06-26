@@ -2,7 +2,6 @@ import asyncio
 import functools
 import inspect
 import re
-import sys
 import traceback
 import typing
 from enum import Enum
@@ -33,11 +32,10 @@ class Match(Enum):
 def iscoroutinefunction_or_partial(obj: typing.Any) -> bool:
     """
     Correctly determines if an object is a coroutine function,
-    with a fix for partials on Python < 3.8.
+    including those wrapped in functools.partial objects.
     """
-    if sys.version_info < (3, 8):  # pragma: no cover
-        while isinstance(obj, functools.partial):
-            obj = obj.func
+    while isinstance(obj, functools.partial):
+        obj = obj.func
     return inspect.iscoroutinefunction(obj)
 
 
@@ -109,6 +107,7 @@ def compile_path(
     """
     path_regex = "^"
     path_format = ""
+    duplicated_params = set()
 
     idx = 0
     param_convertors = {}
@@ -126,9 +125,17 @@ def compile_path(
         path_format += path[idx : match.start()]
         path_format += "{%s}" % param_name
 
+        if param_name in param_convertors:
+            duplicated_params.add(param_name)
+
         param_convertors[param_name] = convertor
 
         idx = match.end()
+
+    if duplicated_params:
+        names = ", ".join(sorted(duplicated_params))
+        ending = "s" if len(duplicated_params) > 1 else ""
+        raise ValueError(f"Duplicated param name{ending} {names} at path {path}")
 
     path_regex += re.escape(path[idx:]) + "$"
     path_format += path[idx:]
@@ -320,7 +327,7 @@ class Mount(BaseRoute):
         ), "Either 'app=...', or 'routes=' must be specified"
         self.path = path.rstrip("/")
         if app is not None:
-            self.app = app  # type: ASGIApp
+            self.app: ASGIApp = app
         else:
             self.app = Router(routes=routes)
         self.name = name
