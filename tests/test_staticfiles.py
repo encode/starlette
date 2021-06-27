@@ -1,5 +1,6 @@
 import os
 import pathlib
+import stat
 import time
 
 import anyio
@@ -279,3 +280,42 @@ def test_staticfiles_cache_invalidation_for_deleted_file_html_mode(tmpdir):
     )
     assert resp_deleted.status_code == 404
     assert resp_deleted.text == "<p>404 file</p>"
+
+
+def test_staticfiles_with_invalid_dir_permissions_returns_401(tmpdir):
+    path = os.path.join(tmpdir, "example.txt")
+    with open(path, "w") as file:
+        file.write("<file content>")
+
+    os.chmod(tmpdir, stat.S_IRWXO)
+
+    app = StaticFiles(directory=tmpdir)
+    client = TestClient(app)
+    response = client.get("/example.txt")
+    assert response.status_code == 401
+    assert response.text == "Permission denied"
+
+
+def test_staticfiles_with_missing_dir_returns_404(tmpdir):
+    path = os.path.join(tmpdir, "example.txt")
+    with open(path, "w") as file:
+        file.write("<file content>")
+
+    app = StaticFiles(directory=tmpdir)
+    client = TestClient(app)
+    response = client.get("/foo/example.txt")
+    assert response.status_code == 404
+    assert response.text == "Not Found"
+
+
+def test_staticfiles_access_file_as_dir_returns_404(tmpdir):
+    path = os.path.join(tmpdir, "example.txt")
+    with open(path, "w") as file:
+        file.write("<file content>")
+
+    app = StaticFiles(directory=tmpdir)
+    client = TestClient(app)
+    response = client.get("/example.txt/foo")
+    assert response.status_code == 404
+    assert response.text == "Not Found"
+
