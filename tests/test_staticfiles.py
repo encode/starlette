@@ -2,6 +2,7 @@ import os
 import pathlib
 import stat
 import time
+from unittest import mock
 
 import anyio
 import pytest
@@ -319,3 +320,20 @@ def test_staticfiles_access_file_as_dir_returns_404(tmpdir):
     assert response.status_code == 404
     assert response.text == "Not Found"
 
+
+def test_staticfiles_unhandled_os_error_returns_500(tmpdir):
+    path = os.path.join(tmpdir, "example.txt")
+    with open(path, "w") as file:
+        file.write("<file content>")
+
+    app = StaticFiles(directory=tmpdir)
+    client = TestClient(app)
+
+    with mock.patch(
+        "starlette.staticfiles.StaticFiles.lookup_path"
+    ) as mock_lookup_path:
+        mock_lookup_path.side_effect = TimeoutError()
+
+        response = client.get("/example.txt")
+        assert response.status_code == 500
+        assert response.text == "Internal server error"

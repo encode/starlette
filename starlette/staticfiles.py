@@ -130,7 +130,6 @@ class StaticFiles:
         except OSError:
             return PlainTextResponse("Internal server error", status_code=500)
 
-
         if stat_result and stat.S_ISREG(stat_result.st_mode):
             # We have a static file to serve.
             return self.file_response(full_path, stat_result, scope)
