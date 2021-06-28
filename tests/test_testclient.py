@@ -71,8 +71,8 @@ def create_app(test_client_factory, counter=itertools.count()):
         response = client.get("/")
         return JSONResponse(response.json())
 
-    @app.route("/thread")
-    async def thread(request):
+    @app.route("/loop_id")
+    async def loop_id(request):
         return JSONResponse(get_identity(counter))
 
     return app
@@ -108,8 +108,8 @@ def test_use_testclient_as_contextmanager(test_client_factory, anyio_backend_nam
 
     with client:
         # within a TestClient context every async request runs in the same thread
-        assert client.get("/thread").json() == 0
-        assert client.get("/thread").json() == 0
+        assert client.get("/loop_id").json() == 0
+        assert client.get("/loop_id").json() == 0
 
     # that thread is also the same as the lifespan thread
     assert app.startup_loop == 0
@@ -121,16 +121,16 @@ def test_use_testclient_as_contextmanager(test_client_factory, anyio_backend_nam
 
     # outside the TestClient context, new requests continue to spawn in new
     # eventloops in new threads
-    assert client.get("/thread").json() == 1
-    assert client.get("/thread").json() == 2
+    assert client.get("/loop_id").json() == 1
+    assert client.get("/loop_id").json() == 2
 
     first_task = app.startup_task
 
     with client:
         # the TestClient context can be re-used, starting a new lifespan task
         # in a new thread
-        assert client.get("/thread").json() == 3
-        assert client.get("/thread").json() == 3
+        assert client.get("/loop_id").json() == 3
+        assert client.get("/loop_id").json() == 3
 
     assert app.startup_loop == 3
     assert app.shutdown_loop == 3
