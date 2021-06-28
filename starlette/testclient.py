@@ -20,9 +20,9 @@ from starlette.types import Message, Receive, Scope, Send
 from starlette.websockets import WebSocketDisconnect
 
 if sys.version_info >= (3, 8):  # pragma: no cover
-    from typing import TypedDict  # pragma: no cover
+    from typing import TypedDict
 else:  # pragma: no cover
-    from typing_extensions import TypedDict  # pragma: no cover
+    from typing_extensions import TypedDict
 
 # Annotations for `Session.request()`
 Cookies = typing.Union[
