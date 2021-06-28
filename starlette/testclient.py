@@ -20,14 +20,14 @@ from starlette.types import Message, Receive, Scope, Send
 from starlette.websockets import WebSocketDisconnect
 
 if sys.version_info >= (3, 8):  # pragma: no cover
-    from typing import Protocol, TypedDict
+    from typing import TypedDict
 else:  # pragma: no cover
-    from typing_extensions import Protocol, TypedDict
+    from typing_extensions import TypedDict
 
 
-class _PortalFactoryType(Protocol):
-    def __call__(self) -> typing.ContextManager[anyio.abc.BlockingPortal]:
-        ...  # pragma: no cover
+_PortalFactoryType = typing.Callable[
+    [], typing.ContextManager[anyio.abc.BlockingPortal]
+]
 
 
 # Annotations for `Session.request()`
