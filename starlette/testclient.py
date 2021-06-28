@@ -20,9 +20,9 @@ from starlette.types import Message, Receive, Scope, Send
 from starlette.websockets import WebSocketDisconnect
 
 if sys.version_info >= (3, 8):  # pragma: no cover
-    from typing import Protocol, TypedDict  # pragma: no cover
+    from typing import Protocol, TypedDict
 else:  # pragma: no cover
-    from typing_extensions import Protocol, TypedDict  # pragma: no cover
+    from typing_extensions import Protocol, TypedDict
 
 
 class _PortalFactoryType(Protocol):
