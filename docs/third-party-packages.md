@@ -90,6 +90,14 @@ It relies solely on an auth provider to issue access and/or id tokens to clients
 Middleware for Starlette that allows you to store and access the context data of a request.
 Can be used with logging so logs automatically use request headers such as x-request-id or x-correlation-id.
 
+
+### Starsessions
+
+<a href="https://github.com/alex-oleshkevich/starsessions" target="_blank">GitHub</a>
+
+An alternate session support implementation. With customizable storage backends.
+
+
 ## Frameworks
 
 ### Responder
