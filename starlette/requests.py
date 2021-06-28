@@ -74,6 +74,9 @@ class HTTPConnection(Mapping):
     def __len__(self) -> int:
         return len(self.scope)
 
+    # Don't use the `abc.Mapping.__eq__` implementation.
+    # Connection instances should never be considered equal
+    # unless `self is other`.
     __eq__ = object.__eq__
     __hash__ = object.__hash__
 
