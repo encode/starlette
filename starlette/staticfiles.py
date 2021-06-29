@@ -112,11 +112,15 @@ class StaticFiles:
             return PlainTextResponse("Method Not Allowed", status_code=405)
 
         try:
-            full_path, stat_result = await self.lookup_path(path)
+            full_path, stat_result = await anyio.to_thread.run_sync(
+                self.lookup_path, path
+            )
         except (FileNotFoundError, NotADirectoryError):
             if self.html:
                 # Check for '404.html' if we're in HTML mode.
-                full_path, stat_result = await self.lookup_path("404.html")
+                full_path, stat_result = await anyio.to_thread.run_sync(
+                    self.lookup_path, "404.html"
+                )
                 if stat_result is not None and stat.S_ISREG(stat_result.st_mode):
                     return FileResponse(
                         full_path,
@@ -138,7 +142,9 @@ class StaticFiles:
             # We're in HTML mode, and have got a directory URL.
             # Check if we have 'index.html' file to serve.
             index_path = os.path.join(path, "index.html")
-            full_path, stat_result = await self.lookup_path(index_path)
+            full_path, stat_result = await anyio.to_thread.run_sync(
+                self.lookup_path, index_path
+            )
             if stat_result is not None and stat.S_ISREG(stat_result.st_mode):
                 if not scope["path"].endswith("/"):
                     # Directory URLs should redirect to always end in "/".
@@ -149,7 +155,7 @@ class StaticFiles:
 
         return PlainTextResponse("Not Found", status_code=404)
 
-    async def lookup_path(
+    def lookup_path(
         self, path: str
     ) -> typing.Tuple[str, typing.Optional[os.stat_result]]:
         for directory in self.all_directories:
@@ -159,11 +165,7 @@ class StaticFiles:
                 # Don't allow misbehaving clients to break out of the static files
                 # directory.
                 continue
-            try:
-                stat_result = await anyio.to_thread.run_sync(os.stat, full_path)
-                return full_path, stat_result
-            except OSError:
-                raise
+            return full_path, os.stat(full_path)
         return "", None
 
     def file_response(
