@@ -53,17 +53,15 @@ def current_task():
 
 
 def create_app(test_client_factory, counter=itertools.count()):
-    app = Starlette()
-
-    @app.on_event("startup")
-    async def get_startup_thread():
+    async def lifespan_context(app):
         app.startup_task = current_task()
         app.startup_loop = get_identity(counter)
-
-    @app.on_event("shutdown")
-    async def get_shutdown_thread():
+        async with anyio.create_task_group() as app.task_group:
+            yield
         app.shutdown_task = current_task()
         app.shutdown_loop = get_identity(counter)
+
+    app = Starlette(lifespan=lifespan_context)
 
     @app.route("/")
     def homepage(request):
