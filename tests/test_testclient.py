@@ -85,13 +85,20 @@ def test_use_testclient_as_contextmanager(test_client_factory, anyio_backend_nam
             identity_runvar.set(token)
             return token
 
+    startup_task = object()
+    startup_loop = None
+    shutdown_task = object()
+    shutdown_loop = None
+
     async def lifespan_context(app):
-        app.startup_task = current_task()
-        app.startup_loop = get_identity()
+        nonlocal startup_task, startup_loop, shutdown_task, shutdown_loop
+
+        startup_task = current_task()
+        startup_loop = get_identity()
         async with anyio.create_task_group() as app.task_group:
             yield
-        app.shutdown_task = current_task()
-        app.shutdown_loop = get_identity()
+        shutdown_task = current_task()
+        shutdown_loop = get_identity()
 
     app = Starlette(lifespan=lifespan_context)
 
@@ -107,19 +114,19 @@ def test_use_testclient_as_contextmanager(test_client_factory, anyio_backend_nam
         assert client.get("/loop_id").json() == 0
 
     # that thread is also the same as the lifespan thread
-    assert app.startup_loop == 0
-    assert app.shutdown_loop == 0
+    assert startup_loop == 0
+    assert shutdown_loop == 0
 
     # lifespan events run in the same task, this is important because a task
     # group must be entered and exited in the same task.
-    assert app.startup_task is app.shutdown_task
+    assert startup_task is shutdown_task
 
     # outside the TestClient context, new requests continue to spawn in new
     # eventloops in new threads
     assert client.get("/loop_id").json() == 1
     assert client.get("/loop_id").json() == 2
 
-    first_task = app.startup_task
+    first_task = startup_task
 
     with client:
         # the TestClient context can be re-used, starting a new lifespan task
@@ -127,14 +134,14 @@ def test_use_testclient_as_contextmanager(test_client_factory, anyio_backend_nam
         assert client.get("/loop_id").json() == 3
         assert client.get("/loop_id").json() == 3
 
-    assert app.startup_loop == 3
-    assert app.shutdown_loop == 3
+    assert startup_loop == 3
+    assert shutdown_loop == 3
 
     # lifespan events still run in the same task, with the context but...
-    assert app.startup_task is app.shutdown_task
+    assert startup_task is shutdown_task
 
     # ... the second TestClient context creates a new lifespan task.
-    assert first_task is not app.startup_task
+    assert first_task is not startup_task
 
 
 def test_error_on_startup(test_client_factory):
