@@ -231,8 +231,6 @@ class StreamingResponse(Response):
 
 
 class FileResponse(Response):
-    chunk_size = 4096
-
     def __init__(
         self,
         path: typing.Union[str, "os.PathLike[str]"],
@@ -243,10 +241,12 @@ class FileResponse(Response):
         filename: str = None,
         stat_result: os.stat_result = None,
         method: str = None,
+        chunk_size: int = 4096,
     ) -> None:
         self.path = path
         self.status_code = status_code
         self.filename = filename
+        self.chunk_size = chunk_size
         self.send_header_only = method is not None and method.upper() == "HEAD"
         if media_type is None:
             media_type = guess_type(filename or path)[0] or "text/plain"
