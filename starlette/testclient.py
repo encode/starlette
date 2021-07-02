@@ -510,6 +510,10 @@ class TestClient(requests.Session):
                 anyio.start_blocking_portal(**self.async_backend)
             )
 
+            @stack.callback
+            def reset_portal() -> None:
+                self.portal = None
+
             self.stream_send = StapledObjectStream(
                 *anyio.create_memory_object_stream(math.inf)
             )
@@ -518,11 +522,6 @@ class TestClient(requests.Session):
             )
             self.task = portal.start_task_soon(self.lifespan)
             portal.call(self.wait_startup)
-            self.portal = portal
-
-            @stack.callback
-            def reset_portal() -> None:
-                self.portal = None
 
             @stack.callback
             def wait_shutdown() -> None:
