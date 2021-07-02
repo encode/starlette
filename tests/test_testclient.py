@@ -25,18 +25,6 @@ def mock_service_endpoint(request):
     return JSONResponse({"mock": "example"})
 
 
-_identity_runvar: anyio.lowlevel.RunVar[int] = anyio.lowlevel.RunVar("_identity_runvar")
-
-
-def get_identity(counter):
-    try:
-        return _identity_runvar.get()
-    except LookupError:
-        token = next(counter)
-        _identity_runvar.set(token)
-        return token
-
-
 def current_task():
     # anyio's TaskInfo comparisons are invalid after their associated native
     # task object is GC'd https://github.com/agronholm/anyio/issues/324
@@ -50,30 +38,6 @@ def current_task():
             raise RuntimeError("must be called from a running task")  # pragma: no cover
         return task
     raise RuntimeError(f"unsupported asynclib={asynclib_name}")  # pragma: no cover
-
-
-def create_app(test_client_factory, counter=itertools.count()):
-    async def lifespan_context(app):
-        app.startup_task = current_task()
-        app.startup_loop = get_identity(counter)
-        async with anyio.create_task_group() as app.task_group:
-            yield
-        app.shutdown_task = current_task()
-        app.shutdown_loop = get_identity(counter)
-
-    app = Starlette(lifespan=lifespan_context)
-
-    @app.route("/")
-    def homepage(request):
-        client = test_client_factory(mock_service)
-        response = client.get("/")
-        return JSONResponse(response.json())
-
-    @app.route("/loop_id")
-    async def loop_id(request):
-        return JSONResponse(get_identity(counter))
-
-    return app
 
 
 startup_error_app = Starlette()
@@ -91,7 +55,16 @@ def test_use_testclient_in_endpoint(test_client_factory):
     This is useful if we need to mock out other services,
     during tests or in development.
     """
-    client = test_client_factory(create_app(test_client_factory))
+
+    app = Starlette()
+
+    @app.route("/")
+    def homepage(request):
+        client = test_client_factory(mock_service)
+        response = client.get("/")
+        return JSONResponse(response.json())
+
+    client = test_client_factory(app)
     response = client.get("/")
     assert response.json() == {"mock": "example"}
 
@@ -101,7 +74,31 @@ def test_use_testclient_as_contextmanager(test_client_factory, anyio_backend_nam
     This test asserts a number of properties that are important for an
     app level task_group
     """
-    app = create_app(test_client_factory, counter=itertools.count())
+    counter = itertools.count()
+    identity_runvar = anyio.lowlevel.RunVar[int]("identity_runvar")
+
+    def get_identity():
+        try:
+            return identity_runvar.get()
+        except LookupError:
+            token = next(counter)
+            identity_runvar.set(token)
+            return token
+
+    async def lifespan_context(app):
+        app.startup_task = current_task()
+        app.startup_loop = get_identity()
+        async with anyio.create_task_group() as app.task_group:
+            yield
+        app.shutdown_task = current_task()
+        app.shutdown_loop = get_identity()
+
+    app = Starlette(lifespan=lifespan_context)
+
+    @app.route("/loop_id")
+    async def loop_id(request):
+        return JSONResponse(get_identity())
+
     client = test_client_factory(app)
 
     with client:
