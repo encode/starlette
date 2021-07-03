@@ -4,7 +4,6 @@ import http
 import inspect
 import io
 import json
-import math
 import queue
 import sys
 import types
@@ -14,7 +13,6 @@ from urllib.parse import unquote, urljoin, urlsplit
 
 import anyio.abc
 import requests
-from anyio.streams.stapled import StapledObjectStream
 
 from starlette.types import Message, Receive, Scope, Send
 from starlette.websockets import WebSocketDisconnect
@@ -23,6 +21,12 @@ if sys.version_info >= (3, 8):  # pragma: no cover
     from typing import TypedDict
 else:  # pragma: no cover
     from typing_extensions import TypedDict
+
+
+if sys.version_info >= (3, 10):  # pragma: no cover
+    from contextlib import aclosing
+else:  # pragma: no cover
+    from contextlib2 import aclosing
 
 
 _PortalFactoryType = typing.Callable[
@@ -514,63 +518,59 @@ class TestClient(requests.Session):
             def reset_portal() -> None:
                 self.portal = None
 
-            self.stream_send = StapledObjectStream(
-                *anyio.create_memory_object_stream(math.inf)
-            )
-            self.stream_receive = StapledObjectStream(
-                *anyio.create_memory_object_stream(math.inf)
-            )
-            self.task = portal.start_task_soon(self.lifespan)
-            portal.call(self.wait_startup)
+            startup_event = portal.call(anyio.Event)
+            fut, task_status = portal.start_task(self._lifespan, startup_event)
 
-            @stack.callback
-            def wait_shutdown() -> None:
-                portal.call(self.wait_shutdown)
+            @stack.push
+            def wait_shutdown(*exc_info: object) -> bool:
+                portal.call(startup_event.set)
+                if exc_info != (None, None, None):
+                    fut.cancel()
+                else:
+                    fut.result()
+                return False
+
+            assert task_status["type"] in (
+                "lifespan.startup.complete",
+                "lifespan.startup.failed",
+            )
 
             self.exit_stack = stack.pop_all()
 
         return self
 
-    def __exit__(self, *args: typing.Any) -> None:
-        self.exit_stack.close()
+    def __exit__(self, *args: typing.Any) -> bool:  # type: ignore[override]
+        return self.exit_stack.__exit__(*args)
 
-    async def lifespan(self) -> None:
-        scope = {"type": "lifespan"}
-        try:
-            await self.app(scope, self.stream_receive.receive, self.stream_send.send)
-        finally:
-            await self.stream_send.send(None)
+    async def _lifespan(
+        self, shutdown_event: anyio.Event, *, task_status: anyio.abc.TaskStatus
+    ) -> None:
+        failures = []
 
-    async def wait_startup(self) -> None:
-        await self.stream_receive.send({"type": "lifespan.startup"})
+        async def send() -> typing.AsyncGenerator[None, typing.Any]:
+            task_status.started((yield))
+            await shutdown_event.wait()
+            while True:
+                failures.append((yield))
 
-        async def receive() -> typing.Any:
-            message = await self.stream_send.receive()
-            if message is None:
-                self.task.result()
-            return message
+        async def receive() -> typing.AsyncGenerator[typing.Any, None]:
+            yield {"type": "lifespan.startup"}
+            await shutdown_event.wait()
+            while True:
+                yield {"type": "lifespan.shutdown"}
 
-        message = await receive()
-        assert message["type"] in (
-            "lifespan.startup.complete",
-            "lifespan.startup.failed",
+        async with aclosing(send()) as agensend:  # type: ignore
+            async with aclosing(receive()) as agenreceive:  # type: ignore
+                await agensend.asend(None)
+                assert (
+                    await self.app(
+                        {"type": "lifespan"}, agenreceive.__anext__, agensend.asend
+                    )
+                    is None
+                )
+
+        assert len(failures) == 1
+        assert failures[0]["type"] in (
+            "lifespan.shutdown.complete",
+            "lifespan.shutdown.failed",
         )
-        if message["type"] == "lifespan.startup.failed":
-            await receive()
-
-    async def wait_shutdown(self) -> None:
-        async def receive() -> typing.Any:
-            message = await self.stream_send.receive()
-            if message is None:
-                self.task.result()
-            return message
-
-        async with self.stream_send:
-            await self.stream_receive.send({"type": "lifespan.shutdown"})
-            message = await receive()
-            assert message["type"] in (
-                "lifespan.shutdown.complete",
-                "lifespan.shutdown.failed",
-            )
-            if message["type"] == "lifespan.shutdown.failed":
-                await receive()

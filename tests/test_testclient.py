@@ -147,6 +147,21 @@ def test_use_testclient_as_contextmanager(test_client_factory, anyio_backend_nam
     assert first_task is not startup_task
 
 
+def test_testclient_cancel_lifespan_on_error(test_client_factory):
+    @asynccontextmanager
+    async def shutdown_hang(app):
+        yield
+        await anyio.sleep_forever()
+
+    app = Starlette(lifespan=shutdown_hang)
+
+    class MyError(Exception):
+        pass
+
+    with pytest.raises(MyError), test_client_factory(app):
+        raise MyError
+
+
 def test_error_on_startup(test_client_factory):
     with pytest.raises(RuntimeError):
         with test_client_factory(startup_error_app):
