@@ -5,6 +5,7 @@ import inspect
 import re
 import sys
 import traceback
+import types
 import typing
 import warnings
 from enum import Enum
@@ -22,11 +23,6 @@ if sys.version_info >= (3, 7):
     from contextlib import asynccontextmanager
 else:
     from contextlib2 import asynccontextmanager
-
-if sys.version_info >= (3, 10):
-    from contextlib import aclosing
-else:
-    from contextlib2 import aclosing
 
 
 class NoMatchFound(Exception):
@@ -483,52 +479,49 @@ class Host(BaseRoute):
         )
 
 
-def _wrap_agen_lifespan_context(
-    lifespan_context: typing.Callable[[typing.Any], typing.AsyncGenerator]
-) -> typing.Callable[[typing.Any], typing.AsyncContextManager]:
-    @functools.wraps(lifespan_context)
-    @asynccontextmanager
-    async def agen_wrapper(
-        app: typing.Any,
-    ) -> typing.AsyncGenerator[None, None]:
-        async with aclosing(lifespan_context(app)) as agen:  # type: ignore
-            async for _ in agen:
-                yield
+_T = typing.TypeVar("_T")
 
-    return agen_wrapper
+
+class _AsyncLiftContextManager(typing.AsyncContextManager[_T]):
+    def __init__(self, cm: typing.ContextManager[_T]):
+        self._cm = cm
+
+    async def __aenter__(self) -> _T:
+        return self._cm.__enter__()
+
+    async def __aexit__(
+        self,
+        exc_type: typing.Optional[typing.Type[BaseException]],
+        exc_value: typing.Optional[BaseException],
+        traceback: typing.Optional[types.TracebackType],
+    ) -> typing.Optional[bool]:
+        return self._cm.__exit__(exc_type, exc_value, traceback)
 
 
 def _wrap_gen_lifespan_context(
     lifespan_context: typing.Callable[[typing.Any], typing.Generator]
 ) -> typing.Callable[[typing.Any], typing.AsyncContextManager]:
-    @functools.wraps(lifespan_context)
-    @asynccontextmanager
-    async def gen_wrapper(
-        app: typing.Any,
-    ) -> typing.AsyncGenerator[None, None]:
-        with contextlib.closing(lifespan_context(app)) as gen:
-            for _ in gen:
-                yield
+    cmgr = contextlib.contextmanager(lifespan_context)
 
-    return gen_wrapper
+    @functools.wraps(cmgr)
+    def wrapper(app: typing.Any) -> _AsyncLiftContextManager:
+        return _AsyncLiftContextManager(cmgr(app))
+
+    return wrapper
 
 
-def _wrap_lifespan_context(
-    lifespan_context: typing.Union[
-        typing.Callable[[typing.Any], typing.AsyncGenerator],
-        typing.Callable[[typing.Any], typing.Generator],
-        typing.Callable[[typing.Any], typing.AsyncContextManager],
-    ]
-) -> typing.Callable[[typing.Any], typing.AsyncContextManager]:
-    if inspect.isasyncgenfunction(lifespan_context):
-        warnings.warn("lifespan must be an AsyncContextManager factory")
-        return _wrap_agen_lifespan_context(lifespan_context)  # type: ignore[arg-type]
+class _DefaultLifespan:
+    def __init__(self, router: "Router"):
+        self._router = router
 
-    if inspect.isgeneratorfunction(lifespan_context):
-        warnings.warn("lifespan must be an AsyncContextManager factory")
-        return _wrap_gen_lifespan_context(lifespan_context)  # type: ignore[arg-type]
+    async def __aenter__(self) -> None:
+        await self._router.startup()
 
-    return lifespan_context  # type: ignore
+    async def __aexit__(self, *exc_info: object) -> None:
+        await self._router.shutdown()
+
+    def __call__(self: _T, app: object) -> _T:
+        return self
 
 
 class Router:
@@ -547,21 +540,27 @@ class Router:
         self.on_startup = [] if on_startup is None else list(on_startup)
         self.on_shutdown = [] if on_shutdown is None else list(on_shutdown)
 
-        @asynccontextmanager
-        async def default_lifespan(app: typing.Any) -> typing.AsyncGenerator:
-            await self.startup()
-            try:
-                yield
-            finally:
-                await self.shutdown()
+        if lifespan is None:
+            self.lifespan_context: typing.Callable[
+                [typing.Any], typing.AsyncContextManager
+            ] = _DefaultLifespan(self)
 
-        self.lifespan_context: typing.Callable[
-            [typing.Any], typing.AsyncContextManager
-        ] = (
-            default_lifespan  # type: ignore
-            if lifespan is None
-            else _wrap_lifespan_context(lifespan)
-        )
+        elif inspect.isasyncgenfunction(lifespan):
+            warnings.warn(
+                "lifespan must be an AsyncContextManager factory", DeprecationWarning
+            )
+            self.lifespan_context = asynccontextmanager(
+                lifespan,  # type: ignore[arg-type]
+            )
+        elif inspect.isgeneratorfunction(lifespan):
+            warnings.warn(
+                "lifespan must be an AsyncContextManager factory", DeprecationWarning
+            )
+            self.lifespan_context = _wrap_gen_lifespan_context(
+                lifespan,  # type: ignore[arg-type]
+            )
+        else:
+            self.lifespan_context = lifespan
 
     async def not_found(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "websocket":
