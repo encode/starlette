@@ -518,12 +518,12 @@ class TestClient(requests.Session):
             def reset_portal() -> None:
                 self.portal = None
 
-            startup_event = portal.call(anyio.Event)
-            fut, task_status = portal.start_task(self._lifespan, startup_event)
+            shutdown_event = portal.call(anyio.Event)
+            fut, task_status = portal.start_task(self._lifespan, shutdown_event)
 
             @stack.push
             def wait_shutdown(*exc_info: object) -> bool:
-                portal.call(startup_event.set)
+                portal.call(shutdown_event.set)
                 if exc_info != (None, None, None):
                     fut.cancel()
                 else:
