@@ -20,9 +20,9 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketClose
 
 if sys.version_info >= (3, 7):
-    from contextlib import asynccontextmanager
+    from contextlib import asynccontextmanager  # pragma: no cover
 else:
-    from contextlib2 import asynccontextmanager
+    from contextlib2 import asynccontextmanager  # pragma: no cover
 
 
 class NoMatchFound(Exception):
@@ -612,6 +612,7 @@ class Router:
         """
         started = False
         app = scope.get("app")
+        await receive()
         try:
             async with self.lifespan_context(app):
                 await send({"type": "lifespan.startup.complete"})
