@@ -401,9 +401,41 @@ class WebSocketTestSession:
         return json.loads(text)
 
 
+_shutdown_event = anyio.lowlevel.RunVar[anyio.Event]("_shutdown_event")
+
+
+class WasShutdown(Exception):
+    pass
+
+
+_T = typing.TypeVar("_T")
+Coro = typing.Coroutine[typing.Any, typing.Any, _T]
+
+
+async def _wait_then_call(
+    async_fn: typing.Callable[[], Coro[None]], thunk: typing.Callable[[], object]
+) -> None:
+    await async_fn()
+    thunk()
+
+
+class _ShutdownWrap:
+    def __init__(self, app: ASGI3App):
+        self.app: ASGI3App = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        shutdown_event = _shutdown_event.get(None)
+        if shutdown_event is None:
+            return await self.app(scope, receive, send)
+
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(_wait_then_call, shutdown_event.wait, tg.cancel_scope.cancel)
+            return await self.app(scope, receive, send)
+        raise WasShutdown()
+
+
 class TestClient(requests.Session):
     __test__ = False  # For pytest to not discover this up.
-    task: "Future[None]"
     portal: typing.Optional[anyio.abc.BlockingPortal] = None
 
     def __init__(
@@ -436,7 +468,7 @@ class TestClient(requests.Session):
         self.mount("ws://", adapter)
         self.mount("wss://", adapter)
         self.headers.update({"user-agent": "testclient"})
-        self.app = asgi_app
+        self.app = _ShutdownWrap(asgi_app)
         self.base_url = base_url
 
     @contextlib.contextmanager
@@ -518,16 +550,12 @@ class TestClient(requests.Session):
             def reset_portal() -> None:
                 self.portal = None
 
-            shutdown_event = portal.call(anyio.Event)
-            fut, task_status = portal.start_task(self._lifespan, shutdown_event)
+            fut, (task_status, shutdown_event) = portal.start_task(self._lifespan)
 
-            @stack.push
-            def wait_shutdown(*exc_info: object) -> bool:
+            @stack.callback
+            def wait_shutdown() -> bool:
                 portal.call(shutdown_event.set)
-                if exc_info != (None, None, None):
-                    fut.cancel()
-                else:
-                    fut.result()
+                fut.result()
                 return False
 
             assert task_status["type"] in (
@@ -542,14 +570,14 @@ class TestClient(requests.Session):
     def __exit__(self, *args: typing.Any) -> bool:  # type: ignore[override]
         return self.exit_stack.__exit__(*args)
 
-    async def _lifespan(
-        self, shutdown_event: anyio.Event, *, task_status: anyio.abc.TaskStatus
-    ) -> None:
+    async def _lifespan(self, *, task_status: anyio.abc.TaskStatus) -> None:
         failures = []
+        shutdown_event = anyio.Event()
+        _shutdown_event.set(shutdown_event)
 
         async def send() -> typing.AsyncGenerator[None, typing.Any]:
-            task_status.started((yield))
-            await shutdown_event.wait()
+            task_status.started(((yield), shutdown_event))
+            shutdown_event.set()
             while True:
                 failures.append((yield))
 
@@ -562,12 +590,15 @@ class TestClient(requests.Session):
         async with aclosing(send()) as agensend:  # type: ignore
             async with aclosing(receive()) as agenreceive:  # type: ignore
                 await agensend.asend(None)
-                assert (
-                    await self.app(
-                        {"type": "lifespan"}, agenreceive.__anext__, agensend.asend
+                try:
+                    assert (
+                        await self.app.app(
+                            {"type": "lifespan"}, agenreceive.__anext__, agensend.asend
+                        )
+                        is None
                     )
-                    is None
-                )
+                finally:
+                    shutdown_event.set()
 
         assert len(failures) == 1
         assert failures[0]["type"] in (

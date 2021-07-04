@@ -10,6 +10,7 @@ import trio.lowlevel
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.responses import JSONResponse
+from starlette.testclient import WasShutdown
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 if sys.version_info >= (3, 7):  # pragma: no cover
@@ -147,6 +148,7 @@ def test_use_testclient_as_contextmanager(test_client_factory, anyio_backend_nam
     assert first_task is not startup_task
 
 
+@pytest.mark.skip
 def test_testclient_cancel_lifespan_on_error(test_client_factory):
     @asynccontextmanager
     async def shutdown_hang(app):
@@ -160,6 +162,46 @@ def test_testclient_cancel_lifespan_on_error(test_client_factory):
 
     with pytest.raises(MyError), test_client_factory(app):
         raise MyError
+
+
+def test_testclient_cancel_propagate_lifespan_failure(test_client_factory):
+    @asynccontextmanager
+    async def lifespan(app):
+        async with anyio.create_task_group() as app.tg:
+            yield
+
+    app = Starlette(lifespan=lifespan)
+
+    @app.route("/throw")
+    async def throw(self):
+        async def throw():
+            raise MyError
+
+        self.app.tg.start_soon(throw)
+        return JSONResponse("good")
+
+    @app.route("/ping")
+    async def ping(self):
+        return JSONResponse("pong")
+
+    class MyError(Exception):
+        pass
+
+    client = test_client_factory(app)
+
+    for _ in range(2):
+        done = False
+        client.get("/ping").json() == "pong"  # app works outside of lifespan
+        with pytest.raises(MyError):  # the error from lifespan comes out this block
+            with client:
+                assert client.get("/ping").json() == "pong"
+                assert client.get("/throw").json() == "good"
+                with pytest.raises(WasShutdown):
+                    client.get("/throw")
+                done = True
+                client.get("/throw")
+                done = False
+        assert done
 
 
 def test_error_on_startup(test_client_factory):
