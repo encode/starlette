@@ -95,17 +95,13 @@ $ scripts/docs
 Once you've submitted your pull request, the test suite will automatically run, and the results will show up in GitHub.
 If the test suite fails, you'll want to click through to the "Details" link, and try to identify why the test suite failed.
 
-<p align="center" style="margin: 0 0 10px">
-  <img src="https://raw.githubusercontent.com/encode/httpx/master/docs/img/gh-actions-fail.png" alt='Failing PR commit status'>
-</p>
+![Failing PR commit status](img/gh-actions-fail.png)
 
 Here are some common ways the test suite can fail:
 
 ### Check Job Failed
 
-<p align="center" style="margin: 0 0 10px">
-  <img src="https://raw.githubusercontent.com/encode/httpx/master/docs/img/gh-actions-fail-check.png" alt='Failing GitHub action lint job'>
-</p>
+![Failing GitHub action lint job](img/gh-actions-fail-check.png)
 
 This job failing means there is either a code formatting issue or type-annotation issue.
 You can look at the job output to figure out why it's failed or within a shell run:
@@ -124,9 +120,7 @@ a variety of reasons like invalid markdown or missing configuration within `mkdo
 
 ### Python 3.X Job Failed
 
-<p align="center" style="margin: 0 0 10px">
-  <img src="https://raw.githubusercontent.com/encode/httpx/master/docs/img/gh-actions-fail-test.png" alt='Failing GitHub action test job'>
-</p>
+![Failing GitHub action test job](img/gh-actions-fail-test.png)
 
 This job failing means the unit tests failed or not all code paths are covered by unit tests.
 
