@@ -10,7 +10,7 @@ import trio.lowlevel
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.responses import JSONResponse
-from starlette.testclient import WasShutdown
+from starlette.testclient import CancelledError, ClosedError
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 if sys.version_info >= (3, 7):  # pragma: no cover
@@ -148,26 +148,21 @@ def test_use_testclient_as_contextmanager(test_client_factory, anyio_backend_nam
     assert first_task is not startup_task
 
 
-@pytest.mark.skip
-def test_testclient_cancel_lifespan_on_error(test_client_factory):
-    @asynccontextmanager
-    async def shutdown_hang(app):
-        yield
-        await anyio.sleep_forever()
-
-    app = Starlette(lifespan=shutdown_hang)
-
-    class MyError(Exception):
-        pass
-
-    with pytest.raises(MyError), test_client_factory(app):
-        raise MyError
+class ExceptionGroup(anyio.ExceptionGroup):
+    def __init__(self, exceptions):  # pragma: no cover
+        super().__init__()
+        self.exceptions = exceptions
 
 
 def test_testclient_cancel_propagate_lifespan_failure(test_client_factory):
+    lifespan_taskgroup = None
+    event = None
+
     @asynccontextmanager
     async def lifespan(app):
-        async with anyio.create_task_group() as app.tg:
+        nonlocal lifespan_taskgroup, event
+        event = anyio.Event()
+        async with anyio.create_task_group() as lifespan_taskgroup:
             yield
 
     app = Starlette(lifespan=lifespan)
@@ -175,33 +170,48 @@ def test_testclient_cancel_propagate_lifespan_failure(test_client_factory):
     @app.route("/throw")
     async def throw(self):
         async def throw():
+            await event.wait()
             raise MyError
 
-        self.app.tg.start_soon(throw)
+        lifespan_taskgroup.start_soon(throw)
         return JSONResponse("good")
 
     @app.route("/ping")
     async def ping(self):
         return JSONResponse("pong")
 
+    @app.route("/sleep_forever")
+    async def sleep_forever(self):
+        event.set()
+        await anyio.sleep_forever()
+
     class MyError(Exception):
         pass
 
     client = test_client_factory(app)
 
-    for _ in range(2):
-        done = False
-        client.get("/ping").json() == "pong"  # app works outside of lifespan
-        with pytest.raises(MyError):  # the error from lifespan comes out this block
-            with client:
-                assert client.get("/ping").json() == "pong"
-                assert client.get("/throw").json() == "good"
-                with pytest.raises(WasShutdown):
-                    client.get("/throw")
-                done = True
-                client.get("/throw")
-                done = False
-        assert done
+    client.get("/ping").json() == "pong"  # app works outside of lifespan
+
+    for _ in range(2):  # context manager can be re-used
+        try:
+            client.__enter__()
+            assert client.get("/ping").json() == "pong"
+            assert client.get("/throw").json() == "good"
+            with pytest.raises(CancelledError):
+                client.get("/sleep_forever")
+            with pytest.raises(ClosedError):
+                client.get("/sleep_forever")
+        except BaseException as e:  # pragma: no cover
+            try:
+                client.__exit__(*sys.exc_info())
+            except BaseException as f:
+                raise ExceptionGroup((e, f)) from None
+            raise
+        with pytest.raises(MyError):
+            client.__exit__(None, None, None)
+
+    # app is no-longer shutdown outside of lifespan
+    client.get("/ping").json() == "pong"
 
 
 def test_error_on_startup(test_client_factory):

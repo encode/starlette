@@ -408,6 +408,14 @@ class WasShutdown(Exception):
     pass
 
 
+class CancelledError(WasShutdown):
+    pass
+
+
+class ClosedError(WasShutdown):
+    pass
+
+
 _T = typing.TypeVar("_T")
 Coro = typing.Coroutine[typing.Any, typing.Any, _T]
 
@@ -428,10 +436,15 @@ class _ShutdownWrap:
         if shutdown_event is None:
             return await self.app(scope, receive, send)
 
+        if shutdown_event.is_set():
+            raise ClosedError("TestClient is closed to new requests")
+
         async with anyio.create_task_group() as tg:
             tg.start_soon(_wait_then_call, shutdown_event.wait, tg.cancel_scope.cancel)
-            return await self.app(scope, receive, send)
-        raise WasShutdown()
+            await self.app(scope, receive, send)
+            tg.cancel_scope.cancel()
+            return
+        raise CancelledError("TestClient was cancelled while handling a request")
 
 
 class TestClient(requests.Session):
@@ -457,8 +470,9 @@ class TestClient(requests.Session):
         else:
             app = typing.cast(ASGI2App, app)
             asgi_app = _WrapASGI2(app)  #  type: ignore
+        self.app = app = _ShutdownWrap(asgi_app)
         adapter = _ASGIAdapter(
-            asgi_app,
+            app,
             portal_factory=self._portal_factory,
             raise_server_exceptions=raise_server_exceptions,
             root_path=root_path,
@@ -468,7 +482,6 @@ class TestClient(requests.Session):
         self.mount("ws://", adapter)
         self.mount("wss://", adapter)
         self.headers.update({"user-agent": "testclient"})
-        self.app = _ShutdownWrap(asgi_app)
         self.base_url = base_url
 
     @contextlib.contextmanager
@@ -577,9 +590,9 @@ class TestClient(requests.Session):
 
         async def send() -> typing.AsyncGenerator[None, typing.Any]:
             task_status.started(((yield), shutdown_event))
-            shutdown_event.set()
             while True:
                 failures.append((yield))
+                shutdown_event.set()
 
         async def receive() -> typing.AsyncGenerator[typing.Any, None]:
             yield {"type": "lifespan.startup"}
