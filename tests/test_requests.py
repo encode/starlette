@@ -3,9 +3,11 @@ import pytest
 
 from starlette.requests import ClientDisconnect, Request, State
 from starlette.responses import JSONResponse, Response
+from urllib.request import pathname2url
 
 
-def test_request_url(test_client_factory):
+@pytest.mark.parametrize("test_input", ["zażółć gęślą jaźń"])
+def test_request_url(test_client_factory, test_input):
     async def app(scope, receive, send):
         request = Request(scope, receive)
         data = {"method": request.method, "url": str(request.url)}
@@ -13,8 +15,9 @@ def test_request_url(test_client_factory):
         await response(scope, receive, send)
 
     client = test_client_factory(app)
-    response = client.get("/123?a=abc")
-    assert response.json() == {"method": "GET", "url": "http://testserver/123?a=abc"}
+    response = client.get(f"/123?a={test_input}")
+    url_encoded = pathname2url(test_input)
+    assert response.json() == {"method": "GET", "url": f"http://testserver/123?a={url_encoded}"}
 
     response = client.get("https://example.org:123/")
     assert response.json() == {"method": "GET", "url": "https://example.org:123/"}
@@ -269,8 +272,8 @@ def test_request_state(test_client_factory):
     response = client.get("/123?a=abc")
     assert response.json() == {"state.example": 123}
 
-
-def test_request_cookies(test_client_factory):
+@pytest.mark.parametrize("test_input", ["zażółć gęślą jaźń", "Hello, Cookie!"])
+def test_request_cookies(test_client_factory, test_input):
     async def app(scope, receive, send):
         request = Request(scope, receive)
         mycookie = request.cookies.get("mycookie")
@@ -278,7 +281,7 @@ def test_request_cookies(test_client_factory):
             response = Response(mycookie, media_type="text/plain")
         else:
             response = Response("Hello, world!", media_type="text/plain")
-            response.set_cookie("mycookie", "Hello, cookies!")
+            response.set_cookie("mycookie", test_input)
 
         await response(scope, receive, send)
 
@@ -286,7 +289,7 @@ def test_request_cookies(test_client_factory):
     response = client.get("/")
     assert response.text == "Hello, world!"
     response = client.get("/")
-    assert response.text == "Hello, cookies!"
+    assert response.text == test_input
 
 
 def test_cookie_lenient_parsing(test_client_factory):
@@ -330,8 +333,8 @@ def test_cookie_lenient_parsing(test_client_factory):
         ("chips=ahoy; vienna=finger", {"chips": "ahoy", "vienna": "finger"}),
         # all semicolons are delimiters, even within quotes
         (
-            'keebler="E=mc2; L=\\"Loves\\"; fudge=\\012;"',
-            {"keebler": '"E=mc2', "L": '\\"Loves\\"', "fudge": "\\012", "": '"'},
+                'keebler="E=mc2; L=\\"Loves\\"; fudge=\\012;"',
+                {"keebler": '"E=mc2', "L": '\\"Loves\\"', "fudge": "\\012", "": '"'},
         ),
         # Illegal cookies that have an '=' char in an unquoted value.
         ("keebler=E=mc2", {"keebler": "E=mc2"}),
@@ -363,8 +366,8 @@ def test_cookies_edge_cases(set_cookie, expected, test_client_factory):
         # Chunks without an equals sign appear as unnamed values per
         # https://bugzilla.mozilla.org/show_bug.cgi?id=169091
         (
-            "abc=def; unnamed; django_language=en",
-            {"": "unnamed", "abc": "def", "django_language": "en"},
+                "abc=def; unnamed; django_language=en",
+                {"": "unnamed", "abc": "def", "django_language": "en"},
         ),
         # Even a double quote may be an unamed value.
         ('a=b; "; c=d', {"a": "b", "": '"', "c": "d"}),

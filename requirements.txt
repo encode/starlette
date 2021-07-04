@@ -20,6 +20,8 @@ types-PyYAML
 types-dataclasses
 pytest
 trio
+anyio
+graphene
 
 # Documentation
 mkdocs

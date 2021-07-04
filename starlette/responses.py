@@ -63,7 +63,7 @@ class Response:
             populate_content_type = True
         else:
             raw_headers = [
-                (k.lower().encode("latin-1"), v.encode("latin-1"))
+                (k.lower().encode("utf-8"), v.encode("utf-8"))
                 for k, v in headers.items()
             ]
             keys = [h[0] for h in raw_headers]
@@ -73,13 +73,13 @@ class Response:
         body = getattr(self, "body", b"")
         if body and populate_content_length:
             content_length = str(len(body))
-            raw_headers.append((b"content-length", content_length.encode("latin-1")))
+            raw_headers.append((b"content-length", content_length.encode("utf-8")))
 
         content_type = self.media_type
         if content_type is not None and populate_content_type:
             if content_type.startswith("text/"):
                 content_type += "; charset=" + self.charset
-            raw_headers.append((b"content-type", content_type.encode("latin-1")))
+            raw_headers.append((b"content-type", content_type.encode("utf-8")))
 
         self.raw_headers = raw_headers
 
@@ -123,7 +123,7 @@ class Response:
             ], "samesite must be either 'strict', 'lax' or 'none'"
             cookie[key]["samesite"] = samesite
         cookie_val = cookie.output(header="").strip()
-        self.raw_headers.append((b"set-cookie", cookie_val.encode("latin-1")))
+        self.raw_headers.append((b"set-cookie", cookie_val.encode("utf-8")))
 
     def delete_cookie(self, key: str, path: str = "/", domain: str = None) -> None:
         self.set_cookie(key, expires=0, max_age=0, path=path, domain=domain)

@@ -26,7 +26,7 @@ class URL:
             host_header = None
             for key, value in scope["headers"]:
                 if key == b"host":
-                    host_header = value.decode("latin-1")
+                    host_header = value.decode("utf-8")
                     break
 
             if host_header is not None:
@@ -393,7 +393,7 @@ class QueryParams(ImmutableMultiDict):
             super().__init__(parse_qsl(value, keep_blank_values=True), **kwargs)
         elif isinstance(value, bytes):
             super().__init__(
-                parse_qsl(value.decode("latin-1"), keep_blank_values=True), **kwargs
+                parse_qsl(value.decode("utf-8"), keep_blank_values=True), **kwargs
             )
         else:
             super().__init__(*args, **kwargs)  # type: ignore
@@ -492,7 +492,7 @@ class Headers(typing.Mapping[str, str]):
             assert raw is None, 'Cannot set both "headers" and "raw".'
             assert scope is None, 'Cannot set both "headers" and "scope".'
             self._list = [
-                (key.lower().encode("latin-1"), value.encode("latin-1"))
+                (key.lower().encode("utf-8"), value.encode("utf-8"))
                 for key, value in headers.items()
             ]
         elif raw is not None:
@@ -506,14 +506,14 @@ class Headers(typing.Mapping[str, str]):
         return list(self._list)
 
     def keys(self) -> typing.List[str]:  # type: ignore
-        return [key.decode("latin-1") for key, value in self._list]
+        return [key.decode("utf-8") for key, value in self._list]
 
     def values(self) -> typing.List[str]:  # type: ignore
-        return [value.decode("latin-1") for key, value in self._list]
+        return [value.decode("utf-8") for key, value in self._list]
 
     def items(self) -> typing.List[typing.Tuple[str, str]]:  # type: ignore
         return [
-            (key.decode("latin-1"), value.decode("latin-1"))
+            (key.decode("utf-8"), value.decode("utf-8"))
             for key, value in self._list
         ]
 
@@ -524,9 +524,9 @@ class Headers(typing.Mapping[str, str]):
             return default
 
     def getlist(self, key: str) -> typing.List[str]:
-        get_header_key = key.lower().encode("latin-1")
+        get_header_key = key.lower().encode("utf-8")
         return [
-            item_value.decode("latin-1")
+            item_value.decode("utf-8")
             for item_key, item_value in self._list
             if item_key == get_header_key
         ]
@@ -535,14 +535,14 @@ class Headers(typing.Mapping[str, str]):
         return MutableHeaders(raw=self._list[:])
 
     def __getitem__(self, key: str) -> str:
-        get_header_key = key.lower().encode("latin-1")
+        get_header_key = key.lower().encode("utf-8")
         for header_key, header_value in self._list:
             if header_key == get_header_key:
-                return header_value.decode("latin-1")
+                return header_value.decode("utf-8")
         raise KeyError(key)
 
     def __contains__(self, key: typing.Any) -> bool:
-        get_header_key = key.lower().encode("latin-1")
+        get_header_key = key.lower().encode("utf-8")
         for header_key, header_value in self._list:
             if header_key == get_header_key:
                 return True
@@ -573,8 +573,8 @@ class MutableHeaders(Headers):
         Set the header `key` to `value`, removing any duplicate entries.
         Retains insertion order.
         """
-        set_key = key.lower().encode("latin-1")
-        set_value = value.encode("latin-1")
+        set_key = key.lower().encode("utf-8")
+        set_value = value.encode("utf-8")
 
         found_indexes = []
         for idx, (item_key, item_value) in enumerate(self._list):
@@ -594,7 +594,7 @@ class MutableHeaders(Headers):
         """
         Remove the header `key`.
         """
-        del_key = key.lower().encode("latin-1")
+        del_key = key.lower().encode("utf-8")
 
         pop_indexes = []
         for idx, (item_key, item_value) in enumerate(self._list):
@@ -613,12 +613,12 @@ class MutableHeaders(Headers):
         If the header `key` does not exist, then set it to `value`.
         Returns the header value.
         """
-        set_key = key.lower().encode("latin-1")
-        set_value = value.encode("latin-1")
+        set_key = key.lower().encode("utf-8")
+        set_value = value.encode("utf-8")
 
         for idx, (item_key, item_value) in enumerate(self._list):
             if item_key == set_key:
-                return item_value.decode("latin-1")
+                return item_value.decode("utf-8")
         self._list.append((set_key, set_value))
         return value
 
@@ -630,8 +630,8 @@ class MutableHeaders(Headers):
         """
         Append a header, preserving any duplicate entries.
         """
-        append_key = key.lower().encode("latin-1")
-        append_value = value.encode("latin-1")
+        append_key = key.lower().encode("utf-8")
+        append_value = value.encode("utf-8")
         self._list.append((append_key, append_value))
 
     def add_vary_header(self, vary: str) -> None:

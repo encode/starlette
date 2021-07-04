@@ -63,7 +63,8 @@ def test_staticfiles_with_package(test_client_factory):
     client = test_client_factory(app)
     response = client.get("/example.txt")
     assert response.status_code == 200
-    assert response.text == "123\n"
+    assert "123" in response.text
+    assert response.text.endswith("\n")
 
 
 def test_staticfiles_post(tmpdir, test_client_factory):
