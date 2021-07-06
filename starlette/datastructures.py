@@ -611,6 +611,19 @@ class MutableHeaders(Headers):
         for idx in reversed(pop_indexes):
             del self._list[idx]
 
+    def __ior__(self, other: typing.Mapping) -> "MutableHeaders":
+        if not isinstance(other, typing.Mapping):
+            raise NotImplementedError
+        self.update(other)
+        return self
+
+    def __or__(self, other: typing.Mapping) -> "MutableHeaders":
+        if not isinstance(other, typing.Mapping):
+            raise NotImplementedError
+        new = self.mutablecopy()
+        new.update(other)
+        return new
+
     @property
     def raw(self) -> typing.List[typing.Tuple[bytes, bytes]]:
         return self._list
@@ -629,7 +642,7 @@ class MutableHeaders(Headers):
         self._list.append((set_key, set_value))
         return value
 
-    def update(self, other: dict) -> None:
+    def update(self, other: typing.Mapping) -> None:
         for key, val in other.items():
             self[key] = val
 
