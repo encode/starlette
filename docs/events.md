@@ -37,17 +37,25 @@ registered startup handlers have completed.
 The shutdown handlers will run once all connections have been closed, and
 any in-process background tasks have completed.
 
-A single lifespan asyncronous generator handler can be used instead of
+A single lifespan asynccontextmanager handler can be used instead of
 separate startup and shutdown handlers:
 
 ```python
+import contextlib
+import anyio
 from starlette.applications import Starlette
 
 
+@contextlib.asynccontextmanager
 async def lifespan(app):
-    # Execute startup tasks.
-    yield
-    # Execute shutdown tasks.
+    # acquire async resources
+    async with anyio.create_task_group() as app.tg:
+        try:
+            yield
+        finally:
+            with anyio.CancelScope(shield=True):
+                # release async resources
+
 
 routes = [
     ...
