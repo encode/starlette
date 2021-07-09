@@ -1,10 +1,13 @@
 import asyncio
+import contextlib
 import functools
 import inspect
 import re
 import sys
 import traceback
+import types
 import typing
+import warnings
 from enum import Enum
 
 from starlette.concurrency import run_in_threadpool
@@ -15,6 +18,11 @@ from starlette.requests import Request
 from starlette.responses import PlainTextResponse, RedirectResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketClose
+
+if sys.version_info >= (3, 7):
+    from contextlib import asynccontextmanager  # pragma: no cover
+else:
+    from contextlib2 import asynccontextmanager  # pragma: no cover
 
 
 class NoMatchFound(Exception):
@@ -33,11 +41,10 @@ class Match(Enum):
 def iscoroutinefunction_or_partial(obj: typing.Any) -> bool:
     """
     Correctly determines if an object is a coroutine function,
-    with a fix for partials on Python < 3.8.
+    including those wrapped in functools.partial objects.
     """
-    if sys.version_info < (3, 8):  # pragma: no cover
-        while isinstance(obj, functools.partial):
-            obj = obj.func
+    while isinstance(obj, functools.partial):
+        obj = obj.func
     return inspect.iscoroutinefunction(obj)
 
 
@@ -109,6 +116,7 @@ def compile_path(
     """
     path_regex = "^"
     path_format = ""
+    duplicated_params = set()
 
     idx = 0
     param_convertors = {}
@@ -126,9 +134,17 @@ def compile_path(
         path_format += path[idx : match.start()]
         path_format += "{%s}" % param_name
 
+        if param_name in param_convertors:
+            duplicated_params.add(param_name)
+
         param_convertors[param_name] = convertor
 
         idx = match.end()
+
+    if duplicated_params:
+        names = ", ".join(sorted(duplicated_params))
+        ending = "s" if len(duplicated_params) > 1 else ""
+        raise ValueError(f"Duplicated param name{ending} {names} at path {path}")
 
     path_regex += re.escape(path[idx:]) + "$"
     path_format += path[idx:]
@@ -320,7 +336,7 @@ class Mount(BaseRoute):
         ), "Either 'app=...', or 'routes=' must be specified"
         self.path = path.rstrip("/")
         if app is not None:
-            self.app = app  # type: ASGIApp
+            self.app: ASGIApp = app
         else:
             self.app = Router(routes=routes)
         self.name = name
@@ -463,6 +479,51 @@ class Host(BaseRoute):
         )
 
 
+_T = typing.TypeVar("_T")
+
+
+class _AsyncLiftContextManager(typing.AsyncContextManager[_T]):
+    def __init__(self, cm: typing.ContextManager[_T]):
+        self._cm = cm
+
+    async def __aenter__(self) -> _T:
+        return self._cm.__enter__()
+
+    async def __aexit__(
+        self,
+        exc_type: typing.Optional[typing.Type[BaseException]],
+        exc_value: typing.Optional[BaseException],
+        traceback: typing.Optional[types.TracebackType],
+    ) -> typing.Optional[bool]:
+        return self._cm.__exit__(exc_type, exc_value, traceback)
+
+
+def _wrap_gen_lifespan_context(
+    lifespan_context: typing.Callable[[typing.Any], typing.Generator]
+) -> typing.Callable[[typing.Any], typing.AsyncContextManager]:
+    cmgr = contextlib.contextmanager(lifespan_context)
+
+    @functools.wraps(cmgr)
+    def wrapper(app: typing.Any) -> _AsyncLiftContextManager:
+        return _AsyncLiftContextManager(cmgr(app))
+
+    return wrapper
+
+
+class _DefaultLifespan:
+    def __init__(self, router: "Router"):
+        self._router = router
+
+    async def __aenter__(self) -> None:
+        await self._router.startup()
+
+    async def __aexit__(self, *exc_info: object) -> None:
+        await self._router.shutdown()
+
+    def __call__(self: _T, app: object) -> _T:
+        return self
+
+
 class Router:
     def __init__(
         self,
@@ -471,7 +532,7 @@ class Router:
         default: ASGIApp = None,
         on_startup: typing.Sequence[typing.Callable] = None,
         on_shutdown: typing.Sequence[typing.Callable] = None,
-        lifespan: typing.Callable[[typing.Any], typing.AsyncGenerator] = None,
+        lifespan: typing.Callable[[typing.Any], typing.AsyncContextManager] = None,
     ) -> None:
         self.routes = [] if routes is None else list(routes)
         self.redirect_slashes = redirect_slashes
@@ -479,12 +540,31 @@ class Router:
         self.on_startup = [] if on_startup is None else list(on_startup)
         self.on_shutdown = [] if on_shutdown is None else list(on_shutdown)
 
-        async def default_lifespan(app: typing.Any) -> typing.AsyncGenerator:
-            await self.startup()
-            yield
-            await self.shutdown()
+        if lifespan is None:
+            self.lifespan_context: typing.Callable[
+                [typing.Any], typing.AsyncContextManager
+            ] = _DefaultLifespan(self)
 
-        self.lifespan_context = default_lifespan if lifespan is None else lifespan
+        elif inspect.isasyncgenfunction(lifespan):
+            warnings.warn(
+                "async generator function lifespans are deprecated, "
+                "use an @contextlib.asynccontextmanager function instead",
+                DeprecationWarning,
+            )
+            self.lifespan_context = asynccontextmanager(
+                lifespan,  # type: ignore[arg-type]
+            )
+        elif inspect.isgeneratorfunction(lifespan):
+            warnings.warn(
+                "generator function lifespans are deprecated, "
+                "use an @contextlib.asynccontextmanager function instead",
+                DeprecationWarning,
+            )
+            self.lifespan_context = _wrap_gen_lifespan_context(
+                lifespan,  # type: ignore[arg-type]
+            )
+        else:
+            self.lifespan_context = lifespan
 
     async def not_found(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "websocket":
@@ -534,25 +614,19 @@ class Router:
         Handle ASGI lifespan messages, which allows us to manage application
         startup and shutdown events.
         """
-        first = True
+        started = False
         app = scope.get("app")
         await receive()
         try:
-            if inspect.isasyncgenfunction(self.lifespan_context):
-                async for item in self.lifespan_context(app):
-                    assert first, "Lifespan context yielded multiple times."
-                    first = False
-                    await send({"type": "lifespan.startup.complete"})
-                    await receive()
-            else:
-                for item in self.lifespan_context(app):  # type: ignore
-                    assert first, "Lifespan context yielded multiple times."
-                    first = False
-                    await send({"type": "lifespan.startup.complete"})
-                    await receive()
+            async with self.lifespan_context(app):
+                await send({"type": "lifespan.startup.complete"})
+                started = True
+                await receive()
         except BaseException:
-            if first:
-                exc_text = traceback.format_exc()
+            exc_text = traceback.format_exc()
+            if started:
+                await send({"type": "lifespan.shutdown.failed", "message": exc_text})
+            else:
                 await send({"type": "lifespan.startup.failed", "message": exc_text})
             raise
         else:

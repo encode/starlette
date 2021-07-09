@@ -4,7 +4,7 @@ import stat
 import typing
 from email.utils import parsedate
 
-from aiofiles.os import stat as aio_stat
+import anyio
 
 from starlette.datastructures import URL, Headers
 from starlette.responses import (
@@ -134,8 +134,11 @@ class StaticFiles:
             # Check for '404.html' if we're in HTML mode.
             full_path, stat_result = await self.lookup_path("404.html")
             if stat_result is not None and stat.S_ISREG(stat_result.st_mode):
-                return self.file_response(
-                    full_path, stat_result, scope, status_code=404
+                return FileResponse(
+                    full_path,
+                    stat_result=stat_result,
+                    method=scope["method"],
+                    status_code=404,
                 )
 
         return PlainTextResponse("Not Found", status_code=404)
@@ -151,11 +154,11 @@ class StaticFiles:
                 # directory.
                 continue
             try:
-                stat_result = await aio_stat(full_path)
-                return (full_path, stat_result)
+                stat_result = await anyio.to_thread.run_sync(os.stat, full_path)
+                return full_path, stat_result
             except FileNotFoundError:
                 pass
-        return ("", None)
+        return "", None
 
     def file_response(
         self,
@@ -184,7 +187,7 @@ class StaticFiles:
             return
 
         try:
-            stat_result = await aio_stat(self.directory)
+            stat_result = await anyio.to_thread.run_sync(os.stat, self.directory)
         except FileNotFoundError:
             raise RuntimeError(
                 f"StaticFiles directory '{self.directory}' does not exist."
