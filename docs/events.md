@@ -48,13 +48,8 @@ from starlette.applications import Starlette
 
 @contextlib.asynccontextmanager
 async def lifespan(app):
-    # acquire async resources
-    async with anyio.create_task_group() as app.tg:
-        try:
-            yield
-        finally:
-            with anyio.CancelScope(shield=True):
-                # release async resources
+    async with some_async_resource():
+        yield
 
 
 routes = [
@@ -63,6 +58,9 @@ routes = [
 
 app = Starlette(routes=routes, lifespan=lifespan)
 ```
+
+Consider using [`anyio.create_task_group()`](https://anyio.readthedocs.io/en/stable/tasks.html)
+for managing asynchronious tasks.
 
 ## Running event handlers in tests
 
