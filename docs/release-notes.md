@@ -20,6 +20,7 @@ July 4, 2021
    [#1211](https://github.com/encode/starlette/pull/1211)
  * passing an Async Generator Function or a Generator Function to `starlette.router.Router(lifespan_context=)` is deprecated. You should wrap your lifespan in `@contextlib.asynccontextmanager`.
    [#1277](https://github.com/encode/starlette/pull/1277)
+   [#1110](https://github.com/encode/starlette/pull/1110)
 
 ## 0.15.0
 
