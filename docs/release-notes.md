@@ -15,6 +15,7 @@ July 16, 2021
 
 ### Deprecated/removed
  * The method `starlette.templates.Jinja2Templates.get_env` was removed
+   [#1218](https://github.com/encode/starlette/pull/1218)
  * The ClassVar `starlette.testclient.TestClient.async_backend` was removed,
    the backend is now configured using constructor kwargs
    [#1211](https://github.com/encode/starlette/pull/1211)
