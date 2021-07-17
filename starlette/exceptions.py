@@ -3,10 +3,16 @@ import http
 import typing
 
 from starlette.concurrency import run_in_threadpool
+from starlette.datastructures import Headers
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+
+class CORSException(Exception):
+    """"""
+    def __init__(self, headers: Headers):
+        self.headers = headers
 
 class HTTPException(Exception):
     def __init__(self, status_code: int, detail: str = None) -> None:

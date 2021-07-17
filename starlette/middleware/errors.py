@@ -8,6 +8,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, PlainTextResponse, Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
+from starlette.exceptions import CORSException
 
 STYLES = """
 p {
@@ -155,24 +156,41 @@ class ServerErrorMiddleware:
                 response_started = True
             await send(message)
 
+        async def _generate_response(scope, exc):
+            request = Request(scope)
+            if self.debug:
+                # In debug mode, return traceback responses.
+                return self.debug_response(request, exc)
+            elif self.handler is None:
+                # Use our default 500 error handler.
+                return self.error_response(request, exc)
+            else:
+                # Use an installed 500 error handler.
+                if asyncio.iscoroutinefunction(self.handler):
+                    return await self.handler(request, exc)
+                else:
+                    return await run_in_threadpool(self.handler, request, exc)
+
         try:
             await self.app(scope, receive, _send)
+        except CORSException as exc:
+            if not response_started:
+                # Unwrap the original exception and use it to generate the response
+                response = await _generate_response(scope, exc.__cause__)
+
+                # Apply the CORS headers to the response
+                response.headers.update(exc.headers)
+
+                await response(scope, receive, send)
+
+            # We always continue to raise the exception.
+            # This allows servers to log the error, or allows test clients
+            # to optionally raise the error within the test case.
+            raise exc
+
         except Exception as exc:
             if not response_started:
-                request = Request(scope)
-                if self.debug:
-                    # In debug mode, return traceback responses.
-                    response = self.debug_response(request, exc)
-                elif self.handler is None:
-                    # Use our default 500 error handler.
-                    response = self.error_response(request, exc)
-                else:
-                    # Use an installed 500 error handler.
-                    if asyncio.iscoroutinefunction(self.handler):
-                        response = await self.handler(request, exc)
-                    else:
-                        response = await run_in_threadpool(self.handler, request, exc)
-
+                response = await _generate_response(scope, exc)
                 await response(scope, receive, send)
 
             # We always continue to raise the exception.

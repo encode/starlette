@@ -3,6 +3,7 @@ import re
 import typing
 
 from starlette.datastructures import Headers, MutableHeaders
+from starlette.exceptions import CORSException
 from starlette.responses import PlainTextResponse, Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
@@ -143,8 +144,16 @@ class CORSMiddleware:
     async def simple_response(
         self, scope: Scope, receive: Receive, send: Send, request_headers: Headers
     ) -> None:
-        send = functools.partial(self.send, send=send, request_headers=request_headers)
-        await self.app(scope, receive, send)
+        try:
+            await self.app(
+                scope,
+                receive,
+                functools.partial(self.send, send=send, request_headers=request_headers),
+            )
+        except Exception as exc:
+            headers = MutableHeaders()
+            self.populate_response_headers(headers=headers, request_headers=request_headers)
+            raise CORSException(headers=headers) from exc
 
     async def send(
         self, message: Message, send: Send, request_headers: Headers
@@ -155,6 +164,12 @@ class CORSMiddleware:
 
         message.setdefault("headers", [])
         headers = MutableHeaders(scope=message)
+
+        self.populate_response_headers(headers, request_headers)
+
+        await send(message)
+
+    def populate_response_headers(self, headers: MutableHeaders, request_headers: Headers):
         headers.update(self.simple_headers)
         origin = request_headers["Origin"]
         has_cookie = "cookie" in request_headers
@@ -169,7 +184,6 @@ class CORSMiddleware:
         elif not self.allow_all_origins and self.is_allowed_origin(origin=origin):
             self.allow_explicit_origin(headers, origin)
 
-        await send(message)
 
     @staticmethod
     def allow_explicit_origin(headers: MutableHeaders, origin: str) -> None:
