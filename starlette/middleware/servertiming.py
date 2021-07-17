@@ -70,6 +70,7 @@ class ServerTiming(BaseHTTPMiddleware):
 
         if (header is not None) and self.app.debug:
             response.headers['Server-Timing'] = header
+            response.headers['Timing-Allow-Origin'] = '*'
 
         return response
 

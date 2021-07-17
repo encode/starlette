@@ -41,6 +41,8 @@ def test_server_timing_enabled_response(test_client_factory):
     response = client.get("/")
     assert response.status_code == 200
     assert "Server-Timing" in response.headers
+    assert 'Timing-Allow-Origin' in response.headers
+
     assert isinstance(response.headers['Server-Timing'], str)
     assert re.match('app;desc="main app";dur=(.*)?', response.headers["Server-Timing"])
 
