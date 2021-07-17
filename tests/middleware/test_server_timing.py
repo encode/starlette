@@ -18,7 +18,7 @@ def test_server_timing_disabled_response(test_client_factory):
 
     @app.route("/")
     def homepage(request):
-        time.sleep(0.3)
+        time.sleep(0.001)
         return PlainTextResponse("OK", status_code=200)
 
     client = test_client_factory(app)
@@ -34,7 +34,7 @@ def test_server_timing_enabled_response(test_client_factory):
 
     @app.route("/")
     def homepage(request):
-        time.sleep(0.3)
+        time.sleep(0.001)
         return PlainTextResponse("OK", status_code=200)
 
     client = test_client_factory(app)
@@ -52,7 +52,7 @@ def test_ticker():
 
     def test_function():
         ticker.start()
-        time.sleep(0.007)
+        time.sleep(0.003)
         ticker.end()
 
     test_function()
@@ -65,13 +65,13 @@ def test_multiple_tickers():
     def sub_function():
         ticker = Ticker()
         ticker.start()
-        time.sleep(0.007)
+        time.sleep(0.003)
         ticker.end()
 
     def nested_function():
         ticker = Ticker()
         ticker.start()
-        time.sleep(0.014)
+        time.sleep(0.001)
         ticker.end()
 
     def main_function():
@@ -88,7 +88,7 @@ def test_multiple_tickers():
 
     total_ticker_duration = [ticker.duration for ticker in list_tickers]
     assert len(list_tickers) == 3
-    assert sum(total_ticker_duration) == 42
+    assert sum(total_ticker_duration) == 25
     discard_all_tickers()
 
 
