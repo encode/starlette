@@ -1,15 +1,16 @@
-from starlette.types import ASGIApp
-import typing
 import threading
 import time
+import typing
 
-from starlette.requests import Request
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.requests import Request
+from starlette.types import ASGIApp
 
 _thread_local = threading.local()
 
-class Ticker():
-    def __init__(self, name='app', description='main app'):
+
+class Ticker:
+    def __init__(self, name="app", description="main app"):
         self.name = name
         self.description = description
         self._start = self._end = None
@@ -51,6 +52,7 @@ def ticker_wrapper(func: typing.Callable):
         ticker.end()
 
         return data
+
     return wrapper
 
 
@@ -75,26 +77,29 @@ class ServerTiming(BaseHTTPMiddleware):
         header = self.build_server_timing_header()
 
         if (header is not None) and self.app.debug:
-            response.headers['Server-Timing'] = header
-            response.headers['Timing-Allow-Origin'] = self.build_allowed_origin()
+            response.headers["Server-Timing"] = header
+            response.headers["Timing-Allow-Origin"] = self.build_allowed_origin()
 
         return response
 
     def build_allowed_origin(self):
-        if '*' in self._allow_origins or len(self._allow_origins) == 0:
-            return '*'
+        if "*" in self._allow_origins or len(self._allow_origins) == 0:
+            return "*"
         elif self._allow_origins:
             return ", ".join(self._allow_origins)
 
     def build_server_timing_header(self):
         tickers = [
-            ticker.name + ';desc="' + ticker.description
-            + '";dur=' + str(ticker.duration)
+            ticker.name
+            + ';desc="'
+            + ticker.description
+            + '";dur='
+            + str(ticker.duration)
             for ticker in get_tickers()
         ]
 
         if tickers:
-            header = ','.join(tickers)
+            header = ",".join(tickers)
             discard_all_tickers()
             return header
 

@@ -4,13 +4,21 @@ import time
 import pytest
 
 from starlette.applications import Starlette
-from starlette.middleware.servertiming import ServerTiming, Ticker, discard_all_tickers, get_tickers, ticker_wrapper
+from starlette.middleware.servertiming import (
+    ServerTiming,
+    Ticker,
+    discard_all_tickers,
+    get_tickers,
+    ticker_wrapper,
+)
 from starlette.responses import PlainTextResponse
+
 
 @pytest.fixture(autouse=True)
 def before_each():
     discard_all_tickers()
     yield
+
 
 def test_server_timing_disabled_response(test_client_factory):
     """
@@ -47,9 +55,9 @@ def test_server_timing_enabled_response(test_client_factory):
     response = client.get("/")
     assert response.status_code == 200
     assert "Server-Timing" in response.headers
-    assert 'Timing-Allow-Origin' in response.headers
-    assert isinstance(response.headers['Server-Timing'], str)
-    assert re.match('app;desc="main app";dur=(.*)?', response.headers["Server-Timing"]) 
+    assert "Timing-Allow-Origin" in response.headers
+    assert isinstance(response.headers["Server-Timing"], str)
+    assert re.match('app;desc="main app";dur=(.*)?', response.headers["Server-Timing"])
 
 
 def test_server_allow_all_origins_response(test_client_factory):
@@ -59,38 +67,40 @@ def test_server_allow_all_origins_response(test_client_factory):
 
     @app.route("/")
     def homepage(request):
-        time.sleep(0.001)
         return PlainTextResponse("OK", status_code=200)
 
     client = test_client_factory(app)
     response = client.get("/")
     assert response.status_code == 200
-    assert 'Timing-Allow-Origin' in response.headers
-    assert isinstance(response.headers['Timing-Allow-Origin'], str)
-    assert response.headers["Timing-Allow-Origin"] is '*'
+    assert "Timing-Allow-Origin" in response.headers
+    assert isinstance(response.headers["Timing-Allow-Origin"], str)
+    assert response.headers["Timing-Allow-Origin"] is "*"
 
 
 def test_server_specific_origins_response(test_client_factory):
     app = Starlette(debug=True)
 
-    app.add_middleware(ServerTiming, allow_origins=[
-                       'https://www.starlette.io/', 'https://www.example.com/'])
+    app.add_middleware(
+        ServerTiming,
+        allow_origins=["https://www.starlette.io/", "https://www.example.com/"],
+    )
 
     @app.route("/")
     def homepage(request):
-        time.sleep(0.001)
         return PlainTextResponse("OK", status_code=200)
 
     client = test_client_factory(app)
     response = client.get("/")
     assert response.status_code == 200
-    assert 'Timing-Allow-Origin' in response.headers
-    assert isinstance(response.headers['Timing-Allow-Origin'], str)
-    assert response.headers["Timing-Allow-Origin"] == 'https://www.starlette.io/, https://www.example.com/'
+    assert "Timing-Allow-Origin" in response.headers
+    assert isinstance(response.headers["Timing-Allow-Origin"], str)
+    assert (
+        response.headers["Timing-Allow-Origin"]
+        == "https://www.starlette.io/, https://www.example.com/"
+    )
 
 
 def test_ticker():
-
     def test_function():
         ticker = Ticker()
         ticker.start()
@@ -137,8 +147,6 @@ def test_multiple_tickers():
 
 
 def test_ticker_wrapper():
-    
-
     @ticker_wrapper
     def test_function():
         time.sleep(0.012)
@@ -152,7 +160,7 @@ def test_ticker_wrapper():
     total_ticker_duration = [ticker.duration for ticker in list_tickers]
     assert sum(total_ticker_duration) == 12
     assert len(list_tickers) == 1
-    assert test_function_ticker.name == 'test_function'
+    assert test_function_ticker.name == "test_function"
 
 
 def test_ticker_attributes():
