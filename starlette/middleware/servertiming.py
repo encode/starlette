@@ -1,3 +1,4 @@
+from starlette.types import ASGIApp
 import typing
 import threading
 import time
@@ -57,6 +58,11 @@ class ServerTiming(BaseHTTPMiddleware):
     """
     Adds Server-Timing to every HTTP requests
     """
+
+    def __init__(self, app: ASGIApp, allow_origins: typing.Sequence[str] = ()) -> None:
+        self._allow_origins = allow_origins
+        super().__init__(app, dispatch=self.dispatch)
+
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint):
 
         defaultTimer = Ticker()
@@ -70,9 +76,15 @@ class ServerTiming(BaseHTTPMiddleware):
 
         if (header is not None) and self.app.debug:
             response.headers['Server-Timing'] = header
-            response.headers['Timing-Allow-Origin'] = '*'
+            response.headers['Timing-Allow-Origin'] = self.build_allowed_origin()
 
         return response
+
+    def build_allowed_origin(self):
+        if '*' in self._allow_origins or len(self._allow_origins) == 0:
+            return '*'
+        elif self._allow_origins:
+            return ", ".join(self._allow_origins)
 
     def build_server_timing_header(self):
         tickers = [

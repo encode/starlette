@@ -52,6 +52,43 @@ def test_server_timing_enabled_response(test_client_factory):
     assert re.match('app;desc="main app";dur=(.*)?', response.headers["Server-Timing"]) 
 
 
+def test_server_allow_all_origins_response(test_client_factory):
+    app = Starlette(debug=True)
+
+    app.add_middleware(ServerTiming)
+
+    @app.route("/")
+    def homepage(request):
+        time.sleep(0.001)
+        return PlainTextResponse("OK", status_code=200)
+
+    client = test_client_factory(app)
+    response = client.get("/")
+    assert response.status_code == 200
+    assert 'Timing-Allow-Origin' in response.headers
+    assert isinstance(response.headers['Timing-Allow-Origin'], str)
+    assert response.headers["Timing-Allow-Origin"] is '*'
+
+
+def test_server_specific_origins_response(test_client_factory):
+    app = Starlette(debug=True)
+
+    app.add_middleware(ServerTiming, allow_origins=[
+                       'https://www.starlette.io/', 'https://www.example.com/'])
+
+    @app.route("/")
+    def homepage(request):
+        time.sleep(0.001)
+        return PlainTextResponse("OK", status_code=200)
+
+    client = test_client_factory(app)
+    response = client.get("/")
+    assert response.status_code == 200
+    assert 'Timing-Allow-Origin' in response.headers
+    assert isinstance(response.headers['Timing-Allow-Origin'], str)
+    assert response.headers["Timing-Allow-Origin"] == 'https://www.starlette.io/, https://www.example.com/'
+
+
 def test_ticker():
 
     def test_function():
