@@ -6,8 +6,6 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from starlette.requests import Request
 from starlette.types import ASGIApp
 
-_thread_local = threading.local()
-
 
 class Ticker:
     def __init__(self, name="app", description="main app"):
@@ -30,16 +28,33 @@ class Ticker:
             return 0
 
 
+class ThreadAwareTickers(threading.local):
+    def __init__(self) -> None:
+        self.__dict__["tickers"] = []
+
+    def add(self, ticker: Ticker) -> None:
+        self.__dict__["tickers"].append(ticker)
+
+    def all(self) -> typing.List[Ticker]:
+        return self.__dict__.setdefault("tickers", [])
+
+    def clear(self) -> None:
+        self.__dict__["tickers"] = []
+
+
+_thread_local = ThreadAwareTickers()
+
+
 def get_tickers() -> typing.List[Ticker]:
-    return _thread_local.__dict__.setdefault("tickers", [])
+    return _thread_local.all()
 
 
-def discard_all_tickers() -> typing.List[Ticker]:
-    _thread_local.__dict__["tickers"] = []
+def discard_all_tickers() -> None:
+    _thread_local.clear()
 
 
 def _add_ticker(ticker) -> None:
-    get_tickers().append(ticker)
+    _thread_local.add(ticker)
 
 
 def ticker_wrapper(func: typing.Callable):
