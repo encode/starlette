@@ -1,6 +1,6 @@
 ## 0.16.0
 
-July 16, 2021
+July 19, 2021
 
 ### Added
  * Added [Encode](https://github.com/sponsors/encode) funding option
