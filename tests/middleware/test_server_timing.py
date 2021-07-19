@@ -74,7 +74,7 @@ def test_server_allow_all_origins_response(test_client_factory):
     assert response.status_code == 200
     assert "Timing-Allow-Origin" in response.headers
     assert isinstance(response.headers["Timing-Allow-Origin"], str)
-    assert response.headers["Timing-Allow-Origin"] is "*"
+    assert response.headers["Timing-Allow-Origin"] == "*"
 
 
 def test_server_specific_origins_response(test_client_factory):
@@ -165,5 +165,5 @@ def test_ticker_wrapper():
 
 def test_ticker_attributes():
     ticker = Ticker("sql", "fetching data to database")
-    assert ticker.name is "sql"
-    assert ticker.description is "fetching data to database"
+    assert ticker.name == "sql"
+    assert ticker.description == "fetching data to database"
