@@ -152,18 +152,18 @@ class PlainTextResponse(Response):
 
 class JSONResponse(Response):
     media_type = "application/json"
+
     def __init__(
         self,
         content: typing.Any = None,
         status_code: int = 200,
         headers: dict = None,
         media_type: str = None,
-        background: BackgroundTask = None, 
-        encoder:typing.Any =None,
+        background: BackgroundTask = None,
+        encoder: typing.Any = None,
     ) -> None:
         self.encoder = encoder
-        super().__init__(content,status_code,headers,media_type,background)
-    
+        super().__init__(content, status_code, headers, media_type, background)
 
     def render(self, content: typing.Any) -> bytes:
         return json.dumps(
