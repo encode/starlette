@@ -1,7 +1,15 @@
-import asyncio
+import inspect
 import typing
 
 from starlette.concurrency import run_in_threadpool
+
+
+def iscoroutinefunction(obj):
+    if inspect.iscoroutinefunction(obj):
+        return True
+    if hasattr(obj, '__call__') and inspect.iscoroutinefunction(obj.__call__):
+        return True
+    return False
 
 
 class BackgroundTask:
@@ -11,7 +19,7 @@ class BackgroundTask:
         self.func = func
         self.args = args
         self.kwargs = kwargs
-        self.is_async = asyncio.iscoroutinefunction(func)
+        self.is_async = iscoroutinefunction(func)
 
     async def __call__(self) -> None:
         if self.is_async:
