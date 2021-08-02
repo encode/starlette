@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import contextvars
 import functools
 import inspect
 import re
@@ -566,6 +567,8 @@ class Router:
         else:
             self.lifespan_context = lifespan
 
+        self.user_ctx: contextvars.Context = contextvars.copy_context()
+
     async def not_found(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "websocket":
             websocket_close = WebSocketClose()
@@ -642,8 +645,10 @@ class Router:
             scope["router"] = self
 
         if scope["type"] == "lifespan":
-            await self.lifespan(scope, receive, send)
+            await self.user_ctx.run(self.lifespan, scope, receive, send)
             return
+
+        ctx = self.user_ctx.copy()
 
         partial = None
 
@@ -653,7 +658,7 @@ class Router:
             match, child_scope = route.matches(scope)
             if match == Match.FULL:
                 scope.update(child_scope)
-                await route.handle(scope, receive, send)
+                await ctx.run(route.handle, scope, receive, send)
                 return
             elif match == Match.PARTIAL and partial is None:
                 partial = route
@@ -664,7 +669,7 @@ class Router:
             # able to handle the request, but is not a preferred option.
             # We use this in particular to deal with "405 Method Not Allowed".
             scope.update(partial_scope)
-            await partial.handle(scope, receive, send)
+            await ctx.run(partial.handle, scope, receive, send)
             return
 
         if scope["type"] == "http" and self.redirect_slashes and scope["path"] != "/":
@@ -679,10 +684,10 @@ class Router:
                 if match != Match.NONE:
                     redirect_url = URL(scope=redirect_scope)
                     response = RedirectResponse(url=str(redirect_url))
-                    await response(scope, receive, send)
+                    await ctx.run(response, scope, receive, send)
                     return
 
-        await self.default(scope, receive, send)
+        await ctx.run(self.default, scope, receive, send)
 
     def __eq__(self, other: typing.Any) -> bool:
         return isinstance(other, Router) and self.routes == other.routes

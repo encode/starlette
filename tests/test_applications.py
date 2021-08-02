@@ -1,3 +1,4 @@
+import contextvars
 import os
 import sys
 
@@ -290,6 +291,25 @@ def test_app_add_event_handler(test_client_factory):
         assert not cleanup_complete
     assert startup_complete
     assert cleanup_complete
+
+
+def test_app_lifespan_contex(test_client_factory):
+
+    ctx = contextvars.ContextVar("ctx")
+
+    @asynccontextmanager
+    async def lifespan(app):
+        ctx.set({"foo": "bar"})
+        yield
+
+    app = Starlette(lifespan=lifespan)
+
+    @app.route("/")
+    async def homepage(request):
+        assert ctx.get() == {"foo": "bar"}
+
+    with test_client_factory(app) as client:
+        assert client.get("/").status_code == 200
 
 
 def test_app_async_cm_lifespan(test_client_factory):
