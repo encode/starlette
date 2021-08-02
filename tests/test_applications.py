@@ -293,7 +293,8 @@ def test_app_add_event_handler(test_client_factory):
     assert cleanup_complete
 
 
-def test_app_lifespan_contex(test_client_factory):
+def test_app_lifespan_context(test_client_factory):
+    """The lifespan's context should be copied to endpoints"""
 
     ctx = contextvars.ContextVar("ctx")
 
@@ -304,12 +305,54 @@ def test_app_lifespan_contex(test_client_factory):
 
     app = Starlette(lifespan=lifespan)
 
-    @app.route("/")
-    async def homepage(request):
+    @app.route("/async")
+    async def async_endpoint(request):
         assert ctx.get() == {"foo": "bar"}
+        return PlainTextResponse(status_code=200)
+
+    @app.route("/sync")
+    async def sync_endpoint(request):
+        assert ctx.get() == {"foo": "bar"}
+        return PlainTextResponse(status_code=200)
 
     with test_client_factory(app) as client:
-        assert client.get("/").status_code == 200
+        assert client.get("/async").status_code == 200
+        assert client.get("/sync").status_code == 200
+
+
+def test_endpoint_context_independence(test_client_factory):
+    """Context should not be shared between endpoints"""
+
+    ctx = contextvars.ContextVar("ctx")
+    ctx.set("spam")
+
+    app = Starlette()
+
+    @app.route("/first-sync")
+    def first_sync(request):
+        ctx.set("ham")
+        return PlainTextResponse(status_code=200)
+
+    @app.route("/first-async")
+    async def first_async(request):
+        ctx.set("ham")
+        return PlainTextResponse(status_code=200)
+
+    @app.route("/second-sync")
+    def second_sync(request):
+        assert ctx.get() == "spam"
+        return PlainTextResponse(status_code=200)
+
+    @app.route("/second-async")
+    async def second_async(request):
+        assert ctx.get() == "spam"
+        return PlainTextResponse(status_code=200)
+
+    with test_client_factory(app) as client:
+        assert client.get("/first-sync").status_code == 200
+        assert client.get("/first-async").status_code == 200
+        assert client.get("/second-sync").status_code == 200
+        assert client.get("/second-async").status_code == 200
 
 
 def test_app_async_cm_lifespan(test_client_factory):
