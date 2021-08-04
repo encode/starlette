@@ -30,6 +30,6 @@ async def test_restore_context_from_thread():
 
     def sync_task():
         ctxvar.set("ham")
-    
+
     await run_in_threadpool(sync_task)
     assert ctxvar.get() == "ham"

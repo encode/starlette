@@ -1,6 +1,6 @@
 import functools
 import typing
-from typing import Any, AsyncGenerator, Iterator, Optional, Set
+from typing import AbstractSet, Any, AsyncGenerator, Iterator, Optional
 
 import anyio
 
@@ -15,9 +15,10 @@ except ImportError:  # pragma: no cover
 T = typing.TypeVar("T")
 
 
-def restore_context(context: Context, exclude: Optional[Set[ContextVar]] = None):
-    """Copy the state of `context` to the current `context` for all ContextVars in `context`.
-    """
+def restore_context(
+    context: Context, exclude: Optional[AbstractSet[ContextVar]] = None
+) -> None:
+    """Copy the state of `context` to the current context."""
     for cvar in context:
         if exclude and cvar in exclude:
             continue
@@ -39,7 +40,7 @@ async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -
             task_group.start_soon(run, functools.partial(func, **kwargs))
 
 
-def _no_restore():
+def _no_restore() -> None:
     ...  # pragma: no cover
 
 
@@ -59,7 +60,7 @@ async def run_in_threadpool(
         func = functools.partial(func, **kwargs)
     res = await anyio.to_thread.run_sync(func, *args)
     restore()
-    return res
+    return res  # type: ignore
 
 
 class _StopIteration(Exception):
