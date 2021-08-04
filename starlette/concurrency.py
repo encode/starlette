@@ -1,16 +1,31 @@
 import functools
 import typing
-from typing import Any, AsyncGenerator, Iterator
+from typing import Any, AsyncGenerator, Iterator, Optional, Set
 
 import anyio
 
 try:
     import contextvars  # Python 3.7+ only or via contextvars backport.
+    from contextvars import Context, ContextVar
 except ImportError:  # pragma: no cover
     contextvars = None  # type: ignore
+    Context = ContextVar = None  # type: ignore
 
 
 T = typing.TypeVar("T")
+
+
+def restore_context(context: Context, exclude: Optional[Set[ContextVar]] = None):
+    """Copy the state of `context` to the current `context` for all ContextVars in `context`.
+    """
+    for cvar in context:
+        if exclude and cvar in exclude:
+            continue
+        try:
+            if cvar.get() != context.get(cvar):
+                cvar.set(context.get(cvar))
+        except LookupError:
+            cvar.set(context.get(cvar))
 
 
 async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -> None:
@@ -24,6 +39,10 @@ async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -
             task_group.start_soon(run, functools.partial(func, **kwargs))
 
 
+def _no_restore():
+    ...  # pragma: no cover
+
+
 async def run_in_threadpool(
     func: typing.Callable[..., T], *args: typing.Any, **kwargs: typing.Any
 ) -> T:
@@ -31,12 +50,16 @@ async def run_in_threadpool(
         # Ensure we run in the same context
         child = functools.partial(func, *args, **kwargs)
         context = contextvars.copy_context()
+        restore = functools.partial(restore_context, context)
         func = context.run
         args = (child,)
     elif kwargs:  # pragma: no cover
         # run_sync doesn't accept 'kwargs', so bind them in here
+        restore = _no_restore
         func = functools.partial(func, **kwargs)
-    return await anyio.to_thread.run_sync(func, *args)
+    res = await anyio.to_thread.run_sync(func, *args)
+    restore()
+    return res
 
 
 class _StopIteration(Exception):
