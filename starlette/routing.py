@@ -10,7 +10,8 @@ import typing
 import warnings
 from enum import Enum
 
-from starlette.concurrency import restore_context, run_in_threadpool
+from starlette.concurrency import run_in_threadpool
+from starlette.context import CaptureContext, Context, restore_context
 from starlette.convertors import CONVERTOR_TYPES, Convertor
 from starlette.datastructures import URL, Headers, URLPath
 from starlette.exceptions import HTTPException
@@ -23,10 +24,6 @@ if sys.version_info >= (3, 7):
     from contextlib import asynccontextmanager  # pragma: no cover
 else:
     from contextlib2 import asynccontextmanager  # pragma: no cover
-try:
-    from contextvars import Context, ContextVar, copy_context
-except ImportError:  # pragma: no cover
-    Context = ContextVar = copy_context = None  # type: ignore
 
 
 class NoMatchFound(Exception):
@@ -624,12 +621,15 @@ class Router:
         app = scope.get("app")
         await receive()
         try:
-            async with self.lifespan_context(app):
-                await send({"type": "lifespan.startup.complete"})
-                started = True
+            with CaptureContext() as ctx:
                 self.user_ctx = typing.cast(Context, self.user_ctx)
-                self.user_ctx = copy_context()
-                await receive()
+                self.user_ctx = ctx.context
+                async with self.lifespan_context(app):
+                    await send({"type": "lifespan.startup.complete"})
+                    started = True
+                    ctx.sync()
+                    await receive()
+            self.user_ctx = None
         except BaseException:
             exc_text = traceback.format_exc()
             if started:
@@ -655,8 +655,7 @@ class Router:
 
         partial = None
 
-        if self.user_ctx is not None:
-            restore_context(self.user_ctx, copy_context().keys())
+        restore_context(self.user_ctx)
 
         for route in self.routes:
             # Determine if any route matches the incoming scope,
