@@ -11,7 +11,7 @@ import typing
 import warnings
 from enum import Enum
 
-from starlette.concurrency import restore_context, run_in_threadpool
+from starlette.concurrency import run_in_threadpool
 from starlette.convertors import CONVERTOR_TYPES, Convertor
 from starlette.datastructures import URL, Headers, URLPath
 from starlette.exceptions import HTTPException
@@ -655,6 +655,8 @@ class Router:
             current_ctx = contextvars.copy_context()
             for cvar in self.user_ctx:
                 if cvar in current_ctx:
+                    # not set by the user, skip to avoid modifying
+                    # vars used by event loops, servers, etc.
                     continue
                 try:
                     if cvar.get() != self.user_ctx.get(cvar):
