@@ -1,16 +1,31 @@
 import functools
 import typing
-from typing import Any, AsyncGenerator, Iterator
+from typing import Any, AsyncGenerator, Iterator, Set
 
 import anyio
 
 try:
     import contextvars  # Python 3.7+ only or via contextvars backport.
+    from contextvars import Context, ContextVar
 except ImportError:  # pragma: no cover
     contextvars = None  # type: ignore
+    Context = ContextVar = None  # type: ignore
 
 
 T = typing.TypeVar("T")
+
+
+def restore_context(context: Context, exclude: Set[ContextVar]):
+    """Copy the state of `context` to the current `context` for all ContextVars in `context`.
+    """
+    for cvar in context:
+        if cvar in exclude:
+            continue
+        try:
+            if cvar.get() != context.get(cvar):
+                cvar.set(context.get(cvar))
+        except LookupError:
+            cvar.set(context.get(cvar))
 
 
 async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -> None:
