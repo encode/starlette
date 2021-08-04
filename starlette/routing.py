@@ -652,7 +652,15 @@ class Router:
         partial = None
 
         if self.user_ctx is not None:
-            restore_context(self.user_ctx)
+            current_ctx = contextvars.copy_context()
+            for cvar in self.user_ctx:
+                if cvar in current_ctx:
+                    continue
+                try:
+                    if cvar.get() != self.user_ctx.get(cvar):
+                        cvar.set(self.user_ctx.get(cvar))
+                except LookupError:
+                    cvar.set(self.user_ctx.get(cvar))
 
         for route in self.routes:
             # Determine if any route matches the incoming scope,
