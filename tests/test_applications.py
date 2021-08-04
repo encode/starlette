@@ -1,4 +1,5 @@
 import contextvars
+from itertools import permutations
 import os
 import sys
 
@@ -323,36 +324,40 @@ def test_app_lifespan_context(test_client_factory):
 def test_endpoint_context_independence(test_client_factory):
     """Context should not be shared between endpoints"""
 
-    ctx = contextvars.ContextVar("ctx")
-    ctx.set("spam")
+    ctx = contextvars.ContextVar("ctx", default="spam")
 
     app = Starlette()
 
     @app.route("/first-sync")
     def first_sync(request):
+        assert ctx.get() == "spam"
         ctx.set("ham")
         return PlainTextResponse(status_code=200)
 
     @app.route("/first-async")
     async def first_async(request):
+        assert ctx.get() == "spam"
         ctx.set("ham")
         return PlainTextResponse(status_code=200)
 
     @app.route("/second-sync")
     def second_sync(request):
         assert ctx.get() == "spam"
+        ctx.set("ham")
         return PlainTextResponse(status_code=200)
 
     @app.route("/second-async")
     async def second_async(request):
         assert ctx.get() == "spam"
+        ctx.set("ham")
         return PlainTextResponse(status_code=200)
 
-    with test_client_factory(app) as client:
-        assert client.get("/first-sync").status_code == 200
-        assert client.get("/first-async").status_code == 200
-        assert client.get("/second-sync").status_code == 200
-        assert client.get("/second-async").status_code == 200
+    endpoints = ("/first-sync", "/first-async", "/second-sync", "/second-async")
+
+    client = test_client_factory(app)
+    for endpoint_permutation in permutations(endpoints):
+        for endpoint in endpoint_permutation:
+            assert client.get(endpoint).status_code == 200
 
 
 def test_app_async_cm_lifespan(test_client_factory):

@@ -11,7 +11,7 @@ import typing
 import warnings
 from enum import Enum
 
-from starlette.concurrency import run_in_threadpool
+from starlette.concurrency import restore_context, run_in_threadpool
 from starlette.convertors import CONVERTOR_TYPES, Convertor
 from starlette.datastructures import URL, Headers, URLPath
 from starlette.exceptions import HTTPException
@@ -566,8 +566,8 @@ class Router:
             )
         else:
             self.lifespan_context = lifespan
-
-        self.user_ctx: contextvars.Context = contextvars.copy_context()
+        
+        self.user_ctx = None
 
     async def not_found(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "websocket":
@@ -624,6 +624,7 @@ class Router:
             async with self.lifespan_context(app):
                 await send({"type": "lifespan.startup.complete"})
                 started = True
+                self.user_ctx = contextvars.copy_context()
                 await receive()
         except BaseException:
             exc_text = traceback.format_exc()
@@ -645,12 +646,13 @@ class Router:
             scope["router"] = self
 
         if scope["type"] == "lifespan":
-            await self.user_ctx.run(self.lifespan, scope, receive, send)
+            await self.lifespan(scope, receive, send)
             return
 
-        ctx = self.user_ctx.copy()
-
         partial = None
+
+        if self.user_ctx is not None:
+            restore_context(self.user_ctx)
 
         for route in self.routes:
             # Determine if any route matches the incoming scope,
@@ -658,7 +660,7 @@ class Router:
             match, child_scope = route.matches(scope)
             if match == Match.FULL:
                 scope.update(child_scope)
-                await ctx.run(route.handle, scope, receive, send)
+                await route.handle(scope, receive, send)
                 return
             elif match == Match.PARTIAL and partial is None:
                 partial = route
@@ -669,7 +671,7 @@ class Router:
             # able to handle the request, but is not a preferred option.
             # We use this in particular to deal with "405 Method Not Allowed".
             scope.update(partial_scope)
-            await ctx.run(partial.handle, scope, receive, send)
+            await partial.handle(scope, receive, send)
             return
 
         if scope["type"] == "http" and self.redirect_slashes and scope["path"] != "/":
@@ -684,10 +686,10 @@ class Router:
                 if match != Match.NONE:
                     redirect_url = URL(scope=redirect_scope)
                     response = RedirectResponse(url=str(redirect_url))
-                    await ctx.run(response, scope, receive, send)
+                    await response(scope, receive, send)
                     return
 
-        await ctx.run(self.default, scope, receive, send)
+        await self.default(scope, receive, send)
 
     def __eq__(self, other: typing.Any) -> bool:
         return isinstance(other, Router) and self.routes == other.routes

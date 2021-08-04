@@ -6,11 +6,24 @@ import anyio
 
 try:
     import contextvars  # Python 3.7+ only or via contextvars backport.
+    from contextvars import Context
 except ImportError:  # pragma: no cover
     contextvars = None  # type: ignore
+    Context = None
 
 
 T = typing.TypeVar("T")
+
+
+def restore_context(context: Context):
+    """Copy the state of `context` to the current `context` for all ContextVars in `context`.
+    """
+    for cvar in context:
+        try:
+            if cvar.get() != context.get(cvar):
+                cvar.set(context.get(cvar))
+        except LookupError:
+            cvar.set(context.get(cvar))
 
 
 async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -> None:
