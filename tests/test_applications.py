@@ -1,7 +1,7 @@
 import contextvars
-from itertools import permutations
 import os
 import sys
+from itertools import permutations
 
 import pytest
 

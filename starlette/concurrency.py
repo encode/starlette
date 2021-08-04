@@ -1,6 +1,6 @@
 import functools
 import typing
-from typing import Any, AsyncGenerator, Iterator, Set
+from typing import AbstractSet, Any, AsyncGenerator, Iterator, Optional
 
 import anyio
 
@@ -15,11 +15,12 @@ except ImportError:  # pragma: no cover
 T = typing.TypeVar("T")
 
 
-def restore_context(context: Context, exclude: Set[ContextVar]):
-    """Copy the state of `context` to the current `context` for all ContextVars in `context`.
-    """
+def restore_context(
+    context: Context, exclude: Optional[AbstractSet[ContextVar]] = None
+) -> None:
+    """Copy the state of `context` to the current context."""
     for cvar in context:
-        if cvar in exclude:
+        if exclude and cvar in exclude:
             continue
         try:
             if cvar.get() != context.get(cvar):

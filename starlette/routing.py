@@ -1,6 +1,5 @@
 import asyncio
 import contextlib
-import contextvars
 import functools
 import inspect
 import re
@@ -24,6 +23,10 @@ if sys.version_info >= (3, 7):
     from contextlib import asynccontextmanager  # pragma: no cover
 else:
     from contextlib2 import asynccontextmanager  # pragma: no cover
+try:
+    from contextvars import Context, ContextVar, copy_context
+except ImportError:  # pragma: no cover
+    Context = ContextVar = copy_context = None  # type: ignore
 
 
 class NoMatchFound(Exception):
@@ -566,8 +569,8 @@ class Router:
             )
         else:
             self.lifespan_context = lifespan
-        
-        self.user_ctx = None
+
+        self.user_ctx: typing.Union[None, Context] = None
 
     async def not_found(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "websocket":
@@ -624,7 +627,8 @@ class Router:
             async with self.lifespan_context(app):
                 await send({"type": "lifespan.startup.complete"})
                 started = True
-                self.user_ctx = contextvars.copy_context()
+                self.user_ctx = typing.cast(Context, self.user_ctx)
+                self.user_ctx = copy_context()
                 await receive()
         except BaseException:
             exc_text = traceback.format_exc()
@@ -652,7 +656,7 @@ class Router:
         partial = None
 
         if self.user_ctx is not None:
-            restore_context(self.user_ctx, contextvars.copy_context().keys())
+            restore_context(self.user_ctx, copy_context().keys())
 
         for route in self.routes:
             # Determine if any route matches the incoming scope,
