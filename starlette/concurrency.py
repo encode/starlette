@@ -1,6 +1,6 @@
 import functools
 import typing
-from typing import Any, AsyncGenerator, Awaitable, Callable, Iterator
+from typing import Any, AsyncGenerator, Awaitable, Iterator
 
 import anyio
 
@@ -24,7 +24,9 @@ async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -
             task_group.start_soon(run, functools.partial(func, **kwargs))
 
 
-def bind_to_threadpool(func: typing.Callable[..., T]) -> Callable[..., Awaitable[T]]:
+def bind_to_threadpool(
+    func: typing.Callable[..., T]
+) -> typing.Callable[..., Awaitable[T]]:
     async def inner(*args: typing.Any, **kwargs: typing.Any) -> T:
         if contextvars is not None:  # pragma: no cover
             # Ensure we run in the same context
