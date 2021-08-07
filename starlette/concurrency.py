@@ -36,13 +36,14 @@ def bind_to_threadpool(func: typing.Callable[..., T]) -> Callable[..., Awaitable
             # run_sync doesn't accept 'kwargs', so bind them in here
             call = functools.partial(func, **kwargs)
         return await anyio.to_thread.run_sync(call, *args)
+
     return inner
 
 
 async def run_in_threadpool(
     func: typing.Callable[..., T], *args: typing.Any, **kwargs: typing.Any
 ) -> T:
-   return await bind_to_threadpool(func)(*args, **kwargs)
+    return await bind_to_threadpool(func)(*args, **kwargs)
 
 
 class _StopIteration(Exception):
