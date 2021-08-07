@@ -1,6 +1,6 @@
 import functools
 import typing
-from typing import Any, AsyncGenerator, Iterator
+from typing import Any, AsyncGenerator, Awaitable, Callable, Iterator
 
 import anyio
 
@@ -24,19 +24,25 @@ async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -
             task_group.start_soon(run, functools.partial(func, **kwargs))
 
 
+def bind_to_threadpool(func: typing.Callable[..., T]) -> Callable[..., Awaitable[T]]:
+    async def inner(*args: typing.Any, **kwargs: typing.Any) -> T:
+        if contextvars is not None:  # pragma: no cover
+            # Ensure we run in the same context
+            child = functools.partial(func, *args, **kwargs)
+            context = contextvars.copy_context()
+            call = context.run
+            args = (child,)
+        elif kwargs:  # pragma: no cover
+            # run_sync doesn't accept 'kwargs', so bind them in here
+            call = functools.partial(func, **kwargs)
+        return await anyio.to_thread.run_sync(call, *args)
+    return inner
+
+
 async def run_in_threadpool(
     func: typing.Callable[..., T], *args: typing.Any, **kwargs: typing.Any
 ) -> T:
-    if contextvars is not None:  # pragma: no cover
-        # Ensure we run in the same context
-        child = functools.partial(func, *args, **kwargs)
-        context = contextvars.copy_context()
-        func = context.run
-        args = (child,)
-    elif kwargs:  # pragma: no cover
-        # run_sync doesn't accept 'kwargs', so bind them in here
-        func = functools.partial(func, **kwargs)
-    return await anyio.to_thread.run_sync(func, *args)
+   return await bind_to_threadpool(func)(*args, **kwargs)
 
 
 class _StopIteration(Exception):
