@@ -34,6 +34,10 @@ class BaseHTTPMiddleware:
             try:
                 message = await recv_stream.receive()
             except anyio.EndOfStream:
+                # HACK: give anyio a chance to surface any app exception first,
+                # in order to avoid an `anyio.ExceptionGroup`.
+                # See #1255.
+                await anyio.lowlevel.checkpoint()
                 raise RuntimeError("No response returned.")
 
             assert message["type"] == "http.response.start"
