@@ -10,16 +10,11 @@ Signature: `WebSocket(scope, receive=None, send=None)`
 from starlette.websockets import WebSocket
 
 
-class App:
-    def __init__(self, scope):
-        assert scope['type'] == 'websocket'
-        self.scope = scope
-
-    async def __call__(self, receive, send):
-        websocket = WebSocket(self.scope, receive=receive, send=send)
-        await websocket.accept()
-        await websocket.send_text('Hello, world!')
-        await websocket.close()
+async def app(scope, receive, send):
+    websocket = WebSocket(scope=scope, receive=receive, send=send)
+    await websocket.accept()
+    await websocket.send_text('Hello, world!')
+    await websocket.close()
 ```
 
 WebSockets present a mapping interface, so you can use them in the same
@@ -44,7 +39,7 @@ For example: `websocket.headers['sec-websocket-version']`
 
 #### Query Parameters
 
-Headers are exposed as an immutable multi-dict.
+Query parameters are exposed as an immutable multi-dict.
 
 For example: `websocket.query_params['search']`
 
@@ -52,7 +47,7 @@ For example: `websocket.query_params['search']`
 
 Router path parameters are exposed as a dictionary interface.
 
-For example: `request.path_params['username']`
+For example: `websocket.path_params['username']`
 
 ### Accepting the connection
 
@@ -73,7 +68,7 @@ Use `websocket.send_json(data, mode="binary")` to send JSON over binary data fra
 * `await websocket.receive_bytes()`
 * `await websocket.receive_json()`
 
-May raise `starlette.websockets.Disconnect()`.
+May raise `starlette.websockets.WebSocketDisconnect()`.
 
 JSON messages default to being received over text data frames, from version 0.10.0 onwards.
 Use `websocket.receive_json(data, mode="binary")` to receive JSON over binary data frames.

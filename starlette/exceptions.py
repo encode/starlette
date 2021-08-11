@@ -7,7 +7,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
-from starlette.websockets import WebSocket, WebSocketClose
+from starlette.websockets import WebSocket
 
 
 class HTTPException(Exception):
@@ -16,6 +16,10 @@ class HTTPException(Exception):
             detail = http.HTTPStatus(status_code).phrase
         self.status_code = status_code
         self.detail = detail
+
+    def __repr__(self) -> str:
+        class_name = self.__class__.__name__
+        return f"{class_name}(status_code={self.status_code!r}, detail={self.detail!r})"
 
 
 class WebSocketException(Exception):
@@ -29,21 +33,28 @@ class WebSocketException(Exception):
         > other more suitable status code (e.g., 1003 or 1009) or if there
         > is a need to hide specific details about the policy.
 
-        Set `code` to any value allowed by
-        [the WebSocket specification](https://tools.ietf.org/html/rfc6455#section-7.4.1).
+        Set `code` to any value allowed by the
+        [WebSocket specification](https://tools.ietf.org/html/rfc6455#section-7.4.1).
         """
         self.code = code
 
 
 class ExceptionMiddleware:
-    def __init__(self, app: ASGIApp, debug: bool = False) -> None:
+    def __init__(
+        self, app: ASGIApp, handlers: dict = None, debug: bool = False
+    ) -> None:
         self.app = app
         self.debug = debug  # TODO: We ought to handle 404 cases if debug is set.
-        self._status_handlers = {}  # type: typing.Dict[int, typing.Callable]
-        self._exception_handlers = {
+        self._status_handlers: typing.Dict[int, typing.Callable] = {}
+        self._exception_handlers: typing.Dict[
+            typing.Type[Exception], typing.Callable
+        ] = {
             HTTPException: self.http_exception,
             WebSocketException: self.websocket_exception,
-        }  # type: typing.Dict[typing.Type[Exception], typing.Callable]
+        }
+        if handlers is not None:
+            for key, value in handlers.items():
+                self.add_exception_handler(key, value)
 
     def add_exception_handler(
         self,
@@ -90,7 +101,7 @@ class ExceptionMiddleware:
                 handler = self._lookup_exception_handler(exc)
 
             if handler is None:
-                raise exc from None
+                raise exc
 
             if response_started:
                 msg = "Caught handled exception, but response already started."
