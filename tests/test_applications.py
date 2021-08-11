@@ -1,7 +1,7 @@
-import asyncio
 import os
 import sys
 
+import anyio
 import pytest
 
 from starlette import status
@@ -12,6 +12,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.responses import JSONResponse, PlainTextResponse
 from starlette.routing import Host, Mount, Route, Router, WebSocketRoute
 from starlette.staticfiles import StaticFiles
+from starlette.websockets import WebSocket
 
 if sys.version_info >= (3, 7):
     from contextlib import asynccontextmanager  # pragma: no cover
@@ -96,7 +97,7 @@ async def websocket_endpoint(session):
 
 
 @app.websocket_route("/ws-raise-websocket")
-async def websocket_raise_websocket_exception(websocket):
+async def websocket_raise_websocket_exception(websocket: WebSocket):
     await websocket.accept()
     raise WebSocketException(code=status.WS_1003_UNSUPPORTED_DATA)
 
@@ -106,15 +107,14 @@ class CustomWSException(Exception):
 
 
 @app.websocket_route("/ws-raise-custom")
-async def websocket_raise_custom(websocket):
+async def websocket_raise_custom(websocket: WebSocket):
     await websocket.accept()
     raise CustomWSException()
 
 
 @app.exception_handler(CustomWSException)
-def custom_ws_exception_handler(websocket, exc):
-    loop = asyncio.new_event_loop()
-    loop.run_until_complete(websocket.close(code=status.WS_1013_TRY_AGAIN_LATER))
+def custom_ws_exception_handler(websocket: WebSocket, exc: CustomWSException):
+    anyio.from_thread.run(websocket.close, status.WS_1013_TRY_AGAIN_LATER)
 
 
 @pytest.fixture

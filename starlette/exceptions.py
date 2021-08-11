@@ -2,7 +2,6 @@ import asyncio
 import http
 import typing
 
-from starlette import status
 from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, Response
@@ -23,20 +22,12 @@ class HTTPException(Exception):
 
 
 class WebSocketException(Exception):
-    def __init__(self, code: int = status.WS_1008_POLICY_VIOLATION) -> None:
-        """
-        `code` defaults to 1008, from the WebSocket specification:
-
-        > 1008 indicates that an endpoint is terminating the connection
-        > because it has received a message that violates its policy.  This
-        > is a generic status code that can be returned when there is no
-        > other more suitable status code (e.g., 1003 or 1009) or if there
-        > is a need to hide specific details about the policy.
-
-        Set `code` to any value allowed by the
-        [WebSocket specification](https://tools.ietf.org/html/rfc6455#section-7.4.1).
-        """
+    def __init__(self, code: int) -> None:
         self.code = code
+
+    def __repr__(self) -> str:
+        class_name = self.__class__.__name__
+        return f"{class_name}(code={self.code!r})"
 
 
 class ExceptionMiddleware:

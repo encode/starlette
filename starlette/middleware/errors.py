@@ -160,7 +160,7 @@ class ServerErrorMiddleware:
         try:
             await self.app(scope, receive, _send)
         except Exception as exc:
-            if not response_started and scope["type"] == "http":
+            if scope["type"] == "http" and not response_started:
                 request = Request(scope)
                 if self.debug:
                     # In debug mode, return traceback responses.
