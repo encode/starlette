@@ -169,6 +169,7 @@ Takes a different set of arguments to instantiate than the other response types:
 * `headers` - Any custom headers to include, as a dictionary.
 * `media_type` - A string giving the media type. If unset, the filename or path will be used to infer a media type.
 * `filename` - If set, this will be included in the response `Content-Disposition`.
+* `content_disposition_type` - will be included in the response `Content-Disposition`. Can be set to "attachment" (default) or "inline".
 
 File responses will include appropriate `Content-Length`, `Last-Modified` and `ETag` headers.
 
@@ -186,5 +187,5 @@ async def app(scope, receive, send):
 
 ### [SSEResponse(EventSourceResponse)](https://github.com/sysid/sse-starlette)
 
-Server Sent Response implements the ServerSentEvent Protocol: https://www.w3.org/TR/2009/WD-eventsource-20090421.  
+Server Sent Response implements the ServerSentEvent Protocol: https://www.w3.org/TR/2009/WD-eventsource-20090421.
 It enables event streaming from the server to the client without the complexity of websockets.
