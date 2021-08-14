@@ -2,7 +2,6 @@ import os
 import pathlib
 import stat
 import time
-from unittest import mock
 
 import anyio
 import pytest
@@ -331,7 +330,12 @@ def test_staticfiles_access_file_as_dir_returns_404(tmpdir, test_client_factory)
     assert response.text == "Not Found"
 
 
-def test_staticfiles_unhandled_os_error_returns_500(tmpdir, test_client_factory):
+def test_staticfiles_unhandled_os_error_returns_500(
+    tmpdir, test_client_factory, monkeypatch
+):
+    def mock_timeout(*args, **kwargs):
+        raise TimeoutError
+
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
         file.write("<file content>")
@@ -339,11 +343,8 @@ def test_staticfiles_unhandled_os_error_returns_500(tmpdir, test_client_factory)
     app = StaticFiles(directory=tmpdir)
     client = test_client_factory(app)
 
-    with mock.patch(
-        "starlette.staticfiles.StaticFiles.lookup_path"
-    ) as mock_lookup_path:
-        mock_lookup_path.side_effect = TimeoutError()
+    monkeypatch.setattr("starlette.staticfiles.StaticFiles.lookup_path", mock_timeout)
 
-        response = client.get("/example.txt")
-        assert response.status_code == 500
-        assert response.text == "Internal server error"
+    response = client.get("/example.txt")
+    assert response.status_code == 500
+    assert response.text == "Internal server error"
