@@ -4,7 +4,7 @@ import warnings
 from base64 import b64decode, b64encode
 
 import itsdangerous
-from itsdangerous.exc import BadTimeSignature, SignatureExpired
+from itsdangerous.exc import BadSignature
 
 from starlette.datastructures import MutableHeaders, Secret
 from starlette.requests import HTTPConnection
@@ -43,7 +43,7 @@ class SessionMiddleware:
                 data = self.signer.unsign(data, max_age=self.max_age)
                 scope["session"] = json.loads(b64decode(data))
                 initial_session_was_empty = False
-            except (BadTimeSignature, SignatureExpired):
+            except BadSignature:
                 scope["session"] = {}
         else:
             scope["session"] = {}
