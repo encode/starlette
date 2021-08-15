@@ -54,7 +54,7 @@ class SessionMiddleware:
                 if scope["session"]:
                     # We have session data to persist.
                     data = json.dumps(scope["session"]).encode("utf-8")
-                    data += b' ' * ((3 - len(data)) % 3)  # avoid padding w/ =
+                    data += b" " * ((3 - len(data)) % 3)  # avoid padding w/ =
                     data = b64encode(data)
                     data = self.signer.sign(data)
                     headers = MutableHeaders(scope=message)
