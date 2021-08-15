@@ -45,6 +45,10 @@ def test_session(test_client_factory):
     assert max_age_matches is not None
     assert int(max_age_matches[1]) == 14 * 24 * 3600
 
+    # check that cookie session does not have "=" sign
+    cookie_value_no_equals = re.search(r"^session=[^=]+; ", set_cookie)
+    assert cookie_value_no_equals is not None, set_cookie
+
     response = client.get("/view_session")
     assert response.json() == {"session": {"some": "data"}}
 

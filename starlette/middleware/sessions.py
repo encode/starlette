@@ -1,6 +1,7 @@
 import json
 import sys
 import typing
+import warnings
 from base64 import b64decode, b64encode
 
 import itsdangerous
@@ -59,7 +60,9 @@ class SessionMiddleware:
             if message["type"] == "http.response.start":
                 if scope["session"]:
                     # We have session data to persist.
-                    data = b64encode(json.dumps(scope["session"]).encode("utf-8"))
+                    data = json.dumps(scope["session"]).encode("utf-8")
+                    data += b' ' * ((3 - len(data)) % 3)  # avoid padding w/ =
+                    data = b64encode(data)
                     data = self.signer.sign(data)
                     headers = MutableHeaders(scope=message)
                     header_value = "{session_cookie}={data}; path={path}; {max_age}{security_flags}".format(  # noqa E501
@@ -69,6 +72,11 @@ class SessionMiddleware:
                         max_age=f"Max-Age={self.max_age}; " if self.max_age else "",
                         security_flags=self.security_flags,
                     )
+                    if len(header_value) > 4096:  # Ref. RFC 6265
+                        warnings.warn(
+                            "Cookie exceeds 4096 bytes, may be ignored by browser.",
+                            UserWarning,
+                        )
                     headers.append("Set-Cookie", header_value)
                 elif not initial_session_was_empty:
                     # The session has been cleared.
