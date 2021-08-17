@@ -7,12 +7,8 @@ from email.utils import parsedate
 import anyio
 
 from starlette.datastructures import URL, Headers
-from starlette.responses import (
-    FileResponse,
-    PlainTextResponse,
-    RedirectResponse,
-    Response,
-)
+from starlette.exceptions import HTTPException
+from starlette.responses import FileResponse, RedirectResponse, Response
 from starlette.types import Receive, Scope, Send
 
 PathLike = typing.Union[str, "os.PathLike[str]"]
@@ -109,7 +105,7 @@ class StaticFiles:
         Returns an HTTP response, given the incoming path, method and request headers.
         """
         if scope["method"] not in ("GET", "HEAD"):
-            return PlainTextResponse("Method Not Allowed", status_code=405)
+            raise HTTPException(status_code=405)
 
         try:
             full_path, stat_result = await anyio.to_thread.run_sync(
@@ -128,11 +124,11 @@ class StaticFiles:
                         method=scope["method"],
                         status_code=404,
                     )
-            return PlainTextResponse("Not Found", status_code=404)
+            raise HTTPException(status_code=404)
         except PermissionError:
-            return PlainTextResponse("Permission denied", status_code=401)
+            raise HTTPException(status_code=401)
         except OSError:
-            return PlainTextResponse("Internal server error", status_code=500)
+            raise
 
         if stat_result and stat.S_ISREG(stat_result.st_mode):
             # We have a static file to serve.
@@ -153,7 +149,7 @@ class StaticFiles:
                     return RedirectResponse(url=url)
                 return self.file_response(full_path, stat_result, scope)
 
-        return PlainTextResponse("Not Found", status_code=404)
+        raise HTTPException(status_code=404)
 
     def lookup_path(
         self, path: str
