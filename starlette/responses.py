@@ -311,3 +311,51 @@ class FileResponse(Response):
                     )
         if self.background is not None:
             await self.background()
+
+
+class EmptyResponse(Response):
+    """Response to be sent with status code 1xx, 204, 205, 304, or whenever
+    an empty response is intended."""
+
+    def __init__(
+        self,
+        status_code: int,
+        headers: typing.Optional[typing.Dict[str, str]] = None,
+        background: typing.Optional[BackgroundTask] = None,
+    ) -> None:
+        super().__init__(
+            content=b"", status_code=status_code, headers=headers, background=background
+        )
+
+    def init_headers(self, headers: typing.Mapping[str, str] = None) -> None:
+        byte_headers: typing.Dict[bytes, bytes] = (
+            {
+                k.lower().encode("latin-1"): v.encode("latin-1")
+                for k, v in headers.items()
+            }
+            if headers
+            else {}
+        )
+
+        if self.status_code < 200 or self.status_code == 204:
+            # Response must not have a content-length header. See
+            # https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.2
+            if b"content-length" in byte_headers:
+                del byte_headers[b"content-length"]
+        elif self.status_code == 205:
+            # Response can either have a content-length header or a
+            # transfer-encoding: chunked header.
+            # We choose to ensure a content-length header.
+            # https://datatracker.ietf.org/doc/html/rfc7231#section-6.3.6
+            byte_headers[b"content-length"] = b"0"
+        elif self.status_code == 304:
+            # A 304 Not Modfied response may contain a content-length header
+            # whose value is the length of
+            # message that would have been sent in a 200 OK response.
+            # So we leave the headers as is.
+            # https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.2
+            pass
+        else:
+            byte_headers[b"content-length"] = b"0"
+
+        self.raw_headers = [(k, v) for k, v in byte_headers.items()]

@@ -7,6 +7,7 @@ from starlette import status
 from starlette.background import BackgroundTask
 from starlette.requests import Request
 from starlette.responses import (
+    EmptyResponse,
     FileResponse,
     JSONResponse,
     RedirectResponse,
@@ -309,3 +310,34 @@ def test_head_method(test_client_factory):
     client = test_client_factory(app)
     response = client.head("/")
     assert response.text == ""
+
+
+def test_empty_response_100():
+    response = EmptyResponse(status_code=100)
+    assert "content-length" not in response.headers
+
+
+def test_empty_response_200():
+    response = EmptyResponse(status_code=200)
+    assert response.headers["content-length"] == "0"
+
+
+def test_empty_response_204():
+    response = EmptyResponse(status_code=204)
+    assert "content-length" not in response.headers
+
+
+def test_empty_response_204_removing_header():
+    response = EmptyResponse(status_code=204, headers={"content-length": "0"})
+    assert "content-length" not in response.headers
+
+
+def test_empty_response_205():
+    response = EmptyResponse(status_code=205)
+    assert response.headers["content-length"] == "0"
+
+
+def test_empty_response_304():
+    headers = {"content-length": "43"}
+    response = EmptyResponse(status_code=304, headers=headers)
+    assert response.headers["content-length"] == "43"
