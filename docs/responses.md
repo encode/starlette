@@ -188,7 +188,7 @@ Supplies an empty message body as the response.
 
 In particular, use an EmptyResponse object for 1xx, 204, 205, 304 responses as it sets or omits a Content-Length header as appropriate.
 
-Signature: `Response(status_code:int, headers: typing.Optional[typing.Dict[str, str]] = None, background: typing.Optional[BackgroundTask] = None)`
+Signature: `EmptyResponse(status_code:int, headers: typing.Optional[typing.Dict[str, str]] = None, background: typing.Optional[BackgroundTask] = None)`
 
 * `status_code` - An integer HTTP status code.
 * `headers` - A dictionary of strings.
