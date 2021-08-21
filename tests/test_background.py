@@ -21,6 +21,26 @@ def test_async_task(test_client_factory):
     assert TASK_COMPLETE
 
 
+def test_async_callable_task(test_client_factory):
+    TASK_COMPLETE = False
+
+    class async_callable_task:
+        async def __call__(self):
+            nonlocal TASK_COMPLETE
+            TASK_COMPLETE = True
+
+    task = BackgroundTask(async_callable_task())
+
+    async def app(scope, receive, send):
+        response = Response("task initiated", media_type="text/plain", background=task)
+        await response(scope, receive, send)
+
+    client = test_client_factory(app)
+    response = client.get("/")
+    assert response.text == "task initiated"
+    assert TASK_COMPLETE
+
+
 def test_sync_task(test_client_factory):
     TASK_COMPLETE = False
 
