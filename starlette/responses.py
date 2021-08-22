@@ -154,21 +154,22 @@ class JSONResponse(Response):
     media_type = "application/json"
 
     def __init__(
-        self, 
-        content: typing.Any = None, 
-        status_code: int = 200, 
-        headers: dict = None, 
-        media_type: str = None, 
-        background: BackgroundTask = None, 
-        indent: int = None
+        self,
+        content: typing.Any = None,
+        status_code: int = 200,
+        headers: dict = None,
+        media_type: str = None,
+        background: BackgroundTask = None,
+        indent: int = None,
     ) -> None:
         self.indent = indent
-        super().__init__(content=content, 
-        status_code=status_code, 
-        headers=headers, 
-        media_type=media_type, 
-        background=background
-    )
+        super().__init__(
+            content=content,
+            status_code=status_code,
+            headers=headers,
+            media_type=media_type,
+            background=background,
+        )
 
     def render(self, content: typing.Any) -> bytes:
         return json.dumps(
