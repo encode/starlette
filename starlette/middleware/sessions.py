@@ -65,11 +65,6 @@ class SessionMiddleware:
                         self.max_age,
                         self.security_flags,
                     )
-                    if len(header_value) > 4096:  # Ref. RFC 6265
-                        warnings.warn(
-                            "Cookie exceeds 4096 bytes, may be ignored by browser.",
-                            UserWarning,
-                        )
                     headers.append("Set-Cookie", header_value)
                 elif not initial_session_was_empty:
                     # The session has been cleared.
