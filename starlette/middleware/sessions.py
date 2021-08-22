@@ -1,6 +1,5 @@
 import json
 import typing
-import warnings
 from base64 import b64decode, b64encode
 
 import itsdangerous
