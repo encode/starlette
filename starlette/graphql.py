@@ -169,11 +169,11 @@ GRAPHIQL = """
       If you do not want to rely on a CDN, you can host these files locally or
       include them directly in your favored resource bunder.
     -->
-    <link href="//cdn.jsdelivr.net/npm/graphiql@0.12.0/graphiql.css" rel="stylesheet"/>
+    <link href="//cdn.jsdelivr.net/npm/graphiql@1.4.2/graphiql.css" rel="stylesheet"/>
     <script src="//cdn.jsdelivr.net/npm/whatwg-fetch@2.0.3/fetch.min.js"></script>
     <script src="//cdn.jsdelivr.net/npm/react@16.2.0/umd/react.production.min.js"></script>
     <script src="//cdn.jsdelivr.net/npm/react-dom@16.2.0/umd/react-dom.production.min.js"></script>
-    <script src="//cdn.jsdelivr.net/npm/graphiql@0.12.0/graphiql.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/graphiql@1.4.2/graphiql.min.js"></script>
   </head>
   <body>
     <div id="graphiql">Loading...</div>
@@ -216,6 +216,9 @@ GRAPHIQL = """
         parameters.variables = newVariables;
         updateURL();
       }
+      function onEditHeaders(newHeaders) {
+        parameters.headers = newHeaders;
+      }
       function onEditOperationName(newOperationName) {
         parameters.operationName = newOperationName;
         updateURL();
@@ -232,15 +235,16 @@ GRAPHIQL = """
       // Defines a GraphQL fetcher using the fetch API. You're not required to
       // use fetch, and could instead implement graphQLFetcher however you like,
       // as long as it returns a Promise or Observable.
-      function graphQLFetcher(graphQLParams) {
+      function graphQLFetcher(graphQLParams, otherParams) {
         // This example expects a GraphQL server at the path /graphql.
         // Change this to point wherever you host your GraphQL server.
+        var headers = {'Accept': 'application/json', 'Content-Type': 'application/json'};
+        if (otherParams && otherParams.headers) {
+          headers = Object.assign(headers, otherParams.headers);
+        }
         return fetch({{REQUEST_PATH}}, {
           method: 'post',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          },
+          headers: headers,
           body: JSON.stringify(graphQLParams),
           credentials: 'include',
         }).then(function (response) {
@@ -260,11 +264,14 @@ GRAPHIQL = """
       ReactDOM.render(
         React.createElement(GraphiQL, {
           fetcher: graphQLFetcher,
+          headerEditorEnabled: true,
           query: parameters.query,
           variables: parameters.variables,
+          headers: parameters.headers,
           operationName: parameters.operationName,
           onEditQuery: onEditQuery,
           onEditVariables: onEditVariables,
+          onEditHeaders: onEditHeaders,
           onEditOperationName: onEditOperationName
         }),
         document.getElementById('graphiql')
