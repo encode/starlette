@@ -655,7 +655,6 @@ def test_duplicated_param_names():
         Route("/{id}/{name}/{id}/{name}", user)
 
 
-
 def assert_middleware_header_route(request: Request):
     assert getattr(request.state, "middleware_touched") == "Set by middleware"
     return Response()
