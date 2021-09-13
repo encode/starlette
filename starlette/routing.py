@@ -14,6 +14,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.convertors import CONVERTOR_TYPES, Convertor
 from starlette.datastructures import URL, Headers, URLPath
 from starlette.exceptions import HTTPException
+from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, RedirectResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -191,6 +192,7 @@ class Route(BaseRoute):
         methods: typing.List[str] = None,
         name: str = None,
         include_in_schema: bool = True,
+        middleware: typing.Optional[typing.Sequence[Middleware]] = None,
     ) -> None:
         assert path.startswith("/"), "Routed paths must start with '/'"
         self.path = path
@@ -209,6 +211,10 @@ class Route(BaseRoute):
         else:
             # Endpoint is a class. Treat it as ASGI.
             self.app = endpoint
+        
+        if middleware is not None:
+            for cls, options in reversed(middleware):
+                self.app = cls(app=self.app, **options)
 
         if methods is None:
             self.methods = None
@@ -269,7 +275,12 @@ class Route(BaseRoute):
 
 class WebSocketRoute(BaseRoute):
     def __init__(
-        self, path: str, endpoint: typing.Callable, *, name: str = None
+        self,
+        path: str,
+        endpoint: typing.Callable,
+        *,
+        name: str = None,
+        middleware: typing.Optional[typing.Sequence[Middleware]] = None,
     ) -> None:
         assert path.startswith("/"), "Routed paths must start with '/'"
         self.path = path
@@ -282,6 +293,10 @@ class WebSocketRoute(BaseRoute):
         else:
             # Endpoint is a class. Treat it as ASGI.
             self.app = endpoint
+
+        if middleware is not None:
+            for cls, options in reversed(middleware):
+                self.app = cls(app=self.app, **options)
 
         self.path_regex, self.path_format, self.param_convertors = compile_path(path)
 

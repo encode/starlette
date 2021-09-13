@@ -1,10 +1,15 @@
 import functools
+from starlette.testclient import TestClient
+import typing
 import uuid
 
 import pytest
 
 from starlette.applications import Starlette
+from starlette.middleware import Middleware
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import JSONResponse, PlainTextResponse, Response
+from starlette.requests import Request
 from starlette.routing import Host, Mount, NoMatchFound, Route, Router, WebSocketRoute
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
@@ -648,3 +653,37 @@ def test_duplicated_param_names():
         match="Duplicated param names id, name at path /{id}/{name}/{id}/{name}",
     ):
         Route("/{id}/{name}/{id}/{name}", user)
+
+
+
+def assert_middleware_header_route(request: Request):
+    assert getattr(request.state, "middleware_touched") == "Set by middleware"
+    return Response()
+
+
+class AddHeadersMiddleware(BaseHTTPMiddleware):
+
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        setattr(request.state, "middleware_touched", "Set by middleware")
+        response: Response = await call_next(request)
+        response.headers["X-Test"] = "Set by middleware"
+        return response
+
+
+middleware_router = Router(
+    [
+        Route(
+            "/http",
+            endpoint=assert_middleware_header_route,
+            methods=["GET"],
+            middleware=[Middleware(AddHeadersMiddleware)]
+        ),
+    ]
+)
+
+
+def test_router_middleware_http(test_client_factory: typing.Callable[..., TestClient]) -> None:
+    test_client = test_client_factory(middleware_router)
+    response = test_client.get("/http")
+    assert response.status_code == 200
+    assert response.headers["X-Test"] == "Set by middleware"
