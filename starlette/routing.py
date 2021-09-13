@@ -292,7 +292,7 @@ class WebSocketRoute(BaseRoute):
         else:
             # Endpoint is a class. Treat it as ASGI.
             self.app = endpoint
-    
+
         self.path_regex, self.path_format, self.param_convertors = compile_path(path)
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
