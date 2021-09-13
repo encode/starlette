@@ -275,11 +275,7 @@ class Route(BaseRoute):
 
 class WebSocketRoute(BaseRoute):
     def __init__(
-        self,
-        path: str,
-        endpoint: typing.Callable,
-        *,
-        name: str = None,
+        self, path: str, endpoint: typing.Callable, *, name: str = None
     ) -> None:
         assert path.startswith("/"), "Routed paths must start with '/'"
         self.path = path
