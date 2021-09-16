@@ -3,7 +3,6 @@ import sys
 import pytest
 
 from starlette.middleware.wsgi import WSGIMiddleware, build_environ
-from starlette.testclient import TestClient
 
 
 def hello_world(environ, start_response):
@@ -35,7 +34,7 @@ def raise_exception(environ, start_response):
 def return_exc_info(environ, start_response):
     try:
         raise RuntimeError("Something went wrong")
-    except:
+    except RuntimeError:
         status = "500 Internal Server Error"
         output = b"Internal Server Error"
         headers = [
@@ -46,41 +45,41 @@ def return_exc_info(environ, start_response):
         return [output]
 
 
-def test_wsgi_get():
+def test_wsgi_get(test_client_factory):
     app = WSGIMiddleware(hello_world)
-    client = TestClient(app)
+    client = test_client_factory(app)
     response = client.get("/")
     assert response.status_code == 200
     assert response.text == "Hello World!\n"
 
 
-def test_wsgi_post():
+def test_wsgi_post(test_client_factory):
     app = WSGIMiddleware(echo_body)
-    client = TestClient(app)
+    client = test_client_factory(app)
     response = client.post("/", json={"example": 123})
     assert response.status_code == 200
     assert response.text == '{"example": 123}'
 
 
-def test_wsgi_exception():
+def test_wsgi_exception(test_client_factory):
     # Note that we're testing the WSGI app directly here.
     # The HTTP protocol implementations would catch this error and return 500.
     app = WSGIMiddleware(raise_exception)
-    client = TestClient(app)
+    client = test_client_factory(app)
     with pytest.raises(RuntimeError):
-        response = client.get("/")
+        client.get("/")
 
 
-def test_wsgi_exc_info():
+def test_wsgi_exc_info(test_client_factory):
     # Note that we're testing the WSGI app directly here.
     # The HTTP protocol implementations would catch this error and return 500.
     app = WSGIMiddleware(return_exc_info)
-    client = TestClient(app)
+    client = test_client_factory(app)
     with pytest.raises(RuntimeError):
         response = client.get("/")
 
     app = WSGIMiddleware(return_exc_info)
-    client = TestClient(app, raise_server_exceptions=False)
+    client = test_client_factory(app, raise_server_exceptions=False)
     response = client.get("/")
     assert response.status_code == 500
     assert response.text == "Internal Server Error"
@@ -128,3 +127,18 @@ def test_build_environ():
         "wsgi.url_scheme": "https",
         "wsgi.version": (1, 0),
     }
+
+
+def test_build_environ_encoding() -> None:
+    scope = {
+        "type": "http",
+        "http_version": "1.1",
+        "method": "GET",
+        "path": "/小星",
+        "root_path": "/中国",
+        "query_string": b"a=123&b=456",
+        "headers": [],
+    }
+    environ = build_environ(scope, b"")
+    assert environ["SCRIPT_NAME"] == "/中国".encode().decode("latin-1")
+    assert environ["PATH_INFO"] == "/小星".encode().decode("latin-1")

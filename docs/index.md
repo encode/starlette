@@ -1,15 +1,12 @@
 <p align="center">
-  <img width="320" height="192" src="https://raw.githubusercontent.com/encode/starlette/master/docs/starlette.png" alt='starlette'>
+  <img width="420px" src="/img/starlette.png" alt='starlette'>
 </p>
 <p align="center">
     <em>✨ The little ASGI framework that shines. ✨</em>
 </p>
 <p align="center">
-<a href="https://travis-ci.org/encode/starlette">
-    <img src="https://travis-ci.org/encode/starlette.svg?branch=master" alt="Build Status">
-</a>
-<a href="https://codecov.io/gh/encode/starlette">
-    <img src="https://codecov.io/gh/encode/starlette/branch/master/graph/badge.svg" alt="Coverage">
+<a href="https://github.com/encode/starlette/actions">
+    <img src="https://github.com/encode/starlette/workflows/Test%20Suite/badge.svg" alt="Build Status">
 </a>
 <a href="https://pypi.org/project/starlette/">
     <img src="https://badge.fury.io/py/starlette.svg" alt="Package version">
@@ -28,7 +25,6 @@ It is production-ready, and gives you the following:
 
 * Seriously impressive performance.
 * WebSocket support.
-* GraphQL support.
 * In-process background tasks.
 * Startup and shutdown events.
 * Test client built on `requests`.
@@ -36,7 +32,7 @@ It is production-ready, and gives you the following:
 * Session and Cookie support.
 * 100% test coverage.
 * 100% type annotated codebase.
-* Zero hard dependencies.
+* Few hard dependencies.
 
 ## Requirements
 
@@ -56,35 +52,40 @@ $ pip3 install uvicorn
 
 ## Example
 
+**example.py**:
+
 ```python
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
-import uvicorn
+from starlette.routing import Route
 
-app = Starlette(debug=True)
 
-@app.route('/')
 async def homepage(request):
     return JSONResponse({'hello': 'world'})
 
-if __name__ == '__main__':
-    uvicorn.run(app, host='0.0.0.0', port=8000)
+
+app = Starlette(debug=True, routes=[
+    Route('/', homepage),
+])
+```
+
+Then run the application...
+
+```shell
+$ uvicorn example:app
 ```
 
 For a more complete example, [see here](https://github.com/encode/starlette-example).
 
 ## Dependencies
 
-Starlette does not have any hard dependencies, but the following are optional:
+Starlette only requires `anyio`, and the following dependencies are optional:
 
 * [`requests`][requests] - Required if you want to use the `TestClient`.
-* [`aiofiles`][aiofiles] - Required if you want to use `FileResponse` or `StaticFiles`.
 * [`jinja2`][jinja2] - Required if you want to use `Jinja2Templates`.
 * [`python-multipart`][python-multipart] - Required if you want to support form parsing, with `request.form()`.
 * [`itsdangerous`][itsdangerous] - Required for `SessionMiddleware` support.
 * [`pyyaml`][pyyaml] - Required for `SchemaGenerator` support.
-* [`graphene`][graphene] - Required for `GraphQLApp` support.
-* [`ujson`][ujson] - Required if you want to use `UJSONResponse`.
 
 You can install all of these with `pip3 install starlette[full]`.
 
@@ -97,20 +98,16 @@ an ASGI toolkit. You can use any of its components independently.
 from starlette.responses import PlainTextResponse
 
 
-class App:
-    def __init__(self, scope):
-        assert scope['type'] == 'http'
-        self.scope = scope
-
-    async def __call__(self, receive, send):
-        response = PlainTextResponse('Hello, world!')
-        await response(receive, send)
+async def app(scope, receive, send):
+    assert scope['type'] == 'http'
+    response = PlainTextResponse('Hello, world!')
+    await response(scope, receive, send)
 ```
 
-Run the `App` application in `example.py`:
+Run the `app` application in `example.py`:
 
 ```shell
-$ uvicorn example:App
+$ uvicorn example:app
 INFO: Started server process [11509]
 INFO: Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
 ```
@@ -133,7 +130,6 @@ as [one of the fastest Python frameworks available](https://www.techempower.com/
 
 For high throughput loads you should:
 
-* Make sure to install `ujson` and use `UJSONResponse`.
 * Run using Gunicorn using the `uvicorn` worker class.
 * Use one or two workers per-CPU core. (You might need to experiment with this.)
 * Disable access logging.
@@ -164,11 +160,9 @@ gunicorn -k uvicorn.workers.UvicornH11Worker ...
 <p align="center"><i>Starlette is <a href="https://github.com/encode/starlette/blob/master/LICENSE.md">BSD licensed</a> code. Designed & built in Brighton, England.</i></p>
 
 [requests]: http://docs.python-requests.org/en/master/
-[aiofiles]: https://github.com/Tinche/aiofiles
 [jinja2]: http://jinja.pocoo.org/
 [python-multipart]: https://andrew-d.github.io/python-multipart/
 [graphene]: https://graphene-python.org/
 [itsdangerous]: https://pythonhosted.org/itsdangerous/
 [sqlalchemy]: https://www.sqlalchemy.org
 [pyyaml]: https://pyyaml.org/wiki/PyYAMLDocumentation
-[ujson]: https://github.com/esnme/ultrajson

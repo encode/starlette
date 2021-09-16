@@ -103,6 +103,27 @@ class WebSocket(HTTPConnection):
             text = message["bytes"].decode("utf-8")
         return json.loads(text)
 
+    async def iter_text(self) -> typing.AsyncIterator[str]:
+        try:
+            while True:
+                yield await self.receive_text()
+        except WebSocketDisconnect:
+            pass
+
+    async def iter_bytes(self) -> typing.AsyncIterator[bytes]:
+        try:
+            while True:
+                yield await self.receive_bytes()
+        except WebSocketDisconnect:
+            pass
+
+    async def iter_json(self) -> typing.AsyncIterator[typing.Any]:
+        try:
+            while True:
+                yield await self.receive_json()
+        except WebSocketDisconnect:
+            pass
+
     async def send_text(self, data: str) -> None:
         await self.send({"type": "websocket.send", "text": data})
 
@@ -125,5 +146,5 @@ class WebSocketClose:
     def __init__(self, code: int = 1000) -> None:
         self.code = code
 
-    async def __call__(self, receive: Receive, send: Send) -> None:
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         await send({"type": "websocket.close", "code": self.code})

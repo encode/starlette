@@ -1,5 +1,7 @@
 import io
 
+import pytest
+
 from starlette.datastructures import (
     URL,
     CommaSeparatedStrings,
@@ -8,6 +10,7 @@ from starlette.datastructures import (
     MultiDict,
     MutableHeaders,
     QueryParams,
+    UploadFile,
 )
 
 
@@ -34,6 +37,19 @@ def test_url():
     new = u.replace(hostname="example.com")
     assert new == "https://example.com:123/path/to/somewhere?abc=123#anchor"
     assert new.hostname == "example.com"
+
+
+def test_url_query_params():
+    u = URL("https://example.org/path/?page=3")
+    assert u.query == "page=3"
+    u = u.include_query_params(page=4)
+    assert str(u) == "https://example.org/path/?page=4"
+    u = u.include_query_params(search="testing")
+    assert str(u) == "https://example.org/path/?page=4&search=testing"
+    u = u.replace_query_params(order="name")
+    assert str(u) == "https://example.org/path/?order=name"
+    u = u.remove_query_params("order")
+    assert str(u) == "https://example.org/path/"
 
 
 def test_hidden_password():
@@ -154,6 +170,17 @@ def test_headers_mutablecopy():
     assert c.items() == [("a", "abc"), ("b", "789")]
 
 
+def test_url_blank_params():
+    q = QueryParams("a=123&abc&def&b=456")
+    assert "a" in q
+    assert "abc" in q
+    assert "def" in q
+    assert "b" in q
+    assert len(q.get("abc")) == 0
+    assert len(q["a"]) == 3
+    assert list(q.keys()) == ["a", "abc", "def", "b"]
+
+
 def test_queryparams():
     q = QueryParams("a=123&a=456&b=789")
     assert "a" in q
@@ -184,6 +211,20 @@ def test_queryparams():
 
     q = QueryParams([("a", "123"), ("a", "456")])
     assert QueryParams(q) == q
+
+
+class BigUploadFile(UploadFile):
+    spool_max_size = 1024
+
+
+@pytest.mark.anyio
+async def test_upload_file():
+    big_file = BigUploadFile("big-file")
+    await big_file.write(b"big-data" * 512)
+    await big_file.write(b"big-data")
+    await big_file.seek(0)
+    assert await big_file.read(1024) == b"big-data" * 128
+    await big_file.close()
 
 
 def test_formdata():

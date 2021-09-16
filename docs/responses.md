@@ -22,20 +22,16 @@ ASGI application instance.
 from starlette.responses import Response
 
 
-class App:
-    def __init__(self, scope):
-        assert scope['type'] == 'http'
-        self.scope = scope
-
-    async def __call__(self, receive, send):
-        response = Response('Hello, world!', media_type='text/plain')
-        await response(receive, send)
+async def app(scope, receive, send):
+    assert scope['type'] == 'http'
+    response = Response('Hello, world!', media_type='text/plain')
+    await response(scope, receive, send)
 ```
 #### Set Cookie
 
 Starlette provides a `set_cookie` method to allow you to set cookies on the response object.
 
-Signature: `Response.set_cookie(key, value, max_age=None, expires=None, path="/", domain=None, secure=False, httponly=False)`
+Signature: `Response.set_cookie(key, value, max_age=None, expires=None, path="/", domain=None, secure=False, httponly=False, samesite="lax")`
 
 * `key` - A string that will be the cookie's key.
 * `value` - A string that will be the cookie's value.
@@ -44,7 +40,8 @@ Signature: `Response.set_cookie(key, value, max_age=None, expires=None, path="/"
 * `path` - A string that specifies the subset of routes to which the cookie will apply. `Optional`
 * `domain` - A string that specifies the domain for which the cookie is valid. `Optional`
 * `secure` - A bool indicating that the cookie will only be sent to the server if request is made using SSL and the HTTPS protocol. `Optional`
-* `httponly` - A bool indicating that the cookie cannot be accessed via Javascript through `Document.cookie` property, the `XMLHttpRequest` or `Request` APIs. `Optional`
+* `httponly` - A bool indicating that the cookie cannot be accessed via JavaScript through `Document.cookie` property, the `XMLHttpRequest` or `Request` APIs. `Optional`
+* `samesite` - A string that specifies the samesite strategy for the cookie. Valid values are `'lax'`, `'strict'` and `'none'`. Defaults to `'lax'`. `Optional`
 
 #### Delete Cookie
 
@@ -61,32 +58,24 @@ Takes some text or bytes and returns an HTML response.
 from starlette.responses import HTMLResponse
 
 
-class App:
-    def __init__(self, scope):
-        assert scope['type'] == 'http'
-        self.scope = scope
-
-    async def __call__(self, receive, send):
-        response = HTMLResponse('<html><body><h1>Hello, world!</h1></body></html>')
-        await response(receive, send)
+async def app(scope, receive, send):
+    assert scope['type'] == 'http'
+    response = HTMLResponse('<html><body><h1>Hello, world!</h1></body></html>')
+    await response(scope, receive, send)
 ```
 
 ### PlainTextResponse
 
-Takes some text or bytes and returns an plain text response.
+Takes some text or bytes and returns a plain text response.
 
 ```python
 from starlette.responses import PlainTextResponse
 
 
-class App:
-    def __init__(self, scope):
-        assert scope['type'] == 'http'
-        self.scope = scope
-
-    async def __call__(self, receive, send):
-        response = PlainTextResponse('Hello, world!')
-        await response(receive, send)
+async def app(scope, receive, send):
+    assert scope['type'] == 'http'
+    response = PlainTextResponse('Hello, world!')
+    await response(scope, receive, send)
 ```
 
 ### JSONResponse
@@ -97,59 +86,51 @@ Takes some data and returns an `application/json` encoded response.
 from starlette.responses import JSONResponse
 
 
-class App:
-    def __init__(self, scope):
-        assert scope['type'] == 'http'
-        self.scope = scope
-
-    async def __call__(self, receive, send):
-        response = JSONResponse({'hello': 'world'})
-        await response(receive, send)
+async def app(scope, receive, send):
+    assert scope['type'] == 'http'
+    response = JSONResponse({'hello': 'world'})
+    await response(scope, receive, send)
 ```
 
-### UJSONResponse
+#### Custom JSON serialization
 
-A JSON response class that uses the optimised `ujson` library for serialisation.
+If you need fine-grained control over JSON serialization, you can subclass
+`JSONResponse` and override the `render` method.
 
-Using `ujson` will result in faster JSON serialisation, but is also less careful
-than Python's built-in implementation in how it handles some edge-cases.
-
-In general you *probably* want to stick with `JSONResponse` by default unless
-you are micro-optimising a particular endpoint.
+For example, if you wanted to use a third-party JSON library such as
+[orjson](https://pypi.org/project/orjson/):
 
 ```python
-from starlette.responses import UJSONResponse
+from typing import Any
+
+import orjson
+from starlette.responses import JSONResponse
 
 
-class App:
-    def __init__(self, scope):
-        assert scope['type'] == 'http'
-        self.scope = scope
-
-    async def __call__(self, receive, send):
-        response = UJSONResponse({'hello': 'world'})
-        await response(receive, send)
+class OrjsonResponse(JSONResponse):
+    def render(self, content: Any) -> bytes:
+        return orjson.dumps(content)
 ```
+
+In general you *probably* want to stick with `JSONResponse` by default unless
+you are micro-optimising a particular endpoint or need to serialize non-standard
+object types.
 
 ### RedirectResponse
 
-Returns an HTTP redirect. Uses a 302 status code by default.
+Returns an HTTP redirect. Uses a 307 status code by default.
 
 ```python
 from starlette.responses import PlainTextResponse, RedirectResponse
 
 
-class App:
-    def __init__(self, scope):
-        assert scope['type'] == 'http'
-        self.scope = scope
-
-    async def __call__(self, receive, send):
-        if self.scope['path'] != '/':
-            response = RedirectResponse(url='/')
-        else:
-            response = PlainTextResponse('Hello, world!')
-        await response(receive, send)
+async def app(scope, receive, send):
+    assert scope['type'] == 'http'
+    if scope['path'] != '/':
+        response = RedirectResponse(url='/')
+    else:
+        response = PlainTextResponse('Hello, world!')
+    await response(scope, receive, send)
 ```
 
 ### StreamingResponse
@@ -169,15 +150,11 @@ async def slow_numbers(minimum, maximum):
     yield('</ul></body></html>')
 
 
-class App:
-    def __init__(self, scope):
-        assert scope['type'] == 'http'
-        self.scope = scope
-
-    async def __call__(self, receive, send):
-        generator = slow_numbers(1, 10)
-        response = StreamingResponse(generator, media_type='text/html')
-        await response(receive, send)
+async def app(scope, receive, send):
+    assert scope['type'] == 'http'
+    generator = slow_numbers(1, 10)
+    response = StreamingResponse(generator, media_type='text/html')
+    await response(scope, receive, send)
 ```
 
 Have in mind that <a href="https://docs.python.org/3/glossary.html#term-file-like-object" target="_blank">file-like</a> objects (like those created by `open()`) are normal iterators. So, you can return them directly in a `StreamingResponse`.
@@ -199,12 +176,15 @@ File responses will include appropriate `Content-Length`, `Last-Modified` and `E
 from starlette.responses import FileResponse
 
 
-class App:
-    def __init__(self, scope):
-        assert scope['type'] == 'http'
-        self.scope = scope
-
-    async def __call__(self, receive, send):
-        response = FileResponse('statics/favicon.ico')
-        await response(receive, send)
+async def app(scope, receive, send):
+    assert scope['type'] == 'http'
+    response = FileResponse('statics/favicon.ico')
+    await response(scope, receive, send)
 ```
+
+## Third party middleware
+
+### [SSEResponse(EventSourceResponse)](https://github.com/sysid/sse-starlette)
+
+Server Sent Response implements the ServerSentEvent Protocol: https://www.w3.org/TR/2009/WD-eventsource-20090421.  
+It enables event streaming from the server to the client without the complexity of websockets.
