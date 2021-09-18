@@ -47,7 +47,7 @@ class FormParser:
         ), "The `python-multipart` library must be installed to use form parsing."
         self.headers = headers
         self.stream = stream
-        self.messages = []  # type: typing.List[typing.Tuple[FormMessage, bytes]]
+        self.messages: typing.List[typing.Tuple[FormMessage, bytes]] = []
 
     def on_field_start(self) -> None:
         message = (FormMessage.FIELD_START, b"")
@@ -84,9 +84,7 @@ class FormParser:
         field_name = b""
         field_value = b""
 
-        items = (
-            []
-        )  # type: typing.List[typing.Tuple[str, typing.Union[str, UploadFile]]]
+        items: typing.List[typing.Tuple[str, typing.Union[str, UploadFile]]] = []
 
         # Feed the parser with data from the request.
         async for chunk in self.stream:
@@ -108,8 +106,6 @@ class FormParser:
                     name = unquote_plus(field_name.decode("latin-1"))
                     value = unquote_plus(field_value.decode("latin-1"))
                     items.append((name, value))
-                elif message_type == FormMessage.END:
-                    pass
 
         return FormData(items)
 
@@ -123,7 +119,7 @@ class MultiPartParser:
         ), "The `python-multipart` library must be installed to use form parsing."
         self.headers = headers
         self.stream = stream
-        self.messages = []  # type: typing.List[typing.Tuple[MultiPartMessage, bytes]]
+        self.messages: typing.List[typing.Tuple[MultiPartMessage, bytes]] = []
 
     def on_part_begin(self) -> None:
         message = (MultiPartMessage.PART_BEGIN, b"")
@@ -185,11 +181,9 @@ class MultiPartParser:
         content_type = b""
         field_name = ""
         data = b""
-        file = None  # type: typing.Optional[UploadFile]
+        file: typing.Optional[UploadFile] = None
 
-        items = (
-            []
-        )  # type: typing.List[typing.Tuple[str, typing.Union[str, UploadFile]]]
+        items: typing.List[typing.Tuple[str, typing.Union[str, UploadFile]]] = []
 
         # Feed the parser with data from the request.
         async for chunk in self.stream:
@@ -235,8 +229,6 @@ class MultiPartParser:
                     else:
                         await file.seek(0)
                         items.append((field_name, file))
-                elif message_type == MultiPartMessage.END:
-                    pass
 
         parser.finalize()
         return FormData(items)

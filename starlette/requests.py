@@ -1,8 +1,9 @@
-import asyncio
 import json
 import typing
 from collections.abc import Mapping
 from http import cookies as http_cookies
+
+import anyio
 
 from starlette.datastructures import URL, Address, FormData, Headers, QueryParams, State
 from starlette.formparsers import FormParser, MultiPartParser
@@ -72,6 +73,12 @@ class HTTPConnection(Mapping):
 
     def __len__(self) -> int:
         return len(self.scope)
+
+    # Don't use the `abc.Mapping.__eq__` implementation.
+    # Connection instances should never be considered equal
+    # unless `self is other`.
+    __eq__ = object.__eq__
+    __hash__ = object.__hash__
 
     @property
     def app(self) -> typing.Any:
@@ -153,7 +160,8 @@ class HTTPConnection(Mapping):
         if not hasattr(self, "_state"):
             # Ensure 'state' has an empty dict if it's not already populated.
             self.scope.setdefault("state", {})
-            # Create a state instance with a reference to the dict in which it should store info
+            # Create a state instance with a reference to the dict in which it should
+            # store info
             self._state = State(self.scope["state"])
         return self._state
 
@@ -250,10 +258,12 @@ class Request(HTTPConnection):
 
     async def is_disconnected(self) -> bool:
         if not self._is_disconnected:
-            try:
-                message = await asyncio.wait_for(self._receive(), timeout=0.0000001)
-            except asyncio.TimeoutError:
-                message = {}
+            message: Message = {}
+
+            # If message isn't immediately available, move on
+            with anyio.CancelScope() as cs:
+                cs.cancel()
+                message = await self._receive()
 
             if message.get("type") == "http.disconnect":
                 self._is_disconnected = True
