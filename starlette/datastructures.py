@@ -180,11 +180,7 @@ class URLPath(str):
         else:
             scheme = base_url.scheme
 
-        if self.host:
-            netloc = self.host
-        else:
-            netloc = base_url.netloc
-
+        netloc = self.host or base_url.netloc
         path = base_url.path.rstrip("/") + str(self)
         return str(URL(scheme=scheme, netloc=netloc, path=path))
 
@@ -231,7 +227,7 @@ class CommaSeparatedStrings(Sequence):
         return f"{class_name}({items!r})"
 
     def __str__(self) -> str:
-        return ", ".join([repr(item) for item in self])
+        return ", ".join(repr(item) for item in self)
 
 
 class ImmutableMultiDict(typing.Mapping):
@@ -246,11 +242,7 @@ class ImmutableMultiDict(typing.Mapping):
     ) -> None:
         assert len(args) < 2, "Too many arguments."
 
-        if args:
-            value = args[0]
-        else:
-            value = []
-
+        value = args[0] if args else []
         if kwargs:
             value = (
                 ImmutableMultiDict(value).multi_items()
@@ -258,7 +250,7 @@ class ImmutableMultiDict(typing.Mapping):
             )
 
         if not value:
-            _items = []  # type: typing.List[typing.Tuple[typing.Any, typing.Any]]
+            _items: typing.List[typing.Tuple[typing.Any, typing.Any]] = []
         elif hasattr(value, "multi_items"):
             value = typing.cast(ImmutableMultiDict, value)
             _items = list(value.multi_items())
@@ -495,7 +487,7 @@ class Headers(typing.Mapping[str, str]):
         raw: typing.List[typing.Tuple[bytes, bytes]] = None,
         scope: Scope = None,
     ) -> None:
-        self._list = []  # type: typing.List[typing.Tuple[bytes, bytes]]
+        self._list: typing.List[typing.Tuple[bytes, bytes]] = []
         if headers is not None:
             assert raw is None, 'Cannot set both "headers" and "raw".'
             assert scope is None, 'Cannot set both "headers" and "scope".'
@@ -649,7 +641,7 @@ class MutableHeaders(Headers):
         self["vary"] = vary
 
 
-class State(object):
+class State:
     """
     An object that can be used to store arbitrary state.
 
@@ -659,7 +651,7 @@ class State(object):
     def __init__(self, state: typing.Dict = None):
         if state is None:
             state = {}
-        super(State, self).__setattr__("_state", state)
+        super().__setattr__("_state", state)
 
     def __setattr__(self, key: typing.Any, value: typing.Any) -> None:
         self._state[key] = value
