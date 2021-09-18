@@ -40,7 +40,7 @@ Signature: `Response.set_cookie(key, value, max_age=None, expires=None, path="/"
 * `path` - A string that specifies the subset of routes to which the cookie will apply. `Optional`
 * `domain` - A string that specifies the domain for which the cookie is valid. `Optional`
 * `secure` - A bool indicating that the cookie will only be sent to the server if request is made using SSL and the HTTPS protocol. `Optional`
-* `httponly` - A bool indicating that the cookie cannot be accessed via Javascript through `Document.cookie` property, the `XMLHttpRequest` or `Request` APIs. `Optional`
+* `httponly` - A bool indicating that the cookie cannot be accessed via JavaScript through `Document.cookie` property, the `XMLHttpRequest` or `Request` APIs. `Optional`
 * `samesite` - A string that specifies the samesite strategy for the cookie. Valid values are `'lax'`, `'strict'` and `'none'`. Defaults to `'lax'`. `Optional`
 
 #### Delete Cookie
@@ -66,7 +66,7 @@ async def app(scope, receive, send):
 
 ### PlainTextResponse
 
-Takes some text or bytes and returns an plain text response.
+Takes some text or bytes and returns a plain text response.
 
 ```python
 from starlette.responses import PlainTextResponse
@@ -92,25 +92,29 @@ async def app(scope, receive, send):
     await response(scope, receive, send)
 ```
 
-### UJSONResponse
+#### Custom JSON serialization
 
-A JSON response class that uses the optimised `ujson` library for serialisation.
+If you need fine-grained control over JSON serialization, you can subclass
+`JSONResponse` and override the `render` method.
 
-Using `ujson` will result in faster JSON serialisation, but is also less careful
-than Python's built-in implementation in how it handles some edge-cases.
-
-In general you *probably* want to stick with `JSONResponse` by default unless
-you are micro-optimising a particular endpoint.
+For example, if you wanted to use a third-party JSON library such as
+[orjson](https://pypi.org/project/orjson/):
 
 ```python
-from starlette.responses import UJSONResponse
+from typing import Any
+
+import orjson
+from starlette.responses import JSONResponse
 
 
-async def app(scope, receive, send):
-    assert scope['type'] == 'http'
-    response = UJSONResponse({'hello': 'world'})
-    await response(scope, receive, send)
+class OrjsonResponse(JSONResponse):
+    def render(self, content: Any) -> bytes:
+        return orjson.dumps(content)
 ```
+
+In general you *probably* want to stick with `JSONResponse` by default unless
+you are micro-optimising a particular endpoint or need to serialize non-standard
+object types.
 
 ### RedirectResponse
 

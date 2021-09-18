@@ -44,7 +44,7 @@ Checkout <a href="https://github.com/taoufik07/nejma-chat" target="_blank">nejma
 <a href="https://github.com/Sobolev5/channel-box" target="_blank">GitHub</a>
 
 Another solution for websocket broadcast. Send messages to channel groups from any part of your code. 
-Checkout <a href="http://backend.starlette-vue.site/chat/chat1/" target="_blank">channel-box-chat</a>, a simple chat application built using `channel-box` and `starlette`.
+Checkout <a href="https://svue-backend.andrey-sobolev.ru/chat/chat1/" target="_blank">channel-box-chat</a>, a simple chat application built using `channel-box` and `starlette`.
 
 ### Scout APM
 
@@ -78,7 +78,7 @@ The ultimate Python library in building OAuth and OpenID Connect clients and ser
 
 ### Starlette OAuth2 API
 
-<a href="https://gitlab.com/jorgecarleitao/starlette-oauth2-api" target="_blank">Gitlab</a>
+<a href="https://gitlab.com/jorgecarleitao/starlette-oauth2-api" target="_blank">GitLab</a>
 
 A starlette middleware to add authentication and authorization through JWTs.
 It relies solely on an auth provider to issue access and/or id tokens to clients.
@@ -89,6 +89,12 @@ It relies solely on an auth provider to issue access and/or id tokens to clients
 
 Middleware for Starlette that allows you to store and access the context data of a request.
 Can be used with logging so logs automatically use request headers such as x-request-id or x-correlation-id.
+
+### Starlette Cramjam
+
+<a href="https://github.com/developmentseed/starlette-cramjam" target="_blank">GitHub</a>
+
+A Starlette middleware that allows **brotli**, **gzip** and **deflate** compression algorithm with a minimal requirements.
 
 ## Frameworks
 
