@@ -178,7 +178,7 @@ class ServerErrorMiddleware:
             # We always continue to raise the exception.
             # This allows servers to log the error, or allows test clients
             # to optionally raise the error within the test case.
-            raise exc from None
+            raise exc
 
     def format_line(
         self, index: int, line: str, frame_lineno: int, frame_index: int
@@ -217,15 +217,15 @@ class ServerErrorMiddleware:
         traceback_obj = traceback.TracebackException.from_exception(
             exc, capture_locals=True
         )
-        frames = inspect.getinnerframes(
-            traceback_obj.exc_traceback, limit  # type: ignore
-        )
 
         exc_html = ""
         is_collapsed = False
-        for frame in reversed(frames):
-            exc_html += self.generate_frame_html(frame, is_collapsed)
-            is_collapsed = True
+        exc_traceback = exc.__traceback__
+        if exc_traceback is not None:
+            frames = inspect.getinnerframes(exc_traceback, limit)
+            for frame in reversed(frames):
+                exc_html += self.generate_frame_html(frame, is_collapsed)
+                is_collapsed = True
 
         # escape error class and text
         error = (
