@@ -140,7 +140,7 @@ SECRET_KEY = config('SECRET_KEY', cast=Secret)
 DATABASE_URL = config('DATABASE_URL', cast=URL)
 if TESTING:
     db_name = DATABASE_URL.path.lstrip('/')
-    DATABASE_URL = DATABASE_URL.replace(path='/test_' + db_name)
+    DATABASE_URL = DATABASE_URL.replace(database='test_' + DATABASE_URL.database)
 ```
 
 **myproject/tables.py**:
