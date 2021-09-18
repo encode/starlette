@@ -211,7 +211,7 @@ class Route(BaseRoute):
         else:
             # Endpoint is a class. Treat it as ASGI.
             self.app = endpoint
-        
+
         if middleware is not None:
             for cls, options in reversed(middleware):
                 self.app = cls(app=self.app, **options)
