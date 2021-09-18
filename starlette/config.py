@@ -15,7 +15,7 @@ class EnvironError(Exception):
 class Environ(MutableMapping):
     def __init__(self, environ: typing.MutableMapping = os.environ):
         self._environ = environ
-        self._has_been_read = set()  # type: typing.Set[typing.Any]
+        self._has_been_read: typing.Set[typing.Any] = set()
 
     def __getitem__(self, key: typing.Any) -> typing.Any:
         self._has_been_read.add(key)
@@ -24,14 +24,16 @@ class Environ(MutableMapping):
     def __setitem__(self, key: typing.Any, value: typing.Any) -> None:
         if key in self._has_been_read:
             raise EnvironError(
-                f"Attempting to set environ['{key}'], but the value has already been read."
+                f"Attempting to set environ['{key}'], but the value has already been "
+                "read."
             )
         self._environ.__setitem__(key, value)
 
     def __delitem__(self, key: typing.Any) -> None:
         if key in self._has_been_read:
             raise EnvironError(
-                f"Attempting to delete environ['{key}'], but the value has already been read."
+                f"Attempting to delete environ['{key}'], but the value has already "
+                "been read."
             )
         self._environ.__delitem__(key)
 
@@ -44,6 +46,8 @@ class Environ(MutableMapping):
 
 environ = Environ()
 
+T = typing.TypeVar("T")
+
 
 class Config:
     def __init__(
@@ -52,17 +56,35 @@ class Config:
         environ: typing.Mapping[str, str] = environ,
     ) -> None:
         self.environ = environ
-        self.file_values = {}  # type: typing.Dict[str, str]
+        self.file_values: typing.Dict[str, str] = {}
         if env_file is not None and os.path.isfile(env_file):
             self.file_values = self._read_file(env_file)
 
+    @typing.overload
     def __call__(
-        self, key: str, cast: type = None, default: typing.Any = undefined
+        self, key: str, cast: typing.Type[T], default: T = ...
+    ) -> T:  # pragma: no cover
+        ...
+
+    @typing.overload
+    def __call__(
+        self, key: str, cast: typing.Type[str] = ..., default: str = ...
+    ) -> str:  # pragma: no cover
+        ...
+
+    @typing.overload
+    def __call__(
+        self, key: str, cast: typing.Type[str] = ..., default: T = ...
+    ) -> typing.Union[T, str]:  # pragma: no cover
+        ...
+
+    def __call__(
+        self, key: str, cast: typing.Callable = None, default: typing.Any = undefined
     ) -> typing.Any:
         return self.get(key, cast, default)
 
     def get(
-        self, key: str, cast: type = None, default: typing.Any = undefined
+        self, key: str, cast: typing.Callable = None, default: typing.Any = undefined
     ) -> typing.Any:
         if key in self.environ:
             value = self.environ[key]
@@ -75,7 +97,7 @@ class Config:
         raise KeyError(f"Config '{key}' is missing, and has no default.")
 
     def _read_file(self, file_name: typing.Union[str, Path]) -> typing.Dict[str, str]:
-        file_values = {}  # type: typing.Dict[str, str]
+        file_values: typing.Dict[str, str] = {}
         with open(file_name) as input_file:
             for line in input_file.readlines():
                 line = line.strip()
@@ -87,7 +109,7 @@ class Config:
         return file_values
 
     def _perform_cast(
-        self, key: str, value: typing.Any, cast: type = None
+        self, key: str, value: typing.Any, cast: typing.Callable = None
     ) -> typing.Any:
         if cast is None or value is None:
             return value

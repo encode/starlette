@@ -20,6 +20,12 @@ Simple APISpec integration for Starlette.
 Document your REST API built with Starlette by declaring OpenAPI (Swagger)
 schemas in YAML format in your endpoint's docstrings.
 
+### SpecTree 
+
+<a href="https://github.com/0b01001001/spectree" target="_blank">GitHub</a>
+
+Generate OpenAPI spec document and validate request & response with Python annotations. Less boilerplate code(no need for YAML).
+
 ### Mangum
 
 <a href="https://github.com/erm/mangum" target="_blank">GitHub</a>
@@ -32,6 +38,13 @@ Serverless ASGI adapter for AWS Lambda & API Gateway.
 
 Manage and send messages to groups of channels using websockets.
 Checkout <a href="https://github.com/taoufik07/nejma-chat" target="_blank">nejma-chat</a>, a simple chat application built using `nejma` and `starlette`.
+
+### ChannelBox
+
+<a href="https://github.com/Sobolev5/channel-box" target="_blank">GitHub</a>
+
+Another solution for websocket broadcast. Send messages to channel groups from any part of your code. 
+Checkout <a href="https://svue-backend.andrey-sobolev.ru/chat/chat1/" target="_blank">channel-box-chat</a>, a simple chat application built using `channel-box` and `starlette`.
 
 ### Scout APM
 
@@ -63,12 +76,25 @@ type annotations.
 
 The ultimate Python library in building OAuth and OpenID Connect clients and servers. Check out how to integrate with [Starlette](https://docs.authlib.org/en/latest/client/starlette.html).
 
+### Starlette OAuth2 API
+
+<a href="https://gitlab.com/jorgecarleitao/starlette-oauth2-api" target="_blank">GitLab</a>
+
+A starlette middleware to add authentication and authorization through JWTs.
+It relies solely on an auth provider to issue access and/or id tokens to clients.
+
 ### Starlette Context
 
 <a href="https://github.com/tomwojcik/starlette-context" target="_blank">GitHub</a>
 
 Middleware for Starlette that allows you to store and access the context data of a request.
 Can be used with logging so logs automatically use request headers such as x-request-id or x-correlation-id.
+
+### Starlette Cramjam
+
+<a href="https://github.com/developmentseed/starlette-cramjam" target="_blank">GitHub</a>
+
+A Starlette middleware that allows **brotli**, **gzip** and **deflate** compression algorithm with a minimal requirements.
 
 ## Frameworks
 

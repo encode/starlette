@@ -15,7 +15,6 @@ from starlette.endpoints import HTTPEndpoint
 from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
-from starlette.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
 
@@ -117,6 +116,76 @@ async def websocket_endpoint(websocket):
     )
 
 
+def async_inject_decorator(**kwargs):
+    def wrapper(endpoint):
+        async def app(request):
+            return await endpoint(request=request, **kwargs)
+
+        return app
+
+    return wrapper
+
+
+@app.route("/dashboard/decorated")
+@async_inject_decorator(additional="payload")
+@requires("authenticated")
+async def decorated_async(request, additional):
+    return JSONResponse(
+        {
+            "authenticated": request.user.is_authenticated,
+            "user": request.user.display_name,
+            "additional": additional,
+        }
+    )
+
+
+def sync_inject_decorator(**kwargs):
+    def wrapper(endpoint):
+        def app(request):
+            return endpoint(request=request, **kwargs)
+
+        return app
+
+    return wrapper
+
+
+@app.route("/dashboard/decorated/sync")
+@sync_inject_decorator(additional="payload")
+@requires("authenticated")
+def decorated_sync(request, additional):
+    return JSONResponse(
+        {
+            "authenticated": request.user.is_authenticated,
+            "user": request.user.display_name,
+            "additional": additional,
+        }
+    )
+
+
+def ws_inject_decorator(**kwargs):
+    def wrapper(endpoint):
+        def app(websocket):
+            return endpoint(websocket=websocket, **kwargs)
+
+        return app
+
+    return wrapper
+
+
+@app.websocket_route("/ws/decorated")
+@ws_inject_decorator(additional="payload")
+@requires("authenticated")
+async def websocket_endpoint_decorated(websocket, additional):
+    await websocket.accept()
+    await websocket.send_json(
+        {
+            "authenticated": websocket.user.is_authenticated,
+            "user": websocket.user.display_name,
+            "additional": additional,
+        }
+    )
+
+
 def test_invalid_decorator_usage():
     with pytest.raises(Exception):
 
@@ -125,8 +194,8 @@ def test_invalid_decorator_usage():
             pass  # pragma: nocover
 
 
-def test_user_interface():
-    with TestClient(app) as client:
+def test_user_interface(test_client_factory):
+    with test_client_factory(app) as client:
         response = client.get("/")
         assert response.status_code == 200
         assert response.json() == {"authenticated": False, "user": ""}
@@ -136,8 +205,8 @@ def test_user_interface():
         assert response.json() == {"authenticated": True, "user": "tomchristie"}
 
 
-def test_authentication_required():
-    with TestClient(app) as client:
+def test_authentication_required(test_client_factory):
+    with test_client_factory(app) as client:
         response = client.get("/dashboard")
         assert response.status_code == 403
 
@@ -159,18 +228,46 @@ def test_authentication_required():
         assert response.status_code == 200
         assert response.json() == {"authenticated": True, "user": "tomchristie"}
 
+        response = client.get("/dashboard/decorated", auth=("tomchristie", "example"))
+        assert response.status_code == 200
+        assert response.json() == {
+            "authenticated": True,
+            "user": "tomchristie",
+            "additional": "payload",
+        }
+
+        response = client.get("/dashboard/decorated")
+        assert response.status_code == 403
+
+        response = client.get(
+            "/dashboard/decorated/sync", auth=("tomchristie", "example")
+        )
+        assert response.status_code == 200
+        assert response.json() == {
+            "authenticated": True,
+            "user": "tomchristie",
+            "additional": "payload",
+        }
+
+        response = client.get("/dashboard/decorated/sync")
+        assert response.status_code == 403
+
         response = client.get("/dashboard", headers={"Authorization": "basic foobar"})
         assert response.status_code == 400
         assert response.text == "Invalid basic auth credentials"
 
 
-def test_websocket_authentication_required():
-    with TestClient(app) as client:
+def test_websocket_authentication_required(test_client_factory):
+    with test_client_factory(app) as client:
         with pytest.raises(WebSocketDisconnect):
-            client.websocket_connect("/ws")
+            with client.websocket_connect("/ws"):
+                pass  # pragma: nocover
 
         with pytest.raises(WebSocketDisconnect):
-            client.websocket_connect("/ws", headers={"Authorization": "basic foobar"})
+            with client.websocket_connect(
+                "/ws", headers={"Authorization": "basic foobar"}
+            ):
+                pass  # pragma: nocover
 
         with client.websocket_connect(
             "/ws", auth=("tomchristie", "example")
@@ -178,9 +275,29 @@ def test_websocket_authentication_required():
             data = websocket.receive_json()
             assert data == {"authenticated": True, "user": "tomchristie"}
 
+        with pytest.raises(WebSocketDisconnect):
+            with client.websocket_connect("/ws/decorated"):
+                pass  # pragma: nocover
 
-def test_authentication_redirect():
-    with TestClient(app) as client:
+        with pytest.raises(WebSocketDisconnect):
+            with client.websocket_connect(
+                "/ws/decorated", headers={"Authorization": "basic foobar"}
+            ):
+                pass  # pragma: nocover
+
+        with client.websocket_connect(
+            "/ws/decorated", auth=("tomchristie", "example")
+        ) as websocket:
+            data = websocket.receive_json()
+            assert data == {
+                "authenticated": True,
+                "user": "tomchristie",
+                "additional": "payload",
+            }
+
+
+def test_authentication_redirect(test_client_factory):
+    with test_client_factory(app) as client:
         response = client.get("/admin")
         assert response.status_code == 200
         assert response.url == "http://testserver/"
@@ -219,8 +336,8 @@ def control_panel(request):
     )
 
 
-def test_custom_on_error():
-    with TestClient(other_app) as client:
+def test_custom_on_error(test_client_factory):
+    with test_client_factory(other_app) as client:
         response = client.get("/control-panel", auth=("tomchristie", "example"))
         assert response.status_code == 200
         assert response.json() == {"authenticated": True, "user": "tomchristie"}

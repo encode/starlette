@@ -43,7 +43,7 @@ class HTTPEndpoint:
 
 class WebSocketEndpoint:
 
-    encoding = None  # May be "text", "bytes", or "json".
+    encoding: typing.Optional[str] = None  # May be "text", "bytes", or "json".
 
     def __init__(self, scope: Scope, receive: Receive, send: Send) -> None:
         assert scope["type"] == "websocket"
@@ -71,7 +71,7 @@ class WebSocketEndpoint:
                     break
         except Exception as exc:
             close_code = status.WS_1011_INTERNAL_ERROR
-            raise exc from None
+            raise exc
         finally:
             await self.on_disconnect(websocket, close_code)
 
