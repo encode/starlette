@@ -119,6 +119,6 @@ Flama aims to bring a layer on top of Starlette to provide an **easy to learn** 
 
 ### Starlette-apps
 
-Roll your own framework with a simple app system, like Django-GDAPS or CakePHP.
+Roll your own framework with a simple app system, like [Django-GDAPS](https://gdaps.readthedocs.io/en/latest/) or [CakePHP](https://cakephp.org/).
 
 <a href="https://github.com/yourlabs/starlette-apps" target="_blank">GitHub</a>
