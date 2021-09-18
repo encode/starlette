@@ -235,7 +235,7 @@ async def test_upload_file():
     await big_file.close()
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_in_memory_upload_file():
     small_file = BigUploadFile("in-memory-file")
     await small_file.write(b"data-line\n" * 11)
