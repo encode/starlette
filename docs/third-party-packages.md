@@ -95,7 +95,7 @@ Can be used with logging so logs automatically use request headers such as x-req
 
 <a href="https://github.com/alex-oleshkevich/starsessions" target="_blank">GitHub</a>
 
-An alternate session support implementation. With customizable storage backends.
+An alternate session support implementation with customizable storage backends.
 
 
 ### Starlette Cramjam
