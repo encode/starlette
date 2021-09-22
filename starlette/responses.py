@@ -296,6 +296,22 @@ class FileResponse(Response):
         )
         if self.send_header_only:
             await send({"type": "http.response.body", "body": b"", "more_body": False})
+        elif "http.response.zerocopysend" in scope["extensions"]:
+            if os.name == "nt":
+                open_mode = os.O_RDONLY | os.O_BINARY
+            else:
+                open_mode = os.O_RDONLY
+            fd = os.open(self.path, open_mode)
+            try:
+                await send(
+                    {
+                        "type": "http.response.zerocopysend",
+                        "file": fd,
+                        "more_body": False,
+                    }
+                )
+            finally:
+                os.close(fd)
         else:
             async with await anyio.open_file(self.path, mode="rb") as file:
                 more_body = True
