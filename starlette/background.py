@@ -1,13 +1,7 @@
-import inspect
 import typing
 
 from starlette.concurrency import run_in_threadpool
-
-
-def iscoroutinefunction(obj: object) -> bool:
-    if inspect.iscoroutinefunction(obj):
-        return True
-    return callable(obj) and inspect.iscoroutinefunction(obj.__call__)
+from starlette.utils import iscoroutinefunction
 
 
 class BackgroundTask:
