@@ -296,7 +296,7 @@ class FileResponse(Response):
         )
         if self.send_header_only:
             await send({"type": "http.response.body", "body": b"", "more_body": False})
-        elif "http.response.zerocopysend" in scope["extensions"]:
+        elif "http.response.zerocopysend" in scope["extensions"]:  # pragma: no cover
             if os.name == "nt":
                 open_mode = os.O_RDONLY | os.O_BINARY
             else:
