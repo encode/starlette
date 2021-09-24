@@ -83,6 +83,13 @@ def uuid_converter(request):
     return JSONResponse({"uuid": str(uuid_param)})
 
 
+@app.route("/uuid/", name="uuid-convertor-without-param")
+def uuid_converter_without_param(request):
+    """This handler only required for test that it don't handle /uuid/{param:uuid}.
+    It's useless and never called.
+    """
+
+
 # Route with chars that conflict with regex meta chars
 @app.route("/path-with-parentheses({param:int})", name="path-with-parentheses")
 def path_with_parentheses(request):
@@ -195,6 +202,27 @@ def test_route_converters(client):
         )
         == "/uuid/ec38df32-ceda-4cfa-9b4a-1aeb94ad551a"
     )
+
+
+def test_routing_with_pct_encoding_in_path(client):
+    # Test invalid pct-encoded path raises 404
+    # ref: uuid-convertor-without-param
+    response = client.get("/uuid/%0A")
+    assert response.status_code == 404
+    assert response.text == "Not Found"
+
+    # Test that path route may contain bytes encoded with pct
+    response = client.get("/path/some%0Aexample")
+    assert response.status_code == 200
+    assert response.json() == {"path": "some\nexample"}
+
+    # Test pct-encoded valid UUID in path param
+    source_uuid = b"ec38df32-ceda-4cfa-9b4a-1aeb94ad551a"
+    pct_encoded_uuid = "".join(f"%{byte:02x}" for byte in source_uuid)
+    assert "%" in pct_encoded_uuid
+    response = client.get(f"/uuid/{pct_encoded_uuid}")
+    assert response.status_code == 200
+    assert response.json() == {"uuid": source_uuid.decode()}
 
 
 def test_url_path_for():

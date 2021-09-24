@@ -149,7 +149,7 @@ def compile_path(
     path_regex += re.escape(path[idx:]) + "$"
     path_format += path[idx:]
 
-    return re.compile(path_regex), path_format, param_convertors
+    return re.compile(path_regex, re.DOTALL), path_format, param_convertors
 
 
 class BaseRoute:
@@ -221,7 +221,7 @@ class Route(BaseRoute):
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] == "http":
-            match = self.path_regex.match(scope["path"])
+            match = self.path_regex.fullmatch(scope["path"])
             if match:
                 matched_params = match.groupdict()
                 for key, value in matched_params.items():
@@ -287,7 +287,7 @@ class WebSocketRoute(BaseRoute):
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] == "websocket":
-            match = self.path_regex.match(scope["path"])
+            match = self.path_regex.fullmatch(scope["path"])
             if match:
                 matched_params = match.groupdict()
                 for key, value in matched_params.items():
@@ -351,7 +351,7 @@ class Mount(BaseRoute):
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] in ("http", "websocket"):
             path = scope["path"]
-            match = self.path_regex.match(path)
+            match = self.path_regex.fullmatch(path)
             if match:
                 matched_params = match.groupdict()
                 for key, value in matched_params.items():
@@ -430,7 +430,7 @@ class Host(BaseRoute):
         if scope["type"] in ("http", "websocket"):
             headers = Headers(scope=scope)
             host = headers.get("host", "").split(":")[0]
-            match = self.host_regex.match(host)
+            match = self.host_regex.fullmatch(host)
             if match:
                 matched_params = match.groupdict()
                 for key, value in matched_params.items():
