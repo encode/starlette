@@ -7,13 +7,13 @@ pyyaml
 requests
 
 # Testing
-autoflake
-black==20.8b1
+autoflake; platform_python_implementation != 'PyPy'
+black==20.8b1; platform_python_implementation != 'PyPy'
 coverage>=5.3
 databases[sqlite]
 flake8
 isort==5.*
-mypy
+mypy; platform_python_implementation != 'PyPy'
 types-requests
 types-contextvars
 types-PyYAML
