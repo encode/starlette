@@ -1,6 +1,6 @@
 Starlette is not strictly tied to any particular database implementation.
 
-You can use it with an asynchronous ORM, such as [GINO](https://python-gino.readthedocs.io/en/latest/),
+You can use it with an asynchronous ORM, such as [GINO](https://python-gino.org/),
 or use regular non-async endpoints, and integrate with [SQLAlchemy](https://www.sqlalchemy.org/).
 
 In this documentation we'll demonstrate how to integrate against [the `databases` package](https://github.com/encode/databases),
@@ -27,6 +27,7 @@ import sqlalchemy
 from starlette.applications import Starlette
 from starlette.config import Config
 from starlette.responses import JSONResponse
+from starlette.routing import Route
 
 
 # Configuration from environment variables or '.env' file.
@@ -45,22 +46,10 @@ notes = sqlalchemy.Table(
     sqlalchemy.Column("completed", sqlalchemy.Boolean),
 )
 
-# Main application code.
 database = databases.Database(DATABASE_URL)
-app = Starlette()
 
 
-@app.on_event("startup")
-async def startup():
-    await database.connect()
-
-
-@app.on_event("shutdown")
-async def shutdown():
-    await database.disconnect()
-
-
-@app.route("/notes", methods=["GET"])
+# Main application code.
 async def list_notes(request):
     query = notes.select()
     results = await database.fetch_all(query)
@@ -73,8 +62,6 @@ async def list_notes(request):
     ]
     return JSONResponse(content)
 
-
-@app.route("/notes", methods=["POST"])
 async def add_note(request):
     data = await request.json()
     query = notes.insert().values(
@@ -86,7 +73,21 @@ async def add_note(request):
         "text": data["text"],
         "completed": data["completed"]
     })
+
+routes = [
+    Route("/notes", endpoint=list_notes, methods=["GET"]),
+    Route("/notes", endpoint=add_note, methods=["POST"]),
+]
+
+app = Starlette(
+    routes=routes,
+    on_startup=[database.connect],
+    on_shutdown=[database.disconnect]
+)
 ```
+
+Finally, you will need to create the database tables. It is recommended to use
+Alembic, which we briefly go over in [Migrations](#migrations)
 
 ## Queries
 
@@ -141,10 +142,10 @@ async def populate_note(request):
         await database.execute(query)
         raise RuntimeError()
     except:
-        transaction.rollback()
+        await transaction.rollback()
         raise
     else:
-        transaction.commit()
+        await transaction.commit()
 ```
 
 ## Test isolation
@@ -205,7 +206,7 @@ def create_test_database():
   We use the `sqlalchemy_utils` package here for a few helpers in consistently
   creating and dropping the database.
   """
-  url = str(app.DATABASE_URL)
+  url = str(app.TEST_DATABASE_URL)
   engine = create_engine(url)
   assert not database_exists(url), 'Test database already exists. Aborting tests.'
   create_database(url)             # Create the test database.
@@ -262,6 +263,34 @@ config.set_main_option('sqlalchemy.url', str(app.DATABASE_URL))
 target_metadata = app.metadata
 
 ...
+```
+
+Then, using our notes example above, create an initial revision:
+
+```shell
+alembic revision -m "Create notes table"
+```
+
+And populate the new file (within `migrations/versions`) with the necessary directives:
+
+```python
+
+def upgrade():
+    op.create_table(
+      'notes',
+      sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
+      sqlalchemy.Column("text", sqlalchemy.String),
+      sqlalchemy.Column("completed", sqlalchemy.Boolean),
+    )
+
+def downgrade():
+    op.drop_table('notes')
+```
+
+And run your first migration. Our notes app can now run!
+
+```shell
+alembic upgrade head
 ```
 
 **Running migrations during testing**

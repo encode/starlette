@@ -11,16 +11,12 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 
-class App:
-    def __init__(self, scope):
-        assert scope['type'] == 'http'
-        self.scope = scope
-
-    async def __call__(self, receive, send):
-        request = Request(self.scope, receive)
-        content = '%s %s' % (request.method, request.url.path)
-        response = Response(content, media_type='text/plain')
-        await response(receive, send)
+async def app(scope, receive, send):
+    assert scope['type'] == 'http'
+    request = Request(scope, receive)
+    content = '%s %s' % (request.method, request.url.path)
+    response = Response(content, media_type='text/plain')
+    await response(scope, receive, send)
 ```
 
 Requests present a mapping interface, so you can use them in the same
@@ -77,6 +73,8 @@ Cookies are exposed as a regular dictionary interface.
 
 For example: `request.cookies.get('mycookie')`
 
+Cookies are ignored in case of an invalid cookie. (RFC2109)
+
 #### Body
 
 There are a few different interfaces for returning the body of the request:
@@ -93,19 +91,15 @@ You can also access the request body as a stream, using the `async for` syntax:
 from starlette.requests import Request
 from starlette.responses import Response
 
-
-class App:
-    def __init__(self, scope):
-        assert scope['type'] == 'http'
-        self.scope = scope
-
-    async def __call__(self, receive, send):
-        request = Request(self.scope, receive)
-        body = b''
-        async for chunk in request.stream():
-            body += chunk
-        response = Response(body, media_type='text/plain')
-        await response(receive, send)
+    
+async def app(scope, receive, send):
+    assert scope['type'] == 'http'
+    request = Request(scope, receive)
+    body = b''
+    async for chunk in request.stream():
+        body += chunk
+    response = Response(body, media_type='text/plain')
+    await response(scope, receive, send)
 ```
 
 If you access `.stream()` then the byte chunks are provided without storing
@@ -147,6 +141,10 @@ form = await request.form()
 filename = form["upload_file"].filename
 contents = await form["upload_file"].read()
 ```
+
+#### Application
+
+The originating Starlette application can be accessed via `request.app`.
 
 #### Other state
 

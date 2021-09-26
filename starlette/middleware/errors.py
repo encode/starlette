@@ -1,4 +1,6 @@
 import asyncio
+import html
+import inspect
 import traceback
 import typing
 
@@ -8,6 +10,9 @@ from starlette.responses import HTMLResponse, PlainTextResponse, Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 STYLES = """
+p {
+    color: #211c1c;
+}
 .traceback-container {
     border: 1px solid #038BB8;
 }
@@ -18,20 +23,61 @@ STYLES = """
     font-size: 20px;
     margin-top: 0px;
 }
-.traceback-content {
-    padding: 5px 0px 20px 20px;
-}
 .frame-line {
+    padding-left: 10px;
+    font-family: monospace;
+}
+.frame-filename {
+    font-family: monospace;
+}
+.center-line {
+    background-color: #038BB8;
+    color: #f9f6e1;
+    padding: 5px 0px 5px 5px;
+}
+.lineno {
+    margin-right: 5px;
+}
+.frame-title {
     font-weight: unset;
-    padding: 10px 10px 10px 20px;
+    padding: 10px 10px 10px 10px;
     background-color: #E4F4FD;
-    margin-left: 10px;
     margin-right: 10px;
-    font: #394D54;
     color: #191f21;
     font-size: 17px;
     border: 1px solid #c7dce8;
 }
+.collapse-btn {
+    float: right;
+    padding: 0px 5px 1px 5px;
+    border: solid 1px #96aebb;
+    cursor: pointer;
+}
+.collapsed {
+  display: none;
+}
+.source-code {
+  font-family: courier;
+  font-size: small;
+  padding-bottom: 10px;
+}
+"""
+
+JS = """
+<script type="text/javascript">
+    function collapse(element){
+        const frameId = element.getAttribute("data-frame-id");
+        const frame = document.getElementById(frameId);
+
+        if (frame.classList.contains("collapsed")){
+            element.innerHTML = "&#8210;";
+            frame.classList.remove("collapsed");
+        } else {
+            element.innerHTML = "+";
+            frame.classList.add("collapsed");
+        }
+    }
+</script>
 """
 
 TEMPLATE = """
@@ -45,21 +91,34 @@ TEMPLATE = """
     <body>
         <h1>500 Server Error</h1>
         <h2>{error}</h2>
-        <div class='traceback-container'>
-            <p class='traceback-title'>Traceback</p>
-            <div class='traceback-content'>{exc_html}</div>
+        <div class="traceback-container">
+            <p class="traceback-title">Traceback</p>
+            <div>{exc_html}</div>
         </div>
+        {js}
     </body>
 </html>
 """
 
 FRAME_TEMPLATE = """
 <div>
-    File <span class='debug-filename'>`{frame_filename}`</span>,
+    <p class="frame-title">File <span class="frame-filename">{frame_filename}</span>,
     line <i>{frame_lineno}</i>,
     in <b>{frame_name}</b>
-    <p class='frame-line'>{frame_line}</p>
+    <span class="collapse-btn" data-frame-id="{frame_filename}-{frame_lineno}" onclick="collapse(this)">{collapse_button}</span>
+    </p>
+    <div id="{frame_filename}-{frame_lineno}" class="source-code {collapsed}">{code_context}</div>
 </div>
+"""  # noqa: E501
+
+LINE = """
+<p><span class="frame-line">
+<span class="lineno">{lineno}.</span> {line}</span></p>
+"""
+
+CENTER_LINE = """
+<p class="center-line"><span class="frame-line center-line">
+<span class="lineno">{lineno}.</span> {line}</span></p>
 """
 
 
@@ -119,30 +178,65 @@ class ServerErrorMiddleware:
             # We always continue to raise the exception.
             # This allows servers to log the error, or allows test clients
             # to optionally raise the error within the test case.
-            raise exc from None
+            raise exc
 
-    def generate_frame_html(self, frame: traceback.FrameSummary) -> str:
+    def format_line(
+        self, index: int, line: str, frame_lineno: int, frame_index: int
+    ) -> str:
         values = {
-            "frame_filename": frame.filename,
+            # HTML escape - line could contain < or >
+            "line": html.escape(line).replace(" ", "&nbsp"),
+            "lineno": (frame_lineno - frame_index) + index,
+        }
+
+        if index != frame_index:
+            return LINE.format(**values)
+        return CENTER_LINE.format(**values)
+
+    def generate_frame_html(self, frame: inspect.FrameInfo, is_collapsed: bool) -> str:
+        code_context = "".join(
+            self.format_line(index, line, frame.lineno, frame.index)  # type: ignore
+            for index, line in enumerate(frame.code_context or [])
+        )
+
+        values = {
+            # HTML escape - filename could contain < or >, especially if it's a virtual
+            # file e.g. <stdin> in the REPL
+            "frame_filename": html.escape(frame.filename),
             "frame_lineno": frame.lineno,
-            "frame_name": frame.name,
-            "frame_line": frame.line,
+            # HTML escape - if you try very hard it's possible to name a function with <
+            # or >
+            "frame_name": html.escape(frame.function),
+            "code_context": code_context,
+            "collapsed": "collapsed" if is_collapsed else "",
+            "collapse_button": "+" if is_collapsed else "&#8210;",
         }
         return FRAME_TEMPLATE.format(**values)
 
-    def generate_html(self, exc: Exception) -> str:
+    def generate_html(self, exc: Exception, limit: int = 7) -> str:
         traceback_obj = traceback.TracebackException.from_exception(
             exc, capture_locals=True
         )
-        exc_html = "".join(
-            self.generate_frame_html(frame) for frame in traceback_obj.stack
-        )
-        error = f"{traceback_obj.exc_type.__name__}: {traceback_obj}"
 
-        return TEMPLATE.format(styles=STYLES, error=error, exc_html=exc_html)
+        exc_html = ""
+        is_collapsed = False
+        exc_traceback = exc.__traceback__
+        if exc_traceback is not None:
+            frames = inspect.getinnerframes(exc_traceback, limit)
+            for frame in reversed(frames):
+                exc_html += self.generate_frame_html(frame, is_collapsed)
+                is_collapsed = True
+
+        # escape error class and text
+        error = (
+            f"{html.escape(traceback_obj.exc_type.__name__)}: "
+            f"{html.escape(str(traceback_obj))}"
+        )
+
+        return TEMPLATE.format(styles=STYLES, js=JS, error=error, exc_html=exc_html)
 
     def generate_plain_text(self, exc: Exception) -> str:
-        return "".join(traceback.format_tb(exc.__traceback__))
+        return "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
 
     def debug_response(self, request: Request, exc: Exception) -> Response:
         accept = request.headers.get("accept", "")

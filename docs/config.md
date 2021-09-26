@@ -7,20 +7,21 @@ that is not committed to source control.
 **app.py**:
 
 ```python
+import databases
+
 from starlette.applications import Starlette
 from starlette.config import Config
-from starlette.datastructures import CommaSeparatedStrings, DatabaseURL, Secret
+from starlette.datastructures import CommaSeparatedStrings, Secret
 
 # Config will be read from environment variables and/or ".env" files.
 config = Config(".env")
 
 DEBUG = config('DEBUG', cast=bool, default=False)
-DATABASE_URL = config('DATABASE_URL', cast=DatabaseURL)
+DATABASE_URL = config('DATABASE_URL', cast=databases.DatabaseURL)
 SECRET_KEY = config('SECRET_KEY', cast=Secret)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=CommaSeparatedStrings)
 
-app = Starlette()
-app.debug = DEBUG
+app = Starlette(debug=DEBUG)
 ...
 ```
 
@@ -84,7 +85,7 @@ type is useful.
 CommaSeparatedStrings(['127.0.0.1', 'localhost'])
 >>> print(list(settings.ALLOWED_HOSTS))
 ['127.0.0.1', 'localhost']
->>> print(len(settings.ALLOWED_HOSTS[0]))
+>>> print(len(settings.ALLOWED_HOSTS))
 2
 >>> print(settings.ALLOWED_HOSTS[0])
 '127.0.0.1'
@@ -158,28 +159,27 @@ organisations = sqlalchemy.Table(
 
 ```python
 from starlette.applications import Starlette
-from starlette.middleware.database import DatabaseMiddleware
-from starlette.middleware.session import SessionMiddleware
+from starlette.middleware import Middleware
+from starlette.middleware.sessions import SessionMiddleware
+from starlette.routing import Route
 from myproject import settings
 
 
-app = Starlette()
-
-app.debug = settings.DEBUG
-
-app.add_middleware(
-    SessionMiddleware,
-    secret_key=settings.SECRET_KEY,
-)
-app.add_middleware(
-    DatabaseMiddleware,
-    database_url=settings.DATABASE_URL,
-    rollback_on_shutdown=settings.TESTING
-)
-
-@app.route('/', methods=['GET'])
 async def homepage(request):
     ...
+
+routes = [
+    Route("/", endpoint=homepage)
+]
+
+middleware = [
+    Middleware(
+        SessionMiddleware,
+        secret_key=settings.SECRET_KEY,
+    )
+]
+
+app = Starlette(debug=settings.DEBUG, routes=routes, middleware=middleware)
 ```
 
 Now let's deal with our test configuration.
@@ -192,7 +192,7 @@ and drop it once the tests complete. We'd also like to ensure
 from starlette.config import environ
 from starlette.testclient import TestClient
 from sqlalchemy import create_engine
-from sqlalchemy_utils import database_exists, create_database
+from sqlalchemy_utils import create_database, database_exists, drop_database
 
 # This line would raise an error if we use it after 'settings' has been imported.
 environ['TESTING'] = 'TRUE'

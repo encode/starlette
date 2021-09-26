@@ -1,5 +1,6 @@
 import math
 import typing
+import uuid
 
 
 class Convertor:
@@ -20,7 +21,7 @@ class StringConvertor(Convertor):
 
     def to_string(self, value: typing.Any) -> str:
         value = str(value)
-        assert "/" not in value, "May not contain path seperators"
+        assert "/" not in value, "May not contain path separators"
         assert value, "Must not be empty"
         return value
 
@@ -61,9 +62,20 @@ class FloatConvertor(Convertor):
         return ("%0.20f" % value).rstrip("0").rstrip(".")
 
 
+class UUIDConvertor(Convertor):
+    regex = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+
+    def convert(self, value: str) -> typing.Any:
+        return uuid.UUID(value)
+
+    def to_string(self, value: typing.Any) -> str:
+        return str(value)
+
+
 CONVERTOR_TYPES = {
     "str": StringConvertor(),
     "path": PathConvertor(),
     "int": IntegerConvertor(),
     "float": FloatConvertor(),
+    "uuid": UUIDConvertor(),
 }

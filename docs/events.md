@@ -5,42 +5,30 @@ is shutting down.
 
 ## Registering events
 
-These event handlers can either be `async` coroutines, or regular syncronous
+These event handlers can either be `async` coroutines, or regular synchronous
 functions.
 
-The event handlers can be registered with a decorator syntax, like so:
+The event handlers should be included on the application like so:
 
 ```python
 from starlette.applications import Starlette
 
 
-app = Starlette()
+async def some_startup_task():
+    pass
 
-@app.on_event('startup')
-async def open_database_connection_pool():
+async def some_shutdown_task():
+    pass
+
+routes = [
     ...
+]
 
-@app.on_event('shutdown')
-async def close_database_connection_pool():
-    ...
-```
-Or as a regular function call:
-
-```python
-from starlette.applications import Starlette
-
-
-app = Starlette()
-
-async def open_database_connection_pool():
-    ...
-
-async def close_database_connection_pool():
-    ...
-
-app.add_event_handler('startup', open_database_connection_pool)
-app.add_event_handler('shutdown', close_database_connection_pool)
-
+app = Starlette(
+    routes=routes,
+    on_startup=[some_startup_task],
+    on_shutdown=[some_shutdown_task]
+)
 ```
 
 Starlette will not start serving any incoming requests until all of the
@@ -48,6 +36,31 @@ registered startup handlers have completed.
 
 The shutdown handlers will run once all connections have been closed, and
 any in-process background tasks have completed.
+
+A single lifespan asynccontextmanager handler can be used instead of
+separate startup and shutdown handlers:
+
+```python
+import contextlib
+import anyio
+from starlette.applications import Starlette
+
+
+@contextlib.asynccontextmanager
+async def lifespan(app):
+    async with some_async_resource():
+        yield
+
+
+routes = [
+    ...
+]
+
+app = Starlette(routes=routes, lifespan=lifespan)
+```
+
+Consider using [`anyio.create_task_group()`](https://anyio.readthedocs.io/en/stable/tasks.html)
+for managing asynchronious tasks.
 
 ## Running event handlers in tests
 
@@ -59,15 +72,14 @@ startup and shutdown events are called.
 
 ```python
 from example import app
-from starlette.lifespan import LifespanContext
 from starlette.testclient import TestClient
 
 
 def test_homepage():
     with TestClient(app) as client:
-        # Application 'startup' handlers are called on entering the block.
+        # Application 'on_startup' handlers are called on entering the block.
         response = client.get("/")
         assert response.status_code == 200
 
-    # Application 'shutdown' handlers are called on exiting the block.
+    # Application 'on_shutdown' handlers are called on exiting the block.
 ```
