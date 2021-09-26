@@ -56,7 +56,7 @@ class Jinja2Templates:
     return templates.TemplateResponse("index.html", {"request": request})
     """
 
-    def __init__(self, directory: Union[str, PathLike]) -> None:
+    def __init__(self, directory: typing.Union[str, PathLike]) -> None:
         assert jinja2 is not None, "jinja2 must be installed to use Jinja2Templates"
         self.env = self._create_env(directory)
 
