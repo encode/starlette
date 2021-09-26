@@ -1,5 +1,6 @@
 from os import PathLike
 import typing
+from typing import Union
 
 from starlette.background import BackgroundTask
 from starlette.responses import Response
@@ -55,11 +56,11 @@ class Jinja2Templates:
     return templates.TemplateResponse("index.html", {"request": request})
     """
 
-    def __init__(self, directory: PathLike[str]) -> None:
+    def __init__(self, directory: Union[str, PathLike]) -> None:
         assert jinja2 is not None, "jinja2 must be installed to use Jinja2Templates"
         self.env = self._create_env(directory)
 
-    def _create_env(self, directory: PathLike[str]) -> "jinja2.Environment":
+    def _create_env(self, directory: Union[str, PathLike]) -> "jinja2.Environment":
         @pass_context
         def url_for(context: dict, name: str, **path_params: typing.Any) -> str:
             request = context["request"]
