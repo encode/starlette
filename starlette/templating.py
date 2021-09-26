@@ -1,6 +1,5 @@
-from os import PathLike
 import typing
-from typing import Union
+from os import PathLike
 
 from starlette.background import BackgroundTask
 from starlette.responses import Response
