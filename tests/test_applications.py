@@ -1,4 +1,7 @@
 import os
+import sys
+
+import pytest
 
 from starlette.applications import Starlette
 from starlette.endpoints import HTTPEndpoint
@@ -7,7 +10,11 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.responses import JSONResponse, PlainTextResponse
 from starlette.routing import Host, Mount, Route, Router, WebSocketRoute
 from starlette.staticfiles import StaticFiles
-from starlette.testclient import TestClient
+
+if sys.version_info >= (3, 7):
+    from contextlib import asynccontextmanager  # pragma: no cover
+else:
+    from contextlib2 import asynccontextmanager  # pragma: no cover
 
 app = Starlette()
 
@@ -86,14 +93,17 @@ async def websocket_endpoint(session):
     await session.close()
 
 
-client = TestClient(app)
+@pytest.fixture
+def client(test_client_factory):
+    with test_client_factory(app) as client:
+        yield client
 
 
 def test_url_path_for():
     assert app.url_path_for("func_homepage") == "/func"
 
 
-def test_func_route():
+def test_func_route(client):
     response = client.get("/func")
     assert response.status_code == 200
     assert response.text == "Hello, world!"
@@ -103,51 +113,51 @@ def test_func_route():
     assert response.text == ""
 
 
-def test_async_route():
+def test_async_route(client):
     response = client.get("/async")
     assert response.status_code == 200
     assert response.text == "Hello, world!"
 
 
-def test_class_route():
+def test_class_route(client):
     response = client.get("/class")
     assert response.status_code == 200
     assert response.text == "Hello, world!"
 
 
-def test_mounted_route():
+def test_mounted_route(client):
     response = client.get("/users/")
     assert response.status_code == 200
     assert response.text == "Hello, everyone!"
 
 
-def test_mounted_route_path_params():
+def test_mounted_route_path_params(client):
     response = client.get("/users/tomchristie")
     assert response.status_code == 200
     assert response.text == "Hello, tomchristie!"
 
 
-def test_subdomain_route():
-    client = TestClient(app, base_url="https://foo.example.org/")
+def test_subdomain_route(test_client_factory):
+    client = test_client_factory(app, base_url="https://foo.example.org/")
 
     response = client.get("/")
     assert response.status_code == 200
     assert response.text == "Subdomain: foo"
 
 
-def test_websocket_route():
+def test_websocket_route(client):
     with client.websocket_connect("/ws") as session:
         text = session.receive_text()
         assert text == "Hello, world!"
 
 
-def test_400():
+def test_400(client):
     response = client.get("/404")
     assert response.status_code == 404
     assert response.json() == {"detail": "Not Found"}
 
 
-def test_405():
+def test_405(client):
     response = client.post("/func")
     assert response.status_code == 405
     assert response.json() == {"detail": "Custom message"}
@@ -157,15 +167,15 @@ def test_405():
     assert response.json() == {"detail": "Custom message"}
 
 
-def test_500():
-    client = TestClient(app, raise_server_exceptions=False)
+def test_500(test_client_factory):
+    client = test_client_factory(app, raise_server_exceptions=False)
     response = client.get("/500")
     assert response.status_code == 500
     assert response.json() == {"detail": "Server Error"}
 
 
-def test_middleware():
-    client = TestClient(app, base_url="http://incorrecthost")
+def test_middleware(test_client_factory):
+    client = test_client_factory(app, base_url="http://incorrecthost")
     response = client.get("/func")
     assert response.status_code == 400
     assert response.text == "Invalid host header"
@@ -194,7 +204,7 @@ def test_routes():
     ]
 
 
-def test_app_mount(tmpdir):
+def test_app_mount(tmpdir, test_client_factory):
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
         file.write("<file content>")
@@ -202,7 +212,7 @@ def test_app_mount(tmpdir):
     app = Starlette()
     app.mount("/static", StaticFiles(directory=tmpdir))
 
-    client = TestClient(app)
+    client = test_client_factory(app)
 
     response = client.get("/static/example.txt")
     assert response.status_code == 200
@@ -213,7 +223,7 @@ def test_app_mount(tmpdir):
     assert response.text == "Method Not Allowed"
 
 
-def test_app_debug():
+def test_app_debug(test_client_factory):
     app = Starlette()
     app.debug = True
 
@@ -221,27 +231,27 @@ def test_app_debug():
     async def homepage(request):
         raise RuntimeError()
 
-    client = TestClient(app, raise_server_exceptions=False)
+    client = test_client_factory(app, raise_server_exceptions=False)
     response = client.get("/")
     assert response.status_code == 500
     assert "RuntimeError" in response.text
     assert app.debug
 
 
-def test_app_add_route():
+def test_app_add_route(test_client_factory):
     app = Starlette()
 
     async def homepage(request):
         return PlainTextResponse("Hello, World!")
 
     app.add_route("/", homepage)
-    client = TestClient(app)
+    client = test_client_factory(app)
     response = client.get("/")
     assert response.status_code == 200
     assert response.text == "Hello, World!"
 
 
-def test_app_add_websocket_route():
+def test_app_add_websocket_route(test_client_factory):
     app = Starlette()
 
     async def websocket_endpoint(session):
@@ -250,14 +260,14 @@ def test_app_add_websocket_route():
         await session.close()
 
     app.add_websocket_route("/ws", websocket_endpoint)
-    client = TestClient(app)
+    client = test_client_factory(app)
 
     with client.websocket_connect("/ws") as session:
         text = session.receive_text()
         assert text == "Hello, world!"
 
 
-def test_app_add_event_handler():
+def test_app_add_event_handler(test_client_factory):
     startup_complete = False
     cleanup_complete = False
     app = Starlette()
@@ -275,14 +285,46 @@ def test_app_add_event_handler():
 
     assert not startup_complete
     assert not cleanup_complete
-    with TestClient(app):
+    with test_client_factory(app):
         assert startup_complete
         assert not cleanup_complete
     assert startup_complete
     assert cleanup_complete
 
 
-def test_app_async_lifespan():
+def test_app_async_cm_lifespan(test_client_factory):
+    startup_complete = False
+    cleanup_complete = False
+
+    @asynccontextmanager
+    async def lifespan(app):
+        nonlocal startup_complete, cleanup_complete
+        startup_complete = True
+        yield
+        cleanup_complete = True
+
+    app = Starlette(lifespan=lifespan)
+
+    assert not startup_complete
+    assert not cleanup_complete
+    with test_client_factory(app):
+        assert startup_complete
+        assert not cleanup_complete
+    assert startup_complete
+    assert cleanup_complete
+
+
+deprecated_lifespan = pytest.mark.filterwarnings(
+    r"ignore"
+    r":(async )?generator function lifespans are deprecated, use an "
+    r"@contextlib\.asynccontextmanager function instead"
+    r":DeprecationWarning"
+    r":starlette.routing"
+)
+
+
+@deprecated_lifespan
+def test_app_async_gen_lifespan(test_client_factory):
     startup_complete = False
     cleanup_complete = False
 
@@ -296,14 +338,15 @@ def test_app_async_lifespan():
 
     assert not startup_complete
     assert not cleanup_complete
-    with TestClient(app):
+    with test_client_factory(app):
         assert startup_complete
         assert not cleanup_complete
     assert startup_complete
     assert cleanup_complete
 
 
-def test_app_sync_lifespan():
+@deprecated_lifespan
+def test_app_sync_gen_lifespan(test_client_factory):
     startup_complete = False
     cleanup_complete = False
 
@@ -317,7 +360,7 @@ def test_app_sync_lifespan():
 
     assert not startup_complete
     assert not cleanup_complete
-    with TestClient(app):
+    with test_client_factory(app):
         assert startup_complete
         assert not cleanup_complete
     assert startup_complete
