@@ -117,7 +117,7 @@ class StaticFiles:
                 full_path, stat_result = await anyio.to_thread.run_sync(
                     self.lookup_path, "404.html"
                 )
-                if stat_result is not None and stat.S_ISREG(stat_result.st_mode):
+                if stat_result and stat.S_ISREG(stat_result.st_mode):
                     return FileResponse(
                         full_path,
                         stat_result=stat_result,
