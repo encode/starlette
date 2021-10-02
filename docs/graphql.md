@@ -7,4 +7,3 @@ Although GraphQL support is no longer built in to Starlette, you can still use G
 - [Strawberry](https://strawberry.rocks/docs/integrations/starlette)
 - [`tartiflette-asgi`](https://tartiflette.github.io/tartiflette-asgi/usage/#starlette)
 
-Those tutorials should be enough to get you started with the GraphQL integration.
