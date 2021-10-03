@@ -33,6 +33,7 @@ class GraphQLApp:
         schema: "graphene.Schema",
         executor_class: type = None,
         graphiql: bool = True,
+        session: "sqlalchemy.orm.Session" = None,
     ) -> None:
         self.schema = schema
         self.graphiql = graphiql
@@ -40,6 +41,7 @@ class GraphQLApp:
         self.is_async = executor_class is not None and issubclass(
             executor_class, AsyncioExecutor
         )
+        self.session = session
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if self.executor_class is not None:
@@ -94,6 +96,8 @@ class GraphQLApp:
 
         background = BackgroundTasks()
         context = {"request": request, "background": background}
+        if self.session:
+            context['session'] = self.session
 
         result = await self.execute(
             query, variables=variables, context=context, operation_name=operation_name
