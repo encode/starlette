@@ -118,7 +118,12 @@ class StaticFiles:
                     self.lookup_path, "404.html"
                 )
                 if stat_result and stat.S_ISREG(stat_result.st_mode):
-                    return self.file_response(full_path, stat_result, scope, 404)
+                    return FileResponse(
+                        full_path,
+                        stat_result=stat_result,
+                        method=scope["method"],
+                        status_code=404,
+                    )
             raise HTTPException(status_code=404)
         except PermissionError:
             raise HTTPException(status_code=401)
