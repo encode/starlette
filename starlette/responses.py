@@ -6,7 +6,6 @@ import stat
 import sys
 import typing
 from email.utils import formatdate
-from functools import partial
 from mimetypes import guess_type as mimetypes_guess_type
 from urllib.parse import quote
 
@@ -202,6 +201,7 @@ class StreamingResponse(Response):
         headers: dict = None,
         media_type: str = None,
         background: BackgroundTask = None,
+        on_complete: BackgroundTask = None,
     ) -> None:
         if isinstance(content, typing.AsyncIterable):
             self.body_iterator = content
@@ -210,7 +210,9 @@ class StreamingResponse(Response):
         self.status_code = status_code
         self.media_type = self.media_type if media_type is None else media_type
         self.background = background
+        self.on_complete = on_complete
         self.init_headers(headers)
+        self.stream_finished = False
 
     async def listen_for_disconnect(self, receive: Receive) -> None:
         while True:
@@ -230,19 +232,29 @@ class StreamingResponse(Response):
             if not isinstance(chunk, bytes):
                 chunk = chunk.encode(self.charset)
             await send({"type": "http.response.body", "body": chunk, "more_body": True})
-
+        # stream_finished needs to be set to true before last chunk.
+        # Otherwise there is a race condition between client closing
+        # connection (leading to cancelation of task group) and setting
+        # the stream_finished
+        self.stream_finished = True
         await send({"type": "http.response.body", "body": b"", "more_body": False})
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         async with anyio.create_task_group() as task_group:
 
-            async def wrap(func: typing.Callable[[], typing.Coroutine]) -> None:
-                await func()
+            async def listen() -> None:
+                await self.listen_for_disconnect(receive)
                 task_group.cancel_scope.cancel()
 
-            task_group.start_soon(wrap, partial(self.stream_response, send))
-            await wrap(partial(self.listen_for_disconnect, receive))
+            async def respond() -> None:
+                await self.stream_response(send)
+                task_group.cancel_scope.cancel()
 
+            task_group.start_soon(respond)
+            await listen()
+
+        if self.stream_finished and self.on_complete is not None:
+            await self.on_complete()
         if self.background is not None:
             await self.background()
 
@@ -260,6 +272,7 @@ class FileResponse(Response):
         filename: str = None,
         stat_result: os.stat_result = None,
         method: str = None,
+        on_complete: BackgroundTask = None,
     ) -> None:
         self.path = path
         self.status_code = status_code
@@ -269,6 +282,7 @@ class FileResponse(Response):
             media_type = guess_type(filename or path)[0] or "text/plain"
         self.media_type = media_type
         self.background = background
+        self.on_complete = on_complete
         self.init_headers(headers)
         if self.filename is not None:
             content_disposition_filename = quote(self.filename)
@@ -282,6 +296,7 @@ class FileResponse(Response):
         self.stat_result = stat_result
         if stat_result is not None:
             self.set_stat_headers(stat_result)
+        self.stream_finished = False
 
     def set_stat_headers(self, stat_result: os.stat_result) -> None:
         content_length = str(stat_result.st_size)
@@ -293,7 +308,13 @@ class FileResponse(Response):
         self.headers.setdefault("last-modified", last_modified)
         self.headers.setdefault("etag", etag)
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def listen_for_disconnect(self, receive: Receive) -> None:
+        while True:
+            message = await receive()
+            if message["type"] == "http.disconnect":
+                break
+
+    async def stream_response(self, send: Send) -> None:
         if self.stat_result is None:
             try:
                 stat_result = await anyio.to_thread.run_sync(os.stat, self.path)
@@ -316,9 +337,15 @@ class FileResponse(Response):
         else:
             async with await anyio.open_file(self.path, mode="rb") as file:
                 more_body = True
+                # iterate until filestream completed
                 while more_body:
                     chunk = await file.read(self.chunk_size)
                     more_body = len(chunk) == self.chunk_size
+                    # stream_finished needs to be set to true before last chunk.
+                    # Otherwise there is a race condition between client closing
+                    # connection (leading to cancelation of task group) and setting
+                    # the stream_finished
+                    self.stream_finished = not more_body
                     await send(
                         {
                             "type": "http.response.body",
@@ -326,5 +353,22 @@ class FileResponse(Response):
                             "more_body": more_body,
                         }
                     )
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        async with anyio.create_task_group() as task_group:
+
+            async def listen() -> None:
+                await self.listen_for_disconnect(receive)
+                task_group.cancel_scope.cancel()
+
+            async def respond() -> None:
+                await self.stream_response(send)
+                task_group.cancel_scope.cancel()
+
+            task_group.start_soon(respond)
+            await listen()
+
+        if self.stream_finished and self.on_complete is not None:
+            await self.on_complete()
         if self.background is not None:
             await self.background()

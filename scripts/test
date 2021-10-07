@@ -11,7 +11,8 @@ if [ -z $GITHUB_ACTIONS ]; then
     scripts/check
 fi
 
-${PREFIX}coverage run -m pytest $@
+${PREFIX}coverage run --concurrency=multiprocessing -m pytest $@
+${PREFIX}coverage combine
 
 if [ -z $GITHUB_ACTIONS ]; then
     scripts/coverage
