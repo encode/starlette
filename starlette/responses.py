@@ -328,7 +328,7 @@ class FileResponse(Response):
                     }
                 )
             finally:
-                os.close(fd)
+                await anyio.to_thread.run_sync(os.close, fd)
         else:
             async with await anyio.open_file(self.path, mode="rb") as file:
                 more_body = True
