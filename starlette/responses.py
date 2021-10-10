@@ -313,18 +313,34 @@ class FileResponse(Response):
         )
         if self.send_header_only:
             await send({"type": "http.response.body", "body": b"", "more_body": False})
-        else:
-            async with await anyio.open_file(self.path, mode="rb") as file:
-                more_body = True
-                while more_body:
-                    chunk = await file.read(self.chunk_size)
-                    more_body = len(chunk) == self.chunk_size
+        else:    # check if the zerocopysend extension is available
+            if "http.response.zerocopysend" in scope.get("extensions", {}):
+                if os.name == "nt":
+                    open_mode = os.O_RDONLY | os.O_BINARY
+                else:
+                    open_mode = os.O_RDONLY
+                fd = await anyio.to_thread.run_sync(os.open, self.path, open_mode)
+                try:
                     await send(
                         {
-                            "type": "http.response.body",
-                            "body": chunk,
-                            "more_body": more_body,
+                            "type": "http.response.zerocopysend",
+                            "file": fd
                         }
                     )
+                finally:
+                    await anyio.to_thread.run_sync(os.close, fd)
+            else:
+                async with await anyio.open_file(self.path, mode="rb") as file:
+                    more_body = True
+                    while more_body:
+                        chunk = await file.read(self.chunk_size)
+                        more_body = len(chunk) == self.chunk_size
+                        await send(
+                            {
+                                "type": "http.response.body",
+                                "body": chunk,
+                                "more_body": more_body,
+                            }
+                        )
         if self.background is not None:
             await self.background()
