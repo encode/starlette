@@ -318,7 +318,7 @@ class FileResponse(Response):
                 open_mode = os.O_RDONLY | os.O_BINARY
             else:
                 open_mode = os.O_RDONLY
-            fd = os.open(self.path, open_mode)
+            fd = await anyio.to_thread.run_sync(os.open, self.path, open_mode)
             try:
                 await send(
                     {
