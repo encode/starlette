@@ -5,6 +5,8 @@ from starlette.exceptions import ExceptionMiddleware
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.errors import ServerErrorMiddleware
+from starlette.requests import Request
+from starlette.responses import Response
 from starlette.routing import BaseRoute, Router
 from starlette.types import ASGIApp, Receive, Scope, Send
 
@@ -129,7 +131,7 @@ class Starlette:
     def add_exception_handler(
         self,
         exc_class_or_status_code: typing.Union[int, typing.Type[Exception]],
-        handler: typing.Callable[[Request, Any], typing.Coroutine[Any, Any, Response]],
+        handler: typing.Callable[[Request, Exception], typing.Union[Response, typing.Coroutine[typing.Any, typing.Any, Response]]],
     ) -> None:
         self.exception_handlers[exc_class_or_status_code] = handler
         self.middleware_stack = self.build_middleware_stack()
