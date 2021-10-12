@@ -317,6 +317,7 @@ def test_staticfiles_with_invalid_dir_permissions_returns_401(
     response = client.get("/example.txt")
     assert response.status_code == 401
     assert response.text == "Unauthorized"
+    os.chmod(tmpdir, stat.S_IRWXU)
 
 
 def test_staticfiles_with_missing_dir_returns_404(tmpdir, test_client_factory):

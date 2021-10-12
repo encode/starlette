@@ -7,6 +7,8 @@ These scenarios are tested with regard to the effect on
 """
 
 import os
+import random
+import socket
 import tempfile
 import time
 from multiprocessing import Process
@@ -24,13 +26,25 @@ from starlette.requests import Request
 from starlette.responses import FileResponse, Response, StreamingResponse
 from starlette.routing import Route
 
-HOST = "127.0.0.1"
-PORT = 8889
+
+def get_free_port() -> int:
+    "Get next free ephemeral tcp/udp port"
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    address = ("127.0.0.1", random.randint(49152, 65535))
+    while not s.connect_ex(address):
+        address = ("127.0.0.1", random.randint(49152, 65535))
+    s.close()
+    return address[1]
+
 
 BG = ""
 OC = ""
 CONTENT = b"<file content>" * 1000
 PATH = os.path.join(tempfile.mkdtemp(), "xyz")
+
+SLEEP = 0.1
+HOST = "127.0.0.1"
+PORT = get_free_port()
 
 
 async def numbers(minimum: int, maximum: int) -> AsyncGenerator[str, None]:
@@ -39,7 +53,7 @@ async def numbers(minimum: int, maximum: int) -> AsyncGenerator[str, None]:
         yield str(i)
         if i != maximum:
             yield ", "
-        await anyio.sleep(0.1)
+        await anyio.sleep(SLEEP)
 
 
 async def count_out_loud(start: int = 1, stop: int = 5) -> str:
@@ -123,12 +137,17 @@ def server():
         file.write(CONTENT)
     proc = Process(target=run_server, args=(), daemon=True)
     proc.start()
-    time.sleep(1)
+    time.sleep(10 * SLEEP)
+    if proc.exitcode:
+        os.remove(PATH)
+        raise RuntimeError("Process could not start")
     # Execute Test
     yield
     # Cleanup after test
     os.remove(PATH)
     proc.terminate()
+    time.sleep(10 * SLEEP)
+    proc.close()
 
 
 def test_streaming_response_abort(server):
@@ -145,7 +164,7 @@ def test_streaming_response_abort(server):
     assert resp.status_code == 200
     assert resp.content == b""
 
-    time.sleep(1)
+    time.sleep(10 * SLEEP)
     check = requests.get(f"http://{HOST}:{PORT}/bg")
     assert resp.status_code == 200
     assert check.content == b""
@@ -164,13 +183,13 @@ def test_streaming_response_complete(server):
         f"http://{HOST}:{PORT}",
         stream=True,
     )
-    time.sleep(1)
+    time.sleep(10 * SLEEP)
     resp.close()
 
     assert resp.status_code == 200
     assert resp.content == b""
 
-    time.sleep(1)
+    time.sleep(10 * SLEEP)
     check = requests.get(f"http://{HOST}:{PORT}/bg")
     assert resp.status_code == 200
     assert check.content == b"10, 11, 12, 13, 14, 15"
@@ -201,7 +220,7 @@ def test_file_response_abort(server):
     assert "last-modified" in response.headers
     assert "etag" in response.headers
 
-    time.sleep(1)
+    time.sleep(10 * SLEEP)
     check = requests.get(f"http://{HOST}:{PORT}/bg")
     assert check.status_code == status.HTTP_200_OK
     assert check.content == b""
@@ -217,7 +236,7 @@ def test_file_response_complete(server):
     assert check.content == b""
 
     response = requests.get(f"http://{HOST}:{PORT}/file", stream=True)
-    time.sleep(1)
+    time.sleep(10 * SLEEP)
     response.close()
 
     assert response.content == b""
@@ -230,7 +249,7 @@ def test_file_response_complete(server):
     assert "last-modified" in response.headers
     assert "etag" in response.headers
 
-    time.sleep(1)
+    time.sleep(10 * SLEEP)
     check = requests.get(f"http://{HOST}:{PORT}/bg")
     assert check.status_code == status.HTTP_200_OK
     assert check.content == b"10, 11, 12, 13, 14, 15"
