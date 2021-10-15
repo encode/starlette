@@ -417,7 +417,7 @@ class UploadFile:
     spool_max_size = 1024 * 1024
 
     def __init__(
-        self, filename: str, file: typing.IO = None, content_type: str = ""
+        self, filename: str, file: typing.BinaryIO = None, content_type: str = ""
     ) -> None:
         self.filename = filename
         self.content_type = content_type
@@ -430,13 +430,13 @@ class UploadFile:
         rolled_to_disk = getattr(self.file, "_rolled", True)
         return not rolled_to_disk
 
-    async def write(self, data: typing.Union[bytes, str]) -> None:
+    async def write(self, data: bytes) -> None:
         if self._in_memory:
             self.file.write(data)  # type: ignore
         else:
             await run_in_threadpool(self.file.write, data)
 
-    async def read(self, size: int = -1) -> typing.Union[bytes, str]:
+    async def read(self, size: int = -1) -> typing.Union[bytes]:
         if self._in_memory:
             return self.file.read(size)
         return await run_in_threadpool(self.file.read, size)
