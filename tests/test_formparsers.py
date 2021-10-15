@@ -111,7 +111,7 @@ def test_multipart_request_files(tmpdir, test_client_factory):
                 [
                     "test",
                     {
-                        "content-disposition": 'form-data; name="test"; filename="test.txt"'
+                        "content-disposition": 'form-data; name="test"; filename="test.txt"'  # noqa: E501
                     },
                 ]
             ],
@@ -136,7 +136,7 @@ def test_multipart_request_files_with_content_type(tmpdir, test_client_factory):
                 [
                     "test",
                     {
-                        "content-disposition": 'form-data; name="test"; filename="test.txt"',
+                        "content-disposition": 'form-data; name="test"; filename="test.txt"',  # noqa: E501
                         "content-type": "text/plain",
                     },
                 ]
@@ -173,13 +173,13 @@ def test_multipart_request_multiple_files(tmpdir, test_client_factory):
                 [
                     "test1",
                     {
-                        "content-disposition": 'form-data; name="test1"; filename="test1.txt"'
+                        "content-disposition": 'form-data; name="test1"; filename="test1.txt"',  # noqa: E501
                     },
                 ],
                 [
                     "test2",
                     {
-                        "content-disposition": 'form-data; name="test2"; filename="test2.txt"',
+                        "content-disposition": 'form-data; name="test2"; filename="test2.txt"',  # noqa: E501
                         "content-type": "text/plain",
                     },
                 ],
@@ -222,13 +222,13 @@ def test_multi_items(tmpdir, test_client_factory):
                 [
                     "test1",
                     {
-                        "content-disposition": 'form-data; name="test1"; filename="test1.txt"'
+                        "content-disposition": 'form-data; name="test1"; filename="test1.txt"'  # noqa: E501
                     },
                 ],
                 [
                     "test1",
                     {
-                        "content-disposition": 'form-data; name="test1"; filename="test2.txt"',
+                        "content-disposition": 'form-data; name="test1"; filename="test2.txt"',  # noqa: E501
                         "content-type": "text/plain",
                     },
                 ],
@@ -275,7 +275,7 @@ def test_multipart_request_mixed_files_and_data(tmpdir, test_client_factory):
             [
                 "file",
                 {
-                    "content-disposition": 'form-data; name="file"; filename="file.txt"',
+                    "content-disposition": 'form-data; name="file"; filename="file.txt"',  # noqa: E501
                     "content-type": "text/plain",
                 },
             ],
@@ -313,7 +313,7 @@ def test_multipart_request_with_charset_for_filename(tmpdir, test_client_factory
             [
                 "file",
                 {
-                    "content-disposition": 'form-data; name="file"; filename="æ\x96\x87æ\x9b¸.txt"',
+                    "content-disposition": 'form-data; name="file"; filename="æ\x96\x87æ\x9b¸.txt"',  # noqa: E501
                     "content-type": "text/plain",
                 },
             ]
@@ -349,7 +349,7 @@ def test_multipart_request_without_charset_for_filename(tmpdir, test_client_fact
             [
                 "file",
                 {
-                    "content-disposition": 'form-data; name="file"; filename="ç\x94»å\x83\x8f.jpg"',
+                    "content-disposition": 'form-data; name="file"; filename="ç\x94»å\x83\x8f.jpg"',  # noqa: E501
                     "content-type": "image/jpeg",
                 },
             ]

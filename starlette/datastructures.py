@@ -232,19 +232,15 @@ class CommaSeparatedStrings(Sequence):
 
 _KT = typing.TypeVar("_KT", bound=typing.Hashable)
 _VT = typing.TypeVar("_VT")
-_T = typing.TypeVar("_T")
-
-
-_UNSET: typing.Any = object()
 
 
 class ImmutableMultiDict(typing.Mapping[_KT, _VT]):
     def __init__(
         self,
         *args: typing.Union[
-            "ImmutableMultiDict[_KT, _VT]",
-            typing.Mapping[_KT, _VT],
-            typing.List[typing.Tuple[_KT, _VT]],
+            "ImmutableMultiDict",
+            typing.Mapping,
+            typing.List[typing.Tuple[typing.Any, typing.Any]],
         ],
         **kwargs: typing.Any,
     ) -> None:
@@ -274,43 +270,33 @@ class ImmutableMultiDict(typing.Mapping[_KT, _VT]):
         self._dict = {k: v for k, v in _items}
         self._list = _items
 
-    def getlist(self, key: _KT) -> typing.List[_VT]:
+    def getlist(self, key: typing.Any) -> typing.List[typing.Any]:
         return [item_value for item_key, item_value in self._list if item_key == key]
 
-    def keys(self) -> typing.KeysView[_KT]:
+    def keys(self) -> typing.KeysView:
         return self._dict.keys()
 
-    def values(self) -> typing.ValuesView[_VT]:
+    def values(self) -> typing.ValuesView:
         return self._dict.values()
 
-    def items(self) -> typing.ItemsView[_KT, _VT]:
+    def items(self) -> typing.ItemsView:
         return self._dict.items()
 
-    def multi_items(self) -> typing.List[typing.Tuple[_KT, _VT]]:
+    def multi_items(self) -> typing.List[typing.Tuple[str, str]]:
         return list(self._list)
 
-    @typing.overload
-    def get(self, key: _KT) -> _VT:
-        ...
-
-    @typing.overload
-    def get(self, key: _KT, default: _T) -> typing.Union[_VT, _T]:
-        ...
-
-    def get(self, key: _KT, default: _T = _UNSET) -> typing.Union[_VT, _T]:
+    def get(self, key: typing.Any, default: typing.Any = None) -> typing.Any:
         if key in self._dict:
             return self._dict[key]
-        if default is _UNSET:
-            raise KeyError(key)
         return default
 
-    def __getitem__(self, key: _KT) -> _VT:
+    def __getitem__(self, key: typing.Any) -> _VT:
         return self._dict[key]
 
     def __contains__(self, key: typing.Any) -> bool:
         return key in self._dict
 
-    def __iter__(self) -> typing.Iterator[_KT]:
+    def __iter__(self) -> typing.Iterator[typing.Any]:
         return iter(self.keys())
 
     def __len__(self) -> int:
@@ -327,36 +313,24 @@ class ImmutableMultiDict(typing.Mapping[_KT, _VT]):
         return f"{class_name}({items!r})"
 
 
-class MultiDict(ImmutableMultiDict[_KT, _VT]):
-    def __setitem__(self, key: _KT, value: typing.Any) -> None:
+class MultiDict(ImmutableMultiDict):
+    def __setitem__(self, key: typing.Any, value: typing.Any) -> None:
         self.setlist(key, [value])
 
-    def __delitem__(self, key: _KT) -> None:
+    def __delitem__(self, key: typing.Any) -> None:
         self._list = [(k, v) for k, v in self._list if k != key]
         del self._dict[key]
 
-    @typing.overload
-    def pop(self, key: _KT) -> _VT:
-        ...
+    def pop(self, key: typing.Any, default: typing.Any = None) -> typing.Any:
+        self._list = [(k, v) for k, v in self._list if k != key]
+        return self._dict.pop(key, default)
 
-    @typing.overload
-    def pop(self, key: _KT, default: _T) -> typing.Union[_VT, _T]:
-        ...
-
-    def pop(self, key: _KT, default: _T = _UNSET) -> typing.Union[_VT, _T]:
-        if key in self._dict:
-            self._list = [(k, v) for k, v in self._list if k != key]
-            return self._dict.pop(key, default)
-        if default is _UNSET:
-            raise KeyError(key)
-        return default
-
-    def popitem(self) -> typing.Tuple[_KT, _VT]:
+    def popitem(self) -> typing.Tuple:
         key, value = self._dict.popitem()
         self._list = [(k, v) for k, v in self._list if k != key]
         return key, value
 
-    def poplist(self, key: _KT) -> typing.List[typing.Tuple[_KT, _VT]]:
+    def poplist(self, key: typing.Any) -> typing.List:
         values = [v for k, v in self._list if k == key]
         self.pop(key)
         return values
@@ -365,14 +339,14 @@ class MultiDict(ImmutableMultiDict[_KT, _VT]):
         self._dict.clear()
         self._list.clear()
 
-    def setdefault(self, key: _KT, default: typing.Optional[_VT] = None) -> _VT:
+    def setdefault(self, key: typing.Any, default: typing.Any = None) -> typing.Any:
         if key not in self:
             self._dict[key] = default
             self._list.append((key, default))
 
         return self[key]
 
-    def setlist(self, key: _KT, values: typing.List[_VT]) -> None:
+    def setlist(self, key: typing.Any, values: typing.List) -> None:
         if not values:
             self.pop(key, None)
         else:
@@ -380,16 +354,16 @@ class MultiDict(ImmutableMultiDict[_KT, _VT]):
             self._list = existing_items + [(key, value) for value in values]
             self._dict[key] = values[-1]
 
-    def append(self, key: _KT, value: _VT) -> None:
+    def append(self, key: typing.Any, value: typing.Any) -> None:
         self._list.append((key, value))
         self._dict[key] = value
 
     def update(
         self,
         *args: typing.Union[
-            "MultiDict[_KT, _VT]",
-            typing.Mapping[_KT, _VT],
-            typing.List[typing.Tuple[_KT, _VT]],
+            "MultiDict",
+            typing.Mapping,
+            typing.List[typing.Tuple[typing.Any, typing.Any]],
         ],
         **kwargs: typing.Any,
     ) -> None:
