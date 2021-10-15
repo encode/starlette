@@ -415,6 +415,7 @@ class UploadFile:
     """
 
     spool_max_size = 1024 * 1024
+    file: typing.BinaryIO
 
     def __init__(
         self, filename: str, file: typing.BinaryIO = None, content_type: str = ""
@@ -422,7 +423,7 @@ class UploadFile:
         self.filename = filename
         self.content_type = content_type
         if file is None:
-            self.file = tempfile.SpooledTemporaryFile(max_size=self.spool_max_size)
+            self.file = tempfile.SpooledTemporaryFile(max_size=self.spool_max_size)  # type: ignore  # noqa: E501
         else:
             self.file = file
 
