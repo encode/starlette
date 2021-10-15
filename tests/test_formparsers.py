@@ -21,6 +21,8 @@ async def app(scope, receive, send):
     for key, value in data.items():
         if isinstance(value, UploadFile):
             content = await value.read()
+            if isinstance(content, str):
+                raise TypeError
             output[key] = {
                 "filename": value.filename,
                 "content": content.decode(),

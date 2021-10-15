@@ -422,8 +422,9 @@ class UploadFile:
         self.filename = filename
         self.content_type = content_type
         if file is None:
-            file = tempfile.SpooledTemporaryFile(max_size=self.spool_max_size)
-        self.file = file
+            self.file = tempfile.SpooledTemporaryFile(max_size=self.spool_max_size)
+        else:
+            self.file = file
 
     @property
     def _in_memory(self) -> bool:
