@@ -185,7 +185,9 @@ class MultiPartParser:
 
         items: typing.List[typing.Tuple[str, typing.Union[str, UploadFile]]] = []
         item_headers: typing.List[typing.Tuple[bytes, bytes]] = []
-        raw_headers: typing.List[typing.Tuple[str, typing.List[typing.Tuple[bytes, bytes]]]] = []
+        raw_headers: typing.List[
+            typing.Tuple[str, typing.List[typing.Tuple[bytes, bytes]]]
+        ] = []
 
         # Feed the parser with data from the request.
         async for chunk in self.stream:

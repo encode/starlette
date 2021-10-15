@@ -288,11 +288,11 @@ class ImmutableMultiDict(typing.Mapping[_KT, _VT]):
 
     def multi_items(self) -> typing.List[typing.Tuple[_KT, _VT]]:
         return list(self._list)
-    
+
     @typing.overload
     def get(self, key: _KT) -> _VT:
         ...
-    
+
     @typing.overload
     def get(self, key: _KT, default: _T) -> typing.Union[_VT, _T]:
         ...
@@ -338,7 +338,7 @@ class MultiDict(ImmutableMultiDict[_KT, _VT]):
     @typing.overload
     def pop(self, key: _KT) -> _VT:
         ...
-    
+
     @typing.overload
     def pop(self, key: _KT, default: _T) -> typing.Union[_VT, _T]:
         ...
@@ -679,7 +679,9 @@ class FormData(ImmutableMultiDict[str, typing.Union[str, UploadFile]]):
     """
     An immutable multidict, containing both file uploads and text input.
     """
+
     headers: typing.Optional[ImmutableMultiDict[str, Headers]]
+
     def __init__(
         self,
         *args: typing.Union[
@@ -687,11 +689,15 @@ class FormData(ImmutableMultiDict[str, typing.Union[str, UploadFile]]):
             typing.Mapping[str, typing.Union[str, UploadFile]],
             typing.List[typing.Tuple[str, typing.Union[str, UploadFile]]],
         ],
-        raw_headers: typing.Optional[typing.List[typing.Tuple[str, typing.List[typing.Tuple[bytes, bytes]]]]] = None
+        raw_headers: typing.Optional[
+            typing.List[typing.Tuple[str, typing.List[typing.Tuple[bytes, bytes]]]]
+        ] = None,
     ) -> None:
         super().__init__(*args)
         if raw_headers is not None:
-            self.headers = ImmutableMultiDict([(field_name, Headers(raw=raw)) for field_name, raw in raw_headers])
+            self.headers = ImmutableMultiDict(
+                [(field_name, Headers(raw=raw)) for field_name, raw in raw_headers]
+            )
         else:
             self.headers = None
 
