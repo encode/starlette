@@ -184,6 +184,8 @@ class MultiPartParser:
         file: typing.Optional[UploadFile] = None
 
         items: typing.List[typing.Tuple[str, typing.Union[str, UploadFile]]] = []
+        item_headers: typing.List[typing.Tuple[bytes, bytes]] = []
+        raw_headers: typing.List[typing.Tuple[str, typing.List[typing.Tuple[bytes, bytes]]]] = []
 
         # Feed the parser with data from the request.
         async for chunk in self.stream:
@@ -195,6 +197,7 @@ class MultiPartParser:
                     content_disposition = None
                     content_type = b""
                     data = b""
+                    item_headers = []
                 elif message_type == MultiPartMessage.HEADER_FIELD:
                     header_field += message_bytes
                 elif message_type == MultiPartMessage.HEADER_VALUE:
@@ -205,6 +208,7 @@ class MultiPartParser:
                         content_disposition = header_value
                     elif field == b"content-type":
                         content_type = header_value
+                    item_headers.append((field, header_value))
                     header_field = b""
                     header_value = b""
                 elif message_type == MultiPartMessage.HEADERS_FINISHED:
@@ -229,6 +233,7 @@ class MultiPartParser:
                     else:
                         await file.seek(0)
                         items.append((field_name, file))
+                    raw_headers.append((field_name, item_headers))
 
         parser.finalize()
-        return FormData(items)
+        return FormData(items, raw_headers=raw_headers)

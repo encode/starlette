@@ -29,6 +29,8 @@ async def app(scope, receive, send):
         else:
             output[key] = value
     await request.close()
+    if data.headers is not None:
+        output["__headers"] = [(field_name, dict(headers.items())) for field_name, headers in data.headers.multi_items()]
     response = JSONResponse(output)
     await response(scope, receive, send)
 
@@ -52,6 +54,8 @@ async def multi_items_app(scope, receive, send):
         else:
             output[key].append(value)
     await request.close()
+    if data.headers is not None:
+        output["__headers"] = [(field_name, dict(headers.items())) for field_name, headers in data.headers.multi_items()]
     response = JSONResponse(output)
     await response(scope, receive, send)
 
@@ -65,6 +69,8 @@ async def app_read_body(scope, receive, send):
     for key, value in data.items():
         output[key] = value
     await request.close()
+    if data.headers is not None:
+        output["__headers"] = [(field_name, dict(headers.items())) for field_name, headers in data.headers.multi_items()]
     response = JSONResponse(output)
     await response(scope, receive, send)
 
@@ -72,7 +78,7 @@ async def app_read_body(scope, receive, send):
 def test_multipart_request_data(tmpdir, test_client_factory):
     client = test_client_factory(app)
     response = client.post("/", data={"some": "data"}, files=FORCE_MULTIPART)
-    assert response.json() == {"some": "data"}
+    assert response.json() == {'some': 'data', '__headers': [['some', {'content-disposition': 'form-data; name="some"'}]]}
 
 
 def test_multipart_request_files(tmpdir, test_client_factory):
@@ -83,13 +89,8 @@ def test_multipart_request_files(tmpdir, test_client_factory):
     client = test_client_factory(app)
     with open(path, "rb") as f:
         response = client.post("/", files={"test": f})
-        assert response.json() == {
-            "test": {
-                "filename": "test.txt",
-                "content": "<file content>",
-                "content_type": "",
-            }
-        }
+        assert response.json() == {'test': {'filename': 'test.txt', 'content': '<file content>', 'content_type': ''}, '__headers': [['test', {'content-disposition': 'form-data; name="test"; filename="test.txt"'}]]}
+
 
 
 def test_multipart_request_files_with_content_type(tmpdir, test_client_factory):
@@ -100,13 +101,8 @@ def test_multipart_request_files_with_content_type(tmpdir, test_client_factory):
     client = test_client_factory(app)
     with open(path, "rb") as f:
         response = client.post("/", files={"test": ("test.txt", f, "text/plain")})
-        assert response.json() == {
-            "test": {
-                "filename": "test.txt",
-                "content": "<file content>",
-                "content_type": "text/plain",
-            }
-        }
+        assert response.json() == {'test': {'filename': 'test.txt', 'content': '<file content>', 'content_type': 'text/plain'}, '__headers': [['test', {'content-disposition': 'form-data; name="test"; filename="test.txt"', 'content-type': 'text/plain'}]]}
+
 
 
 def test_multipart_request_multiple_files(tmpdir, test_client_factory):
@@ -123,18 +119,7 @@ def test_multipart_request_multiple_files(tmpdir, test_client_factory):
         response = client.post(
             "/", files={"test1": f1, "test2": ("test2.txt", f2, "text/plain")}
         )
-        assert response.json() == {
-            "test1": {
-                "filename": "test1.txt",
-                "content": "<file1 content>",
-                "content_type": "",
-            },
-            "test2": {
-                "filename": "test2.txt",
-                "content": "<file2 content>",
-                "content_type": "text/plain",
-            },
-        }
+        assert response.json() == {'test1': {'filename': 'test1.txt', 'content': '<file1 content>', 'content_type': ''}, 'test2': {'filename': 'test2.txt', 'content': '<file2 content>', 'content_type': 'text/plain'}, '__headers': [['test1', {'content-disposition': 'form-data; name="test1"; filename="test1.txt"'}], ['test2', {'content-disposition': 'form-data; name="test2"; filename="test2.txt"', 'content-type': 'text/plain'}]]}
 
 
 def test_multi_items(tmpdir, test_client_factory):
@@ -153,21 +138,7 @@ def test_multi_items(tmpdir, test_client_factory):
             data=[("test1", "abc")],
             files=[("test1", f1), ("test1", ("test2.txt", f2, "text/plain"))],
         )
-        assert response.json() == {
-            "test1": [
-                "abc",
-                {
-                    "filename": "test1.txt",
-                    "content": "<file1 content>",
-                    "content_type": "",
-                },
-                {
-                    "filename": "test2.txt",
-                    "content": "<file2 content>",
-                    "content_type": "text/plain",
-                },
-            ]
-        }
+        assert response.json() == {'test1': ['abc', {'filename': 'test1.txt', 'content': '<file1 content>', 'content_type': ''}, {'filename': 'test2.txt', 'content': '<file2 content>', 'content_type': 'text/plain'}], '__headers': [['test1', {'content-disposition': 'form-data; name="test1"'}], ['test1', {'content-disposition': 'form-data; name="test1"; filename="test1.txt"'}], ['test1', {'content-disposition': 'form-data; name="test1"; filename="test2.txt"', 'content-type': 'text/plain'}]]}
 
 
 def test_multipart_request_mixed_files_and_data(tmpdir, test_client_factory):
@@ -196,15 +167,7 @@ def test_multipart_request_mixed_files_and_data(tmpdir, test_client_factory):
             )
         },
     )
-    assert response.json() == {
-        "file": {
-            "filename": "file.txt",
-            "content": "<file content>",
-            "content_type": "text/plain",
-        },
-        "field0": "value0",
-        "field1": "value1",
-    }
+    assert response.json() == {'field0': 'value0', 'file': {'filename': 'file.txt', 'content': '<file content>', 'content_type': 'text/plain'}, 'field1': 'value1', '__headers': [['field0', {'content-disposition': 'form-data; name="field0"'}], ['file', {'content-disposition': 'form-data; name="file"; filename="file.txt"', 'content-type': 'text/plain'}], ['field1', {'content-disposition': 'form-data; name="field1"'}]]}
 
 
 def test_multipart_request_with_charset_for_filename(tmpdir, test_client_factory):
@@ -226,13 +189,8 @@ def test_multipart_request_with_charset_for_filename(tmpdir, test_client_factory
             )
         },
     )
-    assert response.json() == {
-        "file": {
-            "filename": "文書.txt",
-            "content": "<file content>",
-            "content_type": "text/plain",
-        }
-    }
+    assert response.json() == {'file': {'filename': '文書.txt', 'content': '<file content>', 'content_type': 'text/plain'}, '__headers': [['file', {'content-disposition': 'form-data; name="file"; filename="æ\x96\x87æ\x9b¸.txt"', 'content-type': 'text/plain'}]]}
+
 
 
 def test_multipart_request_without_charset_for_filename(tmpdir, test_client_factory):
@@ -253,13 +211,8 @@ def test_multipart_request_without_charset_for_filename(tmpdir, test_client_fact
             )
         },
     )
-    assert response.json() == {
-        "file": {
-            "filename": "画像.jpg",
-            "content": "<file content>",
-            "content_type": "image/jpeg",
-        }
-    }
+    assert response.json() == {'file': {'filename': '画像.jpg', 'content': '<file content>', 'content_type': 'image/jpeg'}, '__headers': [['file', {'content-disposition': 'form-data; name="file"; filename="ç\x94»å\x83\x8f.jpg"', 'content-type': 'image/jpeg'}]]}
+
 
 
 def test_multipart_request_with_encoded_value(tmpdir, test_client_factory):
@@ -280,7 +233,7 @@ def test_multipart_request_with_encoded_value(tmpdir, test_client_factory):
             )
         },
     )
-    assert response.json() == {"value": "Transférer"}
+    assert response.json() == {'value': 'Transférer', '__headers': [['value', {'content-disposition': 'form-data; name="value"'}]]}
 
 
 def test_urlencoded_request_data(tmpdir, test_client_factory):
@@ -318,7 +271,7 @@ def test_multipart_multi_field_app_reads_body(tmpdir, test_client_factory):
     response = client.post(
         "/", data={"some": "data", "second": "key pair"}, files=FORCE_MULTIPART
     )
-    assert response.json() == {"some": "data", "second": "key pair"}
+    assert response.json() == {'some': 'data', 'second': 'key pair', '__headers': [['some', {'content-disposition': 'form-data; name="some"'}], ['second', {'content-disposition': 'form-data; name="second"'}]]}
 
 
 def test_user_safe_decode_helper():
