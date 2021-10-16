@@ -217,3 +217,24 @@ app = Router(routes=[
     ])
 ])
 ```
+
+## Host-based routing
+
+If you want to use different routes for the same path based on the `Host` header
+
+```python
+site = Router()  # Use eg. `@site.route()` to configure this.
+api = Router()  # Use eg. `@api.route()` to configure this.
+news = Router()  # Use eg. `@news.route()` to configure this.
+
+routes = [
+    Host('api.example.org', api)
+]
+
+app = Starlette(routes=routes)
+
+app.host('www.example.org', site)
+
+news_host = Host('news.example.org', news)
+app.router.routes.append(news_host)
+```
