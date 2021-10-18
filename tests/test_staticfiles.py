@@ -273,10 +273,12 @@ def test_staticfiles_html_without_index(tmpdir, test_client_factory):
     client = test_client_factory(app)
 
     response = client.get("/dir/")
+    assert response.url == "http://testserver/dir/"
     assert response.status_code == 404
     assert response.text == "<h1>Custom not found page</h1>"
 
     response = client.get("/dir")
+    assert response.url == "http://testserver/dir/"
     assert response.status_code == 404
     assert response.text == "<h1>Custom not found page</h1>"
 
@@ -296,16 +298,17 @@ def test_staticfiles_html_without_404(tmpdir, test_client_factory):
     client = test_client_factory(app)
 
     response = client.get("/dir/")
+    assert response.url == "http://testserver/dir/"
     assert response.status_code == 200
     assert response.text == "<h1>Hello</h1>"
 
     response = client.get("/dir")
+    assert response.url == "http://testserver/dir/"
     assert response.status_code == 200
     assert response.text == "<h1>Hello</h1>"
 
-    response = client.get("/missing")
-    assert response.status_code == 404
-    assert response.text == "Not Found"
+    with pytest.raises(HTTPException) as exc_info:
+        response = client.get("/missing")
 
 
 def test_staticfiles_html_only_files(tmpdir, test_client_factory):
@@ -316,17 +319,12 @@ def test_staticfiles_html_only_files(tmpdir, test_client_factory):
     app = StaticFiles(directory=tmpdir, html=True)
     client = test_client_factory(app)
 
-    response = client.get("/dir")
-    assert response.status_code == 404
-    assert response.text == "Not Found"
+    with pytest.raises(HTTPException) as exc_info:
+        response = client.get("/")
 
     response = client.get("/hello.html")
     assert response.status_code == 200
     assert response.text == "<h1>Hello</h1>"
-
-    response = client.get("/missing")
-    assert response.status_code == 404
-    assert response.text == "Not Found"
 
 
 def test_staticfiles_cache_invalidation_for_deleted_file_html_mode(
