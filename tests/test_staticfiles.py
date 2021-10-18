@@ -287,6 +287,31 @@ def test_staticfiles_html_without_index(tmpdir, test_client_factory):
     assert response.text == "<h1>Custom not found page</h1>"
 
 
+def test_staticfiles_html_without_404(tmpdir, test_client_factory):
+    path = os.path.join(tmpdir, "dir")
+    os.mkdir(path)
+    path = os.path.join(path, "index.html")
+    with open(path, "w") as file:
+        file.write("<h1>Hello</h1>")
+
+    app = StaticFiles(directory=tmpdir, html=True)
+    client = test_client_factory(app)
+
+    response = client.get("/dir/")
+    assert response.url == "http://testserver/dir/"
+    assert response.status_code == 200
+    assert response.text == "<h1>Hello</h1>"
+
+    response = client.get("/dir")
+    assert response.url == "http://testserver/dir/"
+    assert response.status_code == 200
+    assert response.text == "<h1>Hello</h1>"
+
+    response = client.get("/missing")
+    assert response.status_code == 404
+    assert response.text == "Not Found"
+
+
 def test_staticfiles_cache_invalidation_for_deleted_file_html_mode(
     tmpdir, test_client_factory
 ):
