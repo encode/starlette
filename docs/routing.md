@@ -178,6 +178,32 @@ against the application, although these will only return the URL path.
 url = app.url_path_for("user_detail", username=...)
 ```
 
+## Host-based routing
+
+If you want to use different routes for the same path based on the `Host` header.
+
+```python
+site = Router()  # Use eg. `@site.route()` to configure this.
+api = Router()  # Use eg. `@api.route()` to configure this.
+news = Router()  # Use eg. `@news.route()` to configure this.
+
+routes = [
+    Host('api.example.org', api)
+]
+
+app = Starlette(routes=routes)
+
+app.host('www.example.org', site)
+
+news_host = Host('news.example.org', news)
+app.router.routes.append(news_host)
+```
+
+Note that port is removed from the `Host` header when matching.
+For example, `Host (host='example.org:3600', ...)` will not be processed 
+even if the `Host` header is `example.org:3600`. 
+Therefore, specify only the domain or IP address
+
 ## Route priority
 
 Incoming paths are matched against each `Route` in order.
@@ -217,29 +243,3 @@ app = Router(routes=[
     ])
 ])
 ```
-
-## Host-based routing
-
-If you want to use different routes for the same path based on the `Host` header.
-
-```python
-site = Router()  # Use eg. `@site.route()` to configure this.
-api = Router()  # Use eg. `@api.route()` to configure this.
-news = Router()  # Use eg. `@news.route()` to configure this.
-
-routes = [
-    Host('api.example.org', api)
-]
-
-app = Starlette(routes=routes)
-
-app.host('www.example.org', site)
-
-news_host = Host('news.example.org', news)
-app.router.routes.append(news_host)
-```
-
-Note that port is removed from the `Host` header when matching.
-For example, `Host (host='example.org:3600', ...)` will not be processed 
-even if the `Host` header is `example.org:3600`. 
-Therefore, specify only the domain or IP address
