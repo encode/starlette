@@ -182,6 +182,11 @@ url = app.url_path_for("user_detail", username=...)
 
 If you want to use different routes for the same path based on the `Host` header.
 
+Note that port is removed from the `Host` header when matching.
+For example, `Host (host='example.org:3600', ...)` will not be processed 
+even if the `Host` header is `example.org:3600`. 
+Therefore, specify only the domain or IP address
+
 ```python
 site = Router()  # Use eg. `@site.route()` to configure this.
 api = Router()  # Use eg. `@api.route()` to configure this.
@@ -198,11 +203,6 @@ app.host('www.example.org', site)
 news_host = Host('news.example.org', news)
 app.router.routes.append(news_host)
 ```
-
-Note that port is removed from the `Host` header when matching.
-For example, `Host (host='example.org:3600', ...)` will not be processed 
-even if the `Host` header is `example.org:3600`. 
-Therefore, specify only the domain or IP address
 
 ## Route priority
 
