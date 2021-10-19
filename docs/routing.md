@@ -204,6 +204,22 @@ news_host = Host('news.example.org', news)
 app.router.routes.append(news_host)
 ```
 
+URL lookups can include host parameters just like path parameters
+
+```python
+routes = [
+    Host("{subdomain}.example.org", name="sub", app=Router(routes=[
+        Mount("/users", name="users", routes=[
+            Route("/", user, name="user_list"),
+            Route("/{username}", user, name="user_detail")
+        ])
+    ]))
+]
+...
+url = request.url_for("sub:users:user_detail", username=..., subdomain=...)
+url = request.url_for("sub:users:user_list", subdomain=...)
+```
+
 ## Route priority
 
 Incoming paths are matched against each `Route` in order.
