@@ -1,10 +1,11 @@
 import typing
+from contextlib import suppress
 
 import anyio
 
 from starlette.requests import Request
 from starlette.responses import Response, StreamingResponse
-from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 RequestResponseEndpoint = typing.Callable[[Request], typing.Awaitable[Response]]
 DispatchFunction = typing.Callable[
@@ -25,9 +26,13 @@ class BaseHTTPMiddleware:
         async def call_next(request: Request) -> Response:
             send_stream, recv_stream = anyio.create_memory_object_stream()
 
+            async def docile_stream_send(msg: Message) -> None:
+                with suppress(anyio.BrokenResourceError):
+                    await send_stream.send(msg)
+
             async def coro() -> None:
                 async with send_stream:
-                    await self.app(scope, request.receive, send_stream.send)
+                    await self.app(scope, request.receive, docile_stream_send)
 
             task_group.start_soon(coro)
 
