@@ -23,21 +23,25 @@ class BaseHTTPMiddleware:
             return
 
         async def call_next(request: Request) -> Response:
+            app_exc: typing.Optional[Exception] = None
             send_stream, recv_stream = anyio.create_memory_object_stream()
 
             async def coro() -> None:
+                nonlocal app_exc
+
                 async with send_stream:
-                    await self.app(scope, request.receive, send_stream.send)
+                    try:
+                        await self.app(scope, request.receive, send_stream.send)
+                    except Exception as exc:
+                        app_exc = exc
 
             task_group.start_soon(coro)
 
             try:
                 message = await recv_stream.receive()
             except anyio.EndOfStream:
-                # HACK: give anyio a chance to surface any app exception first,
-                # in order to avoid an `anyio.ExceptionGroup`.
-                # See #1255.
-                await anyio.lowlevel.checkpoint()
+                if app_exc is not None:
+                    raise app_exc
                 raise RuntimeError("No response returned.")
 
             assert message["type"] == "http.response.start"
