@@ -195,12 +195,12 @@ api = Router()  # Use eg. `@api.route()` to configure this.
 news = Router()  # Use eg. `@news.route()` to configure this.
 
 routes = [
-    Host('api.example.org', api)
+    Host('api.example.org', api, name="site_api")
 ]
 
 app = Starlette(routes=routes)
 
-app.host('www.example.org', site)
+app.host('www.example.org', site, name="main_site")
 
 news_host = Host('news.example.org', news)
 app.router.routes.append(news_host)
