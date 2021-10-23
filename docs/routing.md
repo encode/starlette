@@ -187,6 +187,8 @@ For example, `Host (host='example.org:3600', ...)` will not be processed
 even if the `Host` header is `example.org:3600`. 
 Therefore, specify only the domain or IP address
 
+There are several ways to connect host-based routes to your application
+
 ```python
 site = Router()  # Use eg. `@site.route()` to configure this.
 api = Router()  # Use eg. `@api.route()` to configure this.
