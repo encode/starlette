@@ -497,3 +497,22 @@ def test_cors_allowed_origin_does_not_leak_between_credentialed_requests(
     response = client.get("/", headers={"Origin": "https://someplace.org"})
     assert response.headers["access-control-allow-origin"] == "*"
     assert "access-control-allow-credentials" not in response.headers
+
+
+def test_cors_unhandled_exception_response_has_correct_header_value(
+    test_client_factory,
+):
+    # Test for https://github.com/encode/starlette/issues/1116
+    app = Starlette()
+
+    app.add_middleware(
+        CORSMiddleware, allow_origins=["*"], allow_headers=["*"], allow_methods=["*"]
+    )
+
+    @app.route("/")
+    def handler(request):
+        raise Exception
+
+    client = test_client_factory(app, raise_server_exceptions=False)
+    response = client.get("/", headers={"Origin": "https://someplace.org"})
+    assert response.headers["access-control-allow-origin"] == "*"

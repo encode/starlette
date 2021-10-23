@@ -20,6 +20,16 @@ class HTTPException(Exception):
         return f"{class_name}(status_code={self.status_code!r}, detail={self.detail!r})"
 
 
+class UnhandledException(Exception):
+    def __init__(
+        self, exc: Exception, scope: Scope, receive: Receive, send: Send
+    ) -> None:
+        self.exc = exc
+        self.scope = scope
+        self.receive = receive
+        self.send = send
+
+
 class ExceptionMiddleware:
     def __init__(
         self, app: ASGIApp, handlers: dict = None, debug: bool = False
@@ -79,7 +89,7 @@ class ExceptionMiddleware:
                 handler = self._lookup_exception_handler(exc)
 
             if handler is None:
-                raise exc
+                raise UnhandledException(exc, scope, receive, sender)
 
             if response_started:
                 msg = "Caught handled exception, but response already started."

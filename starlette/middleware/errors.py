@@ -5,6 +5,7 @@ import traceback
 import typing
 
 from starlette.concurrency import run_in_threadpool
+from starlette.exceptions import UnhandledException
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, PlainTextResponse, Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
@@ -147,17 +148,29 @@ class ServerErrorMiddleware:
             return
 
         response_started = False
+        original_send = send
 
         async def _send(message: Message) -> None:
-            nonlocal response_started, send
+            nonlocal response_started, original_send
 
             if message["type"] == "http.response.start":
                 response_started = True
-            await send(message)
+            await original_send(message)
 
+        exc: typing.Optional[Exception]
         try:
             await self.app(scope, receive, _send)
-        except Exception as exc:
+        except UnhandledException as e:
+            exc = e.exc
+            scope = e.scope
+            receive = e.receive
+            send = e.send
+        except Exception as e:
+            exc = e
+        else:
+            exc = None
+
+        if exc is not None:
             if not response_started:
                 request = Request(scope)
                 if self.debug:

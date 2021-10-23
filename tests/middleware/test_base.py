@@ -157,3 +157,32 @@ def test_fully_evaluated_response(test_client_factory):
     client = test_client_factory(app)
     response = client.get("/does_not_exist")
     assert response.text == "Custom"
+
+
+def test_custom_send_called_on_a_unhandled_exception(test_client_factory):
+    send_called = False
+
+    class CustomMiddleware:
+        def __init__(self, app):
+            self.app = app
+
+        async def __call__(self, scope, receive, send):
+            async def _send(msg):
+                nonlocal send_called
+                send_called = True
+                await send(msg)
+
+            await self.app(scope, receive, _send)
+
+    app = Starlette()
+    app.add_middleware(CustomMiddleware)
+
+    @app.route("/")
+    def handler(request):
+        raise Exception
+
+    client = test_client_factory(app, raise_server_exceptions=False)
+    response = client.get("/")
+    assert response.status_code == 500
+    assert response.text == "Internal Server Error"
+    assert send_called
