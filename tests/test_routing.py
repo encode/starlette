@@ -388,7 +388,9 @@ def test_host_routing(test_client_factory):
     response = client.get("/")
     assert response.status_code == 200
 
-    client = test_client_factory(mixed_hosts_app, base_url="https://port.example.org:5600/")
+    client = test_client_factory(
+        mixed_hosts_app, base_url="https://port.example.org:5600/"
+    )
 
     response = client.get("/")
     assert response.status_code == 200
@@ -408,8 +410,8 @@ def test_host_reverse_urls():
         == "https://api.example.org/users"
     )
     assert (
-            mixed_hosts_app.url_path_for("port:homepage").make_absolute_url("https://whatever")
-            == "https://port.example.org:3600/"
+        mixed_hosts_app.url_path_for("port:homepage").make_absolute_url("https://whatever")
+        == "https://port.example.org:3600/"
     )
 
 
