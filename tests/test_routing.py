@@ -355,8 +355,8 @@ mixed_hosts_app = Router(
         Host(
             "port.example.org:3600",
             name="port",
-            app=Router([Route("/", homepage, name="homepage")])
-        )
+            app=Router([Route("/", homepage, name="homepage")]),
+        ),
     ]
 )
 
@@ -410,7 +410,9 @@ def test_host_reverse_urls():
         == "https://api.example.org/users"
     )
     assert (
-        mixed_hosts_app.url_path_for("port:homepage").make_absolute_url("https://whatever")
+        mixed_hosts_app.url_path_for("port:homepage").make_absolute_url(
+            "https://whatever"
+        )
         == "https://port.example.org:3600/"
     )
 
