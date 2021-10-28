@@ -44,7 +44,7 @@ Checkout <a href="https://github.com/taoufik07/nejma-chat" target="_blank">nejma
 <a href="https://github.com/Sobolev5/channel-box" target="_blank">GitHub</a>
 
 Another solution for websocket broadcast. Send messages to channel groups from any part of your code.
-Checkout <a href="https://svue-backend.andrey-sobolev.ru/chat/chat1/" target="_blank">channel-box-chat</a>, a simple chat application built using `channel-box` and `starlette`.
+Checkout <a href="https://channel-box.andrey-sobolev.ru/" target="_blank">MySimpleChat</a>, a simple chat application built using `channel-box` and `starlette`.
 
 ### Scout APM
 
@@ -103,6 +103,13 @@ An alternate session support implementation with customizable storage backends.
 <a href="https://github.com/developmentseed/starlette-cramjam" target="_blank">GitHub</a>
 
 A Starlette middleware that allows **brotli**, **gzip** and **deflate** compression algorithm with a minimal requirements.
+
+
+### Imia
+    
+<a href="https://github.com/alex-oleshkevich/imia" target="_blank">GitHub</a>
+
+An authentication framework for Starlette with pluggable authenticators and login/logout flow.
 
 
 ## Frameworks
