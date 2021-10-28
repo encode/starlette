@@ -20,7 +20,14 @@ def test_request_url(test_client_factory):
     assert response.json() == {"method": "GET", "url": "https://example.org:123/"}
 
 
-def test_request_query_params(test_client_factory):
+@pytest.mark.parametrize(
+    "in_,out",
+    [
+        ("a=123&b=456", {"a": "123", "b": "456"}),
+        ("a=a;b;c;", {"a": "a;b;c;"}),
+    ],
+)
+def test_request_query_params(test_client_factory, in_, out):
     async def app(scope, receive, send):
         request = Request(scope, receive)
         params = dict(request.query_params)
@@ -28,8 +35,8 @@ def test_request_query_params(test_client_factory):
         await response(scope, receive, send)
 
     client = test_client_factory(app)
-    response = client.get("/?a=123&b=456")
-    assert response.json() == {"params": {"a": "123", "b": "456"}}
+    response = client.get(f"/?{in_}")
+    assert response.json() == {"params": out}
 
 
 def test_request_headers(test_client_factory):
