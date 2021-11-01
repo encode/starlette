@@ -46,6 +46,14 @@ Checkout <a href="https://github.com/taoufik07/nejma-chat" target="_blank">nejma
 Another solution for websocket broadcast. Send messages to channel groups from any part of your code.
 Checkout <a href="https://channel-box.andrey-sobolev.ru/" target="_blank">MySimpleChat</a>, a simple chat application built using `channel-box` and `starlette`.
 
+### Starlette+RabbitMQ
+
+<a href="https://github.com/Sobolev5/Starlette-plus-RabbitMQ" target="_blank">GitHub</a>
+
+Starlette + RabbitMQ. Simple RPC calls to backend microservices. 
+Checkout <a href="http://31.210.172.230:5888/" target="_blank">Full working example</a>.
+
+
 ### Scout APM
 
 <a href="https://github.com/scoutapp/scout_apm_python" target="_blank">GitHub</a>
