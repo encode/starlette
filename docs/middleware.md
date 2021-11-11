@@ -41,7 +41,7 @@ application would look like this:
 * Routing
 * Endpoint
 
-Middleware can also be added at the route level, in which case it will be executed after routing ocurrs:
+Middleware can also be added at the route level, in which case it will be executed after routing occurs:
 
 ```python
 from starlette.applications import Starlette
