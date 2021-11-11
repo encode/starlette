@@ -335,6 +335,8 @@ class Mount(BaseRoute):
         app: ASGIApp = None,
         routes: typing.Sequence[BaseRoute] = None,
         name: str = None,
+        *,
+        middleware: typing.Optional[typing.Sequence[Middleware]] = None,
     ) -> None:
         assert path == "" or path.startswith("/"), "Routed paths must start with '/'"
         assert (
@@ -349,6 +351,10 @@ class Mount(BaseRoute):
         self.path_regex, self.path_format, self.param_convertors = compile_path(
             self.path + "/{path:path}"
         )
+
+        if middleware is not None:
+            for cls, options in reversed(middleware):
+                self.app = cls(app=self.app, **options)
 
     @property
     def routes(self) -> typing.List[BaseRoute]:

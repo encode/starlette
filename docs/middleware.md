@@ -41,6 +41,31 @@ application would look like this:
 * Routing
 * Endpoint
 
+Middleware can also be added at the route level, in which case it will be executed after routing ocurrs:
+
+```python
+from starlette.applications import Starlette
+from starlette.middleware.trustedhost import TrustedHostMiddleware
+
+example_route_middleware = [
+    Middleware(TrustedHostMiddleware, allowed_hosts=['example.com', '*.example.com']),
+]
+
+routes = [
+    Route(
+        "/example",
+        endpoint=...,
+        middleware=example_route_middleware,
+    )
+]
+
+middleware = [
+  Middleware(HTTPSRedirectMiddleware)
+]
+
+app = Starlette(routes=routes, middleware=middleware)
+```
+
 The following middleware implementations are available in the Starlette package:
 
 ## CORSMiddleware
