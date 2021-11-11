@@ -682,15 +682,6 @@ middleware_router = Router(
 )
 
 
-def test_router_middleware_http(
-    test_client_factory: typing.Callable[..., TestClient]
-) -> None:
-    test_client = test_client_factory(middleware_router)
-    response = test_client.get("/http")
-    assert response.status_code == 200
-    assert response.headers["X-Test"] == "Set by middleware"
-
-
 mounted_middleware_router = Router(
     [
         Mount(
@@ -707,11 +698,17 @@ mounted_middleware_router = Router(
     ]
 )
 
-
-def test_mounted_router_middleware(
-    test_client_factory: typing.Callable[..., TestClient]
+@pytest.mark.parametrize(
+    "router", [
+        middleware_router,
+        mounted_middleware_router,
+    ]
+)
+def test_http_route_middleware(
+    test_client_factory: typing.Callable[..., TestClient],
+    router: Router,
 ) -> None:
-    test_client = test_client_factory(mounted_middleware_router)
+    test_client = test_client_factory(router)
     response = test_client.get("/http")
     assert response.status_code == 200
     assert response.headers["X-Test"] == "Set by middleware"
