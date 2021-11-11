@@ -66,6 +66,8 @@ middleware = [
 app = Starlette(routes=routes, middleware=middleware)
 ```
 
+Note that since this is run after routing, modifying the path in the middleware will have no effect.
+
 The following middleware implementations are available in the Starlette package:
 
 ## CORSMiddleware
