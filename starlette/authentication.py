@@ -40,7 +40,8 @@ def requires(
             async def websocket_wrapper(
                 *args: typing.Any, **kwargs: typing.Any
             ) -> None:
-                websocket = kwargs.get("websocket", args[idx] if args else None)
+                params = args + tuple(kwargs.values())
+                websocket = kwargs.get("websocket", params[idx])
                 assert isinstance(websocket, WebSocket)
 
                 if not has_required_scope(websocket, scopes_list):
@@ -56,7 +57,8 @@ def requires(
             async def async_wrapper(
                 *args: typing.Any, **kwargs: typing.Any
             ) -> Response:
-                request = kwargs.get("request", args[idx] if args else None)
+                params = args + tuple(kwargs.values())
+                request = kwargs.get("request", params[idx])
                 assert isinstance(request, Request)
 
                 if not has_required_scope(request, scopes_list):
@@ -73,7 +75,8 @@ def requires(
             # Handle sync request/response functions.
             @functools.wraps(func)
             def sync_wrapper(*args: typing.Any, **kwargs: typing.Any) -> Response:
-                request = kwargs.get("request", args[idx] if args else None)
+                params = args + tuple(kwargs.values())
+                request = kwargs.get("request", params[idx])
                 assert isinstance(request, Request)
 
                 if not has_required_scope(request, scopes_list):
