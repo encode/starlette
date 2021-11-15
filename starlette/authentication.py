@@ -40,7 +40,9 @@ def requires(
             async def websocket_wrapper(
                 *args: typing.Any, **kwargs: typing.Any
             ) -> None:
-                websocket = kwargs.get("websocket", args[idx] if idx < len(args) else None)
+                websocket = kwargs.get(
+                    "websocket", args[idx] if idx < len(args) else None
+                )
                 assert isinstance(websocket, WebSocket)
 
                 if not has_required_scope(websocket, scopes_list):
