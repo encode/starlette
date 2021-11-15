@@ -418,7 +418,10 @@ class UploadFile:
     file: typing.BinaryIO
 
     def __init__(
-        self, filename: str, file: typing.BinaryIO = None, content_type: str = ""
+        self,
+        filename: str,
+        file: typing.Optional[typing.BinaryIO] = None,
+        content_type: str = "",
     ) -> None:
         self.filename = filename
         self.content_type = content_type
@@ -438,7 +441,7 @@ class UploadFile:
         else:
             await run_in_threadpool(self.file.write, data)
 
-    async def read(self, size: int = -1) -> typing.Union[bytes]:
+    async def read(self, size: int = -1) -> bytes:
         if self._in_memory:
             return self.file.read(size)
         return await run_in_threadpool(self.file.read, size)
