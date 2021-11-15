@@ -15,7 +15,7 @@ class EnvironError(Exception):
 class Environ(MutableMapping):
     def __init__(self, environ: typing.MutableMapping = os.environ):
         self._environ = environ
-        self._has_been_read = set()  # type: typing.Set[typing.Any]
+        self._has_been_read: typing.Set[typing.Any] = set()
 
     def __getitem__(self, key: typing.Any) -> typing.Any:
         self._has_been_read.add(key)
@@ -46,6 +46,8 @@ class Environ(MutableMapping):
 
 environ = Environ()
 
+T = typing.TypeVar("T")
+
 
 class Config:
     def __init__(
@@ -54,9 +56,27 @@ class Config:
         environ: typing.Mapping[str, str] = environ,
     ) -> None:
         self.environ = environ
-        self.file_values = {}  # type: typing.Dict[str, str]
+        self.file_values: typing.Dict[str, str] = {}
         if env_file is not None and os.path.isfile(env_file):
             self.file_values = self._read_file(env_file)
+
+    @typing.overload
+    def __call__(
+        self, key: str, cast: typing.Type[T], default: T = ...
+    ) -> T:  # pragma: no cover
+        ...
+
+    @typing.overload
+    def __call__(
+        self, key: str, cast: typing.Type[str] = ..., default: str = ...
+    ) -> str:  # pragma: no cover
+        ...
+
+    @typing.overload
+    def __call__(
+        self, key: str, cast: typing.Type[str] = ..., default: T = ...
+    ) -> typing.Union[T, str]:  # pragma: no cover
+        ...
 
     def __call__(
         self, key: str, cast: typing.Callable = None, default: typing.Any = undefined
@@ -77,7 +97,7 @@ class Config:
         raise KeyError(f"Config '{key}' is missing, and has no default.")
 
     def _read_file(self, file_name: typing.Union[str, Path]) -> typing.Dict[str, str]:
-        file_values = {}  # type: typing.Dict[str, str]
+        file_values: typing.Dict[str, str] = {}
         with open(file_name) as input_file:
             for line in input_file.readlines():
                 line = line.strip()

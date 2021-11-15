@@ -20,9 +20,9 @@ class Starlette:
     * **middleware** - A list of middleware to run for every request. A starlette
     application will always automatically include two middleware classes.
     `ServerErrorMiddleware` is added as the very outermost middleware, to handle
-    any uncaught errors occuring anywhere in the entire stack.
+    any uncaught errors occurring anywhere in the entire stack.
     `ExceptionMiddleware` is added as the very innermost middleware, to deal
-    with handled exception cases occuring in the routing or endpoints.
+    with handled exception cases occurring in the routing or endpoints.
     * **exception_handlers** - A dictionary mapping either integer status codes,
     or exception class types onto callables which handle the exceptions.
     Exception handler callables should be of the form
@@ -46,7 +46,7 @@ class Starlette:
         ] = None,
         on_startup: typing.Sequence[typing.Callable] = None,
         on_shutdown: typing.Sequence[typing.Callable] = None,
-        lifespan: typing.Callable[["Starlette"], typing.AsyncGenerator] = None,
+        lifespan: typing.Callable[["Starlette"], typing.AsyncContextManager] = None,
     ) -> None:
         # The lifespan context function is a newer style that replaces
         # on_startup / on_shutdown handlers. Use one or the other, not both.

@@ -6,28 +6,19 @@ import stat
 import sys
 import typing
 from email.utils import formatdate
+from functools import partial
 from mimetypes import guess_type as mimetypes_guess_type
-from urllib.parse import quote, quote_plus
+from urllib.parse import quote
+
+import anyio
 
 from starlette.background import BackgroundTask
-from starlette.concurrency import iterate_in_threadpool, run_until_first_complete
+from starlette.concurrency import iterate_in_threadpool
 from starlette.datastructures import URL, MutableHeaders
 from starlette.types import Receive, Scope, Send
 
 # Workaround for adding samesite support to pre 3.8 python
 http.cookies.Morsel._reserved["samesite"] = "SameSite"  # type: ignore
-
-try:
-    import aiofiles
-    from aiofiles.os import stat as aio_stat
-except ImportError:  # pragma: nocover
-    aiofiles = None  # type: ignore
-    aio_stat = None  # type: ignore
-
-try:
-    import ujson
-except ImportError:  # pragma: nocover
-    ujson = None  # type: ignore
 
 
 # Compatibility wrapper for `mimetypes.guess_type` to support `os.PathLike` on <py3.8
@@ -67,7 +58,7 @@ class Response:
 
     def init_headers(self, headers: typing.Mapping[str, str] = None) -> None:
         if headers is None:
-            raw_headers = []  # type: typing.List[typing.Tuple[bytes, bytes]]
+            raw_headers: typing.List[typing.Tuple[bytes, bytes]] = []
             populate_content_length = True
             populate_content_type = True
         else:
@@ -110,7 +101,7 @@ class Response:
         httponly: bool = False,
         samesite: str = "lax",
     ) -> None:
-        cookie = http.cookies.SimpleCookie()  # type: http.cookies.BaseCookie
+        cookie: http.cookies.BaseCookie = http.cookies.SimpleCookie()
         cookie[key] = value
         if max_age is not None:
             cookie[key]["max-age"] = max_age
@@ -134,8 +125,25 @@ class Response:
         cookie_val = cookie.output(header="").strip()
         self.raw_headers.append((b"set-cookie", cookie_val.encode("latin-1")))
 
-    def delete_cookie(self, key: str, path: str = "/", domain: str = None) -> None:
-        self.set_cookie(key, expires=0, max_age=0, path=path, domain=domain)
+    def delete_cookie(
+        self,
+        key: str,
+        path: str = "/",
+        domain: str = None,
+        secure: bool = False,
+        httponly: bool = False,
+        samesite: str = "lax",
+    ) -> None:
+        self.set_cookie(
+            key,
+            max_age=0,
+            expires=0,
+            path=path,
+            domain=domain,
+            secure=secure,
+            httponly=httponly,
+            samesite=samesite,
+        )
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         await send(
@@ -172,14 +180,6 @@ class JSONResponse(Response):
         ).encode("utf-8")
 
 
-class UJSONResponse(JSONResponse):
-    media_type = "application/json"
-
-    def render(self, content: typing.Any) -> bytes:
-        assert ujson is not None, "ujson must be installed to use UJSONResponse"
-        return ujson.dumps(content, ensure_ascii=False).encode("utf-8")
-
-
 class RedirectResponse(Response):
     def __init__(
         self,
@@ -191,7 +191,7 @@ class RedirectResponse(Response):
         super().__init__(
             content=b"", status_code=status_code, headers=headers, background=background
         )
-        self.headers["location"] = quote_plus(str(url), safe=":/%#?&=@[]!$&'()*+,;")
+        self.headers["location"] = quote(str(url), safe=":/%#?=@[]!$&'()*+,;")
 
 
 class StreamingResponse(Response):
@@ -234,10 +234,14 @@ class StreamingResponse(Response):
         await send({"type": "http.response.body", "body": b"", "more_body": False})
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        await run_until_first_complete(
-            (self.stream_response, {"send": send}),
-            (self.listen_for_disconnect, {"receive": receive}),
-        )
+        async with anyio.create_task_group() as task_group:
+
+            async def wrap(func: typing.Callable[[], typing.Coroutine]) -> None:
+                await func()
+                task_group.cancel_scope.cancel()
+
+            task_group.start_soon(wrap, partial(self.stream_response, send))
+            await wrap(partial(self.listen_for_disconnect, receive))
 
         if self.background is not None:
             await self.background()
@@ -257,7 +261,6 @@ class FileResponse(Response):
         stat_result: os.stat_result = None,
         method: str = None,
     ) -> None:
-        assert aiofiles is not None, "'aiofiles' must be installed to use FileResponse"
         self.path = path
         self.status_code = status_code
         self.filename = filename
@@ -274,7 +277,7 @@ class FileResponse(Response):
                     content_disposition_filename
                 )
             else:
-                content_disposition = 'attachment; filename="{}"'.format(self.filename)
+                content_disposition = f'attachment; filename="{self.filename}"'
             self.headers.setdefault("content-disposition", content_disposition)
         self.stat_result = stat_result
         if stat_result is not None:
@@ -293,7 +296,7 @@ class FileResponse(Response):
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if self.stat_result is None:
             try:
-                stat_result = await aio_stat(self.path)
+                stat_result = await anyio.to_thread.run_sync(os.stat, self.path)
                 self.set_stat_headers(stat_result)
             except FileNotFoundError:
                 raise RuntimeError(f"File at path {self.path} does not exist.")
@@ -311,10 +314,7 @@ class FileResponse(Response):
         if self.send_header_only:
             await send({"type": "http.response.body", "body": b"", "more_body": False})
         else:
-            # Tentatively ignoring type checking failure to work around the wrong type
-            # definitions for aiofile that come with typeshed. See
-            # https://github.com/python/typeshed/pull/4650
-            async with aiofiles.open(self.path, mode="rb") as file:  # type: ignore
+            async with await anyio.open_file(self.path, mode="rb") as file:
                 more_body = True
                 while more_body:
                     chunk = await file.read(self.chunk_size)
