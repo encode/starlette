@@ -41,7 +41,7 @@ def requires(
                 *args: typing.Any, **kwargs: typing.Any
             ) -> None:
                 websocket = kwargs.get(
-                    "websocket", args[idx] if args and idx < len(args) else None
+                    "websocket", args[idx] if idx < len(args) else None
                 )
                 assert isinstance(websocket, WebSocket)
 
@@ -59,7 +59,7 @@ def requires(
                 *args: typing.Any, **kwargs: typing.Any
             ) -> Response:
                 request = kwargs.get(
-                    "request", args[idx] if args and idx < len(args) else None
+                    "request", args[idx] if idx < len(args) else None
                 )
                 assert isinstance(request, Request)
 
@@ -78,7 +78,7 @@ def requires(
             @functools.wraps(func)
             def sync_wrapper(*args: typing.Any, **kwargs: typing.Any) -> Response:
                 request = kwargs.get(
-                    "request", args[idx] if args and idx < len(args) else None
+                    "request", args[idx] if idx < len(args) else None
                 )
                 assert isinstance(request, Request)
 
