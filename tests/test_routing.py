@@ -698,11 +698,13 @@ mounted_middleware_router = Router(
     ]
 )
 
+
 @pytest.mark.parametrize(
-    "router", [
+    "router",
+    [
         middleware_router,
         mounted_middleware_router,
-    ]
+    ],
 )
 def test_http_route_middleware(
     test_client_factory: typing.Callable[..., TestClient],
