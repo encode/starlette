@@ -151,7 +151,7 @@ class WebSocketClose:
         self.reason = reason
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if reason != "":
+        if self.reason is None:
             await send({"type": "websocket.close", "code": code})
         else:
             await send({"type": "websocket.close", "code": code, "reason": reason})
