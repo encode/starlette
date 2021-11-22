@@ -138,8 +138,8 @@ class WebSocket(HTTPConnection):
         else:
             await self.send({"type": "websocket.send", "bytes": text.encode("utf-8")})
 
-    async def close(self, code: int = 1000, reason: typing.Optional[str] = "") -> None:
-        if reason != "":
+    async def close(self, code: int = 1000, reason: str = None) -> None:
+        if reason is None:
             await self.send({"type": "websocket.close", "code": code})
         else:
             await self.send({"type": "websocket.close", "code": code, "reason": reason})
