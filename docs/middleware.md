@@ -39,6 +39,7 @@ application would look like this:
     * `HTTPSRedirectMiddleware`
     * `ExceptionMiddleware`
 * Routing
+* Route middleware
 * Endpoint
 
 Middleware can also be added at the route level, in which case it will be executed after routing occurs:
@@ -67,6 +68,7 @@ app = Starlette(routes=routes, middleware=middleware)
 ```
 
 Note that since this is run after routing, modifying the path in the middleware will have no effect.
+There is also no built-in error handling for route middleware, so your middleware will need to handle exceptions and resource cleanup itself.
 
 The following middleware implementations are available in the Starlette package:
 
