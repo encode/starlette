@@ -345,8 +345,11 @@ class Mount(BaseRoute):
         self.path = path.rstrip("/")
         if app is not None:
             self.app: ASGIApp = app
+            routes = getattr(self.app, "routes", [])
         else:
             self.app = Router(routes=routes)
+            routes = list(routes or [])
+        self._routes = routes
         self.name = name
         self.path_regex, self.path_format, self.param_convertors = compile_path(
             self.path + "/{path:path}"
@@ -358,7 +361,7 @@ class Mount(BaseRoute):
 
     @property
     def routes(self) -> typing.List[BaseRoute]:
-        return getattr(self.app, "routes", None)
+        return self._routes
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] in ("http", "websocket"):
@@ -406,7 +409,7 @@ class Mount(BaseRoute):
             )
             if path_kwarg is not None:
                 remaining_params["path"] = path_kwarg
-            for route in self.routes or []:
+            for route in self.routes:
                 try:
                     url = route.url_path_for(remaining_name, **remaining_params)
                     return URLPath(
