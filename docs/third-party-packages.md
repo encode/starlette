@@ -152,5 +152,5 @@ Roll your own framework with a simple app system, like [Django-GDAPS](https://gd
 
 A Python framework for building geospatial dashboards and web-applications.
 
-Greppo is an open-source Python framework that makes it easy to build geospatial dashboards and web-applications. It provides a toolkit for to quickly integrate data, algorithms, visualizations and UI for interactivity. It provides APIs to the variables in the backend to update, recompute the logic, and reflect the change in the frontend (data mutation hook).
+Greppo is an open-source Python framework that makes it easy to build geospatial dashboards and web-applications. It provides a toolkit to quickly integrate data, algorithms, visualizations and UI for interactivity. It provides APIs to the update the variables in the backend, recompute the logic, and reflect the changes in the frontend (data mutation hook).
 
