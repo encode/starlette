@@ -9,6 +9,9 @@ from starlette.datastructures import URL, Address, FormData, Headers, QueryParam
 from starlette.formparsers import FormParser, MultiPartParser
 from starlette.types import Message, Receive, Scope, Send
 
+if typing.TYPE_CHECKING:  # pragma: nocover
+    from starlette.routing import Router
+
 try:
     from multipart.multipart import parse_options_header
 except ImportError:  # pragma: nocover
@@ -166,7 +169,7 @@ class HTTPConnection(Mapping):
         return self._state
 
     def url_for(self, name: str, **path_params: typing.Any) -> str:
-        router = self.scope["router"]
+        router: Router = self.scope["router"]
         url_path = router.url_path_for(name, **path_params)
         return url_path.make_absolute_url(base_url=self.base_url)
 
