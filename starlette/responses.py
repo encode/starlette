@@ -248,7 +248,7 @@ class StreamingResponse(Response):
 
 
 class FileResponse(Response):
-    chunk_size = 4096
+    chunk_size = 65536
 
     def __init__(
         self,
