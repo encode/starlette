@@ -23,14 +23,11 @@ class HTTPEndpoint:
 
     async def dispatch(self) -> None:
         request = Request(self.scope, receive=self.receive)
-
-        if request.method == "HEAD":
-            if hasattr(self, "head"):
-                handler_name = "head"
-            else:
-                handler_name = "get"
-        else:
-            handler_name = request.method.lower()
+        handler_name = (
+            "get"
+            if request.method == "HEAD" and not hasattr(self, "head")
+            else request.method.lower()
+        )
 
         handler = getattr(self, handler_name, self.method_not_allowed)
         is_async = asyncio.iscoroutinefunction(handler)
@@ -109,7 +106,9 @@ class WebSocketEndpoint:
                 await websocket.close(code=status.WS_1003_UNSUPPORTED_DATA)
                 raise RuntimeError("Malformed JSON data received.")
 
-        assert self.encoding is None, f"Unsupported 'encoding' attribute {self.encoding}"
+        assert (
+            self.encoding is None
+        ), f"Unsupported 'encoding' attribute {self.encoding}"
         return message["text"] if message.get("text") else message["bytes"]
 
     async def on_connect(self, websocket: WebSocket) -> None:
