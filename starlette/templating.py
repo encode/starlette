@@ -11,9 +11,9 @@ try:
     # @contextfunction renamed to @pass_context in Jinja 3.0, to be removed in 3.1
     if hasattr(jinja2, "pass_context"):
         pass_context = jinja2.pass_context
-    else:  # pragma: nocover
+    else:  # pragma: no cover
         pass_context = jinja2.contextfunction
-except ImportError:  # pragma: nocover
+except ImportError:  # pragma: no cover
     jinja2 = None  # type: ignore
 
 

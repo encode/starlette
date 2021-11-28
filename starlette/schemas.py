@@ -7,7 +7,7 @@ from starlette.routing import BaseRoute, Mount, Route
 
 try:
     import yaml
-except ImportError:  # pragma: nocover
+except ImportError:  # pragma: no cover
     yaml = None  # type: ignore
 
 

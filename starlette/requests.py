@@ -11,7 +11,7 @@ from starlette.types import Message, Receive, Scope, Send
 
 try:
     from multipart.multipart import parse_options_header
-except ImportError:  # pragma: nocover
+except ImportError:  # pragma: no cover
     parse_options_header = None
 
 

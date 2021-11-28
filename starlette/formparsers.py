@@ -7,7 +7,7 @@ from starlette.datastructures import FormData, Headers, UploadFile
 try:
     import multipart
     from multipart.multipart import parse_options_header
-except ImportError:  # pragma: nocover
+except ImportError:  # pragma: no cover
     parse_options_header = None
     multipart = None
 
