@@ -191,7 +191,7 @@ def test_invalid_decorator_usage():
 
         @requires("authenticated")
         def foo():
-            pass  # pragma: no cover
+            pass  # pragma: nocover
 
 
 def test_user_interface(test_client_factory):
