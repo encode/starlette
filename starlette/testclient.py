@@ -400,7 +400,6 @@ class WebSocketTestSession:
 class TestClient(requests.Session):
     __test__ = False  # For pytest to not discover this up.
     task: "Future[None]"
-    portal: typing.Optional[anyio.abc.BlockingPortal] = None
 
     def __init__(
         self,
@@ -410,6 +409,7 @@ class TestClient(requests.Session):
         root_path: str = "",
         backend: str = "asyncio",
         backend_options: typing.Optional[typing.Dict[str, typing.Any]] = None,
+        portal: typing.Optional[anyio.abc.BlockingPortal] = None,
     ) -> None:
         super().__init__()
         self.async_backend = _AsyncBackend(
@@ -434,6 +434,7 @@ class TestClient(requests.Session):
         self.headers.update({"user-agent": "testclient"})
         self.app = asgi_app
         self.base_url = base_url
+        self.portal = portal
 
     @contextlib.contextmanager
     def _portal_factory(
@@ -506,13 +507,14 @@ class TestClient(requests.Session):
 
     def __enter__(self) -> "TestClient":
         with contextlib.ExitStack() as stack:
-            self.portal = portal = stack.enter_context(
-                anyio.start_blocking_portal(**self.async_backend)
-            )
+            if self.portal is None:
+                self.portal = stack.enter_context(
+                    anyio.start_blocking_portal(**self.async_backend)
+                )
 
-            @stack.callback
-            def reset_portal() -> None:
-                self.portal = None
+                @stack.callback
+                def reset_portal() -> None:
+                    self.portal = None
 
             self.stream_send = StapledObjectStream(
                 *anyio.create_memory_object_stream(math.inf)
@@ -520,12 +522,12 @@ class TestClient(requests.Session):
             self.stream_receive = StapledObjectStream(
                 *anyio.create_memory_object_stream(math.inf)
             )
-            self.task = portal.start_task_soon(self.lifespan)
-            portal.call(self.wait_startup)
+            self.task = self.portal.start_task_soon(self.lifespan)
+            self.portal.call(self.wait_startup)
 
             @stack.callback
             def wait_shutdown() -> None:
-                portal.call(self.wait_shutdown)
+                self.portal.call(self.wait_shutdown)
 
             self.exit_stack = stack.pop_all()
 
