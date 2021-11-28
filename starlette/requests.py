@@ -15,7 +15,7 @@ except ImportError:  # pragma: nocover
     parse_options_header = None
 
 
-if typing.TYPE_CHECKING:  # pragma: nocover
+if typing.TYPE_CHECKING:
     from starlette.routing import Router
 
 
