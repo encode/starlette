@@ -71,6 +71,26 @@ def test_use_testclient_in_endpoint(test_client_factory):
     assert response.json() == {"mock": "example"}
 
 
+def test_use_multiple_testclients_with_asyncio(test_client_factory, anyio_backend_name):
+    if anyio_backend_name != 'asyncio':
+        return
+    service = Starlette()
+
+    @service.on_event("startup")
+    async def save_event_loop():
+        service.state.event_loop = asyncio.get_running_loop()
+
+    @service.route("/")
+    async def handle_request(request):
+        await service.state.event_loop.create_task(asyncio.sleep(0))
+        return JSONResponse({})
+
+    with test_client_factory(service) as parent_client:
+        client_2 = test_client_factory(service, portal=parent_client.portal)
+        assert client_2.get("/").json() == {}
+        assert parent_client.get("/").json() == {}
+
+
 def test_use_testclient_as_contextmanager(test_client_factory, anyio_backend_name):
     """
     This test asserts a number of properties that are important for an
