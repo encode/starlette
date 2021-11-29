@@ -1,5 +1,6 @@
 import os
 
+import pytest
 from starlette.formparsers import UploadFile, _user_safe_decode
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -329,3 +330,20 @@ def test_user_safe_decode_helper():
 def test_user_safe_decode_ignores_wrong_charset():
     result = _user_safe_decode(b"abc", "latin-8")
     assert result == "abc"
+
+
+def test_missing_boundary_parameter(test_client_factory):
+    client = test_client_factory(app)
+    with pytest.raises(KeyError, match='boundary') as exc:
+        client.post(
+            "/",
+            data=(
+                # file
+                b'Content-Disposition: form-data; name="file"; filename="\xe6\x96\x87\xe6\x9b\xb8.txt"\r\n'  # noqa: E501
+                b"Content-Type: text/plain\r\n\r\n"
+                b"<file content>\r\n"
+            ),
+            headers={
+                "Content-Type": "multipart/form-data; charset=utf-8"
+            },
+        )
