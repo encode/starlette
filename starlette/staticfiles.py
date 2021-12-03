@@ -49,7 +49,12 @@ class StaticFiles:
         self.all_directories = self.get_directories(directory, packages)
         self.html = html
         self.config_checked = False
-        if check_dir and directory is not None and not os.path.isdir(directory):
+        if (
+            check_dir
+            and directory is not None
+            and not packages
+            and not os.path.isdir(directory)
+        ):
             raise RuntimeError(f"Directory '{directory}' does not exist")
 
     def get_directories(
@@ -62,19 +67,19 @@ class StaticFiles:
         directories = []
         if directory is not None:
             directories.append(directory)
+        else:
+            directory = "statics"
 
         for package in packages or []:
             spec = importlib.util.find_spec(package)
             assert spec is not None, f"Package {package!r} could not be found."
-            assert (
-                spec.origin is not None
-            ), f"Directory 'statics' in package {package!r} could not be found."
+            assert spec.origin is not None, f"Package {package!r} could not be found."
             package_directory = os.path.normpath(
-                os.path.join(spec.origin, "..", "statics")
+                os.path.join(spec.origin, "..", directory)
             )
             assert os.path.isdir(
                 package_directory
-            ), f"Directory 'statics' in package {package!r} could not be found."
+            ), f"Directory {directory!r} in package {package!r} could not be found."
             directories.append(package_directory)
 
         return directories
@@ -188,7 +193,7 @@ class StaticFiles:
         pointed at a directory, so that we can raise loud errors rather than
         just returning 404 responses.
         """
-        if self.directory is None:
+        if self.directory is None or self.packages:
             return
 
         try:
