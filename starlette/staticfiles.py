@@ -63,6 +63,10 @@ class StaticFiles:
         """
         Given `directory` and `packages` arguments, return a list of all the
         directories that should be used for serving static files from.
+
+        It can take a single directory,
+        or a list of `packages` and look for default `statics` in each package,
+        or a list of `packages` with a `directory` to look for in each package.
         """
         directories = []
         if directory is not None:
