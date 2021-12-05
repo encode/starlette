@@ -339,6 +339,7 @@ class Mount(BaseRoute):
             self.app: ASGIApp = app
         else:
             self.app = Router(routes=routes)
+        self._routes_given = routes is not None
         self.name = name
         self.path_regex, self.path_format, self.param_convertors = compile_path(
             self.path + "/{path:path}"
@@ -365,6 +366,15 @@ class Mount(BaseRoute):
                     "path_params": path_params,
                     "app_root_path": scope.get("app_root_path", root_path),
                     "root_path": root_path + matched_path,
+                    "session_root_path": (
+                        # NOTE: if mounting a list of routes, rather than a fully
+                        # separate ASGI app, session data should be placed on the
+                        # current app path.
+                        # See: https://github.com/encode/starlette/issues/1261
+                        root_path
+                        if isinstance(self.app, Router)
+                        else root_path + matched_path
+                    ),
                     "path": remaining_path,
                     "endpoint": self.app,
                 }

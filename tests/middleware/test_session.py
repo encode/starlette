@@ -1,8 +1,10 @@
 import re
 
 from starlette.applications import Starlette
+from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import JSONResponse
+from starlette.routing import Mount, Route
 
 
 def view_session(request):
@@ -102,7 +104,7 @@ def test_secure_session(test_client_factory):
     assert response.json() == {"session": {}}
 
 
-def test_session_cookie_subpath(test_client_factory):
+def test_session_mounted_app(test_client_factory):
     app = create_app()
     second_app = create_app()
     second_app.add_middleware(SessionMiddleware, secret_key="example")
@@ -112,6 +114,23 @@ def test_session_cookie_subpath(test_client_factory):
     cookie = response.headers["set-cookie"]
     cookie_path = re.search(r"; path=(\S+);", cookie).groups()[0]
     assert cookie_path == "/second_app"
+
+
+def test_session_mounted_routes(test_client_factory):
+    auth_routes = [
+        Route("/login", update_session, methods=["POST"]),
+    ]
+
+    app = Starlette(
+        routes=[Mount("/auth", routes=auth_routes)],
+        middleware=[Middleware(SessionMiddleware, secret_key="example")],
+    )
+
+    client = test_client_factory(app, base_url="http://testserver")
+    response = client.post("/auth/login", json={"some": "data"})
+    cookie = response.headers["set-cookie"]
+    cookie_path = re.search(r"; path=(\S+);", cookie).groups()[0]
+    assert cookie_path == "/"
 
 
 def test_invalid_session_cookie(test_client_factory):
