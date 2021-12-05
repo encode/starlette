@@ -368,8 +368,11 @@ class Mount(BaseRoute):
                     "root_path": root_path + matched_path,
                     "session_root_path": (
                         # NOTE: if mounting a list of routes, rather than a fully
-                        # separate ASGI app, session data should be placed on the
-                        # current app path.
+                        # separate ASGI app, session data modified by these routes
+                        # should apply to the parent path.
+                        # This allows e.g. mounting auth routes and have their
+                        # session modifications be available to the parent app,
+                        # for use in e.g. permission checks in neighboring routes.
                         # See: https://github.com/encode/starlette/issues/1261
                         root_path
                         if isinstance(self.app, Router)
