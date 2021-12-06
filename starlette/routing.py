@@ -339,6 +339,7 @@ class Mount(BaseRoute):
             self.app: ASGIApp = app
         else:
             self.app = Router(routes=routes)
+        self._should_share_cookies = routes is not None
         self.name = name
         self.path_regex, self.path_format, self.param_convertors = compile_path(
             self.path + "/{path:path}"
@@ -365,7 +366,7 @@ class Mount(BaseRoute):
                     "path_params": path_params,
                     "app_root_path": scope.get("app_root_path", root_path),
                     "root_path": root_path + matched_path,
-                    "session_root_path": (
+                    "session_cookie_path": (
                         # NOTE: if mounting a list of routes, rather than a fully
                         # separate ASGI app, session data modified by these routes
                         # should apply to the parent path.
@@ -374,7 +375,7 @@ class Mount(BaseRoute):
                         # for use in e.g. permission checks in neighboring routes.
                         # See: https://github.com/encode/starlette/issues/1261
                         root_path
-                        if isinstance(self.app, Router)
+                        if self._should_share_cookies
                         else root_path + matched_path
                     ),
                     "path": remaining_path,
