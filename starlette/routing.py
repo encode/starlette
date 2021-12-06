@@ -339,7 +339,6 @@ class Mount(BaseRoute):
             self.app: ASGIApp = app
         else:
             self.app = Router(routes=routes)
-        self._routes_given = routes is not None
         self.name = name
         self.path_regex, self.path_format, self.param_convertors = compile_path(
             self.path + "/{path:path}"
