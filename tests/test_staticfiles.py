@@ -67,7 +67,7 @@ def test_staticfiles_with_package(test_client_factory):
     assert response.status_code == 200
     assert response.text == "123\n"
 
-    app = StaticFiles(packages=["tests"], directory="statics")
+    app = StaticFiles(packages=[("tests", "statics")])
     client = test_client_factory(app)
     response = client.get("/example.txt")
     assert response.status_code == 200

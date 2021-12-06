@@ -40,7 +40,7 @@ class StaticFiles:
         self,
         *,
         directory: PathLike = None,
-        packages: typing.List[str] = None,
+        packages: typing.List[typing.Union[str, typing.Tuple[str, str]]] = None,
         html: bool = False,
         check_dir: bool = True,
     ) -> None:
@@ -49,41 +49,36 @@ class StaticFiles:
         self.all_directories = self.get_directories(directory, packages)
         self.html = html
         self.config_checked = False
-        if (
-            check_dir
-            and directory is not None
-            and not packages
-            and not os.path.isdir(directory)
-        ):
+        if check_dir and directory is not None and not os.path.isdir(directory):
             raise RuntimeError(f"Directory '{directory}' does not exist")
 
     def get_directories(
-        self, directory: PathLike = None, packages: typing.List[str] = None
+        self,
+        directory: PathLike = None,
+        packages: typing.List[typing.Union[str, typing.Tuple[str, str]]] = None,
     ) -> typing.List[PathLike]:
         """
         Given `directory` and `packages` arguments, return a list of all the
         directories that should be used for serving static files from.
-
-        It can take a single directory,
-        or a list of `packages` and look for default `statics` in each package,
-        or a list of `packages` with a `directory` to look for in each package.
         """
         directories = []
         if directory is not None:
             directories.append(directory)
-        else:
-            directory = "statics"
 
         for package in packages or []:
+            if isinstance(package, tuple):
+                package, statics_dir = package
+            else:
+                statics_dir = "statics"
             spec = importlib.util.find_spec(package)
             assert spec is not None, f"Package {package!r} could not be found."
             assert spec.origin is not None, f"Package {package!r} could not be found."
             package_directory = os.path.normpath(
-                os.path.join(spec.origin, "..", directory)
+                os.path.join(spec.origin, "..", statics_dir)
             )
             assert os.path.isdir(
                 package_directory
-            ), f"Directory {directory!r} in package {package!r} could not be found."
+            ), f"Directory '{statics_dir!r}' in package {package!r} could not be found."
             directories.append(package_directory)
 
         return directories
@@ -197,7 +192,7 @@ class StaticFiles:
         pointed at a directory, so that we can raise loud errors rather than
         just returning 404 responses.
         """
-        if self.directory is None or self.packages:
+        if self.directory is None:
             return
 
         try:
