@@ -1,12 +1,12 @@
 import functools
 import typing
-from typing import AbstractSet, Any, AsyncGenerator, Iterator, Optional
+from typing import Any, AsyncGenerator, Iterator
 
 import anyio
 
 try:
     import contextvars  # Python 3.7+ only or via contextvars backport.
-    from contextvars import Context, ContextVar
+    from contextvars import Context
 except ImportError:  # pragma: no cover
     contextvars = None  # type: ignore
     Context = ContextVar = None  # type: ignore
@@ -15,18 +15,16 @@ except ImportError:  # pragma: no cover
 T = typing.TypeVar("T")
 
 
-def restore_context(
-    context: Context, exclude: Optional[AbstractSet[ContextVar]] = None
-) -> None:
+def _restore_context(context: Context) -> None:
     """Copy the state of `context` to the current context."""
     for cvar in context:
-        if exclude and cvar in exclude:
-            continue
+        newval = context.get(cvar)
         try:
-            if cvar.get() != context.get(cvar):
-                cvar.set(context.get(cvar))
+            if cvar.get() != newval:
+                cvar.set(newval)
         except LookupError:
-            cvar.set(context.get(cvar))
+            # the context variable was first set inside of `context`
+            cvar.set(newval)
 
 
 async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -> None:
@@ -51,7 +49,7 @@ async def run_in_threadpool(
         # Ensure we run in the same context
         child = functools.partial(func, *args, **kwargs)
         context = contextvars.copy_context()
-        restore = functools.partial(restore_context, context)
+        restore = functools.partial(_restore_context, context)
         func = context.run
         args = (child,)
     elif kwargs:  # pragma: no cover

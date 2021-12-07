@@ -25,10 +25,38 @@ async def test_run_until_first_complete():
 
 
 @pytest.mark.anyio
-async def test_restore_context_from_thread():
-    ctxvar = contextvars.ContextVar("ctxvar", default="spam")
+async def test_restore_context_from_thread_previously_set():
+    """Value outside of threadpool is overwitten with value set in threadpool"""
+    ctxvar = contextvars.ContextVar("ctxvar")
+    ctxvar.set("spam")
 
     def sync_task():
+        ctxvar.set("ham")
+
+    await run_in_threadpool(sync_task)
+    assert ctxvar.get() == "ham"
+
+
+@pytest.mark.anyio
+async def test_restore_context_from_thread_previously_unset():
+    """Value outside of threadpool is set to value in threadpool"""
+    ctxvar = contextvars.ContextVar("ctxvar")
+
+    def sync_task():
+        ctxvar.set("ham")
+
+    await run_in_threadpool(sync_task)
+    assert ctxvar.get() == "ham"
+
+
+@pytest.mark.anyio
+async def test_restore_context_from_thread_new_cvar():
+    """Value outside of threadpool is set for a cvar created in the threadpool"""
+    ctxvar = None
+
+    def sync_task():
+        nonlocal ctxvar
+        ctxvar = contextvars.ContextVar("ctxvar")
         ctxvar.set("ham")
 
     await run_in_threadpool(sync_task)
