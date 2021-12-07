@@ -9,7 +9,15 @@ from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import JSONResponse, PlainTextResponse, Response
-from starlette.routing import BaseRoute, Host, Mount, NoMatchFound, Route, Router, WebSocketRoute
+from starlette.routing import (
+    BaseRoute,
+    Host,
+    Mount,
+    NoMatchFound,
+    Route,
+    Router,
+    WebSocketRoute,
+)
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
@@ -696,12 +704,14 @@ class AddHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
-route_with_middleware = Route(
-    "/http",
-    endpoint=assert_middleware_header_route,
-    methods=["GET"],
-    middleware=[Middleware(AddHeadersMiddleware)],
-),
+route_with_middleware = (
+    Route(
+        "/http",
+        endpoint=assert_middleware_header_route,
+        methods=["GET"],
+        middleware=[Middleware(AddHeadersMiddleware)],
+    ),
+)
 
 
 mounted_routes_with_middleware = Mount(
@@ -763,7 +773,7 @@ mounted_app_with_route_middleware = Mount(
         mounted_routes_with_middleware,
         mounted_app_with_middleware,
         mounted_routes_with_route_middleware,
-        mounted_app_with_route_middleware
+        mounted_app_with_route_middleware,
     ],
 )
 def test_route_level_middleware(
