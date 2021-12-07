@@ -164,11 +164,11 @@ def test_staticfiles_prevents_breaking_out_of_directory(tmpdir):
 
     app = StaticFiles(directory=directory)
     # We can't test this with 'requests', so we test the app directly here.
-    path = app.get_path({"path": "/../example.txt"})
+    path = app._get_path({"path": "/../example.txt"})
     scope = {"method": "GET"}
 
     with pytest.raises(HTTPException) as exc_info:
-        anyio.run(app.get_response, path, scope)
+        anyio.run(app._get_response, path, scope)
 
     assert exc_info.value.status_code == 404
     assert exc_info.value.detail == "Not Found"
@@ -428,7 +428,7 @@ def test_staticfiles_unhandled_os_error_returns_500(
     app = Starlette(routes=routes)
     client = test_client_factory(app, raise_server_exceptions=False)
 
-    monkeypatch.setattr("starlette.staticfiles.StaticFiles.lookup_path", mock_timeout)
+    monkeypatch.setattr("starlette.staticfiles.StaticFiles._lookup_path", mock_timeout)
 
     response = client.get("/example.txt")
     assert response.status_code == 500

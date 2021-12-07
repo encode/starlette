@@ -86,21 +86,21 @@ class StaticFiles:
         assert scope["type"] == "http"
 
         if not self.config_checked:
-            await self.check_config()
+            await self._check_config()
             self.config_checked = True
 
-        path = self.get_path(scope)
-        response = await self.get_response(path, scope)
+        path = self._get_path(scope)
+        response = await self._get_response(path, scope)
         await response(scope, receive, send)
 
-    def get_path(self, scope: Scope) -> str:
+    def _get_path(self, scope: Scope) -> str:
         """
         Given the ASGI scope, return the `path` string to serve up,
         with OS specific path seperators, and any '..', '.' components removed.
         """
         return os.path.normpath(os.path.join(*scope["path"].split("/")))
 
-    async def get_response(self, path: str, scope: Scope) -> Response:
+    async def _get_response(self, path: str, scope: Scope) -> Response:
         """
         Returns an HTTP response, given the incoming path, method and request headers.
         """
@@ -109,7 +109,7 @@ class StaticFiles:
 
         try:
             full_path, stat_result = await anyio.to_thread.run_sync(
-                self.lookup_path, path
+                self._lookup_path, path
             )
         except PermissionError:
             raise HTTPException(status_code=401)
@@ -118,14 +118,14 @@ class StaticFiles:
 
         if stat_result and stat.S_ISREG(stat_result.st_mode):
             # We have a static file to serve.
-            return self.file_response(full_path, stat_result, scope)
+            return self._file_response(full_path, stat_result, scope)
 
         elif stat_result and stat.S_ISDIR(stat_result.st_mode) and self.html:
             # We're in HTML mode, and have got a directory URL.
             # Check if we have 'index.html' file to serve.
             index_path = os.path.join(path, "index.html")
             full_path, stat_result = await anyio.to_thread.run_sync(
-                self.lookup_path, index_path
+                self._lookup_path, index_path
             )
             if stat_result is not None and stat.S_ISREG(stat_result.st_mode):
                 if not scope["path"].endswith("/"):
@@ -133,12 +133,12 @@ class StaticFiles:
                     url = URL(scope=scope)
                     url = url.replace(path=url.path + "/")
                     return RedirectResponse(url=url)
-                return self.file_response(full_path, stat_result, scope)
+                return self._file_response(full_path, stat_result, scope)
 
         if self.html:
             # Check for '404.html' if we're in HTML mode.
             full_path, stat_result = await anyio.to_thread.run_sync(
-                self.lookup_path, "404.html"
+                self._lookup_path, "404.html"
             )
             if stat_result and stat.S_ISREG(stat_result.st_mode):
                 return FileResponse(
@@ -149,7 +149,7 @@ class StaticFiles:
                 )
         raise HTTPException(status_code=404)
 
-    def lookup_path(
+    def _lookup_path(
         self, path: str
     ) -> typing.Tuple[str, typing.Optional[os.stat_result]]:
         for directory in self.all_directories:
@@ -165,7 +165,7 @@ class StaticFiles:
                 continue
         return "", None
 
-    def file_response(
+    def _file_response(
         self,
         full_path: PathLike,
         stat_result: os.stat_result,
@@ -178,11 +178,11 @@ class StaticFiles:
         response = FileResponse(
             full_path, status_code=status_code, stat_result=stat_result, method=method
         )
-        if self.is_not_modified(response.headers, request_headers):
+        if self._is_not_modified(response.headers, request_headers):
             return NotModifiedResponse(response.headers)
         return response
 
-    async def check_config(self) -> None:
+    async def _check_config(self) -> None:
         """
         Perform a one-off configuration check that StaticFiles is actually
         pointed at a directory, so that we can raise loud errors rather than
@@ -202,7 +202,7 @@ class StaticFiles:
                 f"StaticFiles path '{self.directory}' is not a directory."
             )
 
-    def is_not_modified(
+    def _is_not_modified(
         self, response_headers: Headers, request_headers: Headers
     ) -> bool:
         """
