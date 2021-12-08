@@ -34,7 +34,6 @@ def guess_type(
     return mimetypes_guess_type(url, strict)
 
 
-# Build Content Disposition Header from filename
 def build_content_disposition_header(filename: str) -> str:
     content_disposition_filename = quote(filename)
     if content_disposition_filename != filename:
