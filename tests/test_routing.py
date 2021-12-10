@@ -32,6 +32,12 @@ def user_no_match(request):  # pragma: no cover
     return Response(content, media_type="text/plain")
 
 
+async def users_ws(websocket: WebSocket):
+    await websocket.accept()
+    await websocket.send_json({"url": str(websocket.url)})
+    await websocket.close()
+
+
 app = Router(
     [
         Route("/", endpoint=homepage, methods=["GET"]),
@@ -42,6 +48,7 @@ app = Router(
                 Route("/me", endpoint=user_me),
                 Route("/{username}", endpoint=user),
                 Route("/nomatch", endpoint=user_no_match),
+                WebSocketRoute("/ws", endpoint=functools.partial(users_ws)),
             ],
         ),
         Mount("/static", app=Response("xxxxx", media_type="image/png")),
@@ -660,6 +667,13 @@ def test_partial_async_endpoint(test_client_factory):
     cls_method_response = test_client.get("/cls")
     assert cls_method_response.status_code == 200
     assert cls_method_response.json() == {"arg": "foo"}
+
+
+def test_partial_async_ws_endpoint(test_client_factory):
+    test_client = test_client_factory(app)
+    with test_client.websocket_connect("/users/ws") as websocket:
+        data = websocket.receive_json()
+        assert data == {"url": "ws://testserver/users/ws"}
 
 
 def test_duplicated_param_names():
