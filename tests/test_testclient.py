@@ -72,7 +72,7 @@ def test_use_testclient_in_endpoint(test_client_factory):
 
 
 def test_use_multiple_testclients_with_asyncio(test_client_factory, anyio_backend_name):
-    if anyio_backend_name != 'asyncio':
+    if anyio_backend_name != "asyncio":
         return
     service = Starlette()
 
