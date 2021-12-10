@@ -507,8 +507,10 @@ class TestClient(requests.Session):
 
     def __enter__(self) -> "TestClient":
         with contextlib.ExitStack() as stack:
-            if self.portal is None:
-                self.portal = stack.enter_context(
+            if self.portal:
+                portal = self.portal
+            else:
+                portal = self.portal = stack.enter_context(
                     anyio.start_blocking_portal(**self.async_backend)
                 )
 
@@ -522,12 +524,12 @@ class TestClient(requests.Session):
             self.stream_receive = StapledObjectStream(
                 *anyio.create_memory_object_stream(math.inf)
             )
-            self.task = self.portal.start_task_soon(self.lifespan)
-            self.portal.call(self.wait_startup)
+            self.task = portal.start_task_soon(self.lifespan)
+            portal.call(self.wait_startup)
 
             @stack.callback
             def wait_shutdown() -> None:
-                self.portal.call(self.wait_shutdown)
+                portal.call(self.wait_shutdown)
 
             self.exit_stack = stack.pop_all()
 
