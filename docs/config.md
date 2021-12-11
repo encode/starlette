@@ -130,7 +130,7 @@ application logic separated:
 ```python
 import databases
 from starlette.config import Config
-from starlette.datastructures import URL, Secret
+from starlette.datastructures import Secret
 
 config = Config(".env")
 
