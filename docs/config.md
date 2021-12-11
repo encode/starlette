@@ -128,6 +128,7 @@ application logic separated:
 **myproject/settings.py**:
 
 ```python
+import databases
 from starlette.config import Config
 from starlette.datastructures import URL, Secret
 
@@ -137,7 +138,7 @@ DEBUG = config('DEBUG', cast=bool, default=False)
 TESTING = config('TESTING', cast=bool, default=False)
 SECRET_KEY = config('SECRET_KEY', cast=Secret)
 
-DATABASE_URL = config('DATABASE_URL', cast=URL)
+DATABASE_URL = config('DATABASE_URL', cast=databases.DatabaseURL)
 if TESTING:
     DATABASE_URL = DATABASE_URL.replace(database='test_' + DATABASE_URL.database)
 ```
