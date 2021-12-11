@@ -36,7 +36,7 @@ It is production-ready, and gives you the following:
 
 ## Requirements
 
-Python 3.6+
+Python 3.7+
 
 ## Installation
 

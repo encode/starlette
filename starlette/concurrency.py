@@ -1,14 +1,9 @@
+import contextvars
 import functools
 import typing
 from typing import Any, AsyncGenerator, Iterator
 
 import anyio
-
-try:
-    import contextvars  # Python 3.7+ only or via contextvars backport.
-except ImportError:  # pragma: no cover
-    contextvars = None  # type: ignore
-
 
 T = typing.TypeVar("T")
 
