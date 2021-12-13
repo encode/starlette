@@ -1,9 +1,13 @@
 import asyncio
+import contextlib
 import functools
 import inspect
 import re
+import sys
 import traceback
+import types
 import typing
+import warnings
 from enum import Enum
 
 from starlette.concurrency import run_in_threadpool
@@ -14,6 +18,11 @@ from starlette.requests import Request
 from starlette.responses import PlainTextResponse, RedirectResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketClose
+
+if sys.version_info >= (3, 7):
+    from contextlib import asynccontextmanager  # pragma: no cover
+else:
+    from contextlib2 import asynccontextmanager  # pragma: no cover
 
 
 class NoMatchFound(Exception):
@@ -107,6 +116,7 @@ def compile_path(
     """
     path_regex = "^"
     path_format = ""
+    duplicated_params = set()
 
     idx = 0
     param_convertors = {}
@@ -124,11 +134,19 @@ def compile_path(
         path_format += path[idx : match.start()]
         path_format += "{%s}" % param_name
 
+        if param_name in param_convertors:
+            duplicated_params.add(param_name)
+
         param_convertors[param_name] = convertor
 
         idx = match.end()
 
-    path_regex += re.escape(path[idx:]) + "$"
+    if duplicated_params:
+        names = ", ".join(sorted(duplicated_params))
+        ending = "s" if len(duplicated_params) > 1 else ""
+        raise ValueError(f"Duplicated param name{ending} {names} at path {path}")
+
+    path_regex += re.escape(path[idx:].split(":")[0]) + "$"
     path_format += path[idx:]
 
     return re.compile(path_regex), path_format, param_convertors
@@ -138,7 +156,7 @@ class BaseRoute:
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         raise NotImplementedError()  # pragma: no cover
 
-    def url_path_for(self, name: str, **path_params: str) -> URLPath:
+    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         raise NotImplementedError()  # pragma: no cover
 
     async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -217,7 +235,7 @@ class Route(BaseRoute):
                     return Match.FULL, child_scope
         return Match.NONE, {}
 
-    def url_path_for(self, name: str, **path_params: str) -> URLPath:
+    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         seen_params = set(path_params.keys())
         expected_params = set(self.param_convertors.keys())
 
@@ -258,7 +276,10 @@ class WebSocketRoute(BaseRoute):
         self.endpoint = endpoint
         self.name = get_name(endpoint) if name is None else name
 
-        if inspect.isfunction(endpoint) or inspect.ismethod(endpoint):
+        endpoint_handler = endpoint
+        while isinstance(endpoint_handler, functools.partial):
+            endpoint_handler = endpoint_handler.func
+        if inspect.isfunction(endpoint_handler) or inspect.ismethod(endpoint_handler):
             # Endpoint is function or method. Treat it as `func(websocket)`.
             self.app = websocket_session(endpoint)
         else:
@@ -280,7 +301,7 @@ class WebSocketRoute(BaseRoute):
                 return Match.FULL, child_scope
         return Match.NONE, {}
 
-    def url_path_for(self, name: str, **path_params: str) -> URLPath:
+    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         seen_params = set(path_params.keys())
         expected_params = set(self.param_convertors.keys())
 
@@ -318,7 +339,7 @@ class Mount(BaseRoute):
         ), "Either 'app=...', or 'routes=' must be specified"
         self.path = path.rstrip("/")
         if app is not None:
-            self.app = app  # type: ASGIApp
+            self.app: ASGIApp = app
         else:
             self.app = Router(routes=routes)
         self.name = name
@@ -353,7 +374,7 @@ class Mount(BaseRoute):
                 return Match.FULL, child_scope
         return Match.NONE, {}
 
-    def url_path_for(self, name: str, **path_params: str) -> URLPath:
+    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         if self.name is not None and name == self.name and "path" in path_params:
             # 'name' matches "<mount_name>".
             path_params["path"] = path_params["path"].lstrip("/")
@@ -423,7 +444,7 @@ class Host(BaseRoute):
                 return Match.FULL, child_scope
         return Match.NONE, {}
 
-    def url_path_for(self, name: str, **path_params: str) -> URLPath:
+    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         if self.name is not None and name == self.name and "path" in path_params:
             # 'name' matches "<mount_name>".
             path = path_params.pop("path")
@@ -461,6 +482,51 @@ class Host(BaseRoute):
         )
 
 
+_T = typing.TypeVar("_T")
+
+
+class _AsyncLiftContextManager(typing.AsyncContextManager[_T]):
+    def __init__(self, cm: typing.ContextManager[_T]):
+        self._cm = cm
+
+    async def __aenter__(self) -> _T:
+        return self._cm.__enter__()
+
+    async def __aexit__(
+        self,
+        exc_type: typing.Optional[typing.Type[BaseException]],
+        exc_value: typing.Optional[BaseException],
+        traceback: typing.Optional[types.TracebackType],
+    ) -> typing.Optional[bool]:
+        return self._cm.__exit__(exc_type, exc_value, traceback)
+
+
+def _wrap_gen_lifespan_context(
+    lifespan_context: typing.Callable[[typing.Any], typing.Generator]
+) -> typing.Callable[[typing.Any], typing.AsyncContextManager]:
+    cmgr = contextlib.contextmanager(lifespan_context)
+
+    @functools.wraps(cmgr)
+    def wrapper(app: typing.Any) -> _AsyncLiftContextManager:
+        return _AsyncLiftContextManager(cmgr(app))
+
+    return wrapper
+
+
+class _DefaultLifespan:
+    def __init__(self, router: "Router"):
+        self._router = router
+
+    async def __aenter__(self) -> None:
+        await self._router.startup()
+
+    async def __aexit__(self, *exc_info: object) -> None:
+        await self._router.shutdown()
+
+    def __call__(self: _T, app: object) -> _T:
+        return self
+
+
 class Router:
     def __init__(
         self,
@@ -469,7 +535,7 @@ class Router:
         default: ASGIApp = None,
         on_startup: typing.Sequence[typing.Callable] = None,
         on_shutdown: typing.Sequence[typing.Callable] = None,
-        lifespan: typing.Callable[[typing.Any], typing.AsyncGenerator] = None,
+        lifespan: typing.Callable[[typing.Any], typing.AsyncContextManager] = None,
     ) -> None:
         self.routes = [] if routes is None else list(routes)
         self.redirect_slashes = redirect_slashes
@@ -477,12 +543,31 @@ class Router:
         self.on_startup = [] if on_startup is None else list(on_startup)
         self.on_shutdown = [] if on_shutdown is None else list(on_shutdown)
 
-        async def default_lifespan(app: typing.Any) -> typing.AsyncGenerator:
-            await self.startup()
-            yield
-            await self.shutdown()
+        if lifespan is None:
+            self.lifespan_context: typing.Callable[
+                [typing.Any], typing.AsyncContextManager
+            ] = _DefaultLifespan(self)
 
-        self.lifespan_context = default_lifespan if lifespan is None else lifespan
+        elif inspect.isasyncgenfunction(lifespan):
+            warnings.warn(
+                "async generator function lifespans are deprecated, "
+                "use an @contextlib.asynccontextmanager function instead",
+                DeprecationWarning,
+            )
+            self.lifespan_context = asynccontextmanager(
+                lifespan,  # type: ignore[arg-type]
+            )
+        elif inspect.isgeneratorfunction(lifespan):
+            warnings.warn(
+                "generator function lifespans are deprecated, "
+                "use an @contextlib.asynccontextmanager function instead",
+                DeprecationWarning,
+            )
+            self.lifespan_context = _wrap_gen_lifespan_context(
+                lifespan,  # type: ignore[arg-type]
+            )
+        else:
+            self.lifespan_context = lifespan
 
     async def not_found(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "websocket":
@@ -499,7 +584,7 @@ class Router:
             response = PlainTextResponse("Not Found", status_code=404)
         await response(scope, receive, send)
 
-    def url_path_for(self, name: str, **path_params: str) -> URLPath:
+    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         for route in self.routes:
             try:
                 return route.url_path_for(name, **path_params)
@@ -532,25 +617,19 @@ class Router:
         Handle ASGI lifespan messages, which allows us to manage application
         startup and shutdown events.
         """
-        first = True
+        started = False
         app = scope.get("app")
         await receive()
         try:
-            if inspect.isasyncgenfunction(self.lifespan_context):
-                async for item in self.lifespan_context(app):
-                    assert first, "Lifespan context yielded multiple times."
-                    first = False
-                    await send({"type": "lifespan.startup.complete"})
-                    await receive()
-            else:
-                for item in self.lifespan_context(app):  # type: ignore
-                    assert first, "Lifespan context yielded multiple times."
-                    first = False
-                    await send({"type": "lifespan.startup.complete"})
-                    await receive()
+            async with self.lifespan_context(app):
+                await send({"type": "lifespan.startup.complete"})
+                started = True
+                await receive()
         except BaseException:
-            if first:
-                exc_text = traceback.format_exc()
+            exc_text = traceback.format_exc()
+            if started:
+                await send({"type": "lifespan.shutdown.failed", "message": exc_text})
+            else:
                 await send({"type": "lifespan.startup.failed", "message": exc_text})
             raise
         else:

@@ -23,7 +23,12 @@ class HTTPEndpoint:
 
     async def dispatch(self) -> None:
         request = Request(self.scope, receive=self.receive)
-        handler_name = "get" if request.method == "HEAD" else request.method.lower()
+        handler_name = (
+            "get"
+            if request.method == "HEAD" and not hasattr(self, "head")
+            else request.method.lower()
+        )
+
         handler = getattr(self, handler_name, self.method_not_allowed)
         is_async = asyncio.iscoroutinefunction(handler)
         if is_async:
@@ -71,7 +76,7 @@ class WebSocketEndpoint:
                     break
         except Exception as exc:
             close_code = status.WS_1011_INTERNAL_ERROR
-            raise exc from None
+            raise exc
         finally:
             await self.on_disconnect(websocket, close_code)
 

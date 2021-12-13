@@ -45,7 +45,7 @@ class Starlette:
         ] = None,
         on_startup: typing.Sequence[typing.Callable] = None,
         on_shutdown: typing.Sequence[typing.Callable] = None,
-        lifespan: typing.Callable[["Starlette"], typing.AsyncGenerator] = None,
+        lifespan: typing.Callable[["Starlette"], typing.AsyncContextManager] = None,
     ) -> None:
         # The lifespan context function is a newer style that replaces
         # on_startup / on_shutdown handlers. Use one or the other, not both.
@@ -103,7 +103,7 @@ class Starlette:
         self._debug = value
         self.middleware_stack = self.build_middleware_stack()
 
-    def url_path_for(self, name: str, **path_params: str) -> URLPath:
+    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         return self.router.url_path_for(name, **path_params)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:

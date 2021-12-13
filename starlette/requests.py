@@ -1,8 +1,9 @@
-import asyncio
 import json
 import typing
 from collections.abc import Mapping
 from http import cookies as http_cookies
+
+import anyio
 
 from starlette.datastructures import URL, Address, FormData, Headers, QueryParams, State
 from starlette.formparsers import FormParser, MultiPartParser
@@ -12,6 +13,10 @@ try:
     from multipart.multipart import parse_options_header
 except ImportError:  # pragma: nocover
     parse_options_header = None
+
+
+if typing.TYPE_CHECKING:
+    from starlette.routing import Router
 
 
 SERVER_PUSH_HEADERS_TO_COPY = {
@@ -64,7 +69,7 @@ class HTTPConnection(Mapping):
         assert scope["type"] in ("http", "websocket")
         self.scope = scope
 
-    def __getitem__(self, key: str) -> str:
+    def __getitem__(self, key: str) -> typing.Any:
         return self.scope[key]
 
     def __iter__(self) -> typing.Iterator[str]:
@@ -72,6 +77,12 @@ class HTTPConnection(Mapping):
 
     def __len__(self) -> int:
         return len(self.scope)
+
+    # Don't use the `abc.Mapping.__eq__` implementation.
+    # Connection instances should never be considered equal
+    # unless `self is other`.
+    __eq__ = object.__eq__
+    __hash__ = object.__hash__
 
     @property
     def app(self) -> typing.Any:
@@ -159,7 +170,7 @@ class HTTPConnection(Mapping):
         return self._state
 
     def url_for(self, name: str, **path_params: typing.Any) -> str:
-        router = self.scope["router"]
+        router: Router = self.scope["router"]
         url_path = router.url_path_for(name, **path_params)
         return url_path.make_absolute_url(base_url=self.base_url)
 
@@ -251,10 +262,12 @@ class Request(HTTPConnection):
 
     async def is_disconnected(self) -> bool:
         if not self._is_disconnected:
-            try:
-                message = await asyncio.wait_for(self._receive(), timeout=0.0000001)
-            except asyncio.TimeoutError:
-                message = {}
+            message: Message = {}
+
+            # If message isn't immediately available, move on
+            with anyio.CancelScope() as cs:
+                cs.cancel()
+                message = await self._receive()
 
             if message.get("type") == "http.disconnect":
                 self._is_disconnected = True

@@ -1,4 +1,5 @@
 import typing
+from os import PathLike
 
 from starlette.background import BackgroundTask
 from starlette.responses import Response
@@ -6,6 +7,12 @@ from starlette.types import Receive, Scope, Send
 
 try:
     import jinja2
+
+    # @contextfunction renamed to @pass_context in Jinja 3.0, to be removed in 3.1
+    if hasattr(jinja2, "pass_context"):
+        pass_context = jinja2.pass_context
+    else:  # pragma: nocover
+        pass_context = jinja2.contextfunction
 except ImportError:  # pragma: nocover
     jinja2 = None  # type: ignore
 
@@ -48,12 +55,14 @@ class Jinja2Templates:
     return templates.TemplateResponse("index.html", {"request": request})
     """
 
-    def __init__(self, directory: str) -> None:
+    def __init__(self, directory: typing.Union[str, PathLike]) -> None:
         assert jinja2 is not None, "jinja2 must be installed to use Jinja2Templates"
-        self.env = self.get_env(directory)
+        self.env = self._create_env(directory)
 
-    def get_env(self, directory: str) -> "jinja2.Environment":
-        @jinja2.contextfunction
+    def _create_env(
+        self, directory: typing.Union[str, PathLike]
+    ) -> "jinja2.Environment":
+        @pass_context
         def url_for(context: dict, name: str, **path_params: typing.Any) -> str:
             request = context["request"]
             return request.url_for(name, **path_params)
