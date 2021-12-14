@@ -16,7 +16,7 @@ from starlette.datastructures import URL, Headers, URLPath
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, RedirectResponse
-from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.types import ASGI3Application, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketClose
 
 if sys.version_info >= (3, 7):
@@ -48,7 +48,7 @@ def iscoroutinefunction_or_partial(obj: typing.Any) -> bool:
     return inspect.iscoroutinefunction(obj)
 
 
-def request_response(func: typing.Callable) -> ASGIApp:
+def request_response(func: typing.Callable) -> ASGI3Application:
     """
     Takes a function or coroutine `func(request) -> response`,
     and returns an ASGI application.
@@ -66,7 +66,7 @@ def request_response(func: typing.Callable) -> ASGIApp:
     return app
 
 
-def websocket_session(func: typing.Callable) -> ASGIApp:
+def websocket_session(func: typing.Callable) -> ASGI3Application:
     """
     Takes a coroutine `func(session)`, and returns an ASGI application.
     """
@@ -329,7 +329,7 @@ class Mount(BaseRoute):
     def __init__(
         self,
         path: str,
-        app: ASGIApp = None,
+        app: ASGI3Application = None,
         routes: typing.Sequence[BaseRoute] = None,
         name: str = None,
     ) -> None:
@@ -339,7 +339,7 @@ class Mount(BaseRoute):
         ), "Either 'app=...', or 'routes=' must be specified"
         self.path = path.rstrip("/")
         if app is not None:
-            self.app: ASGIApp = app
+            self.app: ASGI3Application = app
         else:
             self.app = Router(routes=routes)
         self.name = name
@@ -419,7 +419,7 @@ class Mount(BaseRoute):
 
 
 class Host(BaseRoute):
-    def __init__(self, host: str, app: ASGIApp, name: str = None) -> None:
+    def __init__(self, host: str, app: ASGI3Application, name: str = None) -> None:
         self.host = host
         self.app = app
         self.name = name
@@ -532,7 +532,7 @@ class Router:
         self,
         routes: typing.Sequence[BaseRoute] = None,
         redirect_slashes: bool = True,
-        default: ASGIApp = None,
+        default: ASGI3Application = None,
         on_startup: typing.Sequence[typing.Callable] = None,
         on_shutdown: typing.Sequence[typing.Callable] = None,
         lifespan: typing.Callable[[typing.Any], typing.AsyncContextManager] = None,
@@ -692,11 +692,11 @@ class Router:
 
     # The following usages are now discouraged in favour of configuration
     #  during Router.__init__(...)
-    def mount(self, path: str, app: ASGIApp, name: str = None) -> None:
+    def mount(self, path: str, app: ASGI3Application, name: str = None) -> None:
         route = Mount(path, app=app, name=name)
         self.routes.append(route)
 
-    def host(self, host: str, app: ASGIApp, name: str = None) -> None:
+    def host(self, host: str, app: ASGI3Application, name: str = None) -> None:
         route = Host(host, app=app, name=name)
         self.routes.append(route)
 

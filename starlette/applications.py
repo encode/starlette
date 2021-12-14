@@ -6,7 +6,7 @@ from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.errors import ServerErrorMiddleware
 from starlette.routing import BaseRoute, Router
-from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.types import ASGI3Application, Receive, Scope, Send
 
 
 class Starlette:
@@ -65,7 +65,7 @@ class Starlette:
         self.user_middleware = [] if middleware is None else list(middleware)
         self.middleware_stack = self.build_middleware_stack()
 
-    def build_middleware_stack(self) -> ASGIApp:
+    def build_middleware_stack(self) -> Router:
         debug = self.debug
         error_handler = None
         exception_handlers = {}
@@ -116,10 +116,10 @@ class Starlette:
     def on_event(self, event_type: str) -> typing.Callable:
         return self.router.on_event(event_type)
 
-    def mount(self, path: str, app: ASGIApp, name: str = None) -> None:
+    def mount(self, path: str, app: ASGI3Application, name: str = None) -> None:
         self.router.mount(path, app=app, name=name)
 
-    def host(self, host: str, app: ASGIApp, name: str = None) -> None:
+    def host(self, host: str, app: ASGI3Application, name: str = None) -> None:
         self.router.host(host, app=app, name=name)
 
     def add_middleware(self, middleware_class: type, **options: typing.Any) -> None:

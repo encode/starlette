@@ -12,3 +12,4 @@ Receive = typing.Callable[[], typing.Awaitable[ASGIReceiveEvent]]
 Send = typing.Callable[[ASGISendEvent], typing.Awaitable[None]]
 
 ASGIApp = typing.Callable[[Scope, Receive, Send], typing.Awaitable[None]]
+ASGI3Application = typing.Callable[[Scope, Receive, Send], typing.Awaitable[None]]

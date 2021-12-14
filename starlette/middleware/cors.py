@@ -4,7 +4,7 @@ import typing
 
 from starlette.datastructures import Headers, MutableHeaders
 from starlette.responses import PlainTextResponse, Response
-from starlette.types import ASGIApp, ASGISendEvent, Receive, Scope, Send
+from starlette.types import ASGI3Application, ASGISendEvent, Receive, Scope, Send
 
 ALL_METHODS = ("DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT")
 SAFELISTED_HEADERS = {"Accept", "Accept-Language", "Content-Language", "Content-Type"}
@@ -13,7 +13,7 @@ SAFELISTED_HEADERS = {"Accept", "Accept-Language", "Content-Language", "Content-
 class CORSMiddleware:
     def __init__(
         self,
-        app: ASGIApp,
+        app: ASGI3Application,
         allow_origins: typing.Sequence[str] = (),
         allow_methods: typing.Sequence[str] = ("GET",),
         allow_headers: typing.Sequence[str] = (),

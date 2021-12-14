@@ -1,10 +1,10 @@
 from starlette.datastructures import URL
 from starlette.responses import RedirectResponse
-from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.types import ASGI3Application, Receive, Scope, Send
 
 
 class HTTPSRedirectMiddleware:
-    def __init__(self, app: ASGIApp) -> None:
+    def __init__(self, app: ASGI3Application) -> None:
         self.app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:

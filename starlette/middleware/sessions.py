@@ -7,13 +7,13 @@ from itsdangerous.exc import BadSignature
 
 from starlette.datastructures import MutableHeaders, Secret
 from starlette.requests import HTTPConnection
-from starlette.types import ASGIApp, ASGISendEvent, Receive, Scope, Send
+from starlette.types import ASGI3Application, ASGISendEvent, Receive, Scope, Send
 
 
 class SessionMiddleware:
     def __init__(
         self,
-        app: ASGIApp,
+        app: ASGI3Application,
         secret_key: typing.Union[str, Secret],
         session_cookie: str = "session",
         max_age: int = 14 * 24 * 60 * 60,  # 14 days, in seconds

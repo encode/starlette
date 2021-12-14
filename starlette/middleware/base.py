@@ -4,7 +4,7 @@ import anyio
 
 from starlette.requests import Request
 from starlette.responses import Response, StreamingResponse
-from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.types import ASGI3Application, Receive, Scope, Send
 
 RequestResponseEndpoint = typing.Callable[[Request], typing.Awaitable[Response]]
 DispatchFunction = typing.Callable[
@@ -13,7 +13,9 @@ DispatchFunction = typing.Callable[
 
 
 class BaseHTTPMiddleware:
-    def __init__(self, app: ASGIApp, dispatch: DispatchFunction = None) -> None:
+    def __init__(
+        self, app: ASGI3Application, dispatch: DispatchFunction = None
+    ) -> None:
         self.app = app
         self.dispatch_func = self.dispatch if dispatch is None else dispatch
 

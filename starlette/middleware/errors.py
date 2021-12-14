@@ -7,7 +7,7 @@ import typing
 from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, PlainTextResponse, Response
-from starlette.types import ASGIApp, ASGISendEvent, Receive, Scope, Send
+from starlette.types import ASGI3Application, ASGISendEvent, Receive, Scope, Send
 
 STYLES = """
 p {
@@ -135,7 +135,10 @@ class ServerErrorMiddleware:
     """
 
     def __init__(
-        self, app: ASGIApp, handler: typing.Callable = None, debug: bool = False
+        self,
+        app: ASGI3Application,
+        handler: typing.Callable = None,
+        debug: bool = False,
     ) -> None:
         self.app = app
         self.handler = handler

@@ -2,12 +2,12 @@ import gzip
 import io
 
 from starlette.datastructures import Headers, MutableHeaders
-from starlette.types import ASGIApp, ASGISendEvent, Receive, Scope, Send
+from starlette.types import ASGI3Application, ASGISendEvent, Receive, Scope, Send
 
 
 class GZipMiddleware:
     def __init__(
-        self, app: ASGIApp, minimum_size: int = 500, compresslevel: int = 9
+        self, app: ASGI3Application, minimum_size: int = 500, compresslevel: int = 9
     ) -> None:
         self.app = app
         self.minimum_size = minimum_size
@@ -26,7 +26,9 @@ class GZipMiddleware:
 
 
 class GZipResponder:
-    def __init__(self, app: ASGIApp, minimum_size: int, compresslevel: int = 9) -> None:
+    def __init__(
+        self, app: ASGI3Application, minimum_size: int, compresslevel: int = 9
+    ) -> None:
         self.app = app
         self.minimum_size = minimum_size
         self.send: Send = unattached_send

@@ -8,13 +8,13 @@ from starlette.authentication import (
 )
 from starlette.requests import HTTPConnection
 from starlette.responses import PlainTextResponse, Response
-from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.types import ASGI3Application, Receive, Scope, Send
 
 
 class AuthenticationMiddleware:
     def __init__(
         self,
-        app: ASGIApp,
+        app: ASGI3Application,
         backend: AuthenticationBackend,
         on_error: typing.Callable[
             [HTTPConnection, AuthenticationError], Response

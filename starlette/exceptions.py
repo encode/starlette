@@ -5,7 +5,7 @@ import typing
 from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, Response
-from starlette.types import ASGIApp, ASGISendEvent, Receive, Scope, Send
+from starlette.types import ASGI3Application, ASGISendEvent, Receive, Scope, Send
 
 
 class HTTPException(Exception):
@@ -22,7 +22,7 @@ class HTTPException(Exception):
 
 class ExceptionMiddleware:
     def __init__(
-        self, app: ASGIApp, handlers: dict = None, debug: bool = False
+        self, app: ASGI3Application, handlers: dict = None, debug: bool = False
     ) -> None:
         self.app = app
         self.debug = debug  # TODO: We ought to handle 404 cases if debug is set.

@@ -2,7 +2,7 @@ import typing
 
 from starlette.datastructures import URL, Headers
 from starlette.responses import PlainTextResponse, RedirectResponse, Response
-from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.types import ASGI3Application, Receive, Scope, Send
 
 ENFORCE_DOMAIN_WILDCARD = "Domain wildcard patterns must be like '*.example.com'."
 
@@ -10,7 +10,7 @@ ENFORCE_DOMAIN_WILDCARD = "Domain wildcard patterns must be like '*.example.com'
 class TrustedHostMiddleware:
     def __init__(
         self,
-        app: ASGIApp,
+        app: ASGI3Application,
         allowed_hosts: typing.Sequence[str] = None,
         www_redirect: bool = True,
     ) -> None:
