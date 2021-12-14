@@ -5,7 +5,7 @@ import typing
 
 import anyio
 
-from starlette.types import Receive, Scope, Send
+from starlette.types import ASGIReceiveCallable, Scope, Send
 
 
 def build_environ(scope: Scope, body: bytes) -> dict:
@@ -58,7 +58,9 @@ class WSGIMiddleware:
     def __init__(self, app: typing.Callable) -> None:
         self.app = app
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+    ) -> None:
         assert scope["type"] == "http"
         responder = WSGIResponder(self.app, scope)
         await responder(receive, send)
@@ -76,7 +78,7 @@ class WSGIResponder:
         self.response_started = False
         self.exc_info: typing.Any = None
 
-    async def __call__(self, receive: Receive, send: Send) -> None:
+    async def __call__(self, receive: ASGIReceiveCallable, send: Send) -> None:
         body = b""
         more_body = True
         while more_body:

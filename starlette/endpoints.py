@@ -7,12 +7,12 @@ from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, Response
-from starlette.types import Receive, Scope, Send, WebSocketReceiveEvent
+from starlette.types import ASGIReceiveCallable, Scope, Send, WebSocketReceiveEvent
 from starlette.websockets import WebSocket
 
 
 class HTTPEndpoint:
-    def __init__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    def __init__(self, scope: Scope, receive: ASGIReceiveCallable, send: Send) -> None:
         assert scope["type"] == "http"
         self.scope = scope
         self.receive = receive
@@ -50,7 +50,7 @@ class WebSocketEndpoint:
 
     encoding: typing.Optional[str] = None  # May be "text", "bytes", or "json".
 
-    def __init__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    def __init__(self, scope: Scope, receive: ASGIReceiveCallable, send: Send) -> None:
         assert scope["type"] == "websocket"
         self.scope = scope
         self.receive = receive

@@ -4,7 +4,13 @@ import typing
 
 from starlette.datastructures import Headers, MutableHeaders
 from starlette.responses import PlainTextResponse, Response
-from starlette.types import ASGI3Application, ASGISendEvent, Receive, Scope, Send
+from starlette.types import (
+    ASGI3Application,
+    ASGIReceiveCallable,
+    ASGISendEvent,
+    Scope,
+    Send,
+)
 
 ALL_METHODS = ("DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT")
 SAFELISTED_HEADERS = {"Accept", "Accept-Language", "Content-Language", "Content-Type"}
@@ -71,7 +77,9 @@ class CORSMiddleware:
         self.simple_headers = simple_headers
         self.preflight_headers = preflight_headers
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+    ) -> None:
         if scope["type"] != "http":  # pragma: no cover
             await self.app(scope, receive, send)
             return
@@ -141,7 +149,11 @@ class CORSMiddleware:
         return PlainTextResponse("OK", status_code=200, headers=headers)
 
     async def simple_response(
-        self, scope: Scope, receive: Receive, send: Send, request_headers: Headers
+        self,
+        scope: Scope,
+        receive: ASGIReceiveCallable,
+        send: Send,
+        request_headers: Headers,
     ) -> None:
         send = functools.partial(self.send, send=send, request_headers=request_headers)
         await self.app(scope, receive, send)

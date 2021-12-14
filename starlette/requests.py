@@ -7,7 +7,13 @@ import anyio
 
 from starlette.datastructures import URL, Address, FormData, Headers, QueryParams, State
 from starlette.formparsers import FormParser, MultiPartParser
-from starlette.types import ASGIReceiveEvent, ASGISendEvent, Receive, Scope, Send
+from starlette.types import (
+    ASGIReceiveCallable,
+    ASGIReceiveEvent,
+    ASGISendEvent,
+    Scope,
+    Send,
+)
 
 try:
     from multipart.multipart import parse_options_header
@@ -65,7 +71,7 @@ class HTTPConnection(Mapping):
     any functionality that is common to both `Request` and `WebSocket`.
     """
 
-    def __init__(self, scope: Scope, receive: Receive = None) -> None:
+    def __init__(self, scope: Scope, receive: ASGIReceiveCallable = None) -> None:
         assert scope["type"] in ("http", "websocket")
         self.scope = scope
 
@@ -185,7 +191,10 @@ async def empty_send(message: ASGISendEvent) -> None:
 
 class Request(HTTPConnection):
     def __init__(
-        self, scope: Scope, receive: Receive = empty_receive, send: Send = empty_send
+        self,
+        scope: Scope,
+        receive: ASGIReceiveCallable = empty_receive,
+        send: Send = empty_send,
     ):
         super().__init__(scope)
         assert scope["type"] == "http"
@@ -199,7 +208,7 @@ class Request(HTTPConnection):
         return self.scope["method"]
 
     @property
-    def receive(self) -> Receive:
+    def receive(self) -> ASGIReceiveCallable:
         return self._receive
 
     async def stream(self) -> typing.AsyncGenerator[bytes, None]:

@@ -15,7 +15,7 @@ import anyio
 from starlette.background import BackgroundTask
 from starlette.concurrency import iterate_in_threadpool
 from starlette.datastructures import URL, MutableHeaders
-from starlette.types import Receive, Scope, Send
+from starlette.types import ASGIReceiveCallable, Scope, Send
 
 # Workaround for adding samesite support to pre 3.8 python
 http.cookies.Morsel._reserved["samesite"] = "SameSite"  # type: ignore
@@ -145,7 +145,9 @@ class Response:
             samesite=samesite,
         )
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+    ) -> None:
         await send(
             {
                 "type": "http.response.start",
@@ -212,7 +214,7 @@ class StreamingResponse(Response):
         self.background = background
         self.init_headers(headers)
 
-    async def listen_for_disconnect(self, receive: Receive) -> None:
+    async def listen_for_disconnect(self, receive: ASGIReceiveCallable) -> None:
         while True:
             message = await receive()
             if message["type"] == "http.disconnect":
@@ -233,7 +235,9 @@ class StreamingResponse(Response):
 
         await send({"type": "http.response.body", "body": b"", "more_body": False})
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+    ) -> None:
         async with anyio.create_task_group() as task_group:
 
             async def wrap(func: typing.Callable[[], typing.Coroutine]) -> None:
@@ -293,7 +297,9 @@ class FileResponse(Response):
         self.headers.setdefault("last-modified", last_modified)
         self.headers.setdefault("etag", etag)
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+    ) -> None:
         if self.stat_result is None:
             try:
                 stat_result = await anyio.to_thread.run_sync(os.stat, self.path)

@@ -9,7 +9,7 @@ import anyio
 from starlette.datastructures import URL, Headers
 from starlette.exceptions import HTTPException
 from starlette.responses import FileResponse, RedirectResponse, Response
-from starlette.types import Receive, Scope, Send
+from starlette.types import ASGIReceiveCallable, Scope, Send
 
 PathLike = typing.Union[str, "os.PathLike[str]"]
 
@@ -83,7 +83,9 @@ class StaticFiles:
 
         return directories
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+    ) -> None:
         """
         The ASGI entry point.
         """

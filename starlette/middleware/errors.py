@@ -7,7 +7,13 @@ import typing
 from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, PlainTextResponse, Response
-from starlette.types import ASGI3Application, ASGISendEvent, Receive, Scope, Send
+from starlette.types import (
+    ASGI3Application,
+    ASGIReceiveCallable,
+    ASGISendEvent,
+    Scope,
+    Send,
+)
 
 STYLES = """
 p {
@@ -144,7 +150,9 @@ class ServerErrorMiddleware:
         self.handler = handler
         self.debug = debug
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+    ) -> None:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return

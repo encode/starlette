@@ -3,7 +3,13 @@ import json
 import typing
 
 from starlette.requests import HTTPConnection
-from starlette.types import ASGIReceiveEvent, ASGISendEvent, Receive, Scope, Send
+from starlette.types import (
+    ASGIReceiveCallable,
+    ASGIReceiveEvent,
+    ASGISendEvent,
+    Scope,
+    Send,
+)
 
 
 class WebSocketState(enum.Enum):
@@ -18,7 +24,7 @@ class WebSocketDisconnect(Exception):
 
 
 class WebSocket(HTTPConnection):
-    def __init__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    def __init__(self, scope: Scope, receive: ASGIReceiveCallable, send: Send) -> None:
         super().__init__(scope)
         assert scope["type"] == "websocket"
         self._receive = receive
@@ -146,5 +152,7 @@ class WebSocketClose:
     def __init__(self, code: int = 1000) -> None:
         self.code = code
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+    ) -> None:
         await send({"type": "websocket.close", "code": self.code})

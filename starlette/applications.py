@@ -6,7 +6,7 @@ from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.errors import ServerErrorMiddleware
 from starlette.routing import BaseRoute, Router
-from starlette.types import ASGI3Application, Receive, Scope, Send
+from starlette.types import ASGI3Application, ASGIReceiveCallable, Scope, Send
 
 
 class Starlette:
@@ -107,7 +107,9 @@ class Starlette:
     def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         return self.router.url_path_for(name, **path_params)
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+    ) -> None:
         scope["app"] = self
         await self.middleware_stack(scope, receive, send)
 

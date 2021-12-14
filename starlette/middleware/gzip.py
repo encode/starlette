@@ -2,7 +2,13 @@ import gzip
 import io
 
 from starlette.datastructures import Headers, MutableHeaders
-from starlette.types import ASGI3Application, ASGISendEvent, Receive, Scope, Send
+from starlette.types import (
+    ASGI3Application,
+    ASGIReceiveCallable,
+    ASGISendEvent,
+    Scope,
+    Send,
+)
 
 
 class GZipMiddleware:
@@ -13,7 +19,9 @@ class GZipMiddleware:
         self.minimum_size = minimum_size
         self.compresslevel = compresslevel
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+    ) -> None:
         if scope["type"] == "http":
             headers = Headers(scope=scope)
             if "gzip" in headers.get("Accept-Encoding", ""):
@@ -39,7 +47,9 @@ class GZipResponder:
             mode="wb", fileobj=self.gzip_buffer, compresslevel=compresslevel
         )
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+    ) -> None:
         self.send = send
         await self.app(scope, receive, self.send_with_gzip)
 

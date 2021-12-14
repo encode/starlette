@@ -16,7 +16,13 @@ import anyio.abc
 import requests
 from anyio.streams.stapled import StapledObjectStream
 
-from starlette.types import ASGIReceiveEvent, ASGISendEvent, Receive, Scope, Send
+from starlette.types import (
+    ASGIReceiveCallable,
+    ASGIReceiveEvent,
+    ASGISendEvent,
+    Scope,
+    Send,
+)
 from starlette.websockets import WebSocketDisconnect
 
 if sys.version_info >= (3, 8):  # pragma: no cover
@@ -45,9 +51,9 @@ AuthType = typing.Union[
 ]
 
 
-ASGIInstance = typing.Callable[[Receive, Send], typing.Awaitable[None]]
+ASGIInstance = typing.Callable[[ASGIReceiveCallable, Send], typing.Awaitable[None]]
 ASGI2App = typing.Callable[[Scope], ASGIInstance]
-ASGI3App = typing.Callable[[Scope, Receive, Send], typing.Awaitable[None]]
+ASGI3App = typing.Callable[[Scope, ASGIReceiveCallable, Send], typing.Awaitable[None]]
 
 
 class _HeaderDict(requests.packages.urllib3._collections.HTTPHeaderDict):
@@ -98,7 +104,9 @@ class _WrapASGI2:
     def __init__(self, app: ASGI2App) -> None:
         self.app = app
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+    ) -> None:
         instance = self.app(scope)
         await instance(receive, send)
 

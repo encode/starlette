@@ -7,7 +7,13 @@ from itsdangerous.exc import BadSignature
 
 from starlette.datastructures import MutableHeaders, Secret
 from starlette.requests import HTTPConnection
-from starlette.types import ASGI3Application, ASGISendEvent, Receive, Scope, Send
+from starlette.types import (
+    ASGI3Application,
+    ASGIReceiveCallable,
+    ASGISendEvent,
+    Scope,
+    Send,
+)
 
 
 class SessionMiddleware:
@@ -28,7 +34,9 @@ class SessionMiddleware:
         if https_only:  # Secure flag can be used with HTTPS only
             self.security_flags += "; secure"
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+    ) -> None:
         if scope["type"] not in ("http", "websocket"):  # pragma: no cover
             await self.app(scope, receive, send)
             return

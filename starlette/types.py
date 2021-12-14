@@ -9,7 +9,11 @@ WebSocketSendEvent = typing.MutableMapping[str, typing.Any]
 WebSocketReceiveEvent = typing.MutableMapping[str, typing.Any]
 
 Receive = typing.Callable[[], typing.Awaitable[ASGIReceiveEvent]]
+ASGIReceiveCallable = typing.Callable[[], typing.Awaitable[ASGIReceiveEvent]]
+
 Send = typing.Callable[[ASGISendEvent], typing.Awaitable[None]]
 
-ASGIApp = typing.Callable[[Scope, Receive, Send], typing.Awaitable[None]]
-ASGI3Application = typing.Callable[[Scope, Receive, Send], typing.Awaitable[None]]
+ASGIApp = typing.Callable[[Scope, ASGIReceiveCallable, Send], typing.Awaitable[None]]
+ASGI3Application = typing.Callable[
+    [Scope, ASGIReceiveCallable, Send], typing.Awaitable[None]
+]

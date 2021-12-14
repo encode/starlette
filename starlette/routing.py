@@ -16,7 +16,7 @@ from starlette.datastructures import URL, Headers, URLPath
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, RedirectResponse
-from starlette.types import ASGI3Application, Receive, Scope, Send
+from starlette.types import ASGI3Application, ASGIReceiveCallable, Scope, Send
 from starlette.websockets import WebSocket, WebSocketClose
 
 if sys.version_info >= (3, 7):
@@ -55,7 +55,7 @@ def request_response(func: typing.Callable) -> ASGI3Application:
     """
     is_coroutine = iscoroutinefunction_or_partial(func)
 
-    async def app(scope: Scope, receive: Receive, send: Send) -> None:
+    async def app(scope: Scope, receive: ASGIReceiveCallable, send: Send) -> None:
         request = Request(scope, receive=receive, send=send)
         if is_coroutine:
             response = await func(request)
@@ -72,7 +72,7 @@ def websocket_session(func: typing.Callable) -> ASGI3Application:
     """
     # assert asyncio.iscoroutinefunction(func), "WebSocket endpoints must be async"
 
-    async def app(scope: Scope, receive: Receive, send: Send) -> None:
+    async def app(scope: Scope, receive: ASGIReceiveCallable, send: Send) -> None:
         session = WebSocket(scope, receive=receive, send=send)
         await func(session)
 
@@ -159,10 +159,14 @@ class BaseRoute:
     def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         raise NotImplementedError()  # pragma: no cover
 
-    async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def handle(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+    ) -> None:
         raise NotImplementedError()  # pragma: no cover
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+    ) -> None:
         """
         A route may be used in isolation as a stand-alone ASGI app.
         This is a somewhat contrived case, as they'll almost always be used
@@ -248,7 +252,9 @@ class Route(BaseRoute):
         assert not remaining_params
         return URLPath(path=path, protocol="http")
 
-    async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def handle(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+    ) -> None:
         if self.methods and scope["method"] not in self.methods:
             if "app" in scope:
                 raise HTTPException(status_code=405)
@@ -314,7 +320,9 @@ class WebSocketRoute(BaseRoute):
         assert not remaining_params
         return URLPath(path=path, protocol="websocket")
 
-    async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def handle(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+    ) -> None:
         await self.app(scope, receive, send)
 
     def __eq__(self, other: typing.Any) -> bool:
@@ -407,7 +415,9 @@ class Mount(BaseRoute):
                     pass
         raise NoMatchFound()
 
-    async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def handle(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+    ) -> None:
         await self.app(scope, receive, send)
 
     def __eq__(self, other: typing.Any) -> bool:
@@ -471,7 +481,9 @@ class Host(BaseRoute):
                     pass
         raise NoMatchFound()
 
-    async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def handle(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+    ) -> None:
         await self.app(scope, receive, send)
 
     def __eq__(self, other: typing.Any) -> bool:
@@ -569,7 +581,9 @@ class Router:
         else:
             self.lifespan_context = lifespan
 
-    async def not_found(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def not_found(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+    ) -> None:
         if scope["type"] == "websocket":
             websocket_close = WebSocketClose()
             await websocket_close(scope, receive, send)
@@ -612,7 +626,9 @@ class Router:
             else:
                 handler()
 
-    async def lifespan(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def lifespan(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+    ) -> None:
         """
         Handle ASGI lifespan messages, which allows us to manage application
         startup and shutdown events.
@@ -635,7 +651,9 @@ class Router:
         else:
             await send({"type": "lifespan.shutdown.complete"})
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+    ) -> None:
         """
         The main entry point to the Router class.
         """

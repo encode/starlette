@@ -1,13 +1,15 @@
 from starlette.datastructures import URL
 from starlette.responses import RedirectResponse
-from starlette.types import ASGI3Application, Receive, Scope, Send
+from starlette.types import ASGI3Application, ASGIReceiveCallable, Scope, Send
 
 
 class HTTPSRedirectMiddleware:
     def __init__(self, app: ASGI3Application) -> None:
         self.app = app
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+    ) -> None:
         if scope["type"] in ("http", "websocket") and scope["scheme"] in ("http", "ws"):
             url = URL(scope=scope)
             redirect_scheme = {"http": "https", "ws": "wss"}[url.scheme]
