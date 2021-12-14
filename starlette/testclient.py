@@ -21,7 +21,7 @@ from starlette.types import (
     ASGIReceiveEvent,
     ASGISendEvent,
     Scope,
-    Send,
+    ASGISendCallable,
 )
 from starlette.websockets import WebSocketDisconnect
 
@@ -51,9 +51,13 @@ AuthType = typing.Union[
 ]
 
 
-ASGIInstance = typing.Callable[[ASGIReceiveCallable, Send], typing.Awaitable[None]]
+ASGIInstance = typing.Callable[
+    [ASGIReceiveCallable, ASGISendCallable], typing.Awaitable[None]
+]
 ASGI2App = typing.Callable[[Scope], ASGIInstance]
-ASGI3App = typing.Callable[[Scope, ASGIReceiveCallable, Send], typing.Awaitable[None]]
+ASGI3App = typing.Callable[
+    [Scope, ASGIReceiveCallable, ASGISendCallable], typing.Awaitable[None]
+]
 
 
 class _HeaderDict(requests.packages.urllib3._collections.HTTPHeaderDict):
@@ -105,7 +109,7 @@ class _WrapASGI2:
         self.app = app
 
     async def __call__(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         instance = self.app(scope)
         await instance(receive, send)

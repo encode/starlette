@@ -3,7 +3,7 @@ from os import PathLike
 
 from starlette.background import BackgroundTask
 from starlette.responses import Response
-from starlette.types import ASGIReceiveCallable, Scope, Send
+from starlette.types import ASGIReceiveCallable, ASGISendCallable, Scope
 
 try:
     import jinja2
@@ -35,7 +35,7 @@ class _TemplateResponse(Response):
         super().__init__(content, status_code, headers, media_type, background)
 
     async def __call__(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         request = self.context.get("request", {})
         extensions = request.get("extensions", {})

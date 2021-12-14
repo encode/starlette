@@ -10,9 +10,9 @@ from starlette.responses import HTMLResponse, PlainTextResponse, Response
 from starlette.types import (
     ASGI3Application,
     ASGIReceiveCallable,
+    ASGISendCallable,
     ASGISendEvent,
     Scope,
-    Send,
 )
 
 STYLES = """
@@ -151,7 +151,7 @@ class ServerErrorMiddleware:
         self.debug = debug
 
     async def __call__(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         if scope["type"] != "http":
             await self.app(scope, receive, send)

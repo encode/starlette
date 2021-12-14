@@ -15,7 +15,7 @@ import anyio
 from starlette.background import BackgroundTask
 from starlette.concurrency import iterate_in_threadpool
 from starlette.datastructures import URL, MutableHeaders
-from starlette.types import ASGIReceiveCallable, Scope, Send
+from starlette.types import ASGIReceiveCallable, ASGISendCallable, Scope
 
 # Workaround for adding samesite support to pre 3.8 python
 http.cookies.Morsel._reserved["samesite"] = "SameSite"  # type: ignore
@@ -146,7 +146,7 @@ class Response:
         )
 
     async def __call__(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         await send(
             {
@@ -220,7 +220,7 @@ class StreamingResponse(Response):
             if message["type"] == "http.disconnect":
                 break
 
-    async def stream_response(self, send: Send) -> None:
+    async def stream_response(self, send: ASGISendCallable) -> None:
         await send(
             {
                 "type": "http.response.start",
@@ -236,7 +236,7 @@ class StreamingResponse(Response):
         await send({"type": "http.response.body", "body": b"", "more_body": False})
 
     async def __call__(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         async with anyio.create_task_group() as task_group:
 
@@ -298,7 +298,7 @@ class FileResponse(Response):
         self.headers.setdefault("etag", etag)
 
     async def __call__(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         if self.stat_result is None:
             try:

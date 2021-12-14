@@ -8,9 +8,9 @@ from starlette.responses import PlainTextResponse, Response
 from starlette.types import (
     ASGI3Application,
     ASGIReceiveCallable,
+    ASGISendCallable,
     ASGISendEvent,
     Scope,
-    Send,
 )
 
 
@@ -60,7 +60,7 @@ class ExceptionMiddleware:
         return None
 
     async def __call__(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         if scope["type"] != "http":
             await self.app(scope, receive, send)

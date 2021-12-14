@@ -8,7 +8,12 @@ from starlette.authentication import (
 )
 from starlette.requests import HTTPConnection
 from starlette.responses import PlainTextResponse, Response
-from starlette.types import ASGI3Application, ASGIReceiveCallable, Scope, Send
+from starlette.types import (
+    ASGI3Application,
+    ASGIReceiveCallable,
+    ASGISendCallable,
+    Scope,
+)
 
 
 class AuthenticationMiddleware:
@@ -27,7 +32,7 @@ class AuthenticationMiddleware:
         ] = (on_error if on_error is not None else self.default_on_error)
 
     async def __call__(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         if scope["type"] not in ["http", "websocket"]:
             await self.app(scope, receive, send)

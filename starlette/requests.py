@@ -10,9 +10,9 @@ from starlette.formparsers import FormParser, MultiPartParser
 from starlette.types import (
     ASGIReceiveCallable,
     ASGIReceiveEvent,
+    ASGISendCallable,
     ASGISendEvent,
     Scope,
-    Send,
 )
 
 try:
@@ -194,7 +194,7 @@ class Request(HTTPConnection):
         self,
         scope: Scope,
         receive: ASGIReceiveCallable = empty_receive,
-        send: Send = empty_send,
+        send: ASGISendCallable = empty_send,
     ):
         super().__init__(scope)
         assert scope["type"] == "http"

@@ -6,9 +6,9 @@ from starlette.requests import HTTPConnection
 from starlette.types import (
     ASGIReceiveCallable,
     ASGIReceiveEvent,
+    ASGISendCallable,
     ASGISendEvent,
     Scope,
-    Send,
 )
 
 
@@ -24,7 +24,9 @@ class WebSocketDisconnect(Exception):
 
 
 class WebSocket(HTTPConnection):
-    def __init__(self, scope: Scope, receive: ASGIReceiveCallable, send: Send) -> None:
+    def __init__(
+        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+    ) -> None:
         super().__init__(scope)
         assert scope["type"] == "websocket"
         self._receive = receive
@@ -153,6 +155,6 @@ class WebSocketClose:
         self.code = code
 
     async def __call__(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: Send
+        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         await send({"type": "websocket.close", "code": self.code})
