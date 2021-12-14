@@ -30,8 +30,11 @@ class NoMatchFound(Exception):
     Raised by `.url_for(name, **path_params)` and `.url_path_for(name, **path_params)`
     if no matching route exists.
     """
-    def __init__(self, name:str, path_params:typing.Dict[str, typing.Any]) -> None:
-        super().__init__(f'No route exists for name "{name}" and params "{path_params}".')
+
+    def __init__(self, name: str, path_params: typing.Dict[str, typing.Any]) -> None:
+        super().__init__(
+            f'No route exists for name "{name}" and params "{path_params}".'
+        )
 
 
 class Match(Enum):
