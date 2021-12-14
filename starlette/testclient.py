@@ -16,7 +16,7 @@ import anyio.abc
 import requests
 from anyio.streams.stapled import StapledObjectStream
 
-from starlette.types import Message, Receive, Scope, Send
+from starlette.types import ASGIReceiveEvent, ASGISendEvent, Receive, Scope, Send
 from starlette.websockets import WebSocketDisconnect
 
 if sys.version_info >= (3, 8):  # pragma: no cover
@@ -194,7 +194,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
         template = None
         context = None
 
-        async def receive() -> Message:
+        async def receive() -> ASGIReceiveEvent:
             nonlocal request_complete
 
             if request_complete:
@@ -222,7 +222,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             request_complete = True
             return {"type": "http.request", "body": body_bytes}
 
-        async def send(message: Message) -> None:
+        async def send(message: ASGISendEvent) -> None:
             nonlocal raw_kwargs, response_started, template, context
 
             if message["type"] == "http.response.start":
@@ -340,19 +340,21 @@ class WebSocketTestSession:
             self._send_queue.put(exc)
             raise
 
-    async def _asgi_receive(self) -> Message:
+    async def _asgi_receive(self) -> ASGIReceiveEvent:
         while self._receive_queue.empty():
             await anyio.sleep(0)
         return self._receive_queue.get()
 
-    async def _asgi_send(self, message: Message) -> None:
+    async def _asgi_send(self, message: ASGISendEvent) -> None:
         self._send_queue.put(message)
 
-    def _raise_on_close(self, message: Message) -> None:
+    def _raise_on_close(
+        self, message: typing.Union[ASGIReceiveEvent, ASGISendEvent]
+    ) -> None:
         if message["type"] == "websocket.close":
             raise WebSocketDisconnect(message.get("code", 1000))
 
-    def send(self, message: Message) -> None:
+    def send(self, message: ASGIReceiveEvent) -> None:
         self._receive_queue.put(message)
 
     def send_text(self, data: str) -> None:
@@ -372,7 +374,7 @@ class WebSocketTestSession:
     def close(self, code: int = 1000) -> None:
         self.send({"type": "websocket.disconnect", "code": code})
 
-    def receive(self) -> Message:
+    def receive(self) -> ASGIReceiveEvent:
         message = self._send_queue.get()
         if isinstance(message, BaseException):
             raise message

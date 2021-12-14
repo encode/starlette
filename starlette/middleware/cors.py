@@ -4,7 +4,7 @@ import typing
 
 from starlette.datastructures import Headers, MutableHeaders
 from starlette.responses import PlainTextResponse, Response
-from starlette.types import ASGIApp, Message, Receive, Scope, Send
+from starlette.types import ASGIApp, ASGISendEvent, Receive, Scope, Send
 
 ALL_METHODS = ("DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT")
 SAFELISTED_HEADERS = {"Accept", "Accept-Language", "Content-Language", "Content-Type"}
@@ -147,7 +147,7 @@ class CORSMiddleware:
         await self.app(scope, receive, send)
 
     async def send(
-        self, message: Message, send: Send, request_headers: Headers
+        self, message: ASGISendEvent, send: Send, request_headers: Headers
     ) -> None:
         if message["type"] != "http.response.start":
             await send(message)

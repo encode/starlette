@@ -2,7 +2,7 @@ import gzip
 import io
 
 from starlette.datastructures import Headers, MutableHeaders
-from starlette.types import ASGIApp, Message, Receive, Scope, Send
+from starlette.types import ASGIApp, ASGISendEvent, Receive, Scope, Send
 
 
 class GZipMiddleware:
@@ -30,7 +30,7 @@ class GZipResponder:
         self.app = app
         self.minimum_size = minimum_size
         self.send: Send = unattached_send
-        self.initial_message: Message = {}
+        self.initial_message: ASGISendEvent = {}
         self.started = False
         self.gzip_buffer = io.BytesIO()
         self.gzip_file = gzip.GzipFile(
@@ -41,7 +41,7 @@ class GZipResponder:
         self.send = send
         await self.app(scope, receive, self.send_with_gzip)
 
-    async def send_with_gzip(self, message: Message) -> None:
+    async def send_with_gzip(self, message: ASGISendEvent) -> None:
         message_type = message["type"]
         if message_type == "http.response.start":
             # Don't send the initial message until we've determined how to
@@ -100,5 +100,5 @@ class GZipResponder:
             await self.send(message)
 
 
-async def unattached_send(message: Message) -> None:
+async def unattached_send(message: ASGISendEvent) -> None:
     raise RuntimeError("send awaitable not set")  # pragma: no cover

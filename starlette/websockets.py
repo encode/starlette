@@ -3,7 +3,7 @@ import json
 import typing
 
 from starlette.requests import HTTPConnection
-from starlette.types import Message, Receive, Scope, Send
+from starlette.types import ASGIReceiveEvent, ASGISendEvent, Receive, Scope, Send
 
 
 class WebSocketState(enum.Enum):
@@ -26,7 +26,7 @@ class WebSocket(HTTPConnection):
         self.client_state = WebSocketState.CONNECTING
         self.application_state = WebSocketState.CONNECTING
 
-    async def receive(self) -> Message:
+    async def receive(self) -> ASGIReceiveEvent:
         """
         Receive ASGI websocket messages, ensuring valid state transitions.
         """
@@ -48,7 +48,7 @@ class WebSocket(HTTPConnection):
                 'Cannot call "receive" once a disconnect message has been received.'
             )
 
-    async def send(self, message: Message) -> None:
+    async def send(self, message: ASGISendEvent) -> None:
         """
         Send ASGI websocket messages, ensuring valid state transitions.
         """
@@ -75,7 +75,7 @@ class WebSocket(HTTPConnection):
             await self.receive()
         await self.send({"type": "websocket.accept", "subprotocol": subprotocol})
 
-    def _raise_on_disconnect(self, message: Message) -> None:
+    def _raise_on_disconnect(self, message: ASGIReceiveEvent) -> None:
         if message["type"] == "websocket.disconnect":
             raise WebSocketDisconnect(message["code"])
 

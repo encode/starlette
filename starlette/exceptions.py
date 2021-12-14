@@ -5,7 +5,7 @@ import typing
 from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, Response
-from starlette.types import ASGIApp, Message, Receive, Scope, Send
+from starlette.types import ASGIApp, ASGISendEvent, Receive, Scope, Send
 
 
 class HTTPException(Exception):
@@ -60,7 +60,7 @@ class ExceptionMiddleware:
 
         response_started = False
 
-        async def sender(message: Message) -> None:
+        async def sender(message: ASGISendEvent) -> None:
             nonlocal response_started
 
             if message["type"] == "http.response.start":

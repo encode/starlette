@@ -7,7 +7,7 @@ import anyio
 
 from starlette.datastructures import URL, Address, FormData, Headers, QueryParams, State
 from starlette.formparsers import FormParser, MultiPartParser
-from starlette.types import Message, Receive, Scope, Send
+from starlette.types import ASGIReceiveEvent, ASGISendEvent, Receive, Scope, Send
 
 try:
     from multipart.multipart import parse_options_header
@@ -175,11 +175,11 @@ class HTTPConnection(Mapping):
         return url_path.make_absolute_url(base_url=self.base_url)
 
 
-async def empty_receive() -> Message:
+async def empty_receive() -> ASGIReceiveEvent:
     raise RuntimeError("Receive channel has not been made available")
 
 
-async def empty_send(message: Message) -> None:
+async def empty_send(message: ASGISendEvent) -> None:
     raise RuntimeError("Send channel has not been made available")
 
 
@@ -262,7 +262,7 @@ class Request(HTTPConnection):
 
     async def is_disconnected(self) -> bool:
         if not self._is_disconnected:
-            message: Message = {}
+            message: typing.Union[ASGIReceiveEvent, ASGISendEvent] = {}
 
             # If message isn't immediately available, move on
             with anyio.CancelScope() as cs:

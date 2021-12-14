@@ -7,7 +7,7 @@ import typing
 from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, PlainTextResponse, Response
-from starlette.types import ASGIApp, Message, Receive, Scope, Send
+from starlette.types import ASGIApp, ASGISendEvent, Receive, Scope, Send
 
 STYLES = """
 p {
@@ -148,7 +148,7 @@ class ServerErrorMiddleware:
 
         response_started = False
 
-        async def _send(message: Message) -> None:
+        async def _send(message: ASGISendEvent) -> None:
             nonlocal response_started, send
 
             if message["type"] == "http.response.start":

@@ -7,7 +7,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, Response
-from starlette.types import Message, Receive, Scope, Send
+from starlette.types import Receive, Scope, Send, WebSocketReceiveEvent
 from starlette.websockets import WebSocket
 
 
@@ -80,7 +80,9 @@ class WebSocketEndpoint:
         finally:
             await self.on_disconnect(websocket, close_code)
 
-    async def decode(self, websocket: WebSocket, message: Message) -> typing.Any:
+    async def decode(
+        self, websocket: WebSocket, message: WebSocketReceiveEvent
+    ) -> typing.Any:
 
         if self.encoding == "text":
             if "text" not in message:

@@ -7,7 +7,7 @@ from itsdangerous.exc import BadSignature
 
 from starlette.datastructures import MutableHeaders, Secret
 from starlette.requests import HTTPConnection
-from starlette.types import ASGIApp, Message, Receive, Scope, Send
+from starlette.types import ASGIApp, ASGISendEvent, Receive, Scope, Send
 
 
 class SessionMiddleware:
@@ -47,7 +47,7 @@ class SessionMiddleware:
         else:
             scope["session"] = {}
 
-        async def send_wrapper(message: Message) -> None:
+        async def send_wrapper(message: ASGISendEvent) -> None:
             if message["type"] == "http.response.start":
                 path = scope.get("root_path", "") or "/"
                 if scope["session"]:
