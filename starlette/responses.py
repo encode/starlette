@@ -11,7 +11,7 @@ from urllib.parse import quote
 
 import anyio
 
-from starlette._crypto import md5_hexdigest
+from starlette._compat import md5_hexdigest
 from starlette.background import BackgroundTask
 from starlette.concurrency import iterate_in_threadpool
 from starlette.datastructures import URL, MutableHeaders
