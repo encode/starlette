@@ -10,15 +10,16 @@ from starlette.responses import PlainTextResponse, Response
 from starlette.types import (
     ASGIReceiveCallable,
     ASGISendCallable,
-    Scope,
+    HTTPScope,
     WebSocketReceiveEvent,
+    WebSocketScope,
 )
 from starlette.websockets import WebSocket
 
 
 class HTTPEndpoint:
     def __init__(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: HTTPScope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         assert scope["type"] == "http"
         self.scope = scope
@@ -58,7 +59,10 @@ class WebSocketEndpoint:
     encoding: typing.Optional[str] = None  # May be "text", "bytes", or "json".
 
     def __init__(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self,
+        scope: WebSocketScope,
+        receive: ASGIReceiveCallable,
+        send: ASGISendCallable,
     ) -> None:
         assert scope["type"] == "websocket"
         self.scope = scope

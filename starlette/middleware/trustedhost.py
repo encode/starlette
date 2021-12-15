@@ -6,7 +6,7 @@ from starlette.types import (
     ASGI3Application,
     ASGIReceiveCallable,
     ASGISendCallable,
-    Scope,
+    WWWScope,
 )
 
 ENFORCE_DOMAIN_WILDCARD = "Domain wildcard patterns must be like '*.example.com'."
@@ -32,7 +32,7 @@ class TrustedHostMiddleware:
         self.www_redirect = www_redirect
 
     async def __call__(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         if self.allow_any or scope["type"] not in (
             "http",

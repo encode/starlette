@@ -20,7 +20,9 @@ from starlette.types import (
     ASGI3Application,
     ASGIReceiveCallable,
     ASGISendCallable,
+    LifespanScope,
     Scope,
+    WWWScope,
 )
 from starlette.websockets import WebSocket, WebSocketClose
 
@@ -162,19 +164,19 @@ def compile_path(
 
 
 class BaseRoute:
-    def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
+    def matches(self, scope: WWWScope) -> typing.Tuple[Match, WWWScope]:
         raise NotImplementedError()  # pragma: no cover
 
     def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         raise NotImplementedError()  # pragma: no cover
 
     async def handle(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         raise NotImplementedError()  # pragma: no cover
 
     async def __call__(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         """
         A route may be used in isolation as a stand-alone ASGI app.
@@ -232,7 +234,7 @@ class Route(BaseRoute):
 
         self.path_regex, self.path_format, self.param_convertors = compile_path(path)
 
-    def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
+    def matches(self, scope: WWWScope) -> typing.Tuple[Match, WWWScope]:
         if scope["type"] == "http":
             match = self.path_regex.match(scope["path"])
             if match:
@@ -262,7 +264,7 @@ class Route(BaseRoute):
         return URLPath(path=path, protocol="http")
 
     async def handle(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         if self.methods and scope["method"] not in self.methods:
             if "app" in scope:
@@ -303,7 +305,7 @@ class WebSocketRoute(BaseRoute):
 
         self.path_regex, self.path_format, self.param_convertors = compile_path(path)
 
-    def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
+    def matches(self, scope: WWWScope) -> typing.Tuple[Match, WWWScope]:
         if scope["type"] == "websocket":
             match = self.path_regex.match(scope["path"])
             if match:
@@ -330,7 +332,7 @@ class WebSocketRoute(BaseRoute):
         return URLPath(path=path, protocol="websocket")
 
     async def handle(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         await self.app(scope, receive, send)
 
@@ -368,7 +370,7 @@ class Mount(BaseRoute):
     def routes(self) -> typing.List[BaseRoute]:
         return getattr(self.app, "routes", [])
 
-    def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
+    def matches(self, scope: WWWScope) -> typing.Tuple[Match, WWWScope]:
         if scope["type"] in ("http", "websocket"):
             path = scope["path"]
             match = self.path_regex.match(path)
@@ -425,7 +427,7 @@ class Mount(BaseRoute):
         raise NoMatchFound()
 
     async def handle(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         await self.app(scope, receive, send)
 
@@ -448,7 +450,7 @@ class Host(BaseRoute):
     def routes(self) -> typing.List[BaseRoute]:
         return getattr(self.app, "routes", [])
 
-    def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
+    def matches(self, scope: WWWScope) -> typing.Tuple[Match, WWWScope]:
         if scope["type"] in ("http", "websocket"):
             headers = Headers(scope=scope)
             host = headers.get("host", "").split(":")[0]
@@ -491,7 +493,7 @@ class Host(BaseRoute):
         raise NoMatchFound()
 
     async def handle(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         await self.app(scope, receive, send)
 
@@ -591,7 +593,7 @@ class Router:
             self.lifespan_context = lifespan
 
     async def not_found(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         if scope["type"] == "websocket":
             websocket_close = WebSocketClose()
@@ -636,7 +638,7 @@ class Router:
                 handler()
 
     async def lifespan(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: LifespanScope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         """
         Handle ASGI lifespan messages, which allows us to manage application

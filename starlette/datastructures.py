@@ -6,14 +6,14 @@ from shlex import shlex
 from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit
 
 from starlette.concurrency import run_in_threadpool
-from starlette.types import Scope
+from starlette.types import WWWScope
 
 Address = namedtuple("Address", ["host", "port"])
 
 
 class URL:
     def __init__(
-        self, url: str = "", scope: Scope = None, **components: typing.Any
+        self, url: str = "", scope: WWWScope = None, **components: typing.Any
     ) -> None:
         if scope is not None:
             assert not url, 'Cannot set both "url" and "scope".'
@@ -485,7 +485,7 @@ class Headers(typing.Mapping[str, str]):
         self,
         headers: typing.Mapping[str, str] = None,
         raw: typing.List[typing.Tuple[bytes, bytes]] = None,
-        scope: Scope = None,
+        scope: WWWScope = None,
     ) -> None:
         self._list: typing.List[typing.Tuple[bytes, bytes]] = []
         if headers is not None:

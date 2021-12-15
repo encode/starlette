@@ -12,7 +12,7 @@ from starlette.types import (
     ASGIReceiveCallable,
     ASGISendCallable,
     ASGISendEvent,
-    Scope,
+    WWWScope,
 )
 
 
@@ -35,7 +35,7 @@ class SessionMiddleware:
             self.security_flags += "; secure"
 
     async def __call__(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         if scope["type"] not in ("http", "websocket"):  # pragma: no cover
             await self.app(scope, receive, send)

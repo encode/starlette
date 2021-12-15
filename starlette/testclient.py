@@ -19,9 +19,11 @@ from anyio.streams.stapled import StapledObjectStream
 from starlette.types import (
     ASGIReceiveCallable,
     ASGIReceiveEvent,
+    ASGISendCallable,
     ASGISendEvent,
     Scope,
-    ASGISendCallable,
+    WebSocketScope,
+    WWWScope,
 )
 from starlette.websockets import WebSocketDisconnect
 
@@ -54,9 +56,9 @@ AuthType = typing.Union[
 ASGIInstance = typing.Callable[
     [ASGIReceiveCallable, ASGISendCallable], typing.Awaitable[None]
 ]
-ASGI2App = typing.Callable[[Scope], ASGIInstance]
+ASGI2App = typing.Callable[[WWWScope], ASGIInstance]
 ASGI3App = typing.Callable[
-    [Scope, ASGIReceiveCallable, ASGISendCallable], typing.Awaitable[None]
+    [WWWScope, ASGIReceiveCallable, ASGISendCallable], typing.Awaitable[None]
 ]
 
 
@@ -304,7 +306,7 @@ class WebSocketTestSession:
     def __init__(
         self,
         app: ASGI3App,
-        scope: Scope,
+        scope: WWWScope,
         portal_factory: _PortalFactoryType,
     ) -> None:
         self.app = app

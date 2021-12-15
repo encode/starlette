@@ -9,7 +9,7 @@ from starlette.types import (
     ASGIReceiveCallable,
     ASGISendCallable,
     ASGISendEvent,
-    Scope,
+    WWWScope,
 )
 
 ALL_METHODS = ("DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT")
@@ -78,7 +78,7 @@ class CORSMiddleware:
         self.preflight_headers = preflight_headers
 
     async def __call__(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         if scope["type"] != "http":  # pragma: no cover
             await self.app(scope, receive, send)
@@ -150,7 +150,7 @@ class CORSMiddleware:
 
     async def simple_response(
         self,
-        scope: Scope,
+        scope: WWWScope,
         receive: ASGIReceiveCallable,
         send: ASGISendCallable,
         request_headers: Headers,

@@ -9,7 +9,7 @@ import anyio
 from starlette.datastructures import URL, Headers
 from starlette.exceptions import HTTPException
 from starlette.responses import FileResponse, RedirectResponse, Response
-from starlette.types import ASGIReceiveCallable, ASGISendCallable, Scope
+from starlette.types import ASGIReceiveCallable, ASGISendCallable, HTTPScope
 
 PathLike = typing.Union[str, "os.PathLike[str]"]
 
@@ -84,7 +84,7 @@ class StaticFiles:
         return directories
 
     async def __call__(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: HTTPScope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         """
         The ASGI entry point.
@@ -99,14 +99,14 @@ class StaticFiles:
         response = await self.get_response(path, scope)
         await response(scope, receive, send)
 
-    def get_path(self, scope: Scope) -> str:
+    def get_path(self, scope: HTTPScope) -> str:
         """
         Given the ASGI scope, return the `path` string to serve up,
         with OS specific path seperators, and any '..', '.' components removed.
         """
         return os.path.normpath(os.path.join(*scope["path"].split("/")))
 
-    async def get_response(self, path: str, scope: Scope) -> Response:
+    async def get_response(self, path: str, scope: HTTPScope) -> Response:
         """
         Returns an HTTP response, given the incoming path, method and request headers.
         """
@@ -175,7 +175,7 @@ class StaticFiles:
         self,
         full_path: PathLike,
         stat_result: os.stat_result,
-        scope: Scope,
+        scope: HTTPScope,
         status_code: int = 200,
     ) -> Response:
         method = scope["method"]

@@ -12,7 +12,7 @@ from starlette.types import (
     ASGIReceiveCallable,
     ASGISendCallable,
     ASGISendEvent,
-    Scope,
+    WWWScope,
 )
 
 STYLES = """
@@ -151,7 +151,7 @@ class ServerErrorMiddleware:
         self.debug = debug
 
     async def __call__(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         if scope["type"] != "http":
             await self.app(scope, receive, send)

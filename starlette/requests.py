@@ -12,7 +12,7 @@ from starlette.types import (
     ASGIReceiveEvent,
     ASGISendCallable,
     ASGISendEvent,
-    Scope,
+    WWWScope,
 )
 
 try:
@@ -71,7 +71,7 @@ class HTTPConnection(Mapping):
     any functionality that is common to both `Request` and `WebSocket`.
     """
 
-    def __init__(self, scope: Scope, receive: ASGIReceiveCallable = None) -> None:
+    def __init__(self, scope: WWWScope, receive: ASGIReceiveCallable = None) -> None:
         assert scope["type"] in ("http", "websocket")
         self.scope = scope
 
@@ -192,7 +192,7 @@ async def empty_send(message: ASGISendEvent) -> None:
 class Request(HTTPConnection):
     def __init__(
         self,
-        scope: Scope,
+        scope: WWWScope,
         receive: ASGIReceiveCallable = empty_receive,
         send: ASGISendCallable = empty_send,
     ):

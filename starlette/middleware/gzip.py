@@ -7,7 +7,7 @@ from starlette.types import (
     ASGIReceiveCallable,
     ASGISendCallable,
     ASGISendEvent,
-    Scope,
+    WWWScope,
 )
 
 
@@ -20,7 +20,7 @@ class GZipMiddleware:
         self.compresslevel = compresslevel
 
     async def __call__(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         if scope["type"] == "http":
             headers = Headers(scope=scope)
@@ -48,7 +48,7 @@ class GZipResponder:
         )
 
     async def __call__(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         self.send = send
         await self.app(scope, receive, self.send_with_gzip)

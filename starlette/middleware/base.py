@@ -8,7 +8,7 @@ from starlette.types import (
     ASGI3Application,
     ASGIReceiveCallable,
     ASGISendCallable,
-    Scope,
+    WWWScope,
 )
 
 RequestResponseEndpoint = typing.Callable[[Request], typing.Awaitable[Response]]
@@ -25,7 +25,7 @@ class BaseHTTPMiddleware:
         self.dispatch_func = self.dispatch if dispatch is None else dispatch
 
     async def __call__(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         if scope["type"] != "http":
             await self.app(scope, receive, send)

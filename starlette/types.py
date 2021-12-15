@@ -1,6 +1,10 @@
 import typing
 
-Scope = typing.MutableMapping[str, typing.Any]
+HTTPScope = typing.MutableMapping[str, typing.Any]
+LifespanScope = typing.MutableMapping[str, typing.Any]
+WebSocketScope = typing.MutableMapping[str, typing.Any]
+WWWScope = typing.Union[HTTPScope, WebSocketScope]
+Scope = typing.Union[HTTPScope, LifespanScope, WebSocketScope]
 
 Message = typing.MutableMapping[str, typing.Any]
 ASGISendEvent = typing.MutableMapping[str, typing.Any]

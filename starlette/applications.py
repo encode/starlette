@@ -10,7 +10,7 @@ from starlette.types import (
     ASGI3Application,
     ASGIReceiveCallable,
     ASGISendCallable,
-    Scope,
+    WWWScope,
 )
 
 
@@ -113,7 +113,7 @@ class Starlette:
         return self.router.url_path_for(name, **path_params)
 
     async def __call__(
-        self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
+        self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
         scope["app"] = self
         await self.middleware_stack(scope, receive, send)
