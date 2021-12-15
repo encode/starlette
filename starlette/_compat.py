@@ -8,7 +8,9 @@ import inspect
 if "usedforsecurity" in inspect.signature(hashlib.md5).parameters:
 
     def md5_hexdigest(data: bytes, *, usedforsecurity: bool = True) -> str:
-        return hashlib.md5(data, usedforsecurity=usedforsecurity).hexdigest()  # type: ignore[call-arg]
+        return hashlib.md5(  # type: ignore[call-arg]
+            data, usedforsecurity=usedforsecurity
+        ).hexdigest()
 
 
 else:
