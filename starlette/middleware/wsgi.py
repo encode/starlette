@@ -4,8 +4,7 @@ import sys
 import typing
 
 import anyio
-
-from starlette.types import ASGIReceiveCallable, ASGISendCallable, HTTPScope
+from asgiref.typing import ASGIReceiveCallable, ASGISendCallable, HTTPScope
 
 
 def build_environ(scope: HTTPScope, body: bytes) -> dict:

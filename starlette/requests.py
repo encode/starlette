@@ -4,16 +4,16 @@ from collections.abc import Mapping
 from http import cookies as http_cookies
 
 import anyio
-
-from starlette.datastructures import URL, Address, FormData, Headers, QueryParams, State
-from starlette.formparsers import FormParser, MultiPartParser
-from starlette.types import (
+from asgiref.typing import (
     ASGIReceiveCallable,
     ASGIReceiveEvent,
     ASGISendCallable,
     ASGISendEvent,
     WWWScope,
 )
+
+from starlette.datastructures import URL, Address, FormData, Headers, QueryParams, State
+from starlette.formparsers import FormParser, MultiPartParser
 
 try:
     from multipart.multipart import parse_options_header

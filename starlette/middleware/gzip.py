@@ -1,14 +1,15 @@
 import gzip
 import io
 
-from starlette.datastructures import Headers, MutableHeaders
-from starlette.types import (
+from asgiref.typing import (
     ASGI3Application,
     ASGIReceiveCallable,
     ASGISendCallable,
     ASGISendEvent,
     WWWScope,
 )
+
+from starlette.datastructures import Headers, MutableHeaders
 
 
 class GZipMiddleware:

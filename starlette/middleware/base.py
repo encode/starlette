@@ -1,15 +1,15 @@
 import typing
 
 import anyio
-
-from starlette.requests import Request
-from starlette.responses import Response, StreamingResponse
-from starlette.types import (
+from asgiref.typing import (
     ASGI3Application,
     ASGIReceiveCallable,
     ASGISendCallable,
     WWWScope,
 )
+
+from starlette.requests import Request
+from starlette.responses import Response, StreamingResponse
 
 RequestResponseEndpoint = typing.Callable[[Request], typing.Awaitable[Response]]
 DispatchFunction = typing.Callable[

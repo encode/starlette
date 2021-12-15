@@ -1,17 +1,18 @@
 import typing
 
+from asgiref.typing import (
+    ASGI3Application,
+    ASGIReceiveCallable,
+    ASGISendCallable,
+    WWWScope,
+)
+
 from starlette.datastructures import State, URLPath
 from starlette.exceptions import ExceptionMiddleware
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.errors import ServerErrorMiddleware
 from starlette.routing import BaseRoute, Router
-from starlette.types import (
-    ASGI3Application,
-    ASGIReceiveCallable,
-    ASGISendCallable,
-    WWWScope,
-)
 
 
 class Starlette:

@@ -3,17 +3,17 @@ import typing
 from base64 import b64decode, b64encode
 
 import itsdangerous
-from itsdangerous.exc import BadSignature
-
-from starlette.datastructures import MutableHeaders, Secret
-from starlette.requests import HTTPConnection
-from starlette.types import (
+from asgiref.typing import (
     ASGI3Application,
     ASGIReceiveCallable,
     ASGISendCallable,
     ASGISendEvent,
     WWWScope,
 )
+from itsdangerous.exc import BadSignature
+
+from starlette.datastructures import MutableHeaders, Secret
+from starlette.requests import HTTPConnection
 
 
 class SessionMiddleware:

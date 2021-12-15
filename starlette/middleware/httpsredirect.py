@@ -1,11 +1,12 @@
-from starlette.datastructures import URL
-from starlette.responses import RedirectResponse
-from starlette.types import (
+from asgiref.typing import (
     ASGI3Application,
     ASGIReceiveCallable,
     ASGISendCallable,
     WWWScope,
 )
+
+from starlette.datastructures import URL
+from starlette.responses import RedirectResponse
 
 
 class HTTPSRedirectMiddleware:

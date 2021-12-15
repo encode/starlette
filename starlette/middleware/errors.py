@@ -4,16 +4,17 @@ import inspect
 import traceback
 import typing
 
-from starlette.concurrency import run_in_threadpool
-from starlette.requests import Request
-from starlette.responses import HTMLResponse, PlainTextResponse, Response
-from starlette.types import (
+from asgiref.typing import (
     ASGI3Application,
     ASGIReceiveCallable,
     ASGISendCallable,
     ASGISendEvent,
     WWWScope,
 )
+
+from starlette.concurrency import run_in_threadpool
+from starlette.requests import Request
+from starlette.responses import HTMLResponse, PlainTextResponse, Response
 
 STYLES = """
 p {

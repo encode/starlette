@@ -1,9 +1,10 @@
 import typing
 from os import PathLike
 
+from asgiref.typing import ASGIReceiveCallable, ASGISendCallable, Scope
+
 from starlette.background import BackgroundTask
 from starlette.responses import Response
-from starlette.types import ASGIReceiveCallable, ASGISendCallable, Scope
 
 try:
     import jinja2

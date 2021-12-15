@@ -1,5 +1,12 @@
 import typing
 
+from asgiref.typing import (
+    ASGI3Application,
+    ASGIReceiveCallable,
+    ASGISendCallable,
+    WWWScope,
+)
+
 from starlette.authentication import (
     AuthCredentials,
     AuthenticationBackend,
@@ -8,12 +15,6 @@ from starlette.authentication import (
 )
 from starlette.requests import HTTPConnection
 from starlette.responses import PlainTextResponse, Response
-from starlette.types import (
-    ASGI3Application,
-    ASGIReceiveCallable,
-    ASGISendCallable,
-    WWWScope,
-)
 
 
 class AuthenticationMiddleware:

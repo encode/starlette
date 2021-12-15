@@ -1,13 +1,14 @@
 import typing
 
-from starlette.datastructures import URL, Headers
-from starlette.responses import PlainTextResponse, RedirectResponse, Response
-from starlette.types import (
+from asgiref.typing import (
     ASGI3Application,
     ASGIReceiveCallable,
     ASGISendCallable,
     WWWScope,
 )
+
+from starlette.datastructures import URL, Headers
+from starlette.responses import PlainTextResponse, RedirectResponse, Response
 
 ENFORCE_DOMAIN_WILDCARD = "Domain wildcard patterns must be like '*.example.com'."
 

@@ -10,13 +10,7 @@ import typing
 import warnings
 from enum import Enum
 
-from starlette.concurrency import run_in_threadpool
-from starlette.convertors import CONVERTOR_TYPES, Convertor
-from starlette.datastructures import URL, Headers, URLPath
-from starlette.exceptions import HTTPException
-from starlette.requests import Request
-from starlette.responses import PlainTextResponse, RedirectResponse
-from starlette.types import (
+from asgiref.typing import (
     ASGI3Application,
     ASGIReceiveCallable,
     ASGISendCallable,
@@ -24,6 +18,13 @@ from starlette.types import (
     Scope,
     WWWScope,
 )
+
+from starlette.concurrency import run_in_threadpool
+from starlette.convertors import CONVERTOR_TYPES, Convertor
+from starlette.datastructures import URL, Headers, URLPath
+from starlette.exceptions import HTTPException
+from starlette.requests import Request
+from starlette.responses import PlainTextResponse, RedirectResponse
 from starlette.websockets import WebSocket, WebSocketClose
 
 if sys.version_info >= (3, 7):

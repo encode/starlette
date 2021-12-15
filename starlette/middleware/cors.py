@@ -2,15 +2,16 @@ import functools
 import re
 import typing
 
-from starlette.datastructures import Headers, MutableHeaders
-from starlette.responses import PlainTextResponse, Response
-from starlette.types import (
+from asgiref.typing import (
     ASGI3Application,
     ASGIReceiveCallable,
     ASGISendCallable,
     ASGISendEvent,
     WWWScope,
 )
+
+from starlette.datastructures import Headers, MutableHeaders
+from starlette.responses import PlainTextResponse, Response
 
 ALL_METHODS = ("DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT")
 SAFELISTED_HEADERS = {"Accept", "Accept-Language", "Content-Language", "Content-Type"}

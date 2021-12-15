@@ -11,11 +11,11 @@ from mimetypes import guess_type as mimetypes_guess_type
 from urllib.parse import quote
 
 import anyio
+from asgiref.typing import ASGIReceiveCallable, ASGISendCallable, Scope
 
 from starlette.background import BackgroundTask
 from starlette.concurrency import iterate_in_threadpool
 from starlette.datastructures import URL, MutableHeaders
-from starlette.types import ASGIReceiveCallable, ASGISendCallable, Scope
 
 # Workaround for adding samesite support to pre 3.8 python
 http.cookies.Morsel._reserved["samesite"] = "SameSite"  # type: ignore

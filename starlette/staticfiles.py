@@ -5,11 +5,11 @@ import typing
 from email.utils import parsedate
 
 import anyio
+from asgiref.typing import ASGIReceiveCallable, ASGISendCallable, HTTPScope
 
 from starlette.datastructures import URL, Headers
 from starlette.exceptions import HTTPException
 from starlette.responses import FileResponse, RedirectResponse, Response
-from starlette.types import ASGIReceiveCallable, ASGISendCallable, HTTPScope
 
 PathLike = typing.Union[str, "os.PathLike[str]"]
 

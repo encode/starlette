@@ -2,14 +2,15 @@ import enum
 import json
 import typing
 
-from starlette.requests import HTTPConnection
-from starlette.types import (
+from asgiref.typing import (
     ASGIReceiveCallable,
     ASGIReceiveEvent,
     ASGISendCallable,
     ASGISendEvent,
     WWWScope,
 )
+
+from starlette.requests import HTTPConnection
 
 
 class WebSocketState(enum.Enum):

@@ -15,8 +15,10 @@ from urllib.parse import unquote, urljoin, urlsplit
 import anyio.abc
 import requests
 from anyio.streams.stapled import StapledObjectStream
-
-from starlette.types import (
+from asgiref.typing import (
+    ASGI2Application,
+    ASGI3Application,
+    ASGIApplication,
     ASGIReceiveCallable,
     ASGIReceiveEvent,
     ASGISendCallable,
@@ -25,6 +27,7 @@ from starlette.types import (
     WebSocketScope,
     WWWScope,
 )
+
 from starlette.websockets import WebSocketDisconnect
 
 if sys.version_info >= (3, 8):  # pragma: no cover
@@ -50,15 +53,6 @@ AuthType = typing.Union[
     typing.Tuple[str, str],
     requests.auth.AuthBase,
     typing.Callable[[requests.PreparedRequest], requests.PreparedRequest],
-]
-
-
-ASGIInstance = typing.Callable[
-    [ASGIReceiveCallable, ASGISendCallable], typing.Awaitable[None]
-]
-ASGI2App = typing.Callable[[WWWScope], ASGIInstance]
-ASGI3App = typing.Callable[
-    [WWWScope, ASGIReceiveCallable, ASGISendCallable], typing.Awaitable[None]
 ]
 
 
@@ -93,7 +87,7 @@ def _get_reason_phrase(status_code: int) -> str:
         return ""
 
 
-def _is_asgi3(app: typing.Union[ASGI2App, ASGI3App]) -> bool:
+def _is_asgi3(app: ASGIApplication) -> bool:
     if inspect.isclass(app):
         return hasattr(app, "__await__")
     elif inspect.isfunction(app):
@@ -107,7 +101,7 @@ class _WrapASGI2:
     Provide an ASGI3 interface onto an ASGI2 app.
     """
 
-    def __init__(self, app: ASGI2App) -> None:
+    def __init__(self, app: ASGI2Application) -> None:
         self.app = app
 
     async def __call__(
@@ -125,7 +119,7 @@ class _AsyncBackend(TypedDict):
 class _ASGIAdapter(requests.adapters.HTTPAdapter):
     def __init__(
         self,
-        app: ASGI3App,
+        app: ASGI3Application,
         portal_factory: _PortalFactoryType,
         raise_server_exceptions: bool = True,
         root_path: str = "",
@@ -305,7 +299,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
 class WebSocketTestSession:
     def __init__(
         self,
-        app: ASGI3App,
+        app: ASGI3Application,
         scope: WWWScope,
         portal_factory: _PortalFactoryType,
     ) -> None:
@@ -422,7 +416,7 @@ class TestClient(requests.Session):
 
     def __init__(
         self,
-        app: typing.Union[ASGI2App, ASGI3App],
+        app: ASGIApplication,
         base_url: str = "http://testserver",
         raise_server_exceptions: bool = True,
         root_path: str = "",
@@ -434,10 +428,10 @@ class TestClient(requests.Session):
             backend=backend, backend_options=backend_options or {}
         )
         if _is_asgi3(app):
-            app = typing.cast(ASGI3App, app)
+            app = typing.cast(ASGI3Application, app)
             asgi_app = app
         else:
-            app = typing.cast(ASGI2App, app)
+            app = typing.cast(ASGI2Application, app)
             asgi_app = _WrapASGI2(app)  #  type: ignore
         adapter = _ASGIAdapter(
             asgi_app,
