@@ -10,7 +10,7 @@ app = Starlette()
 
 
 subapp = Starlette()
-app.mount("/subapp", subapp)
+app.mount("/subapp", subapp)  # type: ignore[arg-type]
 
 
 @app.websocket_route("/ws")

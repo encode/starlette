@@ -88,8 +88,8 @@ class GZipResponder:
                 self.gzip_file.write(body)
                 self.gzip_file.close()
                 body = self.gzip_buffer.getvalue()
-
-                headers = MutableHeaders(raw=self.initial_message["headers"])
+                raw_headers = self.initial_message.get("headers")
+                headers = MutableHeaders(raw=raw_headers)  # type: ignore[arg-type]
                 headers["Content-Encoding"] = "gzip"
                 headers["Content-Length"] = str(len(body))
                 headers.add_vary_header("Accept-Encoding")
@@ -99,7 +99,8 @@ class GZipResponder:
                 await self.send(message)
             else:
                 # Initial body in streaming GZip response.
-                headers = MutableHeaders(raw=self.initial_message["headers"])
+                raw_headers = self.initial_message.get("headers")
+                headers = MutableHeaders(raw=raw_headers)  # type: ignore[arg-type]
                 headers["Content-Encoding"] = "gzip"
                 headers.add_vary_header("Accept-Encoding")
                 del headers["Content-Length"]

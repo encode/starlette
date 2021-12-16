@@ -63,7 +63,7 @@ class SessionMiddleware:
                     scope_session = scope["session"]  # type: ignore[typeddict-item]
                     data = b64encode(json.dumps(scope_session).encode("utf-8"))
                     data = self.signer.sign(data)
-                    headers = MutableHeaders(scope=message)
+                    headers = MutableHeaders(scope=message)  # type: ignore[arg-type]
                     header_value = "%s=%s; path=%s; Max-Age=%d; %s" % (
                         self.session_cookie,
                         data.decode("utf-8"),
@@ -74,7 +74,7 @@ class SessionMiddleware:
                     headers.append("Set-Cookie", header_value)
                 elif not initial_session_was_empty:
                     # The session has been cleared.
-                    headers = MutableHeaders(scope=message)
+                    headers = MutableHeaders(scope=message)  # type: ignore[arg-type]
                     header_value = "{}={}; {}".format(
                         self.session_cookie,
                         f"null; path={path}; expires=Thu, 01 Jan 1970 00:00:00 GMT;",
