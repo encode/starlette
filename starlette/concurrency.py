@@ -27,7 +27,7 @@ async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -
 def bind_to_threadpool(
     func: typing.Callable[..., T]
 ) -> typing.Callable[..., Awaitable[T]]:
-    async def inner(*args: typing.Any, **kwargs: typing.Any) -> T:
+    def inner(*args: typing.Any, **kwargs: typing.Any) -> T:
         if contextvars is not None:  # pragma: no cover
             # Ensure we run in the same context
             child = functools.partial(func, *args, **kwargs)
@@ -37,7 +37,7 @@ def bind_to_threadpool(
         elif kwargs:  # pragma: no cover
             # run_sync doesn't accept 'kwargs', so bind them in here
             call = functools.partial(func, **kwargs)
-        return await anyio.to_thread.run_sync(call, *args)
+        return anyio.to_thread.run_sync(call, *args)
 
     return inner
 
