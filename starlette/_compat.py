@@ -1,9 +1,14 @@
 import hashlib
 
-# TODO: Remove when dropping support for PY38. a try/except is used to
-# detect whether the usedforsecurity argument is available as this fix may also
-# have been applied by downstream package maintainers to other versions in
-# their repositories.
+# Compat wrapper to always include the `usedforsecurity=...` parameter,
+# which is only added from Python 3.9 onwards.
+# We use this flag to indicate that we use `md5` hashes only for non-security
+# cases (our ETag checksums).
+# If we don't indicate that we're using MD5 for non-security related reasons,
+# then attempting to use this function will raise an error when used
+# environments which enable a strict "FIPs mode".
+#
+# See issue: https://github.com/encode/starlette/issues/1365
 try:
 
     hashlib.md5(b"data", usedforsecurity=True)  # type: ignore[call-arg]
@@ -14,7 +19,6 @@ try:
         return hashlib.md5(  # type: ignore[call-arg]
             data, usedforsecurity=usedforsecurity
         ).hexdigest()
-
 
 except TypeError:  # pragma: no cover
 
