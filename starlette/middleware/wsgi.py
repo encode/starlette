@@ -38,8 +38,8 @@ def build_environ(scope: HTTPScope, body: bytes) -> dict:
         environ["REMOTE_ADDR"] = scope_client[0]
 
     # Go through headers and make them into environ entries
-    for name, value in scope.get("headers", []):
-        name = name.decode("latin1")
+    for name_bytes, value_bytes in scope.get("headers", []):
+        name = name_bytes.decode("latin1")
         if name == "content-length":
             corrected_name = "CONTENT_LENGTH"
         elif name == "content-type":
@@ -48,9 +48,9 @@ def build_environ(scope: HTTPScope, body: bytes) -> dict:
             corrected_name = f"HTTP_{name}".upper().replace("-", "_")
         # HTTPbis say only ASCII chars are allowed in headers, but we latin1 just in
         # case
-        value = value.decode("latin1")
+        value = value_bytes.decode("latin1")
         if corrected_name in environ:
-            value = environ[corrected_name] + "," + value
+            value = f"{environ[corrected_name]},{value}"
         environ[corrected_name] = value
     return environ
 
