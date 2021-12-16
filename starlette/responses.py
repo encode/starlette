@@ -133,38 +133,48 @@ class Response:
             # Response is terminated after the status line.  So no headers and no body.
             # https://datatracker.ietf.org/doc/html/rfc7231#section-6.2
             raw_headers = []
-            body = b''
+            body = b""
         elif self.status_code == 204:
             # Response must not have a content-length header. See
             # https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.2
-            # http spec does not appear to say whether or not there can be a content-type header. Some clients
-            # will attempt to parse the message body if there is a content-type header, so we ensure that there isn't one in
+            # http spec does not appear to say whether or not there can be
+            # a content-type header. Some clients
+            # will attempt to parse the message body if there is a content-type
+            # header, so we ensure that there isn't one in
             # the response.
-            raw_headers = [header for header in self.raw_headers if header[0] not in (b'content-length', b'content-type')]
-            body = b''
+            raw_headers = [
+                header
+                for header in self.raw_headers
+                if header[0] not in (b"content-length", b"content-type")
+            ]
+            body = b""
         elif self.status_code == 205:
             # Response must not include a body.
             # Response can either have a content-length: 0 header or a
             # transfer-encoding: chunked header.
-            # We check for a transfer-encoding header.  If not found, we ensure the presence of
-            # the content-length header.
+            # We check for a transfer-encoding header.  If not found,
+            # we ensure the presence of the content-length header.
             # https://datatracker.ietf.org/doc/html/rfc7231#section-6.3.6
-            raw_headers = [header for header in self.raw_headers if header[0] not in (b'content-length', b'content-type')]
+            raw_headers = [
+                header
+                for header in self.raw_headers
+                if header[0] not in (b"content-length", b"content-type")
+            ]
             for header in self.raw_headers:
-                if header[0] == b'transfer-encoding':
+                if header[0] == b"transfer-encoding":
                     break
             else:
-                raw_headers.append((b'content-length', b'0'))
-            body = b''
+                raw_headers.append((b"content-length", b"0"))
+            body = b""
         elif self.status_code == 304:
-            # A 304 Not Modfied response may contain a transfer-encoding header, or content-length header
-            # whose value is the length of
+            # A 304 Not Modfied response may contain a transfer-encoding header,
+            # or content-length header whose value is the length of
             # message that would have been sent in a 200 OK response.
             # So we leave the headers as is.
             # https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.1
             # https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.2
             raw_headers = self.raw_headers
-            body = b''
+            body = b""
         else:
             raw_headers = self.raw_headers
             body = self.body

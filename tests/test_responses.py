@@ -1,5 +1,5 @@
-import os
 import itertools
+import os
 
 import anyio
 import pytest
@@ -14,7 +14,6 @@ from starlette.responses import (
     Response,
     StreamingResponse,
 )
-from starlette.types import Message
 
 
 def test_text_response(test_client_factory):
@@ -312,40 +311,52 @@ def test_head_method(test_client_factory):
     response = client.head("/")
     assert response.text == ""
 
+
 @pytest.mark.anyio
-@pytest.mark.parametrize('response_cls, status_code', list(itertools.product(*[[Response, JSONResponse], [100, 101, 102]])))
+@pytest.mark.parametrize(
+    "response_cls, status_code",
+    list(itertools.product(*[[Response, JSONResponse], [100, 101, 102]])),
+)
 async def test_response_1xx(response_cls, status_code):
     scope = {}
+
     async def receive():
         return {}
+
     async def send(message: dict):
-        if message['type'] == "http.response.start":
+        if message["type"] == "http.response.start":
             # also ensures that self.raw_headers is not None
-            assert len(message['headers']) == 0
-        elif message['type'] == "http.response.body":
+            assert len(message["headers"]) == 0
+        elif message["type"] == "http.response.body":
             # per ASGI, if body key is missing, default is False
-            assert "body" not in message or message["body"] == b''
+            assert "body" not in message or message["body"] == b""
             assert "more_body" not in message or message["more_body"] is False
         else:
             pass
 
     response = response_cls(status_code=status_code)
     await response.__call__(scope, receive, send)
-    
+
+
 @pytest.mark.anyio
-@pytest.mark.parametrize('response_cls, content', itertools.product(*[[Response, JSONResponse], [None, 'test']]))
+@pytest.mark.parametrize(
+    "response_cls, content",
+    itertools.product(*[[Response, JSONResponse], [None, "test"]]),
+)
 async def test_response_204(response_cls, content):
     scope = {}
+
     async def receive():
         return {}
+
     async def send(message: dict):
-        if message['type'] == "http.response.start":
-            header_map = dict(message['headers'])
+        if message["type"] == "http.response.start":
+            header_map = dict(message["headers"])
             assert b"content-length" not in header_map
             assert b"content-type" not in header_map
-        elif message['type'] == "http.response.body":
+        elif message["type"] == "http.response.body":
             # per ASGI, if body key is missing, default is False
-            assert "body" not in message or message["body"] == b''
+            assert "body" not in message or message["body"] == b""
             assert "more_body" not in message or message["more_body"] is False
         else:
             pass
@@ -355,41 +366,46 @@ async def test_response_204(response_cls, content):
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize('response_cls', [Response, JSONResponse])
+@pytest.mark.parametrize("response_cls", [Response, JSONResponse])
 async def test_response_205_with_te_header(response_cls):
     scope = {}
+
     async def receive():
         return {}
+
     async def send(message: dict):
-        if message['type'] == "http.response.start":
-            header_map = dict(message['headers'])
-            assert header_map[b'transfer-encoding'] == b'chunked'
+        if message["type"] == "http.response.start":
+            header_map = dict(message["headers"])
+            assert header_map[b"transfer-encoding"] == b"chunked"
             assert b"content-length" not in header_map
             assert b"content-type" not in header_map
-        elif message['type'] == "http.response.body":
+        elif message["type"] == "http.response.body":
             # per ASGI, if body key is missing, default is False
-            assert "body" not in message or message["body"] == b''
+            assert "body" not in message or message["body"] == b""
             assert "more_body" not in message or message["more_body"] is False
         else:
             pass
 
-    response = response_cls(status_code=205, headers={'transfer-encoding': 'chunked'})
+    response = response_cls(status_code=205, headers={"transfer-encoding": "chunked"})
     await response.__call__(scope, receive, send)
 
+
 @pytest.mark.anyio
-@pytest.mark.parametrize('response_cls', [Response, JSONResponse])
+@pytest.mark.parametrize("response_cls", [Response, JSONResponse])
 async def test_response_205_with_cl_header(response_cls):
     scope = {}
+
     async def receive():
         return {}
+
     async def send(message: dict):
-        if message['type'] == "http.response.start":
-            header_map = dict(message['headers'])
-            assert header_map[b'content-length'] == b'0'
+        if message["type"] == "http.response.start":
+            header_map = dict(message["headers"])
+            assert header_map[b"content-length"] == b"0"
             assert b"content-type" not in header_map
-        elif message['type'] == "http.response.body":
+        elif message["type"] == "http.response.body":
             # per ASGI, if body key is missing, default is False
-            assert "body" not in message or message["body"] == b''
+            assert "body" not in message or message["body"] == b""
             assert "more_body" not in message or message["more_body"] is False
         else:
             pass
@@ -397,18 +413,21 @@ async def test_response_205_with_cl_header(response_cls):
     response = response_cls(status_code=205)
     await response.__call__(scope, receive, send)
 
+
 @pytest.mark.anyio
-@pytest.mark.parametrize('response_cls', [Response, JSONResponse])
+@pytest.mark.parametrize("response_cls", [Response, JSONResponse])
 async def test_response_304(response_cls):
     scope = {}
+
     async def receive():
         return {}
+
     async def send(message: dict):
-        if message['type'] == "http.response.start":
+        if message["type"] == "http.response.start":
             pass
-        elif message['type'] == "http.response.body":
+        elif message["type"] == "http.response.body":
             # per ASGI, 'body', 'more_body' are optional.
-            assert "body" not in message or message["body"] == b''
+            assert "body" not in message or message["body"] == b""
             assert "more_body" not in message or message["more_body"] is False
         else:
             pass
