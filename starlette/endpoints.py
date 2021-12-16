@@ -113,8 +113,11 @@ class WebSocketEndpoint:
         elif self.encoding == "json":
             if message.get("text") is not None:
                 text = message["text"]
+                assert isinstance(text, str)
             else:
-                text = message["bytes"].decode("utf-8")
+                message_bytes = message.get("bytes")
+                assert isinstance(message_bytes, bytes)
+                text = message_bytes.decode("utf-8")
 
             try:
                 return json.loads(text)

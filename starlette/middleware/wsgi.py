@@ -33,7 +33,9 @@ def build_environ(scope: HTTPScope, body: bytes) -> dict:
 
     # Get client IP address
     if scope.get("client"):
-        environ["REMOTE_ADDR"] = scope["client"][0]
+        scope_client = scope.get("client")
+        assert scope_client is not None
+        environ["REMOTE_ADDR"] = scope_client[0]
 
     # Go through headers and make them into environ entries
     for name, value in scope.get("headers", []):
@@ -84,8 +86,10 @@ class WSGIResponder:
         more_body = True
         while more_body:
             message = await receive()
-            body += message.get("body", b"")
-            more_body = message.get("more_body", False)
+            message_body = message.get("body", b"")
+            assert isinstance(message_body, bytes)
+            body += message_body
+            more_body = bool(message.get("more_body", False))
         environ = build_environ(self.scope, body)
 
         async with anyio.create_task_group() as task_group:

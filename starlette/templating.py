@@ -41,8 +41,9 @@ class _TemplateResponse(Response):
         request = self.context.get("request", {})
         extensions = request.get("extensions", {})
         if "http.response.template" in extensions:
+            # there is no "http.response.template" event type in asgiref.typing
             await send(
-                {
+                {  # type: ignore[arg-type]
                     "type": "http.response.template",
                     "template": self.template,
                     "context": self.context,

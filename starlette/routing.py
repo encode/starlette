@@ -246,7 +246,8 @@ class Route(BaseRoute):
                 matched_params = match.groupdict()
                 for key, value in matched_params.items():
                     matched_params[key] = self.param_convertors[key].convert(value)
-                path_params = dict(scope.get("path_params", {}))
+                path_params = scope.get("path_params", {})
+                assert isinstance(path_params, dict)
                 path_params.update(matched_params)
                 child_scope = {"endpoint": self.endpoint, "path_params": path_params}
                 if self.methods and scope["method"] not in self.methods:
@@ -317,7 +318,8 @@ class WebSocketRoute(BaseRoute):
                 matched_params = match.groupdict()
                 for key, value in matched_params.items():
                     matched_params[key] = self.param_convertors[key].convert(value)
-                path_params = dict(scope.get("path_params", {}))
+                path_params = scope.get("path_params", {})
+                assert isinstance(path_params, dict)
                 path_params.update(matched_params)
                 child_scope = {"endpoint": self.endpoint, "path_params": path_params}
                 return Match.FULL, child_scope
@@ -385,7 +387,8 @@ class Mount(BaseRoute):
                     matched_params[key] = self.param_convertors[key].convert(value)
                 remaining_path = "/" + matched_params.pop("path")
                 matched_path = path[: -len(remaining_path)]
-                path_params = dict(scope.get("path_params", {}))
+                path_params = scope.get("path_params", {})
+                assert isinstance(path_params, dict)
                 path_params.update(matched_params)
                 root_path = scope.get("root_path", "")
                 child_scope = {
@@ -464,7 +467,8 @@ class Host(BaseRoute):
                 matched_params = match.groupdict()
                 for key, value in matched_params.items():
                     matched_params[key] = self.param_convertors[key].convert(value)
-                path_params = dict(scope.get("path_params", {}))
+                path_params = scope.get("path_params", {})
+                assert isinstance(path_params, dict)
                 path_params.update(matched_params)
                 child_scope = {"path_params": path_params, "endpoint": self.app}
                 return Match.FULL, child_scope

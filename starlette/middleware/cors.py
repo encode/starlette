@@ -167,7 +167,7 @@ class CORSMiddleware:
             return
 
         message.setdefault("headers", [])
-        headers = MutableHeaders(scope=message)
+        headers = MutableHeaders(scope=message)  # type: ignore[arg-type]
         headers.update(self.simple_headers)
         origin = request_headers["Origin"]
         has_cookie = "cookie" in request_headers

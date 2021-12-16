@@ -98,13 +98,17 @@ class WebSocket(HTTPConnection):
         assert self.application_state == WebSocketState.CONNECTED
         message = await self.receive()
         self._raise_on_disconnect(message)
-        return message["text"]
+        message_text = message.get("text")
+        assert isinstance(message_text, str)
+        return message_text
 
     async def receive_bytes(self) -> bytes:
         assert self.application_state == WebSocketState.CONNECTED
         message = await self.receive()
         self._raise_on_disconnect(message)
-        return message["bytes"]
+        message_bytes = message.get("bytes")
+        assert isinstance(message_bytes, bytes)
+        return message_bytes
 
     async def receive_json(self, mode: str = "text") -> typing.Any:
         assert mode in ["text", "binary"]
@@ -113,9 +117,12 @@ class WebSocket(HTTPConnection):
         self._raise_on_disconnect(message)
 
         if mode == "text":
-            text = message["text"]
+            text = message.get("text")
         else:
-            text = message["bytes"].decode("utf-8")
+            message_bytes = message.get("bytes")
+            assert isinstance(message_bytes, bytes)
+            text = message_bytes.decode("utf-8")
+        assert isinstance(text, str)
         return json.loads(text)
 
     async def iter_text(self) -> typing.AsyncIterator[str]:

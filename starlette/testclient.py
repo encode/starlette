@@ -326,7 +326,7 @@ class WebSocketTestSession:
     ) -> None:
         self.app = app
         self.scope = scope
-        self.accepted_subprotocol = None
+        self.accepted_subprotocol: typing.Optional[str] = None
         self.portal_factory = portal_factory
         self._receive_queue: "queue.Queue[typing.Any]" = queue.Queue()
         self._send_queue: "queue.Queue[typing.Any]" = queue.Queue()
@@ -343,7 +343,12 @@ class WebSocketTestSession:
         except Exception:
             self.exit_stack.close()
             raise
-        self.accepted_subprotocol = message.get("subprotocol", None)
+        if message.get("subprotocol"):
+            message_subprotocol = message.get("subprotocol")
+            assert isinstance(message_subprotocol, str)
+            self.accepted_subprotocol = message_subprotocol
+        else:
+            self.accepted_subprotocol = None
         return self
 
     def __exit__(self, *args: typing.Any) -> None:
@@ -381,7 +386,9 @@ class WebSocketTestSession:
         self, message: typing.Union[ASGIReceiveEvent, ASGISendEvent]
     ) -> None:
         if message["type"] == "websocket.close":
-            raise WebSocketDisconnect(message.get("code", 1000))
+            message_code = message.get("code", 1000)
+            assert isinstance(message_code, int)
+            raise WebSocketDisconnect(message_code)
 
     def send(self, message: ASGIReceiveEvent) -> None:
         self._receive_queue.put(message)
@@ -422,21 +429,28 @@ class WebSocketTestSession:
     def receive_text(self) -> str:
         message = self.receive()
         self._raise_on_close(message)
-        return message["text"]
+        message_text = message.get("text")
+        assert isinstance(message_text, str)
+        return message_text
 
     def receive_bytes(self) -> bytes:
         message = self.receive()
         self._raise_on_close(message)
-        return message["bytes"]
+        message_bytes = message.get("bytes")
+        assert isinstance(message_bytes, bytes)
+        return message_bytes
 
     def receive_json(self, mode: str = "text") -> typing.Any:
         assert mode in ["text", "binary"]
         message = self.receive()
         self._raise_on_close(message)
         if mode == "text":
-            text = message["text"]
+            text = message.get("text")
         else:
-            text = message["bytes"].decode("utf-8")
+            message_bytes = message.get("bytes")
+            assert isinstance(message_bytes, bytes)
+            text = message_bytes.decode("utf-8")
+        assert isinstance(text, str)
         return json.loads(text)
 
 

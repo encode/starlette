@@ -1,5 +1,6 @@
 import gzip
 import io
+import typing
 
 from asgiref.typing import (
     ASGI3Application,
@@ -65,13 +66,16 @@ class GZipResponder:
             # modify the outgoing headers correctly.
             message_status = message.get("status")
             message_headers = message.get("headers")
+            assert isinstance(message_status, int)
+            assert isinstance(message_headers, typing.Iterable)
             self.initial_message = HTTPResponseStartEvent(
                 type=message_type, status=message_status, headers=message_headers
             )
         elif message_type == "http.response.body" and not self.started:
             self.started = True
             body = message.get("body", b"")
-            more_body = message.get("more_body", False)
+            assert isinstance(body, bytes)
+            more_body = bool(message.get("more_body", False))
             message = HTTPResponseBodyEvent(
                 type=message_type, body=body, more_body=more_body
             )
@@ -111,7 +115,8 @@ class GZipResponder:
         elif message_type == "http.response.body":
             # Remaining body in streaming GZip response.
             body = message.get("body", b"")
-            more_body = message.get("more_body", False)
+            assert isinstance(body, bytes)
+            more_body = bool(message.get("more_body", False))
             message = HTTPResponseBodyEvent(
                 type=message_type, body=body, more_body=more_body
             )

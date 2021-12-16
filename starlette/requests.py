@@ -126,7 +126,9 @@ class HTTPConnection(Mapping):
 
     @property
     def path_params(self) -> dict:
-        return self.scope.get("path_params", {})
+        path_params = self.scope.get("path_params", {})
+        assert isinstance(path_params, dict)
+        return path_params
 
     @property
     def cookies(self) -> typing.Dict[str, str]:
@@ -176,7 +178,9 @@ class HTTPConnection(Mapping):
         return self._state
 
     def url_for(self, name: str, **path_params: typing.Any) -> str:
-        router: Router = self.scope["router"]
+        router = self.scope.get("router")
+        if typing.TYPE_CHECKING:
+            assert isinstance(router, Router)
         url_path = router.url_path_for(name, **path_params)
         return url_path.make_absolute_url(base_url=self.base_url)
 
@@ -205,7 +209,9 @@ class Request(HTTPConnection):
 
     @property
     def method(self) -> str:
-        return self.scope["method"]
+        method = self.scope.get("method")
+        assert isinstance(method, str)
+        return method
 
     @property
     def receive(self) -> ASGIReceiveCallable:
@@ -271,7 +277,7 @@ class Request(HTTPConnection):
 
     async def is_disconnected(self) -> bool:
         if not self._is_disconnected:
-            message: typing.Union[ASGIReceiveEvent, ASGISendEvent] = {}
+            message: typing.Union[ASGIReceiveEvent, ASGISendEvent, dict] = {}
 
             # If message isn't immediately available, move on
             with anyio.CancelScope() as cs:
@@ -284,7 +290,9 @@ class Request(HTTPConnection):
         return self._is_disconnected
 
     async def send_push_promise(self, path: str) -> None:
-        if "http.response.push" in self.scope.get("extensions", {}):
+        extensions = self.scope.get("extensions", {})
+        assert extensions is not None
+        if extensions.get("type") == "http.response.push":
             raw_headers = []
             for name in SERVER_PUSH_HEADERS_TO_COPY:
                 for value in self.headers.getlist(name):
