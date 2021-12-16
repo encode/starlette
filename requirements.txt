@@ -1,9 +1,5 @@
 # Optionals
-itsdangerous==2.0.1
-jinja2==3.0.3
-python-multipart==0.0.5
-pyyaml==6.0
-requests==2.26.0
+-e .[full]
 
 # Testing
 autoflake==1.4
