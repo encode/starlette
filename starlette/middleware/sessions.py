@@ -48,19 +48,20 @@ class SessionMiddleware:
             data = connection.cookies[self.session_cookie].encode("utf-8")
             try:
                 data = self.signer.unsign(data, max_age=self.max_age)
-                scope["session"] = json.loads(b64decode(data))
+                scope["session"] = json.loads(b64decode(data))  # type: ignore[index]
                 initial_session_was_empty = False
             except BadSignature:
-                scope["session"] = {}
+                scope["session"] = {}  # type: ignore[index]
         else:
-            scope["session"] = {}
+            scope["session"] = {}  # type: ignore[index]
 
         async def send_wrapper(message: ASGISendEvent) -> None:
             if message["type"] == "http.response.start":
                 path = scope.get("root_path", "") or "/"
-                if scope["session"]:
+                if scope.get("session"):
                     # We have session data to persist.
-                    data = b64encode(json.dumps(scope["session"]).encode("utf-8"))
+                    scope_session = scope["session"]  # type: ignore[typeddict-item]
+                    data = b64encode(json.dumps(scope_session).encode("utf-8"))
                     data = self.signer.sign(data)
                     headers = MutableHeaders(scope=message)
                     header_value = "%s=%s; path=%s; Max-Age=%d; %s" % (

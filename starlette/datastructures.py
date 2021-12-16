@@ -500,7 +500,7 @@ class Headers(typing.Mapping[str, str]):
             assert scope is None, 'Cannot set both "raw" and "scope".'
             self._list = raw
         elif scope is not None:
-            self._list = scope["headers"]
+            self._list = list(scope["headers"])
 
     @property
     def raw(self) -> typing.List[typing.Tuple[bytes, bytes]]:

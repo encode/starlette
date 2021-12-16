@@ -76,7 +76,8 @@ class HTTPConnection(Mapping):
         self.scope = scope
 
     def __getitem__(self, key: str) -> typing.Any:
-        return self.scope[key]
+        # TODO: key must be a literal from the keys in the TypedDict, not str
+        return self.scope[key]  # type: ignore[misc]
 
     def __iter__(self) -> typing.Iterator[str]:
         return iter(self.scope)
@@ -92,7 +93,7 @@ class HTTPConnection(Mapping):
 
     @property
     def app(self) -> typing.Any:
-        return self.scope["app"]
+        return self.scope["app"]  # type: ignore[typeddict-item]
 
     @property
     def url(self) -> URL:
@@ -103,10 +104,10 @@ class HTTPConnection(Mapping):
     @property
     def base_url(self) -> URL:
         if not hasattr(self, "_base_url"):
-            base_url_scope = dict(self.scope)
-            base_url_scope["path"] = "/"
-            base_url_scope["query_string"] = b""
-            base_url_scope["root_path"] = base_url_scope.get(
+            base_url_scope = self.scope
+            base_url_scope["path"] = "/"  # type: ignore[index]
+            base_url_scope["query_string"] = b""  # type: ignore[index]
+            base_url_scope["root_path"] = base_url_scope.get(  # type: ignore[index]
                 "app_root_path", base_url_scope.get("root_path", "")
             )
             self._base_url = URL(scope=base_url_scope)
@@ -151,30 +152,30 @@ class HTTPConnection(Mapping):
         assert (
             "session" in self.scope
         ), "SessionMiddleware must be installed to access request.session"
-        return self.scope["session"]
+        return self.scope["session"]  # type: ignore[typeddict-item]
 
     @property
     def auth(self) -> typing.Any:
         assert (
             "auth" in self.scope
         ), "AuthenticationMiddleware must be installed to access request.auth"
-        return self.scope["auth"]
+        return self.scope["auth"]  # type: ignore[typeddict-item]
 
     @property
     def user(self) -> typing.Any:
         assert (
             "user" in self.scope
         ), "AuthenticationMiddleware must be installed to access request.user"
-        return self.scope["user"]
+        return self.scope["user"]  # type: ignore[typeddict-item]
 
     @property
     def state(self) -> State:
         if not hasattr(self, "_state"):
             # Ensure 'state' has an empty dict if it's not already populated.
-            self.scope.setdefault("state", {})
+            self.scope.setdefault("state", {})  # type: ignore[typeddict-item]
             # Create a state instance with a reference to the dict in which it should
             # store info
-            self._state = State(self.scope["state"])
+            self._state = State(self.scope["state"])  # type: ignore[typeddict-item]
         return self._state
 
     def url_for(self, name: str, **path_params: typing.Any) -> str:

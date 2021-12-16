@@ -70,7 +70,7 @@ def request_response(func: typing.Callable) -> ASGI3Application:
     async def app(
         scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
-        request = Request(scope, receive=receive, send=send)
+        request = Request(scope, receive=receive, send=send)  # type: ignore[arg-type]
         if is_coroutine:
             response = await func(request)
         else:
@@ -89,7 +89,7 @@ def websocket_session(func: typing.Callable) -> ASGI3Application:
     async def app(
         scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
-        session = WebSocket(scope, receive=receive, send=send)
+        session = WebSocket(scope, receive=receive, send=send)  # type: ignore[arg-type]
         await func(session)
 
     return app
@@ -169,7 +169,9 @@ def compile_path(
 
 
 class BaseRoute:
-    def matches(self, scope: WWWScope) -> typing.Tuple[Match, WWWScope]:
+    def matches(
+        self, scope: WWWScope
+    ) -> typing.Tuple[Match, typing.Union[WWWScope, dict]]:
         raise NotImplementedError()  # pragma: no cover
 
     def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
@@ -198,7 +200,7 @@ class BaseRoute:
                 await websocket_close(scope, receive, send)
             return
 
-        scope.update(child_scope)
+        scope.update(child_scope)  # type: ignore[typeddict-item]
         await self.handle(scope, receive, send)
 
 
@@ -239,7 +241,9 @@ class Route(BaseRoute):
 
         self.path_regex, self.path_format, self.param_convertors = compile_path(path)
 
-    def matches(self, scope: WWWScope) -> typing.Tuple[Match, WWWScope]:
+    def matches(
+        self, scope: WWWScope
+    ) -> typing.Tuple[Match, typing.Union[WWWScope, dict]]:
         if scope["type"] == "http":
             match = self.path_regex.match(scope["path"])
             if match:
@@ -272,7 +276,7 @@ class Route(BaseRoute):
     async def handle(
         self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
-        if self.methods and scope["method"] not in self.methods:
+        if self.methods and scope.get("method") not in self.methods:
             if "app" in scope:
                 raise HTTPException(status_code=405)
             else:
@@ -311,7 +315,9 @@ class WebSocketRoute(BaseRoute):
 
         self.path_regex, self.path_format, self.param_convertors = compile_path(path)
 
-    def matches(self, scope: WWWScope) -> typing.Tuple[Match, WWWScope]:
+    def matches(
+        self, scope: WWWScope
+    ) -> typing.Tuple[Match, typing.Union[WWWScope, dict]]:
         if scope["type"] == "websocket":
             match = self.path_regex.match(scope["path"])
             if match:
@@ -377,7 +383,9 @@ class Mount(BaseRoute):
     def routes(self) -> typing.List[BaseRoute]:
         return getattr(self.app, "routes", [])
 
-    def matches(self, scope: WWWScope) -> typing.Tuple[Match, WWWScope]:
+    def matches(
+        self, scope: WWWScope
+    ) -> typing.Tuple[Match, typing.Union[WWWScope, dict]]:
         if scope["type"] in ("http", "websocket"):
             path = scope["path"]
             match = self.path_regex.match(path)
@@ -458,7 +466,9 @@ class Host(BaseRoute):
     def routes(self) -> typing.List[BaseRoute]:
         return getattr(self.app, "routes", [])
 
-    def matches(self, scope: WWWScope) -> typing.Tuple[Match, WWWScope]:
+    def matches(
+        self, scope: WWWScope
+    ) -> typing.Tuple[Match, typing.Union[WWWScope, dict]]:
         if scope["type"] in ("http", "websocket"):
             headers = Headers(scope=scope)
             host = headers.get("host", "").split(":")[0]
@@ -690,7 +700,7 @@ class Router:
         assert scope["type"] in ("http", "websocket", "lifespan")
 
         if "router" not in scope:
-            scope["router"] = self
+            scope["router"] = self  # type: ignore[index]
 
         if scope["type"] == "lifespan":
             await self.lifespan(scope, receive, send)
@@ -703,7 +713,7 @@ class Router:
             # and hand over to the matching route if found.
             match, child_scope = route.matches(scope)
             if match == Match.FULL:
-                scope.update(child_scope)
+                scope.update(child_scope)  # type: ignore[typeddict-item]
                 await route.handle(scope, receive, send)
                 return
             elif match == Match.PARTIAL and partial is None:
@@ -714,12 +724,12 @@ class Router:
             #  Handle partial matches. These are cases where an endpoint is
             # able to handle the request, but is not a preferred option.
             # We use this in particular to deal with "405 Method Not Allowed".
-            scope.update(partial_scope)
+            scope.update(partial_scope)  # type: ignore[typeddict-item]
             await partial.handle(scope, receive, send)
             return
 
         if scope["type"] == "http" and self.redirect_slashes and scope["path"] != "/":
-            redirect_scope = dict(scope)
+            redirect_scope = scope
             if scope["path"].endswith("/"):
                 redirect_scope["path"] = redirect_scope["path"].rstrip("/")
             else:
