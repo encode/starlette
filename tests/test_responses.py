@@ -315,7 +315,7 @@ def test_head_method(test_client_factory):
 @pytest.mark.anyio
 @pytest.mark.parametrize(
     "response_cls, status_code",
-    list(itertools.product(*[[Response, JSONResponse], [100, 101, 102]])),
+    list(itertools.product([Response, JSONResponse], [100, 101, 102])),
 )
 async def test_response_1xx(response_cls, status_code):
     scope = {}
@@ -341,7 +341,7 @@ async def test_response_1xx(response_cls, status_code):
 @pytest.mark.anyio
 @pytest.mark.parametrize(
     "response_cls, content",
-    itertools.product(*[[Response, JSONResponse], [None, "test"]]),
+    itertools.product([Response, JSONResponse], [None, "test"]),
 )
 async def test_response_204(response_cls, content):
     scope = {}
