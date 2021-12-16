@@ -23,8 +23,11 @@ from asgiref.typing import (
     ASGIReceiveEvent,
     ASGISendCallable,
     ASGISendEvent,
+    ASGIVersions,
     HTTPDisconnectEvent,
     HTTPRequestEvent,
+    HTTPScope,
+    LifespanScope,
     LifespanShutdownEvent,
     LifespanStartupEvent,
     Scope,
@@ -42,6 +45,7 @@ if sys.version_info >= (3, 8):  # pragma: no cover
 else:  # pragma: no cover
     from typing_extensions import TypedDict
 
+asgi_version = ASGIVersions(spec_version="2.1", version="3.0")
 
 _PortalFactoryType = typing.Callable[
     [], typing.ContextManager[anyio.abc.BlockingPortal]
@@ -166,41 +170,45 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             for key, value in request.headers.items()
         ]
 
-        scope: typing.Dict[str, typing.Any]
-
         if scheme in {"ws", "wss"}:
             subprotocol = request.headers.get("sec-websocket-protocol", None)
             if subprotocol is None:
                 subprotocols: typing.Sequence[str] = []
             else:
                 subprotocols = [value.strip() for value in subprotocol.split(",")]
-            scope = {
-                "type": "websocket",
-                "path": unquote(path),
-                "root_path": self.root_path,
-                "scheme": scheme,
-                "query_string": query.encode(),
-                "headers": headers,
-                "client": ["testclient", 50000],
-                "server": [host, port],
-                "subprotocols": subprotocols,
-            }
+            scope: WWWScope = WebSocketScope(
+                type="websocket",
+                asgi=asgi_version,
+                http_version="1.1",
+                path=unquote(path),
+                raw_path=self.root_path.encode(),
+                root_path=self.root_path,
+                scheme=scheme,
+                query_string=query.encode(),
+                headers=headers,
+                client=("testclient", 50000),
+                server=(host, port),
+                extensions=None,
+                subprotocols=subprotocols,
+            )
             session = WebSocketTestSession(self.app, scope, self.portal_factory)
             raise _Upgrade(session)
 
-        scope = {
-            "type": "http",
-            "http_version": "1.1",
-            "method": request.method,
-            "path": unquote(path),
-            "root_path": self.root_path,
-            "scheme": scheme,
-            "query_string": query.encode(),
-            "headers": headers,
-            "client": ["testclient", 50000],
-            "server": [host, port],
-            "extensions": {"http.response.template": {}},
-        }
+        scope = HTTPScope(
+            type="http",
+            asgi=asgi_version,
+            http_version="1.1",
+            method=str(request.method),
+            path=unquote(path),
+            raw_path=self.root_path.encode(),
+            root_path=self.root_path,
+            scheme=scheme,
+            query_string=query.encode(),
+            headers=headers,
+            client=("testclient", 50000),
+            server=(host, port),
+            extensions={"http.response.template": {}},
+        )
 
         request_complete = False
         response_started = False
@@ -570,7 +578,7 @@ class TestClient(requests.Session):
         self.exit_stack.close()
 
     async def lifespan(self) -> None:
-        scope = {"type": "lifespan"}
+        scope = LifespanScope(type="lifespan", asgi=asgi_version)
         try:
             await self.app(scope, self.stream_receive.receive, self.stream_send.send)
         finally:

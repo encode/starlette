@@ -1,8 +1,10 @@
 import sys
 
 import pytest
+from asgiref.typing import HTTPScope
 
 from starlette.middleware.wsgi import WSGIMiddleware, build_environ
+from starlette.testclient import asgi_version
 
 
 def hello_world(environ, start_response):
@@ -130,15 +132,21 @@ def test_build_environ():
 
 
 def test_build_environ_encoding() -> None:
-    scope = {
-        "type": "http",
-        "http_version": "1.1",
-        "method": "GET",
-        "path": "/小星",
-        "root_path": "/中国",
-        "query_string": b"a=123&b=456",
-        "headers": [],
-    }
+    scope = HTTPScope(
+        type="http",
+        asgi=asgi_version,
+        http_version="1.1",
+        method="GET",
+        scheme="http",
+        path="/小星",
+        raw_path="/小星".encode(),
+        root_path="/中国",
+        query_string=b"a=123&b=456",
+        headers=[],
+        client=None,
+        server=None,
+        extensions=None,
+    )
     environ = build_environ(scope, b"")
     assert environ["SCRIPT_NAME"] == "/中国".encode().decode("latin-1")
     assert environ["PATH_INFO"] == "/小星".encode().decode("latin-1")
