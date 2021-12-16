@@ -230,11 +230,7 @@ class CommaSeparatedStrings(Sequence):
         return ", ".join(repr(item) for item in self)
 
 
-_KT = typing.TypeVar("_KT", bound=typing.Hashable)
-_VT = typing.TypeVar("_VT")
-
-
-class ImmutableMultiDict(typing.Mapping[_KT, _VT]):
+class ImmutableMultiDict(typing.Mapping):
     def __init__(
         self,
         *args: typing.Union[
@@ -290,7 +286,7 @@ class ImmutableMultiDict(typing.Mapping[_KT, _VT]):
             return self._dict[key]
         return default
 
-    def __getitem__(self, key: typing.Any) -> _VT:
+    def __getitem__(self, key: typing.Any) -> typing.Any:
         return self._dict[key]
 
     def __contains__(self, key: typing.Any) -> bool:
@@ -649,12 +645,12 @@ class State:
         del self._state[key]
 
 
-class FormData(ImmutableMultiDict[str, typing.Union[str, UploadFile]]):
+class FormData(ImmutableMultiDict):
     """
     An immutable multidict, containing both file uploads and text input.
     """
 
-    headers: typing.Optional[ImmutableMultiDict[str, Headers]]
+    headers: typing.Optional[ImmutableMultiDict]
 
     def __init__(
         self,
