@@ -321,7 +321,7 @@ async def test_response_1xx(response_cls, status_code):
     scope = {}
 
     async def receive():
-        return {} # pragma: no cover
+        return {}  # pragma: no cover
 
     async def send(message: dict):
         if message["type"] == "http.response.start":
@@ -332,7 +332,7 @@ async def test_response_1xx(response_cls, status_code):
             assert "body" not in message or message["body"] == b""
             assert "more_body" not in message or message["more_body"] is False
         else:
-            pass # pragma: no cover
+            pass  # pragma: no cover
 
     response = response_cls(status_code=status_code)
     await response.__call__(scope, receive, send)
@@ -347,7 +347,7 @@ async def test_response_204(response_cls, content):
     scope = {}
 
     async def receive():
-        return {} # pragma: no cover
+        return {}  # pragma: no cover
 
     async def send(message: dict):
         if message["type"] == "http.response.start":
@@ -359,7 +359,7 @@ async def test_response_204(response_cls, content):
             assert "body" not in message or message["body"] == b""
             assert "more_body" not in message or message["more_body"] is False
         else:
-            pass # pragma: no cover
+            pass  # pragma: no cover
 
     response = response_cls(status_code=204, content=content)
     await response.__call__(scope, receive, send)
@@ -371,7 +371,7 @@ async def test_response_205_with_te_header(response_cls):
     scope = {}
 
     async def receive():
-        return {} # pragma: no cover
+        return {}  # pragma: no cover
 
     async def send(message: dict):
         if message["type"] == "http.response.start":
@@ -384,7 +384,7 @@ async def test_response_205_with_te_header(response_cls):
             assert "body" not in message or message["body"] == b""
             assert "more_body" not in message or message["more_body"] is False
         else:
-            pass # pragma: no cover
+            pass  # pragma: no cover
 
     response = response_cls(status_code=205, headers={"transfer-encoding": "chunked"})
     await response.__call__(scope, receive, send)
@@ -396,7 +396,7 @@ async def test_response_205_with_cl_header(response_cls):
     scope = {}
 
     async def receive():
-        return {} # pragma: no cover
+        return {}  # pragma: no cover
 
     async def send(message: dict):
         if message["type"] == "http.response.start":
@@ -408,7 +408,7 @@ async def test_response_205_with_cl_header(response_cls):
             assert "body" not in message or message["body"] == b""
             assert "more_body" not in message or message["more_body"] is False
         else:
-            pass # pragma: no cover
+            pass  # pragma: no cover
 
     response = response_cls(status_code=205)
     await response.__call__(scope, receive, send)
@@ -420,7 +420,7 @@ async def test_response_304(response_cls):
     scope = {}
 
     async def receive():
-        return {} # pragma: no cover
+        return {}  # pragma: no cover
 
     async def send(message: dict):
         if message["type"] == "http.response.start":
@@ -430,7 +430,7 @@ async def test_response_304(response_cls):
             assert "body" not in message or message["body"] == b""
             assert "more_body" not in message or message["more_body"] is False
         else:
-            pass # pragma: no cover
+            pass  # pragma: no cover
 
     response = response_cls(status_code=304)
     await response.__call__(scope, receive, send)
