@@ -23,7 +23,14 @@ from asgiref.typing import (
     ASGIReceiveEvent,
     ASGISendCallable,
     ASGISendEvent,
+    HTTPDisconnectEvent,
+    HTTPRequestEvent,
+    LifespanShutdownEvent,
+    LifespanStartupEvent,
     Scope,
+    WebSocketConnectEvent,
+    WebSocketDisconnectEvent,
+    WebSocketReceiveEvent,
     WebSocketScope,
     WWWScope,
 )
@@ -208,7 +215,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             if request_complete:
                 if not response_complete.is_set():
                     await response_complete.wait()
-                return {"type": "http.disconnect"}
+                return HTTPDisconnectEvent(type="http.disconnect")
 
             body = request.body
             if isinstance(body, str):
@@ -220,15 +227,21 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                     chunk = body.send(None)
                     if isinstance(chunk, str):
                         chunk = chunk.encode("utf-8")
-                    return {"type": "http.request", "body": chunk, "more_body": True}
+                    return HTTPRequestEvent(
+                        type="http.request", body=chunk, more_body=True
+                    )
                 except StopIteration:
                     request_complete = True
-                    return {"type": "http.request", "body": b""}
+                    return HTTPRequestEvent(
+                        type="http.request", body=b"", more_body=False
+                    )
             else:
                 body_bytes = body
 
             request_complete = True
-            return {"type": "http.request", "body": body_bytes}
+            return HTTPRequestEvent(
+                type="http.request", body=body_bytes, more_body=False
+            )
 
         async def send(message: ASGISendEvent) -> None:
             nonlocal raw_kwargs, response_started, template, context
@@ -316,7 +329,7 @@ class WebSocketTestSession:
 
         try:
             _: "Future[None]" = self.portal.start_task_soon(self._run)
-            self.send({"type": "websocket.connect"})
+            self.send(WebSocketConnectEvent(type="websocket.connect"))
             message = self.receive()
             self._raise_on_close(message)
         except Exception:
@@ -366,21 +379,31 @@ class WebSocketTestSession:
         self._receive_queue.put(message)
 
     def send_text(self, data: str) -> None:
-        self.send({"type": "websocket.receive", "text": data})
+        self.send(
+            WebSocketReceiveEvent(type="websocket.receive", bytes=None, text=data)
+        )
 
     def send_bytes(self, data: bytes) -> None:
-        self.send({"type": "websocket.receive", "bytes": data})
+        self.send(
+            WebSocketReceiveEvent(type="websocket.receive", bytes=data, text=None)
+        )
 
     def send_json(self, data: typing.Any, mode: str = "text") -> None:
         assert mode in ["text", "binary"]
         text = json.dumps(data)
         if mode == "text":
-            self.send({"type": "websocket.receive", "text": text})
+            self.send(
+                WebSocketReceiveEvent(type="websocket.receive", bytes=None, text=text)
+            )
         else:
-            self.send({"type": "websocket.receive", "bytes": text.encode("utf-8")})
+            self.send(
+                WebSocketReceiveEvent(
+                    type="websocket.receive", bytes=text.encode("utf-8"), text=None
+                )
+            )
 
     def close(self, code: int = 1000) -> None:
-        self.send({"type": "websocket.disconnect", "code": code})
+        self.send(WebSocketDisconnectEvent(type="websocket.disconnect", code=code))
 
     def receive(self) -> ASGIReceiveEvent:
         message = self._send_queue.get()
@@ -554,7 +577,7 @@ class TestClient(requests.Session):
             await self.stream_send.send(None)
 
     async def wait_startup(self) -> None:
-        await self.stream_receive.send({"type": "lifespan.startup"})
+        await self.stream_receive.send(LifespanStartupEvent(type="lifespan.startup"))
 
         async def receive() -> typing.Any:
             message = await self.stream_send.receive()
@@ -578,7 +601,9 @@ class TestClient(requests.Session):
             return message
 
         async with self.stream_send:
-            await self.stream_receive.send({"type": "lifespan.shutdown"})
+            await self.stream_receive.send(
+                LifespanShutdownEvent(type="lifespan.shutdown")
+            )
             message = await receive()
             assert message["type"] in (
                 "lifespan.shutdown.complete",

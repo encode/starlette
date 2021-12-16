@@ -15,6 +15,10 @@ from asgiref.typing import (
     ASGIReceiveCallable,
     ASGISendCallable,
     LifespanScope,
+    LifespanShutdownCompleteEvent,
+    LifespanShutdownFailedEvent,
+    LifespanStartupCompleteEvent,
+    LifespanStartupFailedEvent,
     Scope,
     WWWScope,
 )
@@ -650,18 +654,28 @@ class Router:
         await receive()
         try:
             async with self.lifespan_context(app):
-                await send({"type": "lifespan.startup.complete"})
+                await send(
+                    LifespanStartupCompleteEvent(type="lifespan.startup.complete")
+                )
                 started = True
                 await receive()
         except BaseException:
             exc_text = traceback.format_exc()
             if started:
-                await send({"type": "lifespan.shutdown.failed", "message": exc_text})
+                await send(
+                    LifespanShutdownFailedEvent(
+                        type="lifespan.shutdown.failed", message=exc_text
+                    )
+                )
             else:
-                await send({"type": "lifespan.startup.failed", "message": exc_text})
+                await send(
+                    LifespanStartupFailedEvent(
+                        type="lifespan.startup.failed", message=exc_text
+                    )
+                )
             raise
         else:
-            await send({"type": "lifespan.shutdown.complete"})
+            await send(LifespanShutdownCompleteEvent(type="lifespan.shutdown.complete"))
 
     async def __call__(
         self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable

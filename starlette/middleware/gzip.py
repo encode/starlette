@@ -6,6 +6,8 @@ from asgiref.typing import (
     ASGIReceiveCallable,
     ASGISendCallable,
     ASGISendEvent,
+    HTTPResponseBodyEvent,
+    HTTPResponseStartEvent,
     WWWScope,
 )
 
@@ -41,7 +43,9 @@ class GZipResponder:
         self.app = app
         self.minimum_size = minimum_size
         self.send: ASGISendCallable = unattached_send
-        self.initial_message: ASGISendEvent = {}
+        self.initial_message: ASGISendEvent = HTTPResponseStartEvent(
+            type="http.response.start", status=200, headers=()
+        )
         self.started = False
         self.gzip_buffer = io.BytesIO()
         self.gzip_file = gzip.GzipFile(
@@ -59,11 +63,18 @@ class GZipResponder:
         if message_type == "http.response.start":
             # Don't send the initial message until we've determined how to
             # modify the outgoing headers correctly.
-            self.initial_message = message
+            message_status = message.get("status")
+            message_headers = message.get("headers")
+            self.initial_message = HTTPResponseStartEvent(
+                type=message_type, status=message_status, headers=message_headers
+            )
         elif message_type == "http.response.body" and not self.started:
             self.started = True
             body = message.get("body", b"")
             more_body = message.get("more_body", False)
+            message = HTTPResponseBodyEvent(
+                type=message_type, body=body, more_body=more_body
+            )
             if len(body) < self.minimum_size and not more_body:
                 # Don't apply GZip to small outgoing responses.
                 await self.send(self.initial_message)
@@ -101,6 +112,9 @@ class GZipResponder:
             # Remaining body in streaming GZip response.
             body = message.get("body", b"")
             more_body = message.get("more_body", False)
+            message = HTTPResponseBodyEvent(
+                type=message_type, body=body, more_body=more_body
+            )
 
             self.gzip_file.write(body)
             if not more_body:

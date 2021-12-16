@@ -4,6 +4,7 @@ from asgiref.typing import (
     ASGI3Application,
     ASGIReceiveCallable,
     ASGISendCallable,
+    WebSocketCloseEvent,
     WWWScope,
 )
 
@@ -45,7 +46,10 @@ class AuthenticationMiddleware:
         except AuthenticationError as exc:
             response = self.on_error(conn, exc)
             if scope["type"] == "websocket":
-                await send({"type": "websocket.close", "code": 1000})
+                close_event = WebSocketCloseEvent(
+                    type="websocket.close", code=1000, reason=None
+                )
+                await send(close_event)
             else:
                 await response(scope, receive, send)
             return

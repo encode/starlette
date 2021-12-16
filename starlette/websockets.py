@@ -7,6 +7,9 @@ from asgiref.typing import (
     ASGIReceiveEvent,
     ASGISendCallable,
     ASGISendEvent,
+    WebSocketAcceptEvent,
+    WebSocketCloseEvent,
+    WebSocketSendEvent,
     WWWScope,
 )
 
@@ -82,7 +85,10 @@ class WebSocket(HTTPConnection):
         if self.client_state == WebSocketState.CONNECTING:
             # If we haven't yet seen the 'connect' message, then wait for it first.
             await self.receive()
-        await self.send({"type": "websocket.accept", "subprotocol": subprotocol})
+        accept_event = WebSocketAcceptEvent(
+            type="websocket.accept", subprotocol=subprotocol, headers=()
+        )
+        await self.send(accept_event)
 
     def _raise_on_disconnect(self, message: ASGIReceiveEvent) -> None:
         if message["type"] == "websocket.disconnect":
@@ -134,21 +140,46 @@ class WebSocket(HTTPConnection):
             pass
 
     async def send_text(self, data: str) -> None:
-        await self.send({"type": "websocket.send", "text": data})
+        send_event = WebSocketSendEvent(
+            type="websocket.send",
+            bytes=None,
+            text=data,
+        )
+        await self.send(send_event)
 
     async def send_bytes(self, data: bytes) -> None:
-        await self.send({"type": "websocket.send", "bytes": data})
+        send_event = WebSocketSendEvent(
+            type="websocket.send",
+            bytes=data,
+            text=None,
+        )
+        await self.send(send_event)
 
     async def send_json(self, data: typing.Any, mode: str = "text") -> None:
         assert mode in ["text", "binary"]
         text = json.dumps(data)
         if mode == "text":
-            await self.send({"type": "websocket.send", "text": text})
+            send_event = WebSocketSendEvent(
+                type="websocket.send",
+                bytes=None,
+                text=text,
+            )
+            await self.send(send_event)
         else:
-            await self.send({"type": "websocket.send", "bytes": text.encode("utf-8")})
+            send_event = WebSocketSendEvent(
+                type="websocket.send",
+                bytes=text.encode("utf-8"),
+                text=None,
+            )
+            await self.send(send_event)
 
     async def close(self, code: int = 1000) -> None:
-        await self.send({"type": "websocket.close", "code": code})
+        close_event = WebSocketCloseEvent(
+            type="websocket.close",
+            code=code,
+            reason=None,
+        )
+        await self.send(close_event)
 
 
 class WebSocketClose:
@@ -158,4 +189,9 @@ class WebSocketClose:
     async def __call__(
         self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
-        await send({"type": "websocket.close", "code": self.code})
+        close_event = WebSocketCloseEvent(
+            type="websocket.close",
+            code=self.code,
+            reason=None,
+        )
+        await send(close_event)

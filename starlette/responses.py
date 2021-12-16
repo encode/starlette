@@ -11,7 +11,13 @@ from mimetypes import guess_type as mimetypes_guess_type
 from urllib.parse import quote
 
 import anyio
-from asgiref.typing import ASGIReceiveCallable, ASGISendCallable, Scope
+from asgiref.typing import (
+    ASGIReceiveCallable,
+    ASGISendCallable,
+    HTTPResponseBodyEvent,
+    HTTPResponseStartEvent,
+    Scope,
+)
 
 from starlette.background import BackgroundTask
 from starlette.concurrency import iterate_in_threadpool
@@ -148,14 +154,18 @@ class Response:
     async def __call__(
         self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
-        await send(
-            {
-                "type": "http.response.start",
-                "status": self.status_code,
-                "headers": self.raw_headers,
-            }
+        start_event = HTTPResponseStartEvent(
+            type="http.response.start",
+            status=self.status_code,
+            headers=self.raw_headers,
         )
-        await send({"type": "http.response.body", "body": self.body})
+        body_event = HTTPResponseBodyEvent(
+            type="http.response.body",
+            body=self.body,
+            more_body=False,
+        )
+        await send(start_event)
+        await send(body_event)
 
         if self.background is not None:
             await self.background()
@@ -221,19 +231,27 @@ class StreamingResponse(Response):
                 break
 
     async def stream_response(self, send: ASGISendCallable) -> None:
-        await send(
-            {
-                "type": "http.response.start",
-                "status": self.status_code,
-                "headers": self.raw_headers,
-            }
+        start_event = HTTPResponseStartEvent(
+            type="http.response.start",
+            status=self.status_code,
+            headers=self.raw_headers,
         )
+        await send(start_event)
         async for chunk in self.body_iterator:
             if not isinstance(chunk, bytes):
                 chunk = chunk.encode(self.charset)
-            await send({"type": "http.response.body", "body": chunk, "more_body": True})
-
-        await send({"type": "http.response.body", "body": b"", "more_body": False})
+            more_body_event = HTTPResponseBodyEvent(
+                type="http.response.body",
+                body=chunk,
+                more_body=True,
+            )
+            await send(more_body_event)
+        body_event = HTTPResponseBodyEvent(
+            type="http.response.body",
+            body=b"",
+            more_body=False,
+        )
+        await send(body_event)
 
     async def __call__(
         self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable
@@ -310,27 +328,30 @@ class FileResponse(Response):
                 mode = stat_result.st_mode
                 if not stat.S_ISREG(mode):
                     raise RuntimeError(f"File at path {self.path} is not a file.")
-        await send(
-            {
-                "type": "http.response.start",
-                "status": self.status_code,
-                "headers": self.raw_headers,
-            }
+        start_event = HTTPResponseStartEvent(
+            type="http.response.start",
+            status=self.status_code,
+            headers=self.raw_headers,
         )
+        await send(start_event)
         if self.send_header_only:
-            await send({"type": "http.response.body", "body": b"", "more_body": False})
+            body_event = HTTPResponseBodyEvent(
+                type="http.response.body",
+                body=b"",
+                more_body=False,
+            )
+            await send(body_event)
         else:
             async with await anyio.open_file(self.path, mode="rb") as file:
                 more_body = True
                 while more_body:
                     chunk = await file.read(self.chunk_size)
                     more_body = len(chunk) == self.chunk_size
-                    await send(
-                        {
-                            "type": "http.response.body",
-                            "body": chunk,
-                            "more_body": more_body,
-                        }
+                    more_body_event = HTTPResponseBodyEvent(
+                        type="http.response.body",
+                        body=chunk,
+                        more_body=more_body,
                     )
+                    await send(more_body_event)
         if self.background is not None:
             await self.background()
