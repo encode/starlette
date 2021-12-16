@@ -129,14 +129,54 @@ class Response:
         self.set_cookie(key, expires=0, max_age=0, path=path, domain=domain)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if self.status_code < 200:
+            # Response is terminated after the status line.  So no headers and no body.
+            # https://datatracker.ietf.org/doc/html/rfc7231#section-6.2
+            raw_headers = []
+            body = b''
+        elif self.status_code == 204:
+            # Response must not have a content-length header. See
+            # https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.2
+            # http spec does not appear to say whether or not there can be a content-type header. Some clients
+            # will attempt to parse the message body if there is a content-type header, so we ensure that there isn't one in
+            # the response.
+            raw_headers = [header for header in self.raw_headers if header[0] not in (b'content-length', b'content-type')]
+            body = b''
+        elif self.status_code == 205:
+            # Response must not include a body.
+            # Response can either have a content-length: 0 header or a
+            # transfer-encoding: chunked header.
+            # We check for a transfer-encoding header.  If not found, we ensure the presence of
+            # the content-length header.
+            # https://datatracker.ietf.org/doc/html/rfc7231#section-6.3.6
+            raw_headers = [header for header in self.raw_headers if header[0] not in (b'content-length', b'content-type')]
+            for header in self.raw_headers:
+                if header[0] == b'transfer-encoding':
+                    break
+            else:
+                raw_headers.append((b'content-length', b'0'))
+            body = b''
+        elif self.status_code == 304:
+            # A 304 Not Modfied response may contain a transfer-encoding header, or content-length header
+            # whose value is the length of
+            # message that would have been sent in a 200 OK response.
+            # So we leave the headers as is.
+            # https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.1
+            # https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.2
+            raw_headers = self.raw_headers
+            body = b''
+        else:
+            raw_headers = self.raw_headers
+            body = self.body
+
         await send(
             {
                 "type": "http.response.start",
                 "status": self.status_code,
-                "headers": self.raw_headers,
+                "headers": raw_headers,
             }
         )
-        await send({"type": "http.response.body", "body": self.body})
+        await send({"type": "http.response.body", "body": body})
 
         if self.background is not None:
             await self.background()
@@ -311,51 +351,3 @@ class FileResponse(Response):
                     )
         if self.background is not None:
             await self.background()
-
-
-class EmptyResponse(Response):
-    """Response to be sent with status code 1xx, 204, 205, 304, or whenever
-    an empty response is intended."""
-
-    def __init__(
-        self,
-        status_code: int,
-        headers: typing.Optional[typing.Dict[str, str]] = None,
-        background: typing.Optional[BackgroundTask] = None,
-    ) -> None:
-        super().__init__(
-            content=b"", status_code=status_code, headers=headers, background=background
-        )
-
-    def init_headers(self, headers: typing.Mapping[str, str] = None) -> None:
-        byte_headers: typing.Dict[bytes, bytes] = (
-            {
-                k.lower().encode("latin-1"): v.encode("latin-1")
-                for k, v in headers.items()
-            }
-            if headers
-            else {}
-        )
-
-        if self.status_code < 200 or self.status_code == 204:
-            # Response must not have a content-length header. See
-            # https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.2
-            if b"content-length" in byte_headers:
-                del byte_headers[b"content-length"]
-        elif self.status_code == 205:
-            # Response can either have a content-length header or a
-            # transfer-encoding: chunked header.
-            # We choose to ensure a content-length header.
-            # https://datatracker.ietf.org/doc/html/rfc7231#section-6.3.6
-            byte_headers[b"content-length"] = b"0"
-        elif self.status_code == 304:
-            # A 304 Not Modfied response may contain a content-length header
-            # whose value is the length of
-            # message that would have been sent in a 200 OK response.
-            # So we leave the headers as is.
-            # https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.2
-            pass
-        else:
-            byte_headers[b"content-length"] = b"0"
-
-        self.raw_headers = [(k, v) for k, v in byte_headers.items()]

@@ -1,4 +1,5 @@
 import os
+import itertools
 
 import anyio
 import pytest
@@ -7,13 +8,13 @@ from starlette import status
 from starlette.background import BackgroundTask
 from starlette.requests import Request
 from starlette.responses import (
-    EmptyResponse,
     FileResponse,
     JSONResponse,
     RedirectResponse,
     Response,
     StreamingResponse,
 )
+from starlette.types import Message
 
 
 def test_text_response(test_client_factory):
@@ -311,33 +312,106 @@ def test_head_method(test_client_factory):
     response = client.head("/")
     assert response.text == ""
 
+@pytest.mark.anyio
+@pytest.mark.parametrize('response_cls, status_code', list(itertools.product(*[[Response, JSONResponse], [100, 101, 102]])))
+async def test_response_1xx(response_cls, status_code):
+    scope = {}
+    async def receive():
+        return {}
+    async def send(message: dict):
+        if message['type'] == "http.response.start":
+            # also ensures that self.raw_headers is not None
+            assert len(message['headers']) == 0
+        elif message['type'] == "http.response.body":
+            # per ASGI, if body key is missing, default is False
+            assert "body" not in message or message["body"] == b''
+            assert "more_body" not in message or message["more_body"] is False
+        else:
+            pass
 
-def test_empty_response_100():
-    response = EmptyResponse(status_code=100)
-    assert "content-length" not in response.headers
+    response = response_cls(status_code=status_code)
+    await response.__call__(scope, receive, send)
+    
+@pytest.mark.anyio
+@pytest.mark.parametrize('response_cls, content', itertools.product(*[[Response, JSONResponse], [None, 'test']]))
+async def test_response_204(response_cls, content):
+    scope = {}
+    async def receive():
+        return {}
+    async def send(message: dict):
+        if message['type'] == "http.response.start":
+            header_map = dict(message['headers'])
+            assert b"content-length" not in header_map
+            assert b"content-type" not in header_map
+        elif message['type'] == "http.response.body":
+            # per ASGI, if body key is missing, default is False
+            assert "body" not in message or message["body"] == b''
+            assert "more_body" not in message or message["more_body"] is False
+        else:
+            pass
+
+    response = response_cls(status_code=204, content=content)
+    await response.__call__(scope, receive, send)
 
 
-def test_empty_response_200():
-    response = EmptyResponse(status_code=200)
-    assert response.headers["content-length"] == "0"
+@pytest.mark.anyio
+@pytest.mark.parametrize('response_cls', [Response, JSONResponse])
+async def test_response_205_with_te_header(response_cls):
+    scope = {}
+    async def receive():
+        return {}
+    async def send(message: dict):
+        if message['type'] == "http.response.start":
+            header_map = dict(message['headers'])
+            assert header_map[b'transfer-encoding'] == b'chunked'
+            assert b"content-length" not in header_map
+            assert b"content-type" not in header_map
+        elif message['type'] == "http.response.body":
+            # per ASGI, if body key is missing, default is False
+            assert "body" not in message or message["body"] == b''
+            assert "more_body" not in message or message["more_body"] is False
+        else:
+            pass
 
+    response = response_cls(status_code=205, headers={'transfer-encoding': 'chunked'})
+    await response.__call__(scope, receive, send)
 
-def test_empty_response_204():
-    response = EmptyResponse(status_code=204)
-    assert "content-length" not in response.headers
+@pytest.mark.anyio
+@pytest.mark.parametrize('response_cls', [Response, JSONResponse])
+async def test_response_205_with_cl_header(response_cls):
+    scope = {}
+    async def receive():
+        return {}
+    async def send(message: dict):
+        if message['type'] == "http.response.start":
+            header_map = dict(message['headers'])
+            assert header_map[b'content-length'] == b'0'
+            assert b"content-type" not in header_map
+        elif message['type'] == "http.response.body":
+            # per ASGI, if body key is missing, default is False
+            assert "body" not in message or message["body"] == b''
+            assert "more_body" not in message or message["more_body"] is False
+        else:
+            pass
 
+    response = response_cls(status_code=205)
+    await response.__call__(scope, receive, send)
 
-def test_empty_response_204_removing_header():
-    response = EmptyResponse(status_code=204, headers={"content-length": "0"})
-    assert "content-length" not in response.headers
+@pytest.mark.anyio
+@pytest.mark.parametrize('response_cls', [Response, JSONResponse])
+async def test_response_304(response_cls):
+    scope = {}
+    async def receive():
+        return {}
+    async def send(message: dict):
+        if message['type'] == "http.response.start":
+            pass
+        elif message['type'] == "http.response.body":
+            # per ASGI, 'body', 'more_body' are optional.
+            assert "body" not in message or message["body"] == b''
+            assert "more_body" not in message or message["more_body"] is False
+        else:
+            pass
 
-
-def test_empty_response_205():
-    response = EmptyResponse(status_code=205)
-    assert response.headers["content-length"] == "0"
-
-
-def test_empty_response_304():
-    headers = {"content-length": "43"}
-    response = EmptyResponse(status_code=304, headers=headers)
-    assert response.headers["content-length"] == "43"
+    response = response_cls(status_code=304)
+    await response.__call__(scope, receive, send)
