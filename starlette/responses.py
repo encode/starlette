@@ -40,7 +40,7 @@ class Response:
         status_code: int = 200,
         headers: dict = None,
         media_type: str = None,
-        background: BackgroundTask = None,
+        background: typing.Optional[BackgroundTask] = None,
     ) -> None:
         self.status_code = status_code
         if media_type is not None:
@@ -186,7 +186,7 @@ class RedirectResponse(Response):
         url: typing.Union[str, URL],
         status_code: int = 307,
         headers: dict = None,
-        background: BackgroundTask = None,
+        background: typing.Optional[BackgroundTask] = None,
     ) -> None:
         super().__init__(
             content=b"", status_code=status_code, headers=headers, background=background
@@ -201,7 +201,7 @@ class StreamingResponse(Response):
         status_code: int = 200,
         headers: dict = None,
         media_type: str = None,
-        background: BackgroundTask = None,
+        background: typing.Optional[BackgroundTask] = None,
     ) -> None:
         if isinstance(content, typing.AsyncIterable):
             self.body_iterator = content
@@ -256,7 +256,7 @@ class FileResponse(Response):
         status_code: int = 200,
         headers: dict = None,
         media_type: str = None,
-        background: BackgroundTask = None,
+        background: typing.Optional[BackgroundTask] = None,
         filename: str = None,
         stat_result: os.stat_result = None,
         method: str = None,
