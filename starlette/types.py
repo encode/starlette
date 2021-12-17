@@ -1,4 +1,12 @@
 import typing
+import warnings
+
+warnings.warn(
+    f"'{__name__}' is deprecated. Import types from 'asgiref.typing' instead.",
+    category=DeprecationWarning,
+    stacklevel=2,
+)
+
 
 HTTPScope = typing.MutableMapping[str, typing.Any]
 LifespanScope = typing.MutableMapping[str, typing.Any]
