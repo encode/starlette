@@ -464,11 +464,3 @@ def test_staticfiles_follows_symlinks_to_break_out_of_dir(tmpdir, test_client_fa
     assert response.url == "http://testserver/index.html"
     assert response.status_code == 200
     assert response.text == "<h1>Hello</h1>"
-
-    app = StaticFiles(directory=statics_path, html=True)
-    client = test_client_factory(app)
-
-    response = client.get("/")
-    assert response.url == "http://testserver/"
-    assert response.status_code == 200
-    assert response.text == "<h1>Hello</h1>"
