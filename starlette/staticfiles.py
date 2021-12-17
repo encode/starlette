@@ -157,11 +157,13 @@ class StaticFiles:
         self, path: str
     ) -> typing.Tuple[str, typing.Optional[os.stat_result]]:
         for directory in self.all_directories:
-            full_path = os.path.realpath(os.path.join(directory, path))
+            original_path = os.path.join(directory, path)
+            full_path = os.path.realpath(original_path)
             directory = os.path.realpath(directory)
-            if os.path.commonprefix([full_path, directory]) != directory:
+            is_external = os.path.commonprefix([full_path, directory]) != directory
+            if is_external and not os.path.islink(original_path):
                 # Don't allow misbehaving clients to break out of the static files
-                # directory.
+                # directory if not following symlinks.
                 continue
             try:
                 return full_path, os.stat(full_path)

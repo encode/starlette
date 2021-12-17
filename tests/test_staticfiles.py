@@ -441,3 +441,34 @@ def test_staticfiles_unhandled_os_error_returns_500(
     response = client.get("/example.txt")
     assert response.status_code == 500
     assert response.text == "Internal Server Error"
+
+
+def test_staticfiles_follows_symlinks_to_break_out_of_dir(tmpdir, test_client_factory):
+    statics_path = os.path.join(tmpdir, "statics")
+    os.mkdir(statics_path)
+
+    symlink_path = os.path.join(tmpdir, "symlink")
+    os.mkdir(symlink_path)
+
+    symlink_file_path = os.path.join(symlink_path, "index.html")
+    with open(symlink_file_path, "w") as file:
+        file.write("<h1>Hello</h1>")
+
+    statics_file_path = os.path.join(statics_path, "index.html")
+    os.symlink(symlink_file_path, statics_file_path)
+
+    app = StaticFiles(directory=statics_path)
+    client = test_client_factory(app)
+
+    response = client.get("/index.html")
+    assert response.url == "http://testserver/index.html"
+    assert response.status_code == 200
+    assert response.text == "<h1>Hello</h1>"
+
+    app = StaticFiles(directory=statics_path, html=True)
+    client = test_client_factory(app)
+
+    response = client.get("/")
+    assert response.url == "http://testserver/"
+    assert response.status_code == 200
+    assert response.text == "<h1>Hello</h1>"
