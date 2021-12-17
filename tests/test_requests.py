@@ -80,7 +80,7 @@ def test_request_body(test_client_factory):
     response = client.post("/", json={"a": "123"})
     assert response.json() == {"body": '{"a": "123"}'}
 
-    response = client.post("/", data="abc")
+    response = client.post("/", content="abc")
     assert response.json() == {"body": "abc"}
 
 
@@ -101,7 +101,7 @@ def test_request_stream(test_client_factory):
     response = client.post("/", json={"a": "123"})
     assert response.json() == {"body": '{"a": "123"}'}
 
-    response = client.post("/", data="abc")
+    response = client.post("/", content="abc")
     assert response.json() == {"body": "abc"}
 
 
@@ -130,7 +130,7 @@ def test_request_body_then_stream(test_client_factory):
 
     client = test_client_factory(app)
 
-    response = client.post("/", data="abc")
+    response = client.post("/", content="abc")
     assert response.json() == {"body": "abc", "stream": "abc"}
 
 
@@ -149,7 +149,7 @@ def test_request_stream_then_body(test_client_factory):
 
     client = test_client_factory(app)
 
-    response = client.post("/", data="abc")
+    response = client.post("/", content="abc")
     assert response.json() == {"body": "<stream consumed>", "stream": "abc"}
 
 
@@ -408,9 +408,9 @@ def test_chunked_encoding(test_client_factory):
 
     def post_body():
         yield b"foo"
-        yield "bar"
+        yield b"bar"
 
-    response = client.post("/", data=post_body())
+    response = client.post("/", content=post_body())
     assert response.json() == {"body": "foobar"}
 
 

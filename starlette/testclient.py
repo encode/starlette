@@ -1,22 +1,43 @@
 import asyncio
 import contextlib
-import http
 import inspect
 import io
 import json
 import math
 import queue
 import sys
-import types
-import typing
 from concurrent.futures import Future
-from urllib.parse import unquote, urljoin, urlsplit
+from types import GeneratorType
+from typing import (
+    Any,
+    Callable,
+    ContextManager,
+    Dict,
+    Generator,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+)
+from urllib.parse import unquote, urljoin
 
-import anyio.abc
-import requests
+import anyio
+import httpx
 from anyio.streams.stapled import StapledObjectStream
+from asgiref.typing import (
+    ASGI2Application as ASGI2App,
+    ASGI3Application as ASGI3App,
+    ASGIApplication,
+    ASGIReceiveCallable as Receive,
+    ASGIReceiveEvent,
+    ASGISendCallable as Send,
+    ASGISendEvent,
+    Scope,
+)
+from httpx._types import CookieTypes
 
-from starlette.types import Message, Receive, Scope, Send
 from starlette.websockets import WebSocketDisconnect
 
 if sys.version_info >= (3, 8):  # pragma: no cover
@@ -25,63 +46,7 @@ else:  # pragma: no cover
     from typing_extensions import TypedDict
 
 
-_PortalFactoryType = typing.Callable[
-    [], typing.ContextManager[anyio.abc.BlockingPortal]
-]
-
-
-# Annotations for `Session.request()`
-Cookies = typing.Union[
-    typing.MutableMapping[str, str], requests.cookies.RequestsCookieJar
-]
-Params = typing.Union[bytes, typing.MutableMapping[str, str]]
-DataType = typing.Union[bytes, typing.MutableMapping[str, str], typing.IO]
-TimeOut = typing.Union[float, typing.Tuple[float, float]]
-FileType = typing.MutableMapping[str, typing.IO]
-AuthType = typing.Union[
-    typing.Tuple[str, str],
-    requests.auth.AuthBase,
-    typing.Callable[[requests.PreparedRequest], requests.PreparedRequest],
-]
-
-
-ASGIInstance = typing.Callable[[Receive, Send], typing.Awaitable[None]]
-ASGI2App = typing.Callable[[Scope], ASGIInstance]
-ASGI3App = typing.Callable[[Scope, Receive, Send], typing.Awaitable[None]]
-
-
-class _HeaderDict(requests.packages.urllib3._collections.HTTPHeaderDict):
-    def get_all(self, key: str, default: str) -> str:
-        return self.getheaders(key)
-
-
-class _MockOriginalResponse:
-    """
-    We have to jump through some hoops to present the response as if
-    it was made using urllib3.
-    """
-
-    def __init__(self, headers: typing.List[typing.Tuple[bytes, bytes]]) -> None:
-        self.msg = _HeaderDict(headers)
-        self.closed = False
-
-    def isclosed(self) -> bool:
-        return self.closed
-
-
-class _Upgrade(Exception):
-    def __init__(self, session: "WebSocketTestSession") -> None:
-        self.session = session
-
-
-def _get_reason_phrase(status_code: int) -> str:
-    try:
-        return http.HTTPStatus(status_code).phrase
-    except ValueError:
-        return ""
-
-
-def _is_asgi3(app: typing.Union[ASGI2App, ASGI3App]) -> bool:
+def _is_asgi3(app: Union[ASGI2App, ASGI3App]) -> bool:
     if inspect.isclass(app):
         return hasattr(app, "__await__")
     elif inspect.isfunction(app):
@@ -103,12 +68,131 @@ class _WrapASGI2:
         await instance(receive, send)
 
 
+_PortalFactoryType = Callable[[], ContextManager[anyio.abc.BlockingPortal]]
+
+
 class _AsyncBackend(TypedDict):
     backend: str
-    backend_options: typing.Dict[str, typing.Any]
+    backend_options: Dict[str, Any]
 
 
-class _ASGIAdapter(requests.adapters.HTTPAdapter):
+class _Upgrade(Exception):
+    def __init__(self, session: "WebSocketTestSession") -> None:
+        self.session = session
+
+
+class WebSocketTestSession:
+    def __init__(
+        self,
+        app: ASGI3App,
+        scope: Scope,
+        portal_factory: _PortalFactoryType,
+    ) -> None:
+        self.app = app
+        self.scope = scope
+        self.accepted_subprotocol = None
+        self.portal_factory = portal_factory
+        self._receive_queue: "queue.Queue[Any]" = queue.Queue()
+        self._send_queue: "queue.Queue[Any]" = queue.Queue()
+
+    def __enter__(self) -> "WebSocketTestSession":
+        self.exit_stack = contextlib.ExitStack()
+        self.portal = self.exit_stack.enter_context(self.portal_factory())
+
+        try:
+            _: "Future[None]" = self.portal.start_task_soon(self._run)
+            self.send({"type": "websocket.connect"})
+            message = self.receive()
+            self._raise_on_close(message)
+        except Exception:
+            self.exit_stack.close()
+            raise
+        self.accepted_subprotocol = message.get("subprotocol", None)
+        return self
+
+    def __exit__(self, *args: Any) -> None:
+        try:
+            self.close(1000)
+        finally:
+            self.exit_stack.close()
+        while not self._send_queue.empty():
+            message = self._send_queue.get()
+            if isinstance(message, BaseException):
+                raise message
+
+    async def _run(self) -> None:
+        """
+        The sub-thread in which the websocket session runs.
+        """
+        scope = self.scope
+        receive = self._asgi_receive
+        send = self._asgi_send
+        try:
+            await self.app(scope, receive, send)
+        except BaseException as exc:
+            self._send_queue.put(exc)
+            raise
+
+    async def _asgi_receive(self) -> ASGIReceiveEvent:
+        while self._receive_queue.empty():
+            await anyio.sleep(0)
+        return self._receive_queue.get()
+
+    async def _asgi_send(self, message: ASGISendEvent) -> None:
+        self._send_queue.put(message)
+
+    def _raise_on_close(self, message: Union[ASGISendEvent, ASGIReceiveEvent]) -> None:
+        if message["type"] == "websocket.close":
+            raise WebSocketDisconnect(message.get("code", 1000))
+
+    def send(self, message: ASGISendEvent) -> None:
+        self._receive_queue.put(message)
+
+    def send_text(self, data: str) -> None:
+        self.send({"type": "websocket.receive", "text": data})
+
+    def send_bytes(self, data: bytes) -> None:
+        self.send({"type": "websocket.receive", "bytes": data})
+
+    def send_json(self, data: Any, mode: str = "text") -> None:
+        assert mode in ["text", "binary"]
+        text = json.dumps(data)
+        if mode == "text":
+            self.send({"type": "websocket.receive", "text": text})
+        else:
+            self.send({"type": "websocket.receive", "bytes": text.encode("utf-8")})
+
+    def close(self, code: int = 1000) -> None:
+        self.send({"type": "websocket.disconnect", "code": code})
+
+    def receive(self) -> ASGIReceiveEvent:
+        message = self._send_queue.get()
+        if isinstance(message, BaseException):
+            raise message
+        return message
+
+    def receive_text(self) -> str:
+        message = self.receive()
+        self._raise_on_close(message)
+        return message["text"]
+
+    def receive_bytes(self) -> bytes:
+        message = self.receive()
+        self._raise_on_close(message)
+        return message["bytes"]
+
+    def receive_json(self, mode: str = "text") -> Any:
+        assert mode in ["text", "binary"]
+        message = self.receive()
+        self._raise_on_close(message)
+        if mode == "text":
+            text = message["text"]
+        else:
+            text = message["bytes"].decode("utf-8")
+        return json.loads(text)
+
+
+class _TestClientTransport(httpx.BaseTransport):
     def __init__(
         self,
         app: ASGI3App,
@@ -121,12 +205,11 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
         self.root_path = root_path
         self.portal_factory = portal_factory
 
-    def send(
-        self, request: requests.PreparedRequest, *args: typing.Any, **kwargs: typing.Any
-    ) -> requests.Response:
-        scheme, netloc, path, query, fragment = (
-            str(item) for item in urlsplit(request.url)
-        )
+    def handle_request(self, request: httpx.Request) -> httpx.Response:
+        scheme = request.url.scheme
+        netloc = unquote(request.url.netloc.decode(encoding="ascii"))
+        path = request.url.path
+        query = unquote(request.url.query.decode(encoding="ascii"))
 
         default_port = {"http": 80, "ws": 80, "https": 443, "wss": 443}[scheme]
 
@@ -139,7 +222,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
 
         # Include the 'host' header.
         if "host" in request.headers:
-            headers: typing.List[typing.Tuple[bytes, bytes]] = []
+            headers: List[Tuple[bytes, bytes]] = []
         elif port == default_port:
             headers = [(b"host", host.encode())]
         else:
@@ -151,12 +234,10 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             for key, value in request.headers.items()
         ]
 
-        scope: typing.Dict[str, typing.Any]
-
         if scheme in {"ws", "wss"}:
             subprotocol = request.headers.get("sec-websocket-protocol", None)
             if subprotocol is None:
-                subprotocols: typing.Sequence[str] = []
+                subprotocols: Sequence[str] = []
             else:
                 subprotocols = [value.strip() for value in subprotocol.split(",")]
             scope = {
@@ -190,11 +271,11 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
         request_complete = False
         response_started = False
         response_complete: anyio.Event
-        raw_kwargs: typing.Dict[str, typing.Any] = {"body": io.BytesIO()}
+        raw_kwargs: Dict[str, Any] = {"stream": io.BytesIO()}
         template = None
         context = None
 
-        async def receive() -> Message:
+        async def receive() -> ASGIReceiveEvent:
             nonlocal request_complete
 
             if request_complete:
@@ -202,12 +283,12 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                     await response_complete.wait()
                 return {"type": "http.disconnect"}
 
-            body = request.body
+            body = request.read()
             if isinstance(body, str):
                 body_bytes: bytes = body.encode("utf-8")
             elif body is None:
                 body_bytes = b""
-            elif isinstance(body, types.GeneratorType):
+            elif isinstance(body, GeneratorType):
                 try:
                     chunk = body.send(None)
                     if isinstance(chunk, str):
@@ -222,24 +303,18 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             request_complete = True
             return {"type": "http.request", "body": body_bytes}
 
-        async def send(message: Message) -> None:
+        async def send(message: ASGISendEvent) -> None:
             nonlocal raw_kwargs, response_started, template, context
 
             if message["type"] == "http.response.start":
                 assert (
                     not response_started
                 ), 'Received multiple "http.response.start" messages.'
-                raw_kwargs["version"] = 11
-                raw_kwargs["status"] = message["status"]
-                raw_kwargs["reason"] = _get_reason_phrase(message["status"])
+                raw_kwargs["status_code"] = message["status"]
                 raw_kwargs["headers"] = [
                     (key.decode(), value.decode())
                     for key, value in message.get("headers", [])
                 ]
-                raw_kwargs["preload_content"] = False
-                raw_kwargs["original_response"] = _MockOriginalResponse(
-                    raw_kwargs["headers"]
-                )
                 response_started = True
             elif message["type"] == "http.response.body":
                 assert (
@@ -251,9 +326,9 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 body = message.get("body", b"")
                 more_body = message.get("more_body", False)
                 if request.method != "HEAD":
-                    raw_kwargs["body"].write(body)
+                    raw_kwargs["stream"].write(body)
                 if not more_body:
-                    raw_kwargs["body"].seek(0)
+                    raw_kwargs["stream"].seek(0)
                     response_complete.set()
             elif message["type"] == "http.response.template":
                 template = message["template"]
@@ -271,224 +346,108 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             assert response_started, "TestClient did not receive any response."
         elif not response_started:
             raw_kwargs = {
-                "version": 11,
-                "status": 500,
-                "reason": "Internal Server Error",
+                "status_code": 500,
                 "headers": [],
-                "preload_content": False,
-                "original_response": _MockOriginalResponse([]),
-                "body": io.BytesIO(),
+                "stream": io.BytesIO(),
             }
 
-        raw = requests.packages.urllib3.HTTPResponse(**raw_kwargs)
-        response = self.build_response(request, raw)
+        raw_kwargs["stream"] = httpx.ByteStream(raw_kwargs["stream"].read())
+
+        response = httpx.Response(**raw_kwargs, request=request)
         if template is not None:
             response.template = template
             response.context = context
         return response
 
 
-class WebSocketTestSession:
-    def __init__(
-        self,
-        app: ASGI3App,
-        scope: Scope,
-        portal_factory: _PortalFactoryType,
-    ) -> None:
-        self.app = app
-        self.scope = scope
-        self.accepted_subprotocol = None
-        self.portal_factory = portal_factory
-        self._receive_queue: "queue.Queue[typing.Any]" = queue.Queue()
-        self._send_queue: "queue.Queue[typing.Any]" = queue.Queue()
-
-    def __enter__(self) -> "WebSocketTestSession":
-        self.exit_stack = contextlib.ExitStack()
-        self.portal = self.exit_stack.enter_context(self.portal_factory())
-
-        try:
-            _: "Future[None]" = self.portal.start_task_soon(self._run)
-            self.send({"type": "websocket.connect"})
-            message = self.receive()
-            self._raise_on_close(message)
-        except Exception:
-            self.exit_stack.close()
-            raise
-        self.accepted_subprotocol = message.get("subprotocol", None)
-        return self
-
-    def __exit__(self, *args: typing.Any) -> None:
-        try:
-            self.close(1000)
-        finally:
-            self.exit_stack.close()
-        while not self._send_queue.empty():
-            message = self._send_queue.get()
-            if isinstance(message, BaseException):
-                raise message
-
-    async def _run(self) -> None:
-        """
-        The sub-thread in which the websocket session runs.
-        """
-        scope = self.scope
-        receive = self._asgi_receive
-        send = self._asgi_send
-        try:
-            await self.app(scope, receive, send)
-        except BaseException as exc:
-            self._send_queue.put(exc)
-            raise
-
-    async def _asgi_receive(self) -> Message:
-        while self._receive_queue.empty():
-            await anyio.sleep(0)
-        return self._receive_queue.get()
-
-    async def _asgi_send(self, message: Message) -> None:
-        self._send_queue.put(message)
-
-    def _raise_on_close(self, message: Message) -> None:
-        if message["type"] == "websocket.close":
-            raise WebSocketDisconnect(message.get("code", 1000))
-
-    def send(self, message: Message) -> None:
-        self._receive_queue.put(message)
-
-    def send_text(self, data: str) -> None:
-        self.send({"type": "websocket.receive", "text": data})
-
-    def send_bytes(self, data: bytes) -> None:
-        self.send({"type": "websocket.receive", "bytes": data})
-
-    def send_json(self, data: typing.Any, mode: str = "text") -> None:
-        assert mode in ["text", "binary"]
-        text = json.dumps(data)
-        if mode == "text":
-            self.send({"type": "websocket.receive", "text": text})
-        else:
-            self.send({"type": "websocket.receive", "bytes": text.encode("utf-8")})
-
-    def close(self, code: int = 1000) -> None:
-        self.send({"type": "websocket.disconnect", "code": code})
-
-    def receive(self) -> Message:
-        message = self._send_queue.get()
-        if isinstance(message, BaseException):
-            raise message
-        return message
-
-    def receive_text(self) -> str:
-        message = self.receive()
-        self._raise_on_close(message)
-        return message["text"]
-
-    def receive_bytes(self) -> bytes:
-        message = self.receive()
-        self._raise_on_close(message)
-        return message["bytes"]
-
-    def receive_json(self, mode: str = "text") -> typing.Any:
-        assert mode in ["text", "binary"]
-        message = self.receive()
-        self._raise_on_close(message)
-        if mode == "text":
-            text = message["text"]
-        else:
-            text = message["bytes"].decode("utf-8")
-        return json.loads(text)
-
-
-class TestClient(requests.Session):
-    __test__ = False  # For pytest to not discover this up.
+class TestClient(httpx.Client):
+    __test__ = False
     task: "Future[None]"
-    portal: typing.Optional[anyio.abc.BlockingPortal] = None
+    portal: Optional[anyio.abc.BlockingPortal] = None
 
     def __init__(
         self,
-        app: typing.Union[ASGI2App, ASGI3App],
+        app: ASGIApplication,
         base_url: str = "http://testserver",
         raise_server_exceptions: bool = True,
         root_path: str = "",
         backend: str = "asyncio",
-        backend_options: typing.Optional[typing.Dict[str, typing.Any]] = None,
+        backend_options: Optional[Dict[str, Any]] = None,
+        cookies: CookieTypes = None,
     ) -> None:
-        super().__init__()
         self.async_backend = _AsyncBackend(
             backend=backend, backend_options=backend_options or {}
         )
         if _is_asgi3(app):
-            app = typing.cast(ASGI3App, app)
+            app = cast(ASGI3App, app)
             asgi_app = app
         else:
-            app = typing.cast(ASGI2App, app)
+            app = cast(ASGI2App, app)
             asgi_app = _WrapASGI2(app)  #  type: ignore
-        adapter = _ASGIAdapter(
-            asgi_app,
+        self.app = asgi_app
+        transport = _TestClientTransport(
+            self.app,
             portal_factory=self._portal_factory,
             raise_server_exceptions=raise_server_exceptions,
             root_path=root_path,
         )
-        self.mount("http://", adapter)
-        self.mount("https://", adapter)
-        self.mount("ws://", adapter)
-        self.mount("wss://", adapter)
-        self.headers.update({"user-agent": "testclient"})
-        self.app = asgi_app
-        self.base_url = base_url
+        super().__init__(
+            app=self.app,
+            base_url=base_url,
+            headers={"user-agent": "testclient"},
+            transport=transport,
+            follow_redirects=True,
+            cookies=cookies,
+        )
 
     @contextlib.contextmanager
-    def _portal_factory(
-        self,
-    ) -> typing.Generator[anyio.abc.BlockingPortal, None, None]:
+    def _portal_factory(self) -> Generator[anyio.abc.BlockingPortal, None, None]:
         if self.portal is not None:
             yield self.portal
         else:
             with anyio.start_blocking_portal(**self.async_backend) as portal:
                 yield portal
 
-    def request(  # type: ignore
-        self,
-        method: str,
-        url: str,
-        params: Params = None,
-        data: DataType = None,
-        headers: typing.MutableMapping[str, str] = None,
-        cookies: Cookies = None,
-        files: FileType = None,
-        auth: AuthType = None,
-        timeout: TimeOut = None,
-        allow_redirects: bool = None,
-        proxies: typing.MutableMapping[str, str] = None,
-        hooks: typing.Any = None,
-        stream: bool = None,
-        verify: typing.Union[bool, str] = None,
-        cert: typing.Union[str, typing.Tuple[str, str]] = None,
-        json: typing.Any = None,
-    ) -> requests.Response:
-        url = urljoin(self.base_url, url)
-        return super().request(
-            method,
-            url,
-            params=params,
-            data=data,
-            headers=headers,
-            cookies=cookies,
-            files=files,
-            auth=auth,
-            timeout=timeout,
-            allow_redirects=allow_redirects,
-            proxies=proxies,
-            hooks=hooks,
-            stream=stream,
-            verify=verify,
-            cert=cert,
-            json=json,
-        )
+    # def request(
+    #     self,
+    #     method: str,
+    #     url: httpx._types.URLTypes,
+    #     *,
+    #     content: httpx._types.RequestContent = None,
+    #     data: httpx._types.RequestData = None,
+    #     files: httpx._types.RequestFiles = None,
+    #     json: Any = None,
+    #     params: httpx._types.QueryParamTypes = None,
+    #     headers: httpx._types.HeaderTypes = None,
+    #     cookies: httpx._types.CookieTypes = None,
+    #     auth: Union[httpx._types.AuthTypes, httpx._client.UseClientDefault] = ...,
+    #     follow_redirects: Union[bool, httpx._client.UseClientDefault] = ...,
+    #     timeout: Union[
+    #         httpx._client.TimeoutTypes, httpx._client.UseClientDefault
+    #     ] = ...,
+    #     extensions: dict = None,
+    # ) -> httpx.Response:
+    #     # NOTE: This is not necessary.
+    #     url = self.base_url.join(url)
+    #     return super().request(
+    #         method,
+    #         url,
+    #         content=content,
+    #         data=data,
+    #         files=files,
+    #         json=json,
+    #         params=params,
+    #         headers=headers,
+    #         cookies=cookies,
+    #         auth=auth,
+    #         follow_redirects=follow_redirects,
+    #         timeout=timeout,
+    #         extensions=extensions,
+    #     )
 
     def websocket_connect(
-        self, url: str, subprotocols: typing.Sequence[str] = None, **kwargs: typing.Any
-    ) -> typing.Any:
+        self, url: str, subprotocols: Sequence[str] = None, **kwargs: Any
+    ) -> Any:
         url = urljoin("ws://testserver", url)
         headers = kwargs.get("headers", {})
         headers.setdefault("connection", "upgrade")
@@ -533,7 +492,7 @@ class TestClient(requests.Session):
 
         return self
 
-    def __exit__(self, *args: typing.Any) -> None:
+    def __exit__(self, *args: Any) -> None:
         self.exit_stack.close()
 
     async def lifespan(self) -> None:
@@ -546,7 +505,7 @@ class TestClient(requests.Session):
     async def wait_startup(self) -> None:
         await self.stream_receive.send({"type": "lifespan.startup"})
 
-        async def receive() -> typing.Any:
+        async def receive() -> Any:
             message = await self.stream_send.receive()
             if message is None:
                 self.task.result()
@@ -561,7 +520,7 @@ class TestClient(requests.Session):
             await receive()
 
     async def wait_shutdown(self) -> None:
-        async def receive() -> typing.Any:
+        async def receive() -> Any:
             message = await self.stream_send.receive()
             if message is None:
                 self.task.result()

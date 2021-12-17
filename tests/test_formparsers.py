@@ -87,7 +87,7 @@ def test_multipart_request_files(tmpdir, test_client_factory):
             "test": {
                 "filename": "test.txt",
                 "content": "<file content>",
-                "content_type": "",
+                "content_type": "text/plain",
             }
         }
 
@@ -127,7 +127,7 @@ def test_multipart_request_multiple_files(tmpdir, test_client_factory):
             "test1": {
                 "filename": "test1.txt",
                 "content": "<file1 content>",
-                "content_type": "",
+                "content_type": "text/plain",
             },
             "test2": {
                 "filename": "test2.txt",
@@ -150,7 +150,7 @@ def test_multi_items(tmpdir, test_client_factory):
     with open(path1, "rb") as f1, open(path2, "rb") as f2:
         response = client.post(
             "/",
-            data=[("test1", "abc")],
+            data={"test1": "abc"},
             files=[("test1", f1), ("test1", ("test2.txt", f2, "text/plain"))],
         )
         assert response.json() == {
@@ -159,7 +159,7 @@ def test_multi_items(tmpdir, test_client_factory):
                 {
                     "filename": "test1.txt",
                     "content": "<file1 content>",
-                    "content_type": "",
+                    "content_type": "text/plain",
                 },
                 {
                     "filename": "test2.txt",
@@ -174,7 +174,7 @@ def test_multipart_request_mixed_files_and_data(tmpdir, test_client_factory):
     client = test_client_factory(app)
     response = client.post(
         "/",
-        data=(
+        content=(
             # data
             b"--a7f7ac8d4e2e437c877bb7b8d7cc549c\r\n"
             b'Content-Disposition: form-data; name="field0"\r\n\r\n'
@@ -211,7 +211,7 @@ def test_multipart_request_with_charset_for_filename(tmpdir, test_client_factory
     client = test_client_factory(app)
     response = client.post(
         "/",
-        data=(
+        content=(
             # file
             b"--a7f7ac8d4e2e437c877bb7b8d7cc549c\r\n"
             b'Content-Disposition: form-data; name="file"; filename="\xe6\x96\x87\xe6\x9b\xb8.txt"\r\n'  # noqa: E501
@@ -239,7 +239,7 @@ def test_multipart_request_without_charset_for_filename(tmpdir, test_client_fact
     client = test_client_factory(app)
     response = client.post(
         "/",
-        data=(
+        content=(
             # file
             b"--a7f7ac8d4e2e437c877bb7b8d7cc549c\r\n"
             b'Content-Disposition: form-data; name="file"; filename="\xe7\x94\xbb\xe5\x83\x8f.jpg"\r\n'  # noqa: E501
@@ -266,7 +266,7 @@ def test_multipart_request_with_encoded_value(tmpdir, test_client_factory):
     client = test_client_factory(app)
     response = client.post(
         "/",
-        data=(
+        content=(
             b"--20b303e711c4ab8c443184ac833ab00f\r\n"
             b"Content-Disposition: form-data; "
             b'name="value"\r\n\r\n'
