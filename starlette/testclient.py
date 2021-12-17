@@ -234,6 +234,8 @@ class _TestClientTransport(httpx.BaseTransport):
             for key, value in request.headers.items()
         ]
 
+        scope: Dict[str, Any]
+
         if scheme in {"ws", "wss"}:
             subprotocol = request.headers.get("sec-websocket-protocol", None)
             if subprotocol is None:
@@ -355,8 +357,8 @@ class _TestClientTransport(httpx.BaseTransport):
 
         response = httpx.Response(**raw_kwargs, request=request)
         if template is not None:
-            response.template = template
-            response.context = context
+            response.template = template  # type: ignore[attr-defined]
+            response.context = context  # type: ignore[attr-defined]
         return response
 
 
@@ -408,42 +410,45 @@ class TestClient(httpx.Client):
             with anyio.start_blocking_portal(**self.async_backend) as portal:
                 yield portal
 
-    # def request(
-    #     self,
-    #     method: str,
-    #     url: httpx._types.URLTypes,
-    #     *,
-    #     content: httpx._types.RequestContent = None,
-    #     data: httpx._types.RequestData = None,
-    #     files: httpx._types.RequestFiles = None,
-    #     json: Any = None,
-    #     params: httpx._types.QueryParamTypes = None,
-    #     headers: httpx._types.HeaderTypes = None,
-    #     cookies: httpx._types.CookieTypes = None,
-    #     auth: Union[httpx._types.AuthTypes, httpx._client.UseClientDefault] = ...,
-    #     follow_redirects: Union[bool, httpx._client.UseClientDefault] = ...,
-    #     timeout: Union[
-    #         httpx._client.TimeoutTypes, httpx._client.UseClientDefault
-    #     ] = ...,
-    #     extensions: dict = None,
-    # ) -> httpx.Response:
-    #     # NOTE: This is not necessary.
-    #     url = self.base_url.join(url)
-    #     return super().request(
-    #         method,
-    #         url,
-    #         content=content,
-    #         data=data,
-    #         files=files,
-    #         json=json,
-    #         params=params,
-    #         headers=headers,
-    #         cookies=cookies,
-    #         auth=auth,
-    #         follow_redirects=follow_redirects,
-    #         timeout=timeout,
-    #         extensions=extensions,
-    #     )
+    def request(
+        self,
+        method: str,
+        url: httpx._types.URLTypes,
+        *,
+        content: httpx._types.RequestContent = None,
+        data: httpx._types.RequestData = None,
+        files: httpx._types.RequestFiles = None,
+        json: Any = None,
+        params: httpx._types.QueryParamTypes = None,
+        headers: httpx._types.HeaderTypes = None,
+        cookies: httpx._types.CookieTypes = None,
+        auth: Union[
+            httpx._types.AuthTypes, httpx._client.UseClientDefault
+        ] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: Union[
+            bool, httpx._client.UseClientDefault
+        ] = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: Union[
+            httpx._client.TimeoutTypes, httpx._client.UseClientDefault
+        ] = httpx._client.USE_CLIENT_DEFAULT,
+        extensions: dict = None,
+    ) -> httpx.Response:
+        url = self.base_url.join(url)
+        return super().request(
+            method,
+            url,
+            content=content,
+            data=data,
+            files=files,
+            json=json,
+            params=params,
+            headers=headers,
+            cookies=cookies,
+            auth=auth,
+            follow_redirects=follow_redirects,
+            timeout=timeout,
+            extensions=extensions,
+        )
 
     def websocket_connect(
         self, url: str, subprotocols: Sequence[str] = None, **kwargs: Any
