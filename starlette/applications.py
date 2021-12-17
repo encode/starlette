@@ -8,6 +8,12 @@ from starlette.middleware.errors import ServerErrorMiddleware
 from starlette.routing import BaseRoute, Router
 from starlette.types import ASGIApp, Receive, Scope, Send
 
+_ExcKey = typing.TypeVar(
+    "_ExcKey",
+    bound=typing.Union[int, typing.Type[Exception]],
+    contravariant=True,
+)
+
 
 class Starlette:
     """
@@ -40,9 +46,7 @@ class Starlette:
         debug: bool = False,
         routes: typing.Sequence[BaseRoute] = None,
         middleware: typing.Sequence[Middleware] = None,
-        exception_handlers: typing.Mapping[
-            typing.Union[int, typing.Type[Exception]], typing.Callable
-        ] = None,
+        exception_handlers: typing.Mapping[_ExcKey, typing.Callable] = None,
         on_startup: typing.Sequence[typing.Callable] = None,
         on_shutdown: typing.Sequence[typing.Callable] = None,
         lifespan: typing.Callable[["Starlette"], typing.AsyncContextManager] = None,
@@ -58,7 +62,7 @@ class Starlette:
         self.router = Router(
             routes, on_startup=on_startup, on_shutdown=on_shutdown, lifespan=lifespan
         )
-        self.exception_handlers = (
+        self.exception_handlers: typing.Dict[_ExcKey, typing.Callable] = (
             {} if exception_handlers is None else dict(exception_handlers)
         )
         self.user_middleware = [] if middleware is None else list(middleware)
@@ -127,7 +131,7 @@ class Starlette:
 
     def add_exception_handler(
         self,
-        exc_class_or_status_code: typing.Union[int, typing.Type[Exception]],
+        exc_class_or_status_code: _ExcKey,
         handler: typing.Callable,
     ) -> None:
         self.exception_handlers[exc_class_or_status_code] = handler
@@ -153,9 +157,7 @@ class Starlette:
     ) -> None:
         self.router.add_websocket_route(path, route, name=name)
 
-    def exception_handler(
-        self, exc_class_or_status_code: typing.Union[int, typing.Type[Exception]]
-    ) -> typing.Callable:
+    def exception_handler(self, exc_class_or_status_code: _ExcKey) -> typing.Callable:
         def decorator(func: typing.Callable) -> typing.Callable:
             self.add_exception_handler(exc_class_or_status_code, func)
             return func
