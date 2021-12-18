@@ -351,8 +351,7 @@ class Mount(BaseRoute):
             routes = getattr(self.app, "routes", [])
         else:
             self.app = Router(routes=routes)
-            routes = list(routes or [])
-        self._routes = routes
+        self._user_app = self.app
         self.name = name
         self.path_regex, self.path_format, self.param_convertors = compile_path(
             self.path + "/{path:path}"
@@ -364,7 +363,7 @@ class Mount(BaseRoute):
 
     @property
     def routes(self) -> typing.List[BaseRoute]:
-        return self._routes
+        return getattr(self._user_app, "routes", [])
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] in ("http", "websocket"):

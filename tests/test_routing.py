@@ -823,3 +823,24 @@ def test_mount_middleware_url_path_for_(route: BaseRoute) -> None:
     """Checks that url_path_for still works with middelware on Mounts"""
     router = Router([route])
     assert router.url_path_for("route") == "/http/"
+
+
+def test_add_route_to_app_after_mount(
+    test_client_factory: typing.Callable[..., TestClient],
+) -> None:
+    """Checks that mounds will pick up routes
+    added to the underlaying app after it is mounted
+    """
+    inner_app = Router()
+    app = Mount(
+        "/http",
+        app=inner_app
+    )
+    inner_app.add_route(
+        "/inner",
+        endpoint=lambda request: Response(),
+        methods=["GET"],
+    )
+    client = test_client_factory(app)
+    response = client.get("/http/inner")
+    assert response.status_code == 200
