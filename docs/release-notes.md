@@ -1,3 +1,18 @@
+## 0.18.0
+
+December 20, 2021 # CHANGE THIS
+
+#### Added
+* Change default chunk size from 4Kb to 64Kb on `FileResponse` [#1345](https://github.com/encode/starlette/pull/1345).
+* Add support for `functools.partial` in `WebSocketRoute` [#1356](https://github.com/encode/starlette/pull/1356).
+* Add `StaticFiles` packages with directory [#1350](https://github.com/encode/starlette/pull/1350).
+* Allow HEAD method on `HttpEndpoint` [#1346](https://github.com/encode/starlette/pull/1346).
+
+#### Fixed
+* Tweak `hashlib.md5()` function on `FileResponse`s ETag generation. The parameter [`usedforsecurity`](https://bugs.python.org/issue9216) flag is set to `False`, if the flag is available on the system. This fixes an error raised on systems with [FIPS](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/FIPS_Mode_-_an_explanation) enabled [#1366](https://github.com/encode/starlette/pull/1366).
+* Fix `path_params` type on `url_path_for()` method i.e. turn `str` into `Any` [#1341](https://github.com/encode/starlette/pull/1341).
+* `Host` now ignores `port` on routing [#1322](https://github.com/encode/starlette/pull/1322).
+
 ## 0.17.1
 
 November 17, 2021
