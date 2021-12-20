@@ -60,9 +60,7 @@ def test_websocket_endpoint_on_receive_bytes(test_client_factory):
         async def on_receive(self, websocket, data):
             if data:
                 bytes_to_send = b"Message bytes was: " + data
-            else:
-                bytes_to_send = b"Message bytes was: None"
-            await websocket.send_bytes(bytes_to_send)
+                await websocket.send_bytes(bytes_to_send)
 
     client = test_client_factory(WebSocketApp)
     with client.websocket_connect("/ws") as websocket:
