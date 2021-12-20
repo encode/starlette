@@ -70,9 +70,10 @@ def test_websocket_endpoint_on_receive_bytes(test_client_factory):
         _bytes = websocket.receive_bytes()
         assert _bytes == b"Message bytes was: Hello, world!"
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError) as e:
         with client.websocket_connect("/ws") as websocket:
             websocket.send_text("Hello world")
+    assert "Expected bytes" in str(e.value)
 
 
 def test_websocket_endpoint_on_receive_json(test_client_factory):
@@ -88,9 +89,10 @@ def test_websocket_endpoint_on_receive_json(test_client_factory):
         data = websocket.receive_json()
         assert data == {"message": {"hello": "world"}}
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError) as e:
         with client.websocket_connect("/ws") as websocket:
             websocket.send_text("Hello world")
+    assert "Malformed JSON" in str(e.value)
 
 
 def test_websocket_endpoint_on_receive_json_binary(test_client_factory):
@@ -120,9 +122,10 @@ def test_websocket_endpoint_on_receive_text(test_client_factory):
         _text = websocket.receive_text()
         assert _text == "Message text was: Hello, world!"
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError) as e:
         with client.websocket_connect("/ws") as websocket:
             websocket.send_bytes(b"Hello world")
+    assert "Expected text" in str(e.value)
 
 
 def test_websocket_endpoint_on_default(test_client_factory):
