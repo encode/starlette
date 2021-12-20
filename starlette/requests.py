@@ -293,7 +293,7 @@ class Request(HTTPConnection):
     async def send_push_promise(self, path: str) -> None:
         extensions = self.scope.get("extensions", {})
         assert extensions is not None
-        if extensions.get("type") == "http.response.push":
+        if "http.response.push" in extensions:
             raw_headers = []
             for name in SERVER_PUSH_HEADERS_TO_COPY:
                 for value in self.headers.getlist(name):
