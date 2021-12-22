@@ -481,7 +481,7 @@ class FormData(ImmutableMultiDict):
             self.headers = None
 
     async def close(self) -> None:
-        for _, value in self.multi_items():
+        for key, value in self.multi_items():
             if isinstance(value, UploadFile):
                 await value.close()
 
