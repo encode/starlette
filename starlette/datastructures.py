@@ -415,15 +415,24 @@ class UploadFile:
     """
 
     spool_max_size = 1024 * 1024
+    headers: "Headers"
 
     def __init__(
-        self, filename: str, file: typing.IO = None, content_type: str = ""
+        self,
+        filename: str,
+        file: typing.IO = None,
+        content_type: str = "",
+        *,
+        raw_headers: typing.Optional[typing.List[typing.Tuple[bytes, bytes]]] = None,
     ) -> None:
         self.filename = filename
         self.content_type = content_type
         if file is None:
             file = tempfile.SpooledTemporaryFile(max_size=self.spool_max_size)
         self.file = file
+        self.headers = Headers(
+            raw=raw_headers or [(b"Content-Type", content_type.encode("latin-1"))]
+        )
 
     @property
     def _in_memory(self) -> bool:
