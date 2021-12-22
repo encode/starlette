@@ -312,7 +312,7 @@ def test_additional_headers(test_client_factory):
 
     client = test_client_factory(app)
     with client.websocket_connect("/") as websocket:
-        websocket.additional_headers = [(b"additional", b"header")]
+        assert websocket.additional_headers == [(b"additional", b"header")]
 
 
 def test_websocket_exception(test_client_factory):
