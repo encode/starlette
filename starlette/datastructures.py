@@ -454,6 +454,38 @@ class UploadFile:
             await run_in_threadpool(self.file.close)
 
 
+class FormData(ImmutableMultiDict):
+    """
+    An immutable multidict, containing both file uploads and text input.
+    """
+
+    headers: typing.Optional[ImmutableMultiDict]
+
+    def __init__(
+        self,
+        *args: typing.Union[
+            "FormData",
+            typing.Mapping[str, typing.Union[str, UploadFile]],
+            typing.List[typing.Tuple[str, typing.Union[str, UploadFile]]],
+        ],
+        raw_headers: typing.Optional[
+            typing.List[typing.Tuple[str, typing.List[typing.Tuple[bytes, bytes]]]]
+        ] = None,
+    ) -> None:
+        super().__init__(*args)
+        if raw_headers is not None:
+            self.headers = ImmutableMultiDict(
+                [(field_name, Headers(raw=raw)) for field_name, raw in raw_headers]
+            )
+        else:
+            self.headers = None
+
+    async def close(self) -> None:
+        for _, value in self.multi_items():
+            if isinstance(value, UploadFile):
+                await value.close()
+
+
 class Headers(typing.Mapping[str, str]):
     """
     An immutable, case-insensitive multidict.
@@ -643,35 +675,3 @@ class State:
 
     def __delattr__(self, key: typing.Any) -> None:
         del self._state[key]
-
-
-class FormData(ImmutableMultiDict):
-    """
-    An immutable multidict, containing both file uploads and text input.
-    """
-
-    headers: typing.Optional[ImmutableMultiDict]
-
-    def __init__(
-        self,
-        *args: typing.Union[
-            "FormData",
-            typing.Mapping[str, typing.Union[str, UploadFile]],
-            typing.List[typing.Tuple[str, typing.Union[str, UploadFile]]],
-        ],
-        raw_headers: typing.Optional[
-            typing.List[typing.Tuple[str, typing.List[typing.Tuple[bytes, bytes]]]]
-        ] = None,
-    ) -> None:
-        super().__init__(*args)
-        if raw_headers is not None:
-            self.headers = ImmutableMultiDict(
-                [(field_name, Headers(raw=raw)) for field_name, raw in raw_headers]
-            )
-        else:
-            self.headers = None
-
-    async def close(self) -> None:
-        for _, value in self.multi_items():
-            if isinstance(value, UploadFile):
-                await value.close()
