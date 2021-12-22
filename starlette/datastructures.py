@@ -430,9 +430,7 @@ class UploadFile:
         if file is None:
             file = tempfile.SpooledTemporaryFile(max_size=self.spool_max_size)
         self.file = file
-        self.headers = Headers(
-            raw=raw_headers or [(b"Content-Type", content_type.encode("latin-1"))]
-        )
+        self.headers = Headers(raw=raw_headers or [])
 
     @property
     def _in_memory(self) -> bool:
