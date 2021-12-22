@@ -832,10 +832,7 @@ def test_add_route_to_app_after_mount(
     added to the underlaying app after it is mounted
     """
     inner_app = Router()
-    app = Mount(
-        "/http",
-        app=inner_app
-    )
+    app = Mount("/http", app=inner_app)
     inner_app.add_route(
         "/inner",
         endpoint=lambda request: Response(),
