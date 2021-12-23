@@ -34,7 +34,7 @@ class HTTPEndpoint:
         if is_async:
             response = await handler(request)
         else:
-            response = await run_in_threadpool(handler, request)
+            response = await run_in_threadpool(handler, request)  # type: ignore
         await response(self.scope, self.receive, self.send)
 
     async def method_not_allowed(self, request: Request) -> Response:
