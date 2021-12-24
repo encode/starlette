@@ -29,12 +29,14 @@ class HTTPEndpoint:
             else request.method.lower()
         )
 
-        handler = getattr(self, handler_name, self.method_not_allowed)
+        handler: typing.Callable[[Request], typing.Any] = getattr(
+            self, handler_name, self.method_not_allowed
+        )
         is_async = asyncio.iscoroutinefunction(handler)
         if is_async:
             response = await handler(request)
         else:
-            response = await run_in_threadpool(handler, request)  # type: ignore
+            response = await run_in_threadpool(handler, request)
         await response(self.scope, self.receive, self.send)
 
     async def method_not_allowed(self, request: Request) -> Response:
