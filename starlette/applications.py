@@ -203,3 +203,17 @@ class Starlette:
             return func
 
         return decorator
+
+    def __repr__(self):
+        middleware = [
+            getattr(middleware, "cls", middleware.__class__).__name__
+            for middleware in self.user_middleware
+        ]
+        return f"Starlette(router={self.router!r}, middleware={middleware})"
+
+    def __rich_repr__(self):
+        yield "router", self.router
+        yield "middleware", [
+            getattr(middleware, "cls", middleware.__class__).__name__
+            for middleware in self.user_middleware
+        ]

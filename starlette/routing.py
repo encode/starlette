@@ -266,6 +266,21 @@ class Route(BaseRoute):
             and self.methods == other.methods
         )
 
+    def __repr__(self):
+        return (
+            f"Route("
+            f"name='{self.name}', "
+            f"path='{self.path}', "
+            f"endpoint='{self.endpoint.__name__}', "
+            f"methods={self.methods})"
+        )
+
+    def __rich_repr__(self):
+        yield "name", self.name
+        yield "path", self.path
+        yield "endpoint", self.endpoint.__name__
+        yield "methods", self.methods
+
 
 class WebSocketRoute(BaseRoute):
     def __init__(
@@ -323,6 +338,19 @@ class WebSocketRoute(BaseRoute):
             and self.path == other.path
             and self.endpoint == other.endpoint
         )
+
+    def __repr__(self):
+        return (
+            f"WebSocketRoute("
+            f"name='{self.name}', "
+            f"path='{self.path}', "
+            f"endpoint='{self.endpoint.__name__}')"
+        )
+
+    def __rich_repr__(self):
+        yield "name", self.name
+        yield "path", self.path
+        yield "endpoint", self.endpoint.__name__
 
 
 class Mount(BaseRoute):
@@ -417,6 +445,19 @@ class Mount(BaseRoute):
             and self.app == other.app
         )
 
+    def __repr__(self):
+        return (
+            f"Mount("
+            f"name='{self.name}', "
+            f"path='{self.path}', "
+            f"routes='{self.routes}')"
+        )
+
+    def __rich_repr__(self):
+        yield "name", self.name
+        yield "path", self.path
+        yield "routes", self.routes
+
 
 class Host(BaseRoute):
     def __init__(self, host: str, app: ASGIApp, name: str = None) -> None:
@@ -480,6 +521,13 @@ class Host(BaseRoute):
             and self.host == other.host
             and self.app == other.app
         )
+
+    def __repr__(self):
+        return f"Host(" f"name='{self.name}', " f"host='{self.host}')"
+
+    def __rich_repr__(self):
+        yield "name", self.name
+        yield "host", self.host
 
 
 _T = typing.TypeVar("_T")
@@ -763,3 +811,9 @@ class Router:
             return func
 
         return decorator
+
+    def __repr__(self):
+        return f"Router(routes={self.routes!r})"
+
+    def __rich_repr__(self):
+        yield "routes", self.routes
