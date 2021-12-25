@@ -353,7 +353,7 @@ class Mount(BaseRoute):
 
     @property
     def routes(self) -> typing.List[BaseRoute]:
-        return getattr(self.app, "routes", None)
+        return getattr(self.app, "routes", [])
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] in ("http", "websocket"):
@@ -431,7 +431,7 @@ class Host(BaseRoute):
 
     @property
     def routes(self) -> typing.List[BaseRoute]:
-        return getattr(self.app, "routes", None)
+        return getattr(self.app, "routes", [])
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] in ("http", "websocket"):
