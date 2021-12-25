@@ -32,10 +32,8 @@ class NoMatchFound(Exception):
     """
 
     def __init__(self, name: str, path_params: typing.Dict[str, typing.Any]) -> None:
-        params = ', '.join(list(path_params.keys()))
-        super().__init__(
-            f'No route exists for name "{name}" and params "{params}".'
-        )
+        params = ", ".join(list(path_params.keys()))
+        super().__init__(f'No route exists for name "{name}" and params "{params}".')
 
 
 class Match(Enum):
