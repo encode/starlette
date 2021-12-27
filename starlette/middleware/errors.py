@@ -543,7 +543,9 @@ class ServerErrorMiddleware:
 
         return CODE_TEMPLATE.format(
             id=frame_id(frame),
-            package_dir=frame.filename.replace(get_relative_filename(frame.filename), ''),
+            package_dir=frame.filename.replace(
+                get_relative_filename(frame.filename), ""
+            ),
             relative_path=html.escape(get_relative_filename(frame.filename)),
             file_path=html.escape(frame.filename),
             lines=code_context,
