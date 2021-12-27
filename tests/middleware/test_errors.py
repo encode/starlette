@@ -80,6 +80,21 @@ def test_debug_with_vendor_frames_html(test_client_factory):
     assert " vendor" in response.text  # css class added
 
 
+def test_debug_masks_secrets(test_client_factory, monkeypatch):
+    monkeypatch.setenv("API_KEY", "secret!")
+
+    async def app(scope, receive, send):
+        raise RuntimeError("Something went wrong")
+
+    app = ServerErrorMiddleware(app, debug=True)
+    client = test_client_factory(app, raise_server_exceptions=False)
+    response = client.get("/", headers={"Accept": "text/html, */*"})
+    assert response.status_code == 500
+    assert response.headers["content-type"].startswith("text/html")
+    assert "RuntimeError" in response.text
+    assert "********" in response.text
+
+
 class ExampleClass:  # pragma: nocover
     def from_method(self):
         raise RuntimeError()
