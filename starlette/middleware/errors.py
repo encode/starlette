@@ -234,7 +234,7 @@ dd {
     dd {
         margin-inline-start: 0px;
     }
-    
+
     .package-dir {
         display: none;
     }
