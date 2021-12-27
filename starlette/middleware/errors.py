@@ -32,9 +32,10 @@ body {
     margin: 0;
     color: var(--gray);
     background: var(--gray-lightest);
-    font-family: Inter var, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto,
-        Helvetica Neue, Arial, Noto Sans, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol,
-        Noto Color Emoji;
+    font-family: Inter var, ui-sans-serif, system-ui,
+        -apple-system, BlinkMacSystemFont, Segoe UI, Roboto,
+        Helvetica Neue, Arial, Noto Sans, sans-serif, Apple Color Emoji,
+        Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
 }
 
 .text-muted {
@@ -170,7 +171,7 @@ summary {
 
 dl {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(12, minmax(0, 1fr));
     align-items: center;
     margin: 0;
     padding: 4px;
@@ -188,11 +189,12 @@ dl:hover {
 dt {
     color: var(--gray-light);
     text-overflow: ellipsis;
+    grid-column: span 2 / span 2;
 }
 
 dd {
     flex: auto;
-    grid-column: span 4 / span 4;
+    grid-column: span 10 / span 10;
     overflow-x: auto;
 }
 
@@ -206,12 +208,10 @@ dd {
 
 .locals dt {
     padding: 2px;
-    grid-column: span 1 / span 1;
 }
 
 .locals dd {
     flex: auto;
-    grid-column: span 4 / span 4;
     overflow-x: auto;
     padding: 2px 8px;
     background-color: var(--gray-lightest);
@@ -331,7 +331,8 @@ CODE_TEMPLATE = """
         </div>
         {locals}
         <footer>
-            <div class="symbol">{package}:{symbol}</div>
+            <div class="symbol">{package}.{symbol}</div>
+            <div class="package">{package}</div>
         </footer>
     </div>
 </div>
@@ -342,7 +343,9 @@ FRAME_LINE_TEMPLATE = """
     <div class="dot{dot}"></div>
     <div>
         <span class="text-muted">{package}</span>
-        <span title="{file_path}">{file_name}<span> <span class="text-muted">in</span> <span class="symbol">{symbol}</span>
+        <span title="{file_path}">{file_name}<span>
+        <span class="text-muted">in</span>
+        <span class="symbol">{symbol}</span>
         <span class="text-muted">at line</span> {line_number}
     </div>
 </div>
@@ -366,7 +369,8 @@ DETAILS_TEMPLATE = """
 def get_relative_filename(path: str) -> str:
     for sys_path in reversed(sorted(sys.path)):
         if sys_path in path:
-            return path.replace(sys_path + "/", "")
+            path = path.replace(sys_path + "/", "")
+            break
     return path
 
 
@@ -399,6 +403,21 @@ def get_package_name(frame: inspect.FrameInfo) -> str:
     return frame.frame.f_globals["__package__"].split(".")[0]
 
 
+def get_symbol(frame: inspect.FrameInfo) -> str:
+    symbol = ""
+    if "self" in frame.frame.f_locals:
+        symbol = frame.frame.f_locals["self"].__class__.__name__
+
+    if "cls" in frame.frame.f_locals:
+        symbol = frame.frame.f_locals["cls"].__name__
+
+    # if we cannot detect class name then just a method name will be rendered
+    function = frame.function
+    if symbol:
+        function = symbol + "." + function
+    return function
+
+
 def mask_secrets(key: str, value: str) -> str:
     key = key.lower()
     if any(
@@ -411,17 +430,6 @@ def mask_secrets(key: str, value: str) -> str:
     ):
         return "*" * 8
     return value
-
-
-def colorize(text: str) -> str:
-    try:
-        from pygments import formatters, highlight, lexers
-
-        lexer = lexers.get_lexer_by_name("python")
-        formatter = formatters.get_formatter_by_name("html")
-        return highlight(text, lexer, formatter)
-    except ImportError:
-        return text
 
 
 class ServerErrorMiddleware:
@@ -492,13 +500,7 @@ class ServerErrorMiddleware:
         )
 
     def generate_frame_html(self, frame: inspect.FrameInfo, is_collapsed: bool) -> str:
-        obj = ""
-        func = frame.function
-        if "self" in frame.frame.f_locals:
-            obj = frame.frame.f_locals["self"].__class__.__name__
-        if "cls" in frame.frame.f_locals:
-            obj = frame.frame.f_locals["cls"].__name__
-
+        symbol = get_symbol(frame)
         extra_css_classes = []
         if not is_collapsed:
             extra_css_classes.append("current")
@@ -513,18 +515,18 @@ class ServerErrorMiddleware:
             else "",
             file_path=html.escape(frame.filename),
             file_name=html.escape(get_relative_filename(frame.filename)),
-            symbol=html.escape(".".join(list(filter(bool, [obj, func])))),
+            symbol=symbol,
             line_number=frame.lineno,
             extra_css_class=" ".join(extra_css_classes),
         )
 
     def generate_locals_for_frame(self, frame: inspect.FrameInfo) -> str:
-        locals_html = ""
-        for var_name, var_value in frame.frame.f_locals.items():
-            locals_html += LOCALS_ROW_TEMPLATE.format(
+        return "".join(
+            LOCALS_ROW_TEMPLATE.format(
                 name=var_name, value=html.escape(pformat(var_value, indent=2))
             )
-        return locals_html
+            for var_name, var_value in frame.frame.f_locals.items()
+        )
 
     def generate_snippet_for_frame(
         self, frame: inspect.FrameInfo, is_collapsed: bool
@@ -534,25 +536,14 @@ class ServerErrorMiddleware:
             for index, line in enumerate(frame.code_context or [])
         )
 
-        symbol = ""
-        if "self" in frame.frame.f_locals:
-            symbol = frame.frame.f_locals["self"].__class__.__name__
-
-        if "cls" in frame.frame.f_locals:
-            symbol = frame.frame.f_locals["cls"].__name__
-
-        function = frame.function
-        if symbol:
-            function = symbol + "." + function
-
         return CODE_TEMPLATE.format(
             id=frame_id(frame),
             file_path=html.escape(frame.filename),
             lines=code_context,
             extra_css_class="" if is_collapsed else " current",
             locals=self.generate_locals_for_frame(frame),
-            symbol=function,
-            package=frame.frame.f_globals["__name__"],
+            symbol=get_symbol(frame),
+            package=get_package_name(frame),
         )
 
     def render_details_row(self, data: typing.Mapping) -> str:
@@ -646,13 +637,15 @@ class ServerErrorMiddleware:
         )
 
     def generate_app_state_html(self, request: Request) -> str:
-        return DETAILS_TEMPLATE.format(
-            label="App state",
-            rows=self.render_details_row(
-                {k: v for k, v in request.app.state._state.items()}
-            ),
-            open="",
-        )
+        if "app" in request.scope:
+            return DETAILS_TEMPLATE.format(
+                label="App state",
+                rows=self.render_details_row(
+                    {k: v for k, v in request.app.state._state.items()}
+                ),
+                open="",
+            )
+        return ""
 
     def generate_html(self, request: Request, exc: Exception, limit: int = 7) -> str:
         traceback_obj = traceback.TracebackException.from_exception(

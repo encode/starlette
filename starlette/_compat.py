@@ -20,7 +20,6 @@ try:
             data, usedforsecurity=usedforsecurity
         ).hexdigest()
 
-
 except TypeError:  # pragma: no cover
 
     def md5_hexdigest(data: bytes, *, usedforsecurity: bool = True) -> str:
