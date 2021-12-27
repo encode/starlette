@@ -125,6 +125,7 @@ section.trace {
     width: 48px;
     margin-right: 24px;
     color: var(--gray-light);
+    flex-shrink: 0;
 }
 
 .snippet .code {
@@ -233,6 +234,10 @@ dd {
     dd {
         margin-inline-start: 0px;
     }
+    
+    .package-dir {
+        display: none;
+    }
 }
 
 """
@@ -324,7 +329,7 @@ CODE_TEMPLATE = """
 <div id="snippet-{id}" class="snippet-wrapper{extra_css_class}">
     <div class="snippet">
         <header>
-            <b>{file_path}</b>
+            <b><span class="package-dir">{package_dir}</span>{relative_path}</b>
         </header>
         <div>
             {lines}
@@ -538,6 +543,8 @@ class ServerErrorMiddleware:
 
         return CODE_TEMPLATE.format(
             id=frame_id(frame),
+            package_dir=frame.filename.replace(get_relative_filename(frame.filename), ''),
+            relative_path=html.escape(get_relative_filename(frame.filename)),
             file_path=html.escape(frame.filename),
             lines=code_context,
             extra_css_class="" if is_collapsed else " current",
