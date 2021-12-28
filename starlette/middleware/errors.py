@@ -405,7 +405,7 @@ def is_vendor(frame: inspect.FrameInfo) -> bool:
 
 
 def get_package_name(frame: inspect.FrameInfo) -> str:
-    return frame.frame.f_globals["__package__"].split(".")[0]
+    return frame.frame.f_globals.get("__package__", "").split(".")[0]
 
 
 def get_symbol(frame: inspect.FrameInfo) -> str:
