@@ -99,6 +99,7 @@ The following arguments are supported:
 * `secret_key` - Should be a random string.
 * `session_cookie` - Defaults to "session".
 * `max_age` - Session expiry time in seconds. Defaults to 2 weeks.
+* `autoload` - Automatically load session on request.
 * `same_site` - SameSite flag prevents the browser from sending session cookie along with cross-site requests. Defaults to `'lax'`.
 * `https_only` - Indicate that Secure flag should be set (can be used with HTTPS only). Defaults to `False`.
 * `backend` - Session backend instance to use. Defaults to `CookieBackend`.
