@@ -98,7 +98,7 @@ The following arguments are supported:
 
 * `secret_key` - Should be a random string.
 * `session_cookie` - Defaults to "session".
-* `max_age` - Session expiry time in seconds. Defaults to 2 weeks. If set to None or 0 seconds then the session will be cleared on tab close.
+* `max_age` - Session expiry time in seconds. Defaults to 2 weeks. If set to `None` then the cookie will last as long as the browser session.
 * `same_site` - SameSite flag prevents the browser from sending session cookie along with cross-site requests. Defaults to `'lax'`.
 * `https_only` - Indicate that Secure flag should be set (can be used with HTTPS only). Defaults to `False`.
 
