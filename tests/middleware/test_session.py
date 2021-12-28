@@ -152,5 +152,4 @@ def test_session_raises_when_autoload_is_off(test_client_factory):
     client = test_client_factory(app)
 
     with pytest.raises(SessionNotLoaded):
-        response = client.post("/update_session", json={"some": "data"})
-        assert response.json() == {"session": {"some": "data"}}
+        client.post("/update_session", json={"some": "data"})
