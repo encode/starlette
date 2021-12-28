@@ -16,7 +16,7 @@ class SessionMiddleware:
         app: ASGIApp,
         secret_key: typing.Union[str, Secret],
         session_cookie: str = "session",
-        max_age: int = 14 * 24 * 60 * 60,  # 14 days, in seconds
+        max_age: typing.Optional[int] = 14 * 24 * 60 * 60,  # 14 days, in seconds
         same_site: str = "lax",
         https_only: bool = False,
     ) -> None:
