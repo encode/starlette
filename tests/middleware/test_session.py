@@ -1,9 +1,11 @@
 import re
 
+import pytest
+
 from starlette.applications import Starlette
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import JSONResponse
-from starlette.testclient import TestClient
+from starlette.sessions import SessionNotLoaded
 
 
 def view_session(request):
@@ -29,10 +31,10 @@ def create_app():
     return app
 
 
-def test_session():
+def test_session(test_client_factory):
     app = create_app()
-    app.add_middleware(SessionMiddleware, secret_key="example")
-    client = TestClient(app)
+    app.add_middleware(SessionMiddleware, secret_key="example", autoload=True)
+    client = test_client_factory(app)
 
     response = client.get("/view_session")
     assert response.json() == {"session": {}}
@@ -56,20 +58,12 @@ def test_session():
     assert response.json() == {"session": {}}
 
 
-def test_empty_session():
+def test_session_expires(test_client_factory):
     app = create_app()
-    app.add_middleware(SessionMiddleware, secret_key="example")
-
-    headers = {"cookie": "session=someid"}
-    client = TestClient(app)
-    response = client.get("/view_session", headers=headers)
-    assert response.json() == {"session": {}}
-
-
-def test_session_expires():
-    app = create_app()
-    app.add_middleware(SessionMiddleware, secret_key="example", max_age=-1)
-    client = TestClient(app)
+    app.add_middleware(
+        SessionMiddleware, secret_key="example", max_age=-1, autoload=True
+    )
+    client = test_client_factory(app)
 
     response = client.post("/update_session", json={"some": "data"})
     assert response.json() == {"session": {"some": "data"}}
@@ -82,11 +76,13 @@ def test_session_expires():
     assert response.json() == {"session": {}}
 
 
-def test_secure_session():
+def test_secure_session(test_client_factory):
     app = create_app()
-    app.add_middleware(SessionMiddleware, secret_key="example", https_only=True)
-    secure_client = TestClient(app, base_url="https://testserver")
-    unsecure_client = TestClient(app, base_url="http://testserver")
+    app.add_middleware(
+        SessionMiddleware, secret_key="example", https_only=True, autoload=True
+    )
+    secure_client = test_client_factory(app, base_url="https://testserver")
+    unsecure_client = test_client_factory(app, base_url="http://testserver")
 
     response = unsecure_client.get("/view_session")
     assert response.json() == {"session": {}}
@@ -113,13 +109,48 @@ def test_secure_session():
     assert response.json() == {"session": {}}
 
 
-def test_session_cookie_subpath():
+def test_session_cookie_subpath(test_client_factory):
     app = create_app()
     second_app = create_app()
-    second_app.add_middleware(SessionMiddleware, secret_key="example")
+    second_app.add_middleware(SessionMiddleware, secret_key="example", autoload=True)
     app.mount("/second_app", second_app)
-    client = TestClient(app, base_url="http://testserver/second_app")
+    client = test_client_factory(app, base_url="http://testserver/second_app")
     response = client.post("second_app/update_session", json={"some": "data"})
     cookie = response.headers["set-cookie"]
     cookie_path = re.search(r"; path=(\S+);", cookie).groups()[0]
     assert cookie_path == "/second_app"
+
+
+def test_invalid_session_cookie(test_client_factory):
+    app = create_app()
+    app.add_middleware(SessionMiddleware, secret_key="example", autoload=True)
+    client = test_client_factory(app)
+
+    response = client.post("/update_session", json={"some": "data"})
+    assert response.json() == {"session": {"some": "data"}}
+
+    # we expect it to not raise an exception if we provide a bogus session cookie
+    response = client.get("/view_session", cookies={"session": "invalid"})
+    assert response.json() == {"session": {}}
+
+
+def test_session_autoload(test_client_factory):
+    app = create_app()
+    app.add_middleware(SessionMiddleware, secret_key="example", autoload=True)
+    client = test_client_factory(app)
+
+    response = client.post("/update_session", json={"some": "data"})
+    assert response.json() == {"session": {"some": "data"}}
+
+    response = client.get("/view_session")
+    assert response.json() == {"session": {"some": "data"}}
+
+
+def test_session_raises_when_autoload_is_off(test_client_factory):
+    app = create_app()
+    app.add_middleware(SessionMiddleware, secret_key="example")
+    client = test_client_factory(app)
+
+    with pytest.raises(SessionNotLoaded):
+        response = client.post("/update_session", json={"some": "data"})
+        assert response.json() == {"session": {"some": "data"}}

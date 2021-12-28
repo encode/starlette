@@ -53,7 +53,7 @@ class CookieBackend(SessionBackend):
         self._max_age = max_age
 
     async def read(self, session_id: str) -> typing.Dict:
-        """ A session_id is a signed session value. """
+        """A session_id is a signed session value."""
         try:
             data = self._signer.unsign(session_id, max_age=self._max_age)
             return json.loads(b64decode(data))
@@ -63,12 +63,12 @@ class CookieBackend(SessionBackend):
     async def write(
         self, data: typing.Dict, session_id: typing.Optional[str] = None
     ) -> str:
-        """ The data is a session id in this backend. """
+        """The data is a session id in this backend."""
         encoded_data = b64encode(json.dumps(data).encode("utf-8"))
         return self._signer.sign(encoded_data).decode("utf-8")
 
     async def remove(self, session_id: str) -> None:
-        """ Session data stored on client side - no way to remove it. """
+        """Session data stored on client side - no way to remove it."""
 
     async def exists(self, session_id: str) -> bool:
         return False

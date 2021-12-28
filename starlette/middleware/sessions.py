@@ -40,6 +40,9 @@ class SessionMiddleware:
             await session.load()
         scope["session"] = session
 
+        if self.session_cookie in connection.cookies and self.autoload:
+            await session.load()
+
         async def send_wrapper(message: Message) -> None:
             if message["type"] == "http.response.start":
                 path = scope.get("root_path", "") or "/"

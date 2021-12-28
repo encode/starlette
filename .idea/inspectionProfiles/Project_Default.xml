@@ -1,0 +1,94 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="ES6ShorthandObjectProperty" enabled="false" level="INFORMATION" enabled_by_default="false" />
+    <inspection_tool class="Eslint" enabled="true" level="WARNING" enabled_by_default="true" />
+    <inspection_tool class="HtmlFormInputWithoutLabel" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="HtmlUnknownTag" enabled="false" level="WARNING" enabled_by_default="false">
+      <option name="myValues">
+        <value>
+          <list size="10">
+            <item index="0" class="java.lang.String" itemvalue="nobr" />
+            <item index="1" class="java.lang.String" itemvalue="noembed" />
+            <item index="2" class="java.lang.String" itemvalue="comment" />
+            <item index="3" class="java.lang.String" itemvalue="noscript" />
+            <item index="4" class="java.lang.String" itemvalue="embed" />
+            <item index="5" class="java.lang.String" itemvalue="script" />
+            <item index="6" class="java.lang.String" itemvalue="extends" />
+            <item index="7" class="java.lang.String" itemvalue="block" />
+            <item index="8" class="java.lang.String" itemvalue="icon" />
+            <item index="9" class="java.lang.String" itemvalue="include" />
+          </list>
+        </value>
+      </option>
+      <option name="myCustomValuesEnabled" value="true" />
+    </inspection_tool>
+    <inspection_tool class="JSEqualityComparisonWithCoercion" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="PyCompatibilityInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ourVersions">
+        <value>
+          <list size="1">
+            <item index="0" class="java.lang.String" itemvalue="3.10" />
+          </list>
+        </value>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyMethodMayBeStaticInspection" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <value>
+          <list size="34">
+            <item index="0" class="java.lang.String" itemvalue="circuitbreaker" />
+            <item index="1" class="java.lang.String" itemvalue="azure-mgmt-hybridkubernetes" />
+            <item index="2" class="java.lang.String" itemvalue="msal" />
+            <item index="3" class="java.lang.String" itemvalue="azure-mgmt-keyvault" />
+            <item index="4" class="java.lang.String" itemvalue="aliyun-python-sdk-rds" />
+            <item index="5" class="java.lang.String" itemvalue="azure-mgmt-network" />
+            <item index="6" class="java.lang.String" itemvalue="cffi" />
+            <item index="7" class="java.lang.String" itemvalue="antlr4-python3-runtime" />
+            <item index="8" class="java.lang.String" itemvalue="impacket" />
+            <item index="9" class="java.lang.String" itemvalue="setuptools" />
+            <item index="10" class="java.lang.String" itemvalue="swagger-spec-validator" />
+            <item index="11" class="java.lang.String" itemvalue="pycares" />
+            <item index="12" class="java.lang.String" itemvalue="azure-mgmt-containerservice" />
+            <item index="13" class="java.lang.String" itemvalue="azure-identity" />
+            <item index="14" class="java.lang.String" itemvalue="oci" />
+            <item index="15" class="java.lang.String" itemvalue="sonar-parser" />
+            <item index="16" class="java.lang.String" itemvalue="django-pg-bulk-update" />
+            <item index="17" class="java.lang.String" itemvalue="django-log-request-id" />
+            <item index="18" class="java.lang.String" itemvalue="aliyun-python-sdk-ecs" />
+            <item index="19" class="java.lang.String" itemvalue="azure-mgmt-containerregistry" />
+            <item index="20" class="java.lang.String" itemvalue="django-model-utils" />
+            <item index="21" class="java.lang.String" itemvalue="yara-python" />
+            <item index="22" class="java.lang.String" itemvalue="azure-core" />
+            <item index="23" class="java.lang.String" itemvalue="pywin32" />
+            <item index="24" class="java.lang.String" itemvalue="pytest-order" />
+            <item index="25" class="java.lang.String" itemvalue="schema" />
+            <item index="26" class="java.lang.String" itemvalue="pyminizip" />
+            <item index="27" class="java.lang.String" itemvalue="sentry-sdk" />
+            <item index="28" class="java.lang.String" itemvalue="launchdarkly-server-sdk" />
+            <item index="29" class="java.lang.String" itemvalue="portalocker" />
+            <item index="30" class="java.lang.String" itemvalue="isodate" />
+            <item index="31" class="java.lang.String" itemvalue="snowflake-sqlalchemy" />
+            <item index="32" class="java.lang.String" itemvalue="numpy" />
+            <item index="33" class="java.lang.String" itemvalue="msal-extensions" />
+          </list>
+        </value>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyPep8NamingInspection" enabled="true" level="WEAK WARNING" enabled_by_default="true">
+      <option name="ignoredErrors">
+        <list>
+          <option value="N802" />
+        </list>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyUnresolvedReferencesInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredIdentifiers">
+        <list>
+          <option value="flask.render_template" />
+        </list>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>
