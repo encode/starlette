@@ -428,7 +428,7 @@ class TestClient(requests.Session):
             asgi_app = app
         else:
             app = typing.cast(ASGI2App, app)
-            asgi_app = _WrapASGI2(app)  #  type: ignore
+            asgi_app = _WrapASGI2(app)  # type: ignore
         adapter = _ASGIAdapter(
             asgi_app,
             portal_factory=self._portal_factory,
