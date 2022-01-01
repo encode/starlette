@@ -27,7 +27,7 @@ else:
 
 class NoMatchFound(Exception):
     """
-    Raised by `.url_for(name, **path_params)` and `.url_path_for(name, **path_params)`
+    Raised by `.url_for(*args, **path_params)` and `.url_path_for(*args, **path_params)`
     if no matching route exists.
     """
 
@@ -160,7 +160,7 @@ class BaseRoute:
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         raise NotImplementedError()  # pragma: no cover
 
-    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
+    def url_path_for(self, *args: str, **path_params: typing.Any) -> URLPath:
         raise NotImplementedError()  # pragma: no cover
 
     async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -239,7 +239,10 @@ class Route(BaseRoute):
                     return Match.FULL, child_scope
         return Match.NONE, {}
 
-    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
+    def url_path_for(self, *args: str, **path_params: typing.Any) -> URLPath:
+        if len(args) != 1:
+            raise TypeError("url_path_for() takes exactly one positional argument")
+        name = args[0]
         seen_params = set(path_params.keys())
         expected_params = set(self.param_convertors.keys())
 
@@ -308,7 +311,10 @@ class WebSocketRoute(BaseRoute):
                 return Match.FULL, child_scope
         return Match.NONE, {}
 
-    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
+    def url_path_for(self, *args: str, **path_params: typing.Any) -> URLPath:
+        if len(args) != 1:
+            raise TypeError("url_path_for() takes exactly one positional argument")
+        name = args[0]
         seen_params = set(path_params.keys())
         expected_params = set(self.param_convertors.keys())
 
@@ -381,7 +387,10 @@ class Mount(BaseRoute):
                 return Match.FULL, child_scope
         return Match.NONE, {}
 
-    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
+    def url_path_for(self, *args: str, **path_params: typing.Any) -> URLPath:
+        if len(args) != 1:
+            raise TypeError("url_path_for() takes exactly one positional argument")
+        name = args[0]
         if self.name is not None and name == self.name and "path" in path_params:
             # 'name' matches "<mount_name>".
             path_params["path"] = path_params["path"].lstrip("/")
@@ -451,7 +460,10 @@ class Host(BaseRoute):
                 return Match.FULL, child_scope
         return Match.NONE, {}
 
-    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
+    def url_path_for(self, *args: str, **path_params: typing.Any) -> URLPath:
+        if len(args) != 1:
+            raise TypeError("url_path_for() takes exactly one positional argument")
+        name = args[0]
         if self.name is not None and name == self.name and "path" in path_params:
             # 'name' matches "<mount_name>".
             path = path_params.pop("path")
@@ -591,13 +603,13 @@ class Router:
             response = PlainTextResponse("Not Found", status_code=404)
         await response(scope, receive, send)
 
-    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
+    def url_path_for(self, *args: str, **path_params: typing.Any) -> URLPath:
         for route in self.routes:
             try:
-                return route.url_path_for(name, **path_params)
+                return route.url_path_for(*args, **path_params)
             except NoMatchFound:
                 pass
-        raise NoMatchFound(name, path_params)
+        raise NoMatchFound(args[0], path_params)
 
     async def startup(self) -> None:
         """

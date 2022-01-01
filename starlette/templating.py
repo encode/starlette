@@ -65,9 +65,9 @@ class Jinja2Templates:
         self, directory: typing.Union[str, PathLike], **env_options: typing.Any
     ) -> "jinja2.Environment":
         @pass_context
-        def url_for(context: dict, name: str, **path_params: typing.Any) -> str:
+        def url_for(context: dict, *args: str, **path_params: typing.Any) -> str:
             request = context["request"]
-            return request.url_for(name, **path_params)
+            return request.url_for(*args, **path_params)
 
         loader = jinja2.FileSystemLoader(directory)
         env_options.setdefault("loader", loader)

@@ -3,6 +3,7 @@ from typing import Optional
 import anyio
 import pytest
 
+from starlette.applications import Starlette
 from starlette.datastructures import Address
 from starlette.requests import ClientDisconnect, Request, State
 from starlette.responses import JSONResponse, PlainTextResponse, Response
@@ -413,6 +414,26 @@ def test_cookies_invalid(set_cookie, expected, test_client_factory):
     response = client.get("/", headers={"cookie": set_cookie})
     result = response.json()
     assert result["cookies"] == expected
+
+
+def test_request_url_for_allows_name_arg(test_client_factory):
+    app = Starlette()
+
+    @app.route("/users/{name}")
+    async def func_users(request):
+        raise NotImplementedError()  # pragma: no cover
+
+    @app.route("/test")
+    async def func_url_for_test(request: Request):
+        with pytest.raises(TypeError, match="takes exactly one positional argument"):
+            request.url_for("func_users", "abcde", "fghij")
+        url = request.url_for("func_users", name="abcde")
+        return Response(str(url), media_type="text/plain")
+
+    client = test_client_factory(app)
+    response = client.get("/test")
+    assert response.status_code == 200
+    assert response.text == "http://testserver/users/abcde"
 
 
 def test_chunked_encoding(test_client_factory):
