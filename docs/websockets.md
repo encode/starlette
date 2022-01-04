@@ -1,3 +1,4 @@
+
 Starlette includes a `WebSocket` class that fulfils a similar role
 to the HTTP request, but that allows sending and receiving data on a websocket.
 
