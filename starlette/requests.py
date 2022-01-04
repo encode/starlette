@@ -105,11 +105,12 @@ class HTTPConnection(Mapping):
     def base_url(self) -> URL:
         if not hasattr(self, "_base_url"):
             base_url_scope = self.scope
+            root_path = str(
+                base_url_scope.get("app_root_path", base_url_scope.get("root_path", ""))
+            )
             base_url_scope["path"] = "/"  # type: ignore[index]
             base_url_scope["query_string"] = b""  # type: ignore[index]
-            base_url_scope["root_path"] = base_url_scope.get(  # type: ignore[index]
-                "app_root_path", base_url_scope.get("root_path", "")
-            )
+            base_url_scope["root_path"] = root_path  # type: ignore[index]
             self._base_url = URL(scope=base_url_scope)
         return self._base_url
 

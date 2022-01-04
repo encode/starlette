@@ -700,7 +700,7 @@ class Router:
         assert scope["type"] in ("http", "websocket", "lifespan")
 
         if "router" not in scope:
-            scope["router"] = self  # type: ignore[index]
+            scope["router"] = self  # type: ignore[index,typeddict-item]
 
         if scope["type"] == "lifespan":
             await self.lifespan(scope, receive, send)

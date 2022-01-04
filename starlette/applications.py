@@ -120,7 +120,7 @@ class Starlette:
     async def __call__(
         self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
     ) -> None:
-        scope["app"] = self  # type:ignore[index]
+        scope["app"] = self  # type:ignore[index,typeddict-item]
         await self.middleware_stack(scope, receive, send)
 
     # The following usages are now discouraged in favour of configuration

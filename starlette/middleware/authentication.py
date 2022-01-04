@@ -56,7 +56,7 @@ class AuthenticationMiddleware:
 
         if auth_result is None:
             auth_result = AuthCredentials(), UnauthenticatedUser()
-        scope["auth"], scope["user"] = auth_result  # type: ignore[index]
+        scope["auth"], scope["user"] = auth_result  # type: ignore[index,typeddict-item]
         await self.app(scope, receive, send)
 
     @staticmethod

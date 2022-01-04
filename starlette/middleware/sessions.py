@@ -48,12 +48,14 @@ class SessionMiddleware:
             data = connection.cookies[self.session_cookie].encode("utf-8")
             try:
                 data = self.signer.unsign(data, max_age=self.max_age)
-                scope["session"] = json.loads(b64decode(data))  # type: ignore[index]
+                scope["session"] = json.loads(  # type: ignore[index,typeddict-item]
+                    b64decode(data)
+                )
                 initial_session_was_empty = False
             except BadSignature:
-                scope["session"] = {}  # type: ignore[index]
+                scope["session"] = {}  # type: ignore[index,typeddict-item]
         else:
-            scope["session"] = {}  # type: ignore[index]
+            scope["session"] = {}  # type: ignore[index,typeddict-item]
 
         async def send_wrapper(message: ASGISendEvent) -> None:
             if message["type"] == "http.response.start":
