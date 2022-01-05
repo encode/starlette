@@ -218,7 +218,7 @@ class MultiPartParser:
                         file = UploadFile(
                             filename=filename,
                             content_type=content_type.decode("latin-1"),
-                            raw_headers=item_headers,
+                            headers=Headers(raw=item_headers),
                         )
                     else:
                         file = None

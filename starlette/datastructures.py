@@ -423,14 +423,14 @@ class UploadFile:
         file: typing.IO = None,
         content_type: str = "",
         *,
-        raw_headers: typing.Optional[typing.List[typing.Tuple[bytes, bytes]]] = None,
+        headers: "typing.Optional[Headers]" = None,
     ) -> None:
         self.filename = filename
         self.content_type = content_type
         if file is None:
             file = tempfile.SpooledTemporaryFile(max_size=self.spool_max_size)
         self.file = file
-        self.headers = Headers(raw=raw_headers or [])
+        self.headers = headers or Headers()
 
     @property
     def _in_memory(self) -> bool:
