@@ -1,11 +1,14 @@
 import asyncio
 import typing
 
-import typing_extensions
+if sys.version_info >= (3, 10):
+    from typing import ParamSpec
+else:
+    from typing_extensions import ParamSpec
 
 from starlette.concurrency import run_in_threadpool
 
-P = typing_extensions.ParamSpec("P")
+P = ParamSpec("P")
 
 
 class BackgroundTask:

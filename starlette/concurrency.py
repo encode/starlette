@@ -2,7 +2,11 @@ import functools
 import typing
 
 import anyio
-import typing_extensions
+
+if sys.version_info >= (3, 10):
+    from typing import ParamSpec
+else:
+    from typing_extensions import ParamSpec
 
 try:
     import contextvars  # Python 3.7+ only or via contextvars backport.
@@ -11,7 +15,7 @@ except ImportError:  # pragma: no cover
 
 
 T = typing.TypeVar("T")
-P = typing_extensions.ParamSpec("P")
+P = ParamSpec("P")
 
 
 async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -> None:
