@@ -1,4 +1,5 @@
 import asyncio
+import sys
 import typing
 
 if sys.version_info >= (3, 10):

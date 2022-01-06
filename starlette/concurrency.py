@@ -1,4 +1,5 @@
 import functools
+import sys
 import typing
 
 import anyio
