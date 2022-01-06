@@ -309,3 +309,8 @@ def test_head_method(test_client_factory):
     client = test_client_factory(app)
     response = client.head("/")
     assert response.text == ""
+
+
+def test_empty_response():
+    response = Response()
+    assert response.headers["Content-Length"] == "0"
