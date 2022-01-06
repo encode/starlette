@@ -13,6 +13,7 @@ from starlette.responses import (
     Response,
     StreamingResponse,
 )
+from starlette.testclient import TestClient
 
 
 def test_text_response(test_client_factory):
@@ -71,6 +72,20 @@ def test_quoting_redirect_response(test_client_factory):
     response = client.get("/redirect")
     assert response.text == "hello, world"
     assert response.url == "http://testserver/I%20%E2%99%A5%20Starlette/"
+
+
+def test_redirect_response_content_length_header(test_client_factory):
+    async def app(scope, receive, send):
+        if scope["path"] == "/":
+            response = Response("hello", media_type="text/plain")  # pragma: nocover
+        else:
+            response = RedirectResponse("/")
+        await response(scope, receive, send)
+
+    client: TestClient = test_client_factory(app)
+    response = client.request("GET", "/redirect", allow_redirects=False)
+    assert response.url == "http://testserver/redirect"
+    assert response.headers["content-length"] == "0"
 
 
 def test_streaming_response(test_client_factory):
