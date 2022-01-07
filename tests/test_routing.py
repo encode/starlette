@@ -1,3 +1,4 @@
+import datetime
 import functools
 import uuid
 
@@ -120,6 +121,24 @@ def uuid_converter(request):
     return JSONResponse({"uuid": str(uuid_param)})
 
 
+@app.route("/datetime/{param:datetime}", name="datetime-convertor")
+def datetime_convertor(request):
+    dt = request.path_params["param"]
+    return JSONResponse({"datetime": dt})
+
+
+@app.route("/date/{param:date}", name="date-convertor")
+def date_convertor(request):
+    date = request.path_params["param"]
+    return JSONResponse({"date": date})
+
+
+@app.route("/time/{param:time}", name="time-convertor")
+def time_convertor(request):
+    time = request.path_params["param"]
+    return JSONResponse({"time": time})
+
+
 # Route with chars that conflict with regex meta chars
 @app.route("/path-with-parentheses({param:int})", name="path-with-parentheses")
 def path_with_parentheses(request):
@@ -231,6 +250,35 @@ def test_route_converters(client):
             "uuid-convertor", param=uuid.UUID("ec38df32-ceda-4cfa-9b4a-1aeb94ad551a")
         )
         == "/uuid/ec38df32-ceda-4cfa-9b4a-1aeb94ad551a"
+    )
+
+    # Test datetime conversion
+    response = client.get("/datetime/2020-01-01T00:00:00")
+    assert response.status_code == 200
+    assert response.json() == {"datetime": "2020-01-01T00:00:00"}
+    assert (
+        app.url_path_for(
+            "datetime-convertor", param=datetime.datetime(2020, 1, 1, 0, 0, 0)
+        )
+        == "/datetime/2020-01-01T00:00:00"
+    )
+
+    # Test date conversion
+    response = client.get("/date/2020-01-01")
+    assert response.status_code == 200
+    assert response.json() == {"date": "2020-01-01"}
+    assert (
+        app.url_path_for("date-convertor", param=datetime.date(2020, 1, 1))
+        == "/date/2020-01-01"
+    )
+
+    # Test time conversion
+    response = client.get("/time/00:00:00")
+    assert response.status_code == 200
+    assert response.json() == {"time": "00:00:00"}
+    assert (
+        app.url_path_for("time-convertor", param=datetime.time(0, 0, 0))
+        == "/time/00:00:00"
     )
 
 

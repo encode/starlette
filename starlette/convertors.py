@@ -72,10 +72,43 @@ class UUIDConvertor(Convertor):
         return str(value)
 
 
+class DateTimeConvertor(Convertor):
+    regex = "[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(.[0-9]+)?"
+
+    def convert(self, value: str) -> typing.Any:
+        return str(value)
+
+    def to_string(self, value: typing.Any) -> str:
+        return value.strftime("%Y-%m-%dT%H:%M:%S")
+
+
+class DateConvertor(Convertor):
+    regex = "[0-9]{4}-[0-9]{2}-[0-9]{2}"
+
+    def convert(self, value: str) -> typing.Any:
+        return str(value)
+
+    def to_string(self, value: typing.Any) -> str:
+        return value.strftime("%Y-%m-%d")
+
+
+class TimeConvertor(Convertor):
+    regex = "[0-9]{2}:[0-9]{2}:[0-9]{2}(.[0-9]+)?"
+
+    def convert(self, value: str) -> typing.Any:
+        return str(value)
+
+    def to_string(self, value: typing.Any) -> str:
+        return value.strftime("%H:%M:%S")
+
+
 CONVERTOR_TYPES = {
     "str": StringConvertor(),
     "path": PathConvertor(),
     "int": IntegerConvertor(),
     "float": FloatConvertor(),
     "uuid": UUIDConvertor(),
+    "datetime": DateTimeConvertor(),
+    "date": DateConvertor(),
+    "time": TimeConvertor(),
 }
