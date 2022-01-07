@@ -209,9 +209,9 @@ class _TestClientTransport(httpx.BaseTransport):
         # Include the 'host' header.
         if "host" in request.headers:
             headers: typing.List[typing.Tuple[bytes, bytes]] = []
-        elif port == default_port:
+        elif port == default_port:  # pragma: no cover
             headers = [(b"host", host.encode())]
-        else:
+        else:  # pragma: no cover
             headers = [(b"host", (f"{host}:{port}").encode())]
 
         # Include other request headers.
@@ -273,16 +273,16 @@ class _TestClientTransport(httpx.BaseTransport):
 
             body = request.read()
             if isinstance(body, str):
-                body_bytes: bytes = body.encode("utf-8")
+                body_bytes: bytes = body.encode("utf-8")  # pragma: no cover
             elif body is None:
-                body_bytes = b""
+                body_bytes = b""  # pragma: no cover
             elif isinstance(body, GeneratorType):
-                try:
+                try:  # pragma: no cover
                     chunk = body.send(None)
                     if isinstance(chunk, str):
                         chunk = chunk.encode("utf-8")
                     return {"type": "http.request", "body": chunk, "more_body": True}
-                except StopIteration:
+                except StopIteration:  # pragma: no cover
                     request_complete = True
                     return {"type": "http.request", "body": b""}
             else:

@@ -1,7 +1,5 @@
 import re
 
-import pytest
-
 from starlette.applications import Starlette
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import JSONResponse
@@ -57,7 +55,6 @@ def test_session(test_client_factory):
     assert response.json() == {"session": {}}
 
 
-@pytest.mark.skip("I'll fix it, just wait a sec.")
 def test_session_expires(test_client_factory):
     app = create_app()
     app.add_middleware(SessionMiddleware, secret_key="example", max_age=-1)
@@ -70,7 +67,8 @@ def test_session_expires(test_client_factory):
     # fetch session id from the headers and pass it explicitly
     expired_cookie_header = response.headers["set-cookie"]
     expired_session_value = re.search(r"session=([^;]*);", expired_cookie_header)[1]
-    response = client.get("/view_session", cookies={"session": expired_session_value})
+    client = test_client_factory(app, cookies={"session": expired_session_value})
+    response = client.get("/view_session")
     assert response.json() == {"session": {}}
 
 
@@ -105,20 +103,19 @@ def test_secure_session(test_client_factory):
     assert response.json() == {"session": {}}
 
 
-@pytest.mark.skip("I'll fix it, just wait a sec.")
 def test_session_cookie_subpath(test_client_factory):
     app = create_app()
     second_app = create_app()
     second_app.add_middleware(SessionMiddleware, secret_key="example")
     app.mount("/second_app", second_app)
     client = test_client_factory(app, base_url="http://testserver/second_app")
-    response = client.post("second_app/update_session", json={"some": "data"})
+    response = client.post("/second_app/update_session", json={"some": "data"})
+    assert response.status_code == 200
     cookie = response.headers["set-cookie"]
     cookie_path = re.search(r"; path=(\S+);", cookie).groups()[0]
     assert cookie_path == "/second_app"
 
 
-@pytest.mark.skip("I'll fix it, just wait a sec.")
 def test_invalid_session_cookie(test_client_factory):
     app = create_app()
     app.add_middleware(SessionMiddleware, secret_key="example")
@@ -128,5 +125,6 @@ def test_invalid_session_cookie(test_client_factory):
     assert response.json() == {"session": {"some": "data"}}
 
     # we expect it to not raise an exception if we provide a bogus session cookie
-    response = client.get("/view_session", cookies={"session": "invalid"})
+    client = test_client_factory(app, cookies={"session": "invalid"})
+    response = client.get("/view_session")
     assert response.json() == {"session": {}}
