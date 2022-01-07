@@ -70,8 +70,10 @@ class Response:
             populate_content_length = b"content-length" not in keys
             populate_content_type = b"content-type" not in keys
 
-        body = getattr(self, "body", b"")
-        if body and populate_content_length:
+        if populate_content_length and not isinstance(
+            self, (StreamingResponse, FileResponse)
+        ):
+            body = getattr(self, "body", b"")
             content_length = str(len(body))
             raw_headers.append((b"content-length", content_length.encode("latin-1")))
 
