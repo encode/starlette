@@ -70,8 +70,8 @@ class Response:
             populate_content_length = b"content-length" not in keys
             populate_content_type = b"content-type" not in keys
 
-        if populate_content_length:
-            body = getattr(self, "body", b"")
+        body = getattr(self, "body", b"")
+        if body and populate_content_length:
             content_length = str(len(body))
             raw_headers.append((b"content-length", content_length.encode("latin-1")))
 
@@ -289,7 +289,7 @@ class FileResponse(Response):
         etag_base = str(stat_result.st_mtime) + "-" + str(stat_result.st_size)
         etag = md5_hexdigest(etag_base.encode(), usedforsecurity=False)
 
-        self.headers["content-length"] = content_length
+        self.headers.setdefault("content-length", content_length)
         self.headers.setdefault("last-modified", last_modified)
         self.headers.setdefault("etag", etag)
 

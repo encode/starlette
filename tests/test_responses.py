@@ -326,6 +326,43 @@ def test_head_method(test_client_factory):
     assert response.text == ""
 
 
-def test_empty_response():
-    response = Response()
-    assert response.headers["Content-Length"] == "0"
+def test_empty_response(test_client_factory):
+    app = Response()
+    client: TestClient = test_client_factory(app)
+    response = client.get("/")
+    assert response.headers["content-length"] == "0"
+
+
+def test_non_empty_response(test_client_factory):
+    app = Response(content="hi")
+    client: TestClient = test_client_factory(app)
+    response = client.get("/")
+    assert response.headers["content-length"] == "2"
+
+
+def test_file_response_known_size(tmpdir, test_client_factory):
+    path = os.path.join(tmpdir, "xyz")
+    content = b"<file content>" * 1000
+    with open(path, "wb") as file:
+        file.write(content)
+
+    app = FileResponse(path=path, filename="example.png")
+    client: TestClient = test_client_factory(app)
+    response = client.get("/")
+    assert response.headers["content-length"] == str(len(content))
+
+
+def test_streaming_response_unknown_size(test_client_factory):
+    app = StreamingResponse(content=iter(["hello", "world"]))
+    client: TestClient = test_client_factory(app)
+    response = client.get("/")
+    assert "content-length" not in response.headers
+
+
+def test_streaming_response_known_size(test_client_factory):
+    app = StreamingResponse(
+        content=iter(["hello", "world"]), headers={"content-length": "10"}
+    )
+    client: TestClient = test_client_factory(app)
+    response = client.get("/")
+    assert response.headers["content-length"] == "10"
