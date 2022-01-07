@@ -6,38 +6,17 @@ import json
 import math
 import queue
 import sys
+import typing
 from concurrent.futures import Future
 from types import GeneratorType
-from typing import (
-    Any,
-    Callable,
-    ContextManager,
-    Dict,
-    Generator,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-    cast,
-)
 from urllib.parse import unquote, urljoin
 
 import anyio
 import httpx
 from anyio.streams.stapled import StapledObjectStream
-from asgiref.typing import (
-    ASGI2Application as ASGI2App,
-    ASGI3Application as ASGI3App,
-    ASGIApplication,
-    ASGIReceiveCallable as Receive,
-    ASGIReceiveEvent,
-    ASGISendCallable as Send,
-    ASGISendEvent,
-    Scope,
-)
 from httpx._types import CookieTypes
 
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from starlette.websockets import WebSocketDisconnect
 
 if sys.version_info >= (3, 8):  # pragma: no cover
@@ -45,8 +24,16 @@ if sys.version_info >= (3, 8):  # pragma: no cover
 else:  # pragma: no cover
     from typing_extensions import TypedDict
 
+_PortalFactoryType = typing.Callable[
+    [], typing.ContextManager[anyio.abc.BlockingPortal]
+]
 
-def _is_asgi3(app: Union[ASGI2App, ASGI3App]) -> bool:
+ASGIInstance = typing.Callable[[Receive, Send], typing.Awaitable[None]]
+ASGI2App = typing.Callable[[Scope], ASGIInstance]
+ASGI3App = typing.Callable[[Scope, Receive, Send], typing.Awaitable[None]]
+
+
+def _is_asgi3(app: typing.Union[ASGI2App, ASGI3App]) -> bool:
     if inspect.isclass(app):
         return hasattr(app, "__await__")
     elif inspect.isfunction(app):
@@ -68,12 +55,9 @@ class _WrapASGI2:
         await instance(receive, send)
 
 
-_PortalFactoryType = Callable[[], ContextManager[anyio.abc.BlockingPortal]]
-
-
 class _AsyncBackend(TypedDict):
     backend: str
-    backend_options: Dict[str, Any]
+    backend_options: typing.Dict[str, typing.Any]
 
 
 class _Upgrade(Exception):
@@ -92,8 +76,9 @@ class WebSocketTestSession:
         self.scope = scope
         self.accepted_subprotocol = None
         self.portal_factory = portal_factory
-        self._receive_queue: "queue.Queue[Any]" = queue.Queue()
-        self._send_queue: "queue.Queue[Any]" = queue.Queue()
+        self._receive_queue: "queue.Queue[typing.Any]" = queue.Queue()
+        self._send_queue: "queue.Queue[typing.Any]" = queue.Queue()
+        self.extra_headers = None
 
     def __enter__(self) -> "WebSocketTestSession":
         self.exit_stack = contextlib.ExitStack()
@@ -108,9 +93,10 @@ class WebSocketTestSession:
             self.exit_stack.close()
             raise
         self.accepted_subprotocol = message.get("subprotocol", None)
+        self.extra_headers = message.get("headers", None)
         return self
 
-    def __exit__(self, *args: Any) -> None:
+    def __exit__(self, *args: typing.Any) -> None:
         try:
             self.close(1000)
         finally:
@@ -133,19 +119,19 @@ class WebSocketTestSession:
             self._send_queue.put(exc)
             raise
 
-    async def _asgi_receive(self) -> ASGIReceiveEvent:
+    async def _asgi_receive(self) -> Message:
         while self._receive_queue.empty():
             await anyio.sleep(0)
         return self._receive_queue.get()
 
-    async def _asgi_send(self, message: ASGISendEvent) -> None:
+    async def _asgi_send(self, message: Message) -> None:
         self._send_queue.put(message)
 
-    def _raise_on_close(self, message: Union[ASGISendEvent, ASGIReceiveEvent]) -> None:
+    def _raise_on_close(self, message: Message) -> None:
         if message["type"] == "websocket.close":
             raise WebSocketDisconnect(message.get("code", 1000))
 
-    def send(self, message: ASGISendEvent) -> None:
+    def send(self, message: Message) -> None:
         self._receive_queue.put(message)
 
     def send_text(self, data: str) -> None:
@@ -154,7 +140,7 @@ class WebSocketTestSession:
     def send_bytes(self, data: bytes) -> None:
         self.send({"type": "websocket.receive", "bytes": data})
 
-    def send_json(self, data: Any, mode: str = "text") -> None:
+    def send_json(self, data: typing.Any, mode: str = "text") -> None:
         assert mode in ["text", "binary"]
         text = json.dumps(data)
         if mode == "text":
@@ -165,7 +151,7 @@ class WebSocketTestSession:
     def close(self, code: int = 1000) -> None:
         self.send({"type": "websocket.disconnect", "code": code})
 
-    def receive(self) -> ASGIReceiveEvent:
+    def receive(self) -> Message:
         message = self._send_queue.get()
         if isinstance(message, BaseException):
             raise message
@@ -181,7 +167,7 @@ class WebSocketTestSession:
         self._raise_on_close(message)
         return message["bytes"]
 
-    def receive_json(self, mode: str = "text") -> Any:
+    def receive_json(self, mode: str = "text") -> typing.Any:
         assert mode in ["text", "binary"]
         message = self.receive()
         self._raise_on_close(message)
@@ -222,7 +208,7 @@ class _TestClientTransport(httpx.BaseTransport):
 
         # Include the 'host' header.
         if "host" in request.headers:
-            headers: List[Tuple[bytes, bytes]] = []
+            headers: typing.List[typing.Tuple[bytes, bytes]] = []
         elif port == default_port:
             headers = [(b"host", host.encode())]
         else:
@@ -234,12 +220,12 @@ class _TestClientTransport(httpx.BaseTransport):
             for key, value in request.headers.items()
         ]
 
-        scope: Dict[str, Any]
+        scope: typing.Dict[str, typing.Any]
 
         if scheme in {"ws", "wss"}:
             subprotocol = request.headers.get("sec-websocket-protocol", None)
             if subprotocol is None:
-                subprotocols: Sequence[str] = []
+                subprotocols: typing.Sequence[str] = []
             else:
                 subprotocols = [value.strip() for value in subprotocol.split(",")]
             scope = {
@@ -273,11 +259,11 @@ class _TestClientTransport(httpx.BaseTransport):
         request_complete = False
         response_started = False
         response_complete: anyio.Event
-        raw_kwargs: Dict[str, Any] = {"stream": io.BytesIO()}
+        raw_kwargs: typing.Dict[str, typing.Any] = {"stream": io.BytesIO()}
         template = None
         context = None
 
-        async def receive() -> ASGIReceiveEvent:
+        async def receive() -> Message:
             nonlocal request_complete
 
             if request_complete:
@@ -305,7 +291,7 @@ class _TestClientTransport(httpx.BaseTransport):
             request_complete = True
             return {"type": "http.request", "body": body_bytes}
 
-        async def send(message: ASGISendEvent) -> None:
+        async def send(message: Message) -> None:
             nonlocal raw_kwargs, response_started, template, context
 
             if message["type"] == "http.response.start":
@@ -365,27 +351,27 @@ class _TestClientTransport(httpx.BaseTransport):
 class TestClient(httpx.Client):
     __test__ = False
     task: "Future[None]"
-    portal: Optional[anyio.abc.BlockingPortal] = None
+    portal: typing.Optional[anyio.abc.BlockingPortal] = None
 
     def __init__(
         self,
-        app: ASGIApplication,
+        app: ASGIApp,
         base_url: str = "http://testserver",
         raise_server_exceptions: bool = True,
         root_path: str = "",
         backend: str = "asyncio",
-        backend_options: Optional[Dict[str, Any]] = None,
+        backend_options: typing.Optional[typing.Dict[str, typing.Any]] = None,
         cookies: CookieTypes = None,
     ) -> None:
         self.async_backend = _AsyncBackend(
             backend=backend, backend_options=backend_options or {}
         )
         if _is_asgi3(app):
-            app = cast(ASGI3App, app)
+            app = typing.cast(ASGI3App, app)
             asgi_app = app
         else:
-            app = cast(ASGI2App, app)
-            asgi_app = _WrapASGI2(app)  #  type: ignore
+            app = typing.cast(ASGI2App, app)  # type: ignore[assignment]
+            asgi_app = _WrapASGI2(app)  # type: ignore[arg-type]
         self.app = asgi_app
         transport = _TestClientTransport(
             self.app,
@@ -403,7 +389,7 @@ class TestClient(httpx.Client):
         )
 
     @contextlib.contextmanager
-    def _portal_factory(self) -> Generator[anyio.abc.BlockingPortal, None, None]:
+    def _portal_factory(self) -> typing.Generator[anyio.abc.BlockingPortal, None, None]:
         if self.portal is not None:
             yield self.portal
         else:
@@ -418,17 +404,17 @@ class TestClient(httpx.Client):
         content: httpx._types.RequestContent = None,
         data: httpx._types.RequestData = None,
         files: httpx._types.RequestFiles = None,
-        json: Any = None,
+        json: typing.Any = None,
         params: httpx._types.QueryParamTypes = None,
         headers: httpx._types.HeaderTypes = None,
         cookies: httpx._types.CookieTypes = None,
-        auth: Union[
+        auth: typing.Union[
             httpx._types.AuthTypes, httpx._client.UseClientDefault
         ] = httpx._client.USE_CLIENT_DEFAULT,
-        follow_redirects: Union[
+        follow_redirects: typing.Union[
             bool, httpx._client.UseClientDefault
         ] = httpx._client.USE_CLIENT_DEFAULT,
-        timeout: Union[
+        timeout: typing.Union[
             httpx._client.TimeoutTypes, httpx._client.UseClientDefault
         ] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: dict = None,
@@ -451,8 +437,8 @@ class TestClient(httpx.Client):
         )
 
     def websocket_connect(
-        self, url: str, subprotocols: Sequence[str] = None, **kwargs: Any
-    ) -> Any:
+        self, url: str, subprotocols: typing.Sequence[str] = None, **kwargs: typing.Any
+    ) -> typing.Any:
         url = urljoin("ws://testserver", url)
         headers = kwargs.get("headers", {})
         headers.setdefault("connection", "upgrade")
@@ -497,7 +483,7 @@ class TestClient(httpx.Client):
 
         return self
 
-    def __exit__(self, *args: Any) -> None:
+    def __exit__(self, *args: typing.Any) -> None:
         self.exit_stack.close()
 
     async def lifespan(self) -> None:
@@ -510,7 +496,7 @@ class TestClient(httpx.Client):
     async def wait_startup(self) -> None:
         await self.stream_receive.send({"type": "lifespan.startup"})
 
-        async def receive() -> Any:
+        async def receive() -> typing.Any:
             message = await self.stream_send.receive()
             if message is None:
                 self.task.result()
@@ -525,7 +511,7 @@ class TestClient(httpx.Client):
             await receive()
 
     async def wait_shutdown(self) -> None:
-        async def receive() -> Any:
+        async def receive() -> typing.Any:
             message = await self.stream_send.receive()
             if message is None:
                 self.task.result()
