@@ -1,5 +1,4 @@
 import os
-from typing import Callable
 
 import anyio
 import pytest
@@ -334,6 +333,13 @@ def test_empty_response(test_client_factory):
     assert response.headers["content-length"] == "0"
 
 
+def test_empty_204_response(test_client_factory):
+    app = Response(status_code=204)
+    client: TestClient = test_client_factory(app)
+    response = client.get("/")
+    assert "content-length" not in response.headers
+
+
 def test_non_empty_response(test_client_factory):
     app = Response(content="hi")
     client: TestClient = test_client_factory(app)
@@ -367,20 +373,3 @@ def test_streaming_response_known_size(test_client_factory):
     client: TestClient = test_client_factory(app)
     response = client.get("/")
     assert response.headers["content-length"] == "10"
-
-
-@pytest.mark.parametrize("status_code", (100, 204, 304))
-def test_no_content_length(
-    status_code: int, test_client_factory: Callable[..., TestClient]
-):
-    app = Response(content=b"non_empty", status_code=status_code)
-    client = test_client_factory(app)
-    response = client.get("/")
-    assert "content-length" not in response.headers
-
-
-def test_json_response_no_content_length(test_client_factory):
-    app = JSONResponse("null", status_code=204)
-    client = test_client_factory(app)
-    response = client.get("/")
-    assert "content-length" not in response.headers
