@@ -14,7 +14,7 @@ from starlette.staticfiles import StaticFiles
 templates = Jinja2Templates(directory='templates')
 
 async def homepage(request):
-    return templates.TemplateResponse('index.html', {'request': request})
+    return templates.TemplateResponse('index.html')
 
 routes = [
     Route('/', endpoint=homepage),
@@ -23,9 +23,6 @@ routes = [
 
 app = Starlette(debug=True, routes=routes)
 ```
-
-Note that the incoming `request` instance must be included as part of the
-template context.
 
 The Jinja2 template context will automatically include a `url_for` function,
 so we can correctly hyperlink to other pages within the application.

@@ -2,6 +2,7 @@ import typing
 from os import PathLike
 
 from starlette.background import BackgroundTask
+from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import Receive, Scope, Send
 
@@ -23,20 +24,26 @@ class _TemplateResponse(Response):
     def __init__(
         self,
         template: typing.Any,
-        context: dict,
+        context: dict = None,
         status_code: int = 200,
         headers: dict = None,
         media_type: str = None,
         background: BackgroundTask = None,
     ):
         self.template = template
-        self.context = context
-        content = template.render(context)
-        super().__init__(content, status_code, headers, media_type, background)
+        self.context = context or {}
+        super().__init__(b"", status_code, headers, media_type, background)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if not "request" in self.context:
+            self.context["request"] = Request(scope, receive, send)
+
+        content = self.template.render(self.context)
+        self.body = self.render(content)
+
         request = self.context.get("request", {})
         extensions = request.get("extensions", {})
+
         if "http.response.template" in extensions:
             await send(
                 {
@@ -78,18 +85,17 @@ class Jinja2Templates:
     def TemplateResponse(
         self,
         name: str,
-        context: dict,
+        context: dict = None,
         status_code: int = 200,
         headers: dict = None,
         media_type: str = None,
         background: BackgroundTask = None,
     ) -> _TemplateResponse:
-        if "request" not in context:
-            raise ValueError('context must include a "request" key')
         template = self.get_template(name)
+
         return _TemplateResponse(
-            template,
-            context,
+            template=template,
+            context=context,
             status_code=status_code,
             headers=headers,
             media_type=media_type,
