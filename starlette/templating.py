@@ -35,7 +35,7 @@ class _TemplateResponse(Response):
         super().__init__(b"", status_code, headers, media_type, background)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if not "request" in self.context:
+        if "request" not in self.context:
             self.context["request"] = Request(scope, receive, send)
 
         content = self.template.render(self.context)
