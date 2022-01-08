@@ -4,7 +4,7 @@
 import os
 import re
 
-from setuptools import find_packages, setup
+from setuptools import setup, find_packages
 
 
 def get_version(package):
