@@ -1,4 +1,3 @@
-import hashlib
 import http.cookies
 import json
 import os
@@ -12,6 +11,7 @@ from urllib.parse import quote
 
 import anyio
 
+from starlette._compat import md5_hexdigest
 from starlette.background import BackgroundTask
 from starlette.concurrency import iterate_in_threadpool
 from starlette.datastructures import URL, MutableHeaders
@@ -70,8 +70,8 @@ class Response:
             populate_content_length = b"content-length" not in keys
             populate_content_type = b"content-type" not in keys
 
-        body = getattr(self, "body", b"")
-        if body and populate_content_length:
+        body = getattr(self, "body", None)
+        if body is not None and populate_content_length:
             content_length = str(len(body))
             raw_headers.append((b"content-length", content_length.encode("latin-1")))
 
@@ -287,7 +287,7 @@ class FileResponse(Response):
         content_length = str(stat_result.st_size)
         last_modified = formatdate(stat_result.st_mtime, usegmt=True)
         etag_base = str(stat_result.st_mtime) + "-" + str(stat_result.st_size)
-        etag = hashlib.md5(etag_base.encode()).hexdigest()
+        etag = md5_hexdigest(etag_base.encode(), usedforsecurity=False)
 
         self.headers.setdefault("content-length", content_length)
         self.headers.setdefault("last-modified", last_modified)
