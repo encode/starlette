@@ -29,3 +29,12 @@ def test_template_response_requires_request(tmpdir):
     templates = Jinja2Templates(str(tmpdir))
     with pytest.raises(ValueError):
         templates.TemplateResponse(None, {})
+
+
+def test_template_jinja2_env_options(tmpdir):
+    templates = Jinja2Templates(
+        directory=str(tmpdir), autoescape=False, auto_reload=True
+    )
+
+    assert templates.env.autoescape is False
+    assert templates.env.auto_reload is True
