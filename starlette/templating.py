@@ -58,7 +58,7 @@ class Jinja2Templates:
     """
     templates = Jinja2Templates("templates")
 
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse("index.html")
     """
 
     def __init__(self, directory: typing.Union[str, PathLike]) -> None:
