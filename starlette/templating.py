@@ -35,13 +35,12 @@ class _TemplateResponse(Response):
         super().__init__(b"", status_code, headers, media_type, background)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if "request" not in self.context:
-            self.context["request"] = Request(scope, receive, send)
+        self.context["_request"] = Request(scope, receive, send)
 
         content = self.template.render(self.context)
         self.body = self.render(content)
 
-        request = self.context.get("request", {})
+        request = self.context.get("_request", {})
         extensions = request.get("extensions", {})
 
         if "http.response.template" in extensions:
@@ -71,7 +70,7 @@ class Jinja2Templates:
     ) -> "jinja2.Environment":
         @pass_context
         def url_for(context: dict, name: str, **path_params: typing.Any) -> str:
-            request = context["request"]
+            request = context["_request"]
             return request.url_for(name, **path_params)
 
         loader = jinja2.FileSystemLoader(directory)

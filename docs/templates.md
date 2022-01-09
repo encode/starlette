@@ -58,7 +58,6 @@ def test_homepage():
     response = client.get("/")
     assert response.status_code == 200
     assert response.template.name == 'index.html'
-    assert "request" in response.context
 ```
 
 ## Asynchronous template rendering
