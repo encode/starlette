@@ -362,6 +362,8 @@ class Mount(BaseRoute):
 
     @property
     def routes(self) -> typing.List[BaseRoute]:
+        # we dynamically grab the routes so that if this is a Starlette router
+        # it can have routes added to it after it is mounted
         return getattr(self._user_app, "routes", [])
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
