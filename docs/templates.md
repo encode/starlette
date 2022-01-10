@@ -24,7 +24,7 @@ routes = [
 app = Starlette(debug=True, routes=routes)
 ```
 
-The Jinja2 template context will automatically include `request` and a `url_for` function,
+The Jinja2 template context will automatically include a `request` instance, and a `url_for` function,
 so we can correctly hyperlink to other pages within the application.
 
 For example, we can link to static files from within our HTML templates:
