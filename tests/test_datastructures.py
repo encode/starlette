@@ -240,7 +240,8 @@ async def test_upload_file_file_input():
 
 
 def test_formdata():
-    upload = UploadFile("test")
+    stream = io.BytesIO(b"data")
+    upload = UploadFile(filename="file", file=stream)
     form = FormData([("a", "123"), ("a", "456"), ("b", upload)])
     assert "a" in form
     assert "A" not in form
