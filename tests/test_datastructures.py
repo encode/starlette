@@ -1,3 +1,5 @@
+import io
+
 import pytest
 
 from starlette.datastructures import (

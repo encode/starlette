@@ -22,10 +22,9 @@ async def app(scope, receive, send):
     for key, value in data.items():
         if isinstance(value, UploadFile):
             content = await value.read()
-            content = content.decode() if isinstance(content, bytes) else content
             output[key] = {
                 "filename": value.filename,
-                "content": content,
+                "content": content.decode(),
                 "content_type": value.content_type,
             }
         else:
@@ -44,11 +43,10 @@ async def multi_items_app(scope, receive, send):
             output[key] = []
         if isinstance(value, UploadFile):
             content = await value.read()
-            content = content.decode() if isinstance(content, bytes) else content
             output[key].append(
                 {
                     "filename": value.filename,
-                    "content": content,
+                    "content": content.decode(),
                     "content_type": value.content_type,
                 }
             )
