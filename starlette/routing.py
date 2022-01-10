@@ -348,7 +348,6 @@ class Mount(BaseRoute):
         self.path = path.rstrip("/")
         if app is not None:
             self.app: ASGIApp = app
-            routes = getattr(self.app, "routes", [])
         else:
             self.app = Router(routes=routes)
         self._user_app = self.app
