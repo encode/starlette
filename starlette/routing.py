@@ -332,6 +332,8 @@ class WebSocketRoute(BaseRoute):
 
 
 class Mount(BaseRoute):
+    _routes: typing.List[BaseRoute]
+
     def __init__(
         self,
         path: str,
@@ -348,9 +350,10 @@ class Mount(BaseRoute):
         self.path = path.rstrip("/")
         if app is not None:
             self.app: ASGIApp = app
+            self._routes = getattr(app, "routes", [])
         else:
             self.app = Router(routes=routes)
-        self._user_app = self.app
+            self._routes = getattr(self.app, "routes", [])
         self.name = name
         self.path_regex, self.path_format, self.param_convertors = compile_path(
             self.path + "/{path:path}"
@@ -362,9 +365,7 @@ class Mount(BaseRoute):
 
     @property
     def routes(self) -> typing.List[BaseRoute]:
-        # we dynamically grab the routes so that if this is a Starlette router
-        # it can have routes added to it after it is mounted
-        return getattr(self._user_app, "routes", [])
+        return self._routes
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] in ("http", "websocket"):
