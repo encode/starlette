@@ -275,10 +275,12 @@ def test_queryparams():
 async def test_upload_file_file_input():
     """Test passing file/stream into the UploadFile constructor"""
     stream = io.BytesIO(b"data")
-    file = UploadFile(filename="file", file=stream)
+    file = UploadFile(filename="file", file=stream, size=len(stream))
+    assert file.size == 4
     assert await file.read() == b"data"
     await file.write(b" and more data!")
     assert await file.read() == b""
+    assert file.size == 19
     await file.seek(0)
     assert await file.read() == b"data and more data!"
 
@@ -292,7 +294,7 @@ async def test_uploadfile_rolling(max_size: int) -> None:
     stream: BinaryIO = SpooledTemporaryFile(  # type: ignore[assignment]
         max_size=max_size
     )
-    file = UploadFile(filename="file", file=stream)
+    file = UploadFile(filename="file", file=stream, size=len(stream))
     assert await file.read() == b""
     await file.write(b"data")
     assert await file.read() == b""
@@ -307,7 +309,7 @@ async def test_uploadfile_rolling(max_size: int) -> None:
 
 def test_formdata():
     stream = io.BytesIO(b"data")
-    upload = UploadFile(filename="file", file=stream)
+    upload = UploadFile(filename="file", file=stream, size=len(stream))
     form = FormData([("a", "123"), ("a", "456"), ("b", upload)])
     assert "a" in form
     assert "A" not in form
