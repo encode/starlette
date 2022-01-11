@@ -119,7 +119,7 @@ class HTTPConnection(Mapping):
         return self._query_params
 
     @property
-    def path_params(self) -> dict:
+    def path_params(self) -> Mapping[str, str]:
         return self.scope.get("path_params", {})
 
     @property
