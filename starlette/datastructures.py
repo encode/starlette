@@ -421,17 +421,13 @@ class UploadFile:
     def __init__(
         self,
         filename: str,
-        file: typing.Optional[typing.BinaryIO] = None,
         content_type: str = "",
         *,
         headers: "typing.Optional[Headers]" = None,
     ) -> None:
         self.filename = filename
         self.content_type = content_type
-        if file is None:
-            self.file = tempfile.SpooledTemporaryFile(max_size=self.spool_max_size)  # type: ignore  # noqa: E501
-        else:
-            self.file = file
+        self.file = tempfile.SpooledTemporaryFile(max_size=self.spool_max_size)  # type: ignore  # noqa: E501
         self.headers = headers or Headers()
 
     @property
