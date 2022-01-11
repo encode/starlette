@@ -1,6 +1,5 @@
 import json
 import typing
-from collections.abc import Mapping
 from http import cookies as http_cookies
 
 import anyio
@@ -59,7 +58,7 @@ class ClientDisconnect(Exception):
     pass
 
 
-class HTTPConnection(Mapping):
+class HTTPConnection(typing.Mapping[str, typing.Any]):
     """
     A base class for incoming HTTP connections, that is used to provide
     any functionality that is common to both `Request` and `WebSocket`.
@@ -119,7 +118,7 @@ class HTTPConnection(Mapping):
         return self._query_params
 
     @property
-    def path_params(self) -> Mapping[str, str]:
+    def path_params(self) -> typing.Mapping[str, str]:
         return self.scope.get("path_params", {})
 
     @property
