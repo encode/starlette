@@ -18,7 +18,7 @@ FORCE_MULTIPART = ForceMultipartDict()
 async def app(scope, receive, send):
     request = Request(scope, receive)
     data = await request.form()
-    output = {}
+    output: typing.Dict[str, typing.Union[str, typing.Dict[str, typing.Any]]] = {}
     for key, value in data.items():
         if isinstance(value, UploadFile):
             content = await value.read()
@@ -60,7 +60,7 @@ async def multi_items_app(scope, receive, send):
 async def app_with_headers(scope, receive, send):
     request = Request(scope, receive)
     data = await request.form()
-    output = {}
+    output: typing.Dict[str, typing.Union[str, typing.Dict[str, typing.Any]]] = {}
     for key, value in data.items():
         if isinstance(value, UploadFile):
             content = await value.read()
