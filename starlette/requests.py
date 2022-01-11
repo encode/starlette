@@ -1,5 +1,6 @@
 import json
 import typing
+from collections.abc import Mapping
 from http import cookies as http_cookies
 
 import anyio
@@ -58,7 +59,7 @@ class ClientDisconnect(Exception):
     pass
 
 
-class HTTPConnection(typing.Mapping[str, typing.Any]):
+class HTTPConnection(Mapping):
     """
     A base class for incoming HTTP connections, that is used to provide
     any functionality that is common to both `Request` and `WebSocket`.
