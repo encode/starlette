@@ -1,8 +1,13 @@
+import sys
 import tempfile
 import typing
-from collections.abc import Sequence
 from shlex import shlex
 from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit
+
+if sys.version_info >= (3, 8):  # pragma: no cover
+    from typing import Protocol
+else:  # pragma: no cover
+    from typing_extensions import Protocol
 
 from starlette.concurrency import run_in_threadpool
 from starlette.types import Scope
@@ -213,7 +218,7 @@ class Secret:
         return self._value
 
 
-class CommaSeparatedStrings(Sequence[str]):
+class CommaSeparatedStrings(typing.Sequence[str]):
     def __init__(self, value: typing.Union[str, typing.Sequence[str]]):
         if isinstance(value, str):
             splitter = shlex(value, posix=True)
@@ -626,7 +631,7 @@ class Headers(typing.Mapping[str, str]):
         return f"{class_name}(raw={self.raw!r})"
 
 
-class _SupportsItems(typing.Protocol[_KT_co, _VT_co]):
+class _SupportsItems(Protocol[_KT_co, _VT_co]):
     def items(self) -> typing.Iterable[typing.Tuple[_KT_co, _VT_co]]:
         ...  # pragma: no cover
 
