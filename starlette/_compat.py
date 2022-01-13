@@ -12,7 +12,7 @@ import hashlib
 try:
     
     # check if the Python version supports the parameter
-    # using usedforsecurity=False to avoid triggering an exception on FIPS systems
+    # using usedforsecurity=False to avoid an exception on FIPS systems
     # that reject usedforsecurity=True
     hashlib.md5(b"data", usedforsecurity=False)  # type: ignore[call-arg]
 
