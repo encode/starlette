@@ -38,12 +38,12 @@ def test_bytes_response(test_client_factory):
 
 def test_json_none_response(test_client_factory):
     async def app(scope, receive, send):
-        response = JSONResponse(None)
+        response = JSONResponse(status_code=200)
         await response(scope, receive, send)
 
     client = test_client_factory(app)
     response = client.get("/")
-    assert response.json() is None
+    assert response.json() == {}
 
 
 def test_redirect_response(test_client_factory):
@@ -327,7 +327,7 @@ def test_head_method(test_client_factory):
 
 
 def test_empty_response(test_client_factory):
-    app = Response()
+    app = Response(status_code=200)
     client: TestClient = test_client_factory(app)
     response = client.get("/")
     assert response.headers["content-length"] == "0"
