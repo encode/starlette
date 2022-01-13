@@ -1,4 +1,5 @@
 import os
+import typing
 
 from starlette.formparsers import UploadFile, _user_safe_decode
 from starlette.requests import Request
@@ -36,7 +37,7 @@ async def app(scope, receive, send):
 async def multi_items_app(scope, receive, send):
     request = Request(scope, receive)
     data = await request.form()
-    output = {}
+    output: typing.Dict[str, list] = {}
     for key, value in data.multi_items():
         if key not in output:
             output[key] = []
@@ -51,6 +52,26 @@ async def multi_items_app(scope, receive, send):
             )
         else:
             output[key].append(value)
+    await request.close()
+    response = JSONResponse(output)
+    await response(scope, receive, send)
+
+
+async def app_with_headers(scope, receive, send):
+    request = Request(scope, receive)
+    data = await request.form()
+    output = {}
+    for key, value in data.items():
+        if isinstance(value, UploadFile):
+            content = await value.read()
+            output[key] = {
+                "filename": value.filename,
+                "content": content.decode(),
+                "content_type": value.content_type,
+                "headers": list(value.headers.items()),
+            }
+        else:
+            output[key] = value
     await request.close()
     response = JSONResponse(output)
     await response(scope, receive, send)
@@ -133,6 +154,42 @@ def test_multipart_request_multiple_files(tmpdir, test_client_factory):
                 "filename": "test2.txt",
                 "content": "<file2 content>",
                 "content_type": "text/plain",
+            },
+        }
+
+
+def test_multipart_request_multiple_files_with_headers(tmpdir, test_client_factory):
+    path1 = os.path.join(tmpdir, "test1.txt")
+    with open(path1, "wb") as file:
+        file.write(b"<file1 content>")
+
+    path2 = os.path.join(tmpdir, "test2.txt")
+    with open(path2, "wb") as file:
+        file.write(b"<file2 content>")
+
+    client = test_client_factory(app_with_headers)
+    with open(path1, "rb") as f1, open(path2, "rb") as f2:
+        response = client.post(
+            "/",
+            files=[
+                ("test1", (None, f1)),
+                ("test2", ("test2.txt", f2, "text/plain", {"x-custom": "f2"})),
+            ],
+        )
+        assert response.json() == {
+            "test1": "<file1 content>",
+            "test2": {
+                "filename": "test2.txt",
+                "content": "<file2 content>",
+                "content_type": "text/plain",
+                "headers": [
+                    [
+                        "content-disposition",
+                        'form-data; name="test2"; filename="test2.txt"',
+                    ],
+                    ["content-type", "text/plain"],
+                    ["x-custom", "f2"],
+                ],
             },
         }
 
