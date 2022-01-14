@@ -552,7 +552,7 @@ def test_url_with_sub_app(test_client_factory):
     response = client.get("/submount/")
     assert response.json() == {
         "submount:subapp_index": "https://www.example.org/sub_path/submount/",
-        "subapp_index": "NoMatchFound", # "https://www.example.org/sub_path/submount/",
+        "subapp_index": "https://www.example.org/sub_path/submount/",
         "index": "https://www.example.org/sub_path/",
     }
 

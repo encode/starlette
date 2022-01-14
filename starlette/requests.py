@@ -95,14 +95,23 @@ class HTTPConnection(Mapping):
         return self._url
 
     @property
-    def base_url(self) -> URL:
-        if not hasattr(self, "_base_url"):
+    def app_root_base_url(self) -> URL:
+        if not hasattr(self, "_app_root_base_url"):
             base_url_scope = dict(self.scope)
             base_url_scope["path"] = "/"
             base_url_scope["query_string"] = b""
             base_url_scope["root_path"] = base_url_scope.get(
                 "app_root_path", base_url_scope.get("root_path", "")
             )
+            self._app_root_base_url = URL(scope=base_url_scope)
+        return self._app_root_base_url
+
+    @property
+    def base_url(self) -> URL:
+        if not hasattr(self, "_base_url"):
+            base_url_scope = dict(self.scope)
+            base_url_scope["path"] = "/"
+            base_url_scope["query_string"] = b""
             self._base_url = URL(scope=base_url_scope)
         return self._base_url
 
@@ -170,9 +179,16 @@ class HTTPConnection(Mapping):
         return self._state
 
     def url_for(self, name: str, **path_params: typing.Any) -> str:
-        router: Router = self.scope["router"]
-        url_path = router.url_path_for(name, **path_params)
-        return url_path.make_absolute_url(base_url=self.base_url)
+        app_root_router = self.scope["router"]
+        app_router = getattr(self.get('app', {}), 'router', None)
+        if app_router and app_router != app_root_router:
+            try: 
+                url_path = app_router.url_path_for(name, **path_params)
+                return url_path.make_absolute_url(base_url=self.base_url)
+            except Exception:
+                pass
+        url_path = app_root_router.url_path_for(name, **path_params)
+        return url_path.make_absolute_url(base_url=self.app_root_base_url)
 
 
 async def empty_receive() -> typing.NoReturn:
