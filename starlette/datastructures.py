@@ -163,7 +163,7 @@ class URLPath(str):
 
     def __new__(cls, path: str, protocol: str = "", host: str = "") -> "URLPath":
         assert protocol in ("http", "websocket", "")
-        return str.__new__(cls, path)  # type: ignore
+        return str.__new__(cls, path)
 
     def __init__(self, path: str, protocol: str = "", host: str = "") -> None:
         self.protocol = protocol
@@ -415,12 +415,13 @@ class UploadFile:
     """
 
     spool_max_size = 1024 * 1024
+    file: typing.BinaryIO
     headers: "Headers"
 
     def __init__(
         self,
         filename: str,
-        file: typing.IO = None,
+        file: typing.Optional[typing.BinaryIO] = None,
         content_type: str = "",
         *,
         headers: "typing.Optional[Headers]" = None,
@@ -428,8 +429,9 @@ class UploadFile:
         self.filename = filename
         self.content_type = content_type
         if file is None:
-            file = tempfile.SpooledTemporaryFile(max_size=self.spool_max_size)
-        self.file = file
+            self.file = tempfile.SpooledTemporaryFile(max_size=self.spool_max_size)  # type: ignore  # noqa: E501
+        else:
+            self.file = file
         self.headers = headers or Headers()
 
     @property
@@ -437,13 +439,13 @@ class UploadFile:
         rolled_to_disk = getattr(self.file, "_rolled", True)
         return not rolled_to_disk
 
-    async def write(self, data: typing.Union[bytes, str]) -> None:
+    async def write(self, data: bytes) -> None:
         if self._in_memory:
-            self.file.write(data)  # type: ignore
+            self.file.write(data)
         else:
             await run_in_threadpool(self.file.write, data)
 
-    async def read(self, size: int = -1) -> typing.Union[bytes, str]:
+    async def read(self, size: int = -1) -> bytes:
         if self._in_memory:
             return self.file.read(size)
         return await run_in_threadpool(self.file.read, size)
