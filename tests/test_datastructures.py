@@ -1,4 +1,6 @@
 import io
+from tempfile import SpooledTemporaryFile
+from typing import BinaryIO
 
 import pytest
 
@@ -223,6 +225,19 @@ async def test_upload_file_file_input():
     assert await file.read() == b""
     await file.seek(0)
     assert await file.read() == b"data and more data!"
+
+
+@pytest.mark.anyio
+async def test_uploadfile_rolled():
+    stream: BinaryIO = SpooledTemporaryFile(max_size=1)  # type: ignore[assignment]
+    file = UploadFile(filename="file", file=stream)
+    assert await file.read() == b""
+    await file.write(b"data")
+    assert await file.read() == b""
+    await file.seek(0)
+    assert await file.read() == b"data"
+    await file.close()
+
 
 
 def test_formdata():
