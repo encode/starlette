@@ -127,6 +127,7 @@ def test_request_multipart_file_max_size(test_client_factory):
         assert isinstance(uploadfile, UploadFile)
         file = uploadfile.file
         response = JSONResponse({"rolled": getattr(file, "_rolled", True)})
+        await form.close()
         await response(scope, receive, send)
 
     client = test_client_factory(app)
