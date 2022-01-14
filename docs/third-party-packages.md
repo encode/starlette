@@ -90,13 +90,11 @@ It relies solely on an auth provider to issue access and/or id tokens to clients
 Middleware for Starlette that allows you to store and access the context data of a request.
 Can be used with logging so logs automatically use request headers such as x-request-id or x-correlation-id.
 
-
 ### Starsessions
 
 <a href="https://github.com/alex-oleshkevich/starsessions" target="_blank">GitHub</a>
 
 An alternate session support implementation with customizable storage backends.
-
 
 ### Starlette Cramjam
 
@@ -104,13 +102,17 @@ An alternate session support implementation with customizable storage backends.
 
 A Starlette middleware that allows **brotli**, **gzip** and **deflate** compression algorithm with a minimal requirements.
 
-
 ### Imia
     
 <a href="https://github.com/alex-oleshkevich/imia" target="_blank">GitHub</a>
 
 An authentication framework for Starlette with pluggable authenticators and login/logout flow.
 
+### Starlette-WTF
+
+<a href="https://github.com/muicss/starlette-wtf" target="_blank">GitHub</a>
+
+A simple tool for integrating Starlette and WTForms.
 
 ## Frameworks
 
@@ -153,4 +155,3 @@ Roll your own framework with a simple app system, like [Django-GDAPS](https://gd
 A Python framework for building geospatial dashboards and web-applications.
 
 Greppo is an open-source Python framework that makes it easy to build geospatial dashboards and web-applications. It provides a toolkit to quickly integrate data, algorithms, visualizations and UI for interactivity. It provides APIs to the update the variables in the backend, recompute the logic, and reflect the changes in the frontend (data mutation hook).
-
