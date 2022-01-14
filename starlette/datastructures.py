@@ -1,4 +1,3 @@
-import tempfile
 import typing
 from collections import namedtuple
 from collections.abc import Sequence
@@ -414,28 +413,25 @@ class UploadFile:
     An uploaded file included as part of the request data.
     """
 
-    spool_max_size = 1024 * 1024
     file: typing.BinaryIO
     headers: "Headers"
 
     def __init__(
         self,
         filename: str,
-        file: typing.Optional[typing.BinaryIO] = None,
+        file: typing.BinaryIO,
         content_type: str = "",
         *,
         headers: "typing.Optional[Headers]" = None,
     ) -> None:
         self.filename = filename
         self.content_type = content_type
-        if file is None:
-            self.file = tempfile.SpooledTemporaryFile(max_size=self.spool_max_size)  # type: ignore  # noqa: E501
-        else:
-            self.file = file
+        self.file = file
         self.headers = headers or Headers()
 
     @property
     def _in_memory(self) -> bool:
+        # check for SpooledTemporaryFile._rolled
         rolled_to_disk = getattr(self.file, "_rolled", True)
         return not rolled_to_disk
 

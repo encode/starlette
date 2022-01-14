@@ -213,20 +213,6 @@ def test_queryparams():
     assert QueryParams(q) == q
 
 
-class BigUploadFile(UploadFile):
-    spool_max_size = 1024
-
-
-@pytest.mark.anyio
-async def test_upload_file():
-    big_file = BigUploadFile("big-file")
-    await big_file.write(b"big-data" * 512)
-    await big_file.write(b"big-data")
-    await big_file.seek(0)
-    assert await big_file.read(1024) == b"big-data" * 128
-    await big_file.close()
-
-
 @pytest.mark.anyio
 async def test_upload_file_file_input():
     """Test passing file/stream into the UploadFile constructor"""

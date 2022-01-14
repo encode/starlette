@@ -1,5 +1,7 @@
+from tempfile import SpooledTemporaryFile
 import anyio
 import pytest
+from starlette.datastructures import UploadFile
 
 from starlette.requests import ClientDisconnect, Request, State
 from starlette.responses import JSONResponse, Response
@@ -116,6 +118,28 @@ def test_request_form_urlencoded(test_client_factory):
 
     response = client.post("/", data={"abc": "123 @"})
     assert response.json() == {"form": {"abc": "123 @"}}
+
+
+def test_request_multipart_file_max_size(test_client_factory):
+    async def app(scope, receive, send):
+        request = Request(scope, receive)
+        form = await request.form(max_file_size_in_memory=1)
+        uploadfile = form["file"]
+        assert isinstance(uploadfile, UploadFile)
+        file = uploadfile.file
+        response = JSONResponse({"rolled": getattr(file, "_rolled", True)})
+        await response(scope, receive, send)
+
+    client = test_client_factory(app)
+
+    response = client.post("/", files=[("file", ("file.txt", b"more than 1 byte"))])
+    assert response.status_code == 200, response.content
+    assert response.json() == {"rolled": True}
+
+    response = client.post("/", files=[("file", ("file.txt", b"1"))])
+    assert response.status_code == 200, response.content
+    assert response.json() == {"rolled": False}
+
 
 
 def test_request_body_then_stream(test_client_factory):
