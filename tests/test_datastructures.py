@@ -239,6 +239,17 @@ async def test_uploadfile_rolled():
     await file.close()
 
 
+@pytest.mark.anyio
+async def test_uploadfile_not_rolled():
+    stream: BinaryIO = SpooledTemporaryFile(max_size=1024)  # type: ignore[assignment]
+    file = UploadFile(filename="file", file=stream)
+    assert await file.read() == b""
+    await file.write(b"data")
+    assert await file.read() == b""
+    await file.seek(0)
+    assert await file.read() == b"data"
+    await file.close()
+
 
 def test_formdata():
     stream = io.BytesIO(b"data")
