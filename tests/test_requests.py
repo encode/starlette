@@ -1,8 +1,7 @@
-from tempfile import SpooledTemporaryFile
 import anyio
 import pytest
-from starlette.datastructures import UploadFile
 
+from starlette.datastructures import UploadFile
 from starlette.requests import ClientDisconnect, Request, State
 from starlette.responses import JSONResponse, Response
 
@@ -139,7 +138,6 @@ def test_request_multipart_file_max_size(test_client_factory):
     response = client.post("/", files=[("file", ("file.txt", b"1"))])
     assert response.status_code == 200, response.content
     assert response.json() == {"rolled": False}
-
 
 
 def test_request_body_then_stream(test_client_factory):
