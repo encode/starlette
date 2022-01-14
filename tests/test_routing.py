@@ -517,6 +517,40 @@ def test_url_for_with_root_path(test_client_factory):
     }
 
 
+
+def echo_urls_for(*keys):
+    def echo_urls(request):
+        return JSONResponse(
+            {
+                k: request.url_for(k)
+                for k in keys
+            }
+        )
+    return echo_urls
+
+def test_url_with_sub_app(test_client_factory):
+    sub_app = Starlette(
+        routes=[Route("/",  echo_urls_for('subapp_index'), name="subapp_index", methods=["GET"])
+    ])
+    app = Starlette(
+        routes=[
+            Route("/", echo_urls_for('index', 'submount:subapp_index'), name="index", methods=["GET"]),
+            Mount('/submount', app=sub_app, name='submount')
+        ])
+    
+    client = test_client_factory(
+        app, base_url="https://www.example.org/", root_path="/sub_path"
+    )
+    response = client.get("/")
+    assert response.json() == {
+        "index": "https://www.example.org/sub_path/",
+        "submount:subapp_index": "https://www.example.org/sub_path/submount/",
+    }
+    response = client.get("/submount/")
+    assert response.json() == {
+        "subapp_index": "https://www.example.org/sub_path/submount/"
+    }
+
 async def stub_app(scope, receive, send):
     pass  # pragma: no cover
 
