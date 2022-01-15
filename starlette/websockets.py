@@ -13,8 +13,9 @@ class WebSocketState(enum.Enum):
 
 
 class WebSocketDisconnect(Exception):
-    def __init__(self, code: int = 1000) -> None:
+    def __init__(self, code: int = None, reason: str = None) -> None:
         self.code = code
+        self.reason = reason
 
 
 class WebSocket(HTTPConnection):
@@ -144,13 +145,28 @@ class WebSocket(HTTPConnection):
         else:
             await self.send({"type": "websocket.send", "bytes": text.encode("utf-8")})
 
-    async def close(self, code: int = 1000) -> None:
-        await self.send({"type": "websocket.close", "code": code})
+    async def close(self, code: int = None, reason: str = None) -> None:
+        message: dict = {"type": "websocket.close"}
+
+        if code is not None:
+            message["code"] = code
+        if reason is not None:
+            message["reason"] = reason
+
+        await self.send(message)
 
 
 class WebSocketClose:
-    def __init__(self, code: int = 1000) -> None:
+    def __init__(self, code: int = None, reason: str = None) -> None:
         self.code = code
+        self.reason = reason
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        await send({"type": "websocket.close", "code": self.code})
+        message: dict = {"type": "websocket.close"}
+
+        if self.code is not None:
+            message["code"] = self.code
+        if self.reason is not None:
+            message["reason"] = self.reason
+
+        await send(message)

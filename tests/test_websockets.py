@@ -2,7 +2,7 @@ import anyio
 import pytest
 
 from starlette import status
-from starlette.websockets import WebSocket, WebSocketDisconnect
+from starlette.websockets import WebSocket, WebSocketClose, WebSocketDisconnect
 
 
 def test_websocket_url(test_client_factory):
@@ -391,3 +391,39 @@ def test_websocket_scope_interface():
     assert websocket == websocket
     assert websocket in {websocket}
     assert {websocket} == {websocket}
+
+
+def test_websocket_close_reason(test_client_factory) -> None:
+    def app(scope):
+        async def asgi(receive, send):
+            websocket = WebSocket(scope, receive=receive, send=send)
+            await websocket.accept()
+            await websocket.close(code=1001, reason="Closing")
+
+        return asgi
+
+    client = test_client_factory(app)
+    with client.websocket_connect("/") as websocket:
+        with pytest.raises(WebSocketDisconnect) as exc:
+            websocket.receive_text()
+        assert exc.value.code == status.WS_1001_GOING_AWAY
+        assert exc.value.reason == "Closing"
+
+
+def test_websocket_close_reason_manual(test_client_factory) -> None:
+    def app(scope):
+        async def asgi(receive, send):
+            websocket = WebSocket(scope, receive=receive, send=send)
+            await websocket.accept()
+
+            websocket_close = WebSocketClose(code=1001, reason="Closing")
+            await websocket_close(scope, receive, send)
+
+        return asgi
+
+    client = test_client_factory(app)
+    with client.websocket_connect("/") as websocket:
+        with pytest.raises(WebSocketDisconnect) as exc:
+            websocket.receive_text()
+        assert exc.value.code == status.WS_1001_GOING_AWAY
+        assert exc.value.reason == "Closing"
