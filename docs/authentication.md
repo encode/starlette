@@ -7,8 +7,7 @@ interfaces will be available in your endpoints.
 ```python
 from starlette.applications import Starlette
 from starlette.authentication import (
-    AuthenticationBackend, AuthenticationError, SimpleUser, UnauthenticatedUser,
-    AuthCredentials
+    AuthCredentials, AuthenticationBackend, AuthenticationError, SimpleUser
 )
 from starlette.middleware import Middleware
 from starlette.middleware.authentication import AuthenticationMiddleware
