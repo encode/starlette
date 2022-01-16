@@ -19,11 +19,11 @@ import binascii
 
 
 class BasicAuthBackend(AuthenticationBackend):
-    async def authenticate(self, request):
-        if "Authorization" not in request.headers:
+    async def authenticate(self, conn):
+        if "Authorization" not in conn.headers:
             return
 
-        auth = request.headers["Authorization"]
+        auth = conn.headers["Authorization"]
         try:
             scheme, credentials = auth.split()
             if scheme.lower() != 'basic':
