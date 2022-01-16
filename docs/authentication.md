@@ -135,6 +135,10 @@ For class-based endpoints, you should wrap the decorator
 around a method on the class.
 
 ```python
+from starlette.authentication import requires
+from starlette.endpoints import HTTPEndpoint
+
+
 class Dashboard(HTTPEndpoint):
     @requires("authenticated")
     async def get(self, request):
@@ -147,6 +151,11 @@ You can customise the error response sent when a `AuthenticationError` is
 raised by an auth backend:
 
 ```python
+from starlette.middleware.authentication import AuthenticationMiddleware
+from starlette.requests import Request
+from starlette.responses import JSONResponse
+
+
 def on_auth_error(request: Request, exc: Exception):
     return JSONResponse({"error": str(exc)}, status_code=401)
 
