@@ -112,6 +112,8 @@ class FormParser:
 
 
 class MultiPartParser:
+    max_file_size = 1024 * 1024
+
     def __init__(
         self, headers: Headers, stream: typing.AsyncGenerator[bytes, None]
     ) -> None:
@@ -154,7 +156,7 @@ class MultiPartParser:
         message = (MultiPartMessage.END, b"")
         self.messages.append(message)
 
-    async def parse(self, max_file_size_in_memory: int) -> FormData:
+    async def parse(self) -> FormData:
         # Parse the Content-Type header to get the multipart boundary.
         content_type, params = parse_options_header(self.headers["Content-Type"])
         charset = params.get(b"charset", "utf-8")
@@ -216,7 +218,7 @@ class MultiPartParser:
                     field_name = _user_safe_decode(options[b"name"], charset)
                     if b"filename" in options:
                         filename = _user_safe_decode(options[b"filename"], charset)
-                        file_ = SpooledTemporaryFile(max_size=max_file_size_in_memory)
+                        file_ = SpooledTemporaryFile(max_size=self.max_file_size)
                         file = UploadFile(
                             file=file_,  # type: ignore[arg-type]
                             filename=filename,
