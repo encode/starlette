@@ -414,14 +414,13 @@ class UploadFile:
     """
 
     file: typing.BinaryIO
-    headers: "Headers"
 
     def __init__(
         self,
-        filename: str,
         file: typing.BinaryIO,
-        content_type: str = "",
         *,
+        filename: typing.Optional[str] = None,
+        content_type: typing.Optional[str] = None,
         headers: "typing.Optional[Headers]" = None,
     ) -> None:
         self.filename = filename
