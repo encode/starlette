@@ -90,6 +90,11 @@ def test_use_multiple_testclients_with_asyncio(test_client_factory, anyio_backen
         assert client_2.get("/").json() == {}
         assert parent_client.get("/").json() == {}
 
+        client_3 = test_client_factory(service, portal=parent_client.portal)
+        with client_3:
+            assert client_3.get("/").json() == {}
+            assert parent_client.get("/").json() == {}
+
 
 def test_use_testclient_as_contextmanager(test_client_factory, anyio_backend_name):
     """
