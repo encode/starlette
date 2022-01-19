@@ -214,9 +214,9 @@ class MultiPartParser:
                     field_name = _user_safe_decode(options[b"name"], charset)
                     if b"filename" in options:
                         filename = _user_safe_decode(options[b"filename"], charset)
-                        file_ = SpooledTemporaryFile(max_size=self.max_file_size)
+                        tempfile = SpooledTemporaryFile(max_size=self.max_file_size)
                         file = UploadFile(
-                            file=file_,  # type: ignore[arg-type]
+                            file=tempfile,  # type: ignore[arg-type]
                             filename=filename,
                             headers=Headers(raw=item_headers),
                         )
