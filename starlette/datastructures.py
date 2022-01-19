@@ -413,20 +413,20 @@ class UploadFile:
     An uploaded file included as part of the request data.
     """
 
-    file: typing.BinaryIO
-
     def __init__(
         self,
         file: typing.BinaryIO,
         *,
         filename: typing.Optional[str] = None,
-        content_type: typing.Optional[str] = None,
         headers: "typing.Optional[Headers]" = None,
     ) -> None:
         self.filename = filename
-        self.content_type = content_type
         self.file = file
         self.headers = headers or Headers()
+
+    @property
+    def content_type(self) -> typing.Optional[str]:
+        return self.headers.get("content-type", None)
 
     @property
     def _in_memory(self) -> bool:

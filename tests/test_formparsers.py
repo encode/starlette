@@ -108,7 +108,7 @@ def test_multipart_request_files(tmpdir, test_client_factory):
             "test": {
                 "filename": "test.txt",
                 "content": "<file content>",
-                "content_type": "",
+                "content_type": None,
             }
         }
 
@@ -148,7 +148,7 @@ def test_multipart_request_multiple_files(tmpdir, test_client_factory):
             "test1": {
                 "filename": "test1.txt",
                 "content": "<file1 content>",
-                "content_type": "",
+                "content_type": None,
             },
             "test2": {
                 "filename": "test2.txt",
@@ -216,7 +216,7 @@ def test_multi_items(tmpdir, test_client_factory):
                 {
                     "filename": "test1.txt",
                     "content": "<file1 content>",
-                    "content_type": "",
+                    "content_type": None,
                 },
                 {
                     "filename": "test2.txt",

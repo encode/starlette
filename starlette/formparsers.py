@@ -158,7 +158,7 @@ class MultiPartParser:
 
     async def parse(self) -> FormData:
         # Parse the Content-Type header to get the multipart boundary.
-        content_type, params = parse_options_header(self.headers["Content-Type"])
+        _, params = parse_options_header(self.headers["Content-Type"])
         charset = params.get(b"charset", "utf-8")
         if type(charset) == bytes:
             charset = charset.decode("latin-1")
@@ -181,7 +181,6 @@ class MultiPartParser:
         header_field = b""
         header_value = b""
         content_disposition = None
-        content_type = b""
         field_name = ""
         data = b""
         file: typing.Optional[UploadFile] = None
@@ -197,7 +196,6 @@ class MultiPartParser:
             for message_type, message_bytes in messages:
                 if message_type == MultiPartMessage.PART_BEGIN:
                     content_disposition = None
-                    content_type = b""
                     data = b""
                     item_headers = []
                 elif message_type == MultiPartMessage.HEADER_FIELD:
@@ -208,8 +206,6 @@ class MultiPartParser:
                     field = header_field.lower()
                     if field == b"content-disposition":
                         content_disposition = header_value
-                    elif field == b"content-type":
-                        content_type = header_value
                     item_headers.append((field, header_value))
                     header_field = b""
                     header_value = b""
@@ -222,7 +218,6 @@ class MultiPartParser:
                         file = UploadFile(
                             file=file_,  # type: ignore[arg-type]
                             filename=filename,
-                            content_type=content_type.decode("latin-1"),
                             headers=Headers(raw=item_headers),
                         )
                     else:
