@@ -1,11 +1,12 @@
 ## 0.18.0
 
-January 14, 2022
+January 20, 2022
 
 #### Added
 * Change default chunk size from 4Kb to 64Kb on `FileResponse` [#1345](https://github.com/encode/starlette/pull/1345).
 * Add support for `functools.partial` in `WebSocketRoute` [#1356](https://github.com/encode/starlette/pull/1356).
 * Add `StaticFiles` packages with directory [#1350](https://github.com/encode/starlette/pull/1350).
+* Allow environment options in `Jinja2Templates` [#1401](https://github.com/encode/starlette/pull/1401).
 * Allow HEAD method on `HttpEndpoint` [#1346](https://github.com/encode/starlette/pull/1346).
 * Accept additional headers on `websocket.accept` message [#1361](https://github.com/encode/starlette/pull/1361).
 * Add headers attribute to `UploadFile` [#1382](https://github.com/encode/starlette/pull/1382).
