@@ -74,6 +74,9 @@ class WebSocket(HTTPConnection):
         subprotocol: str = None,
         headers: typing.Iterable[typing.Tuple[bytes, bytes]] = None,
     ) -> None:
+        if headers is None:
+            headers = []
+
         if self.client_state == WebSocketState.CONNECTING:
             # If we haven't yet seen the 'connect' message, then wait for it first.
             await self.receive()
