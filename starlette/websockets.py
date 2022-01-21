@@ -146,13 +146,15 @@ class WebSocket(HTTPConnection):
             await self.send({"type": "websocket.send", "bytes": text.encode("utf-8")})
 
     async def close(self, code: int = 1000, reason: str = None) -> None:
-        await self.send({"type": "websocket.close", "code": code, "reason": reason})
+        await self.send(
+            {"type": "websocket.close", "code": code, "reason": reason or ""}
+        )
 
 
 class WebSocketClose:
-    def __init__(self, code: int = 1000, reason: str = None) -> None:
+    def __init__(self, code: int = 1000, reason: str = "") -> None:
         self.code = code
-        self.reason = reason
+        self.reason = reason or ""
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         await send(
