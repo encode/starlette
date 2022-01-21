@@ -398,7 +398,7 @@ def test_websocket_close_reason(test_client_factory) -> None:
         async def asgi(receive, send):
             websocket = WebSocket(scope, receive=receive, send=send)
             await websocket.accept()
-            await websocket.close(code=1001, reason="Going Away")
+            await websocket.close(code=status.WS_1001_GOING_AWAY, reason="Going Away")
 
         return asgi
 
