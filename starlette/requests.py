@@ -119,7 +119,7 @@ class HTTPConnection(Mapping):
         return self._query_params
 
     @property
-    def path_params(self) -> typing.Mapping[str, str]:
+    def path_params(self) -> typing.Dict[str, str]:
         return self.scope.get("path_params", {})
 
     @property
