@@ -146,10 +146,7 @@ class WebSocket(HTTPConnection):
             await self.send({"type": "websocket.send", "bytes": text.encode("utf-8")})
 
     async def close(self, code: int = 1000, reason: str = None) -> None:
-        if reason is None:
-            await self.send({"type": "websocket.close", "code": code})
-        else:
-            await self.send({"type": "websocket.close", "code": code, "reason": reason})
+        await self.send({"type": "websocket.close", "code": code, "reason": reason})
 
 
 class WebSocketClose:
@@ -158,9 +155,6 @@ class WebSocketClose:
         self.reason = reason
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if self.reason is None:
-            await send({"type": "websocket.close", "code": self.code})
-        else:
-            await send(
-                {"type": "websocket.close", "code": self.code, "reason": self.reason}
-            )
+        await send(
+            {"type": "websocket.close", "code": self.code, "reason": self.reason}
+        )
