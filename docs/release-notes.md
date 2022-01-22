@@ -1,6 +1,6 @@
 ## 0.18.0
 
-January 20, 2022
+January 22, 2022
 
 #### Added
 * Change default chunk size from 4Kb to 64Kb on `FileResponse` [#1345](https://github.com/encode/starlette/pull/1345).
