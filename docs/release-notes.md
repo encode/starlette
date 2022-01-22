@@ -8,7 +8,8 @@ January 20, 2022
 * Add `StaticFiles` packages with directory [#1350](https://github.com/encode/starlette/pull/1350).
 * Allow environment options in `Jinja2Templates` [#1401](https://github.com/encode/starlette/pull/1401).
 * Allow HEAD method on `HttpEndpoint` [#1346](https://github.com/encode/starlette/pull/1346).
-* Accept additional headers on `websocket.accept` message [#1361](https://github.com/encode/starlette/pull/1361).
+* Accept additional headers on `websocket.accept` message [#1361](https://github.com/encode/starlette/pull/1361) and [#1422](https://github.com/encode/starlette/pull/1422).
+* Add `reason` to `WebSocket` close ASGI event [#1417](https://github.com/encode/starlette/pull/1417).
 * Add headers attribute to `UploadFile` [#1382](https://github.com/encode/starlette/pull/1382).
 * Don't omit `Content-Length` header for `Content-Length: 0` cases [#1395](https://github.com/encode/starlette/pull/1395).
 * Don't set headers for responses with 1xx, 204 and 304 status code [#1397](https://github.com/encode/starlette/pull/1397).
