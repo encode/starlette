@@ -319,7 +319,7 @@ def test_no_additional_headers(test_client_factory):
     def app(scope):
         async def asgi(receive, send):
             websocket = WebSocket(scope, receive=receive, send=send)
-            await websocket.accept(headers=None)
+            await websocket.accept()
             await websocket.close()
 
         return asgi
