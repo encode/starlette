@@ -3,6 +3,7 @@ import re
 from starlette.applications import Starlette
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import JSONResponse
+from starlette.testclient import TestClient
 
 
 def view_session(request):
@@ -137,7 +138,7 @@ def test_invalid_session_cookie(test_client_factory):
 def test_session_cookie(test_client_factory):
     app = create_app()
     app.add_middleware(SessionMiddleware, secret_key="example", max_age=None)
-    client = test_client_factory(app)
+    client: TestClient = test_client_factory(app)
 
     response = client.post("/update_session", json={"some": "data"})
     assert response.json() == {"session": {"some": "data"}}
@@ -146,6 +147,6 @@ def test_session_cookie(test_client_factory):
     set_cookie = response.headers["set-cookie"]
     assert "Max-Age" not in set_cookie
 
-    client.cookies.clear_session_cookies()
+    client.cookies.delete("session")
     response = client.get("/view_session")
     assert response.json() == {"session": {}}

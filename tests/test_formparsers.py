@@ -187,8 +187,8 @@ def test_multipart_request_multiple_files_with_headers(tmpdir, test_client_facto
                         "content-disposition",
                         'form-data; name="test2"; filename="test2.txt"',
                     ],
-                    ["content-type", "text/plain"],
                     ["x-custom", "f2"],
+                    ["content-type", "text/plain"],
                 ],
             },
         }
