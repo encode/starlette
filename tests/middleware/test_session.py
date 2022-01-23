@@ -66,7 +66,9 @@ def test_session_expires(test_client_factory):
     # requests removes expired cookies from response.cookies, we need to
     # fetch session id from the headers and pass it explicitly
     expired_cookie_header = response.headers["set-cookie"]
-    expired_session_value = re.search(r"session=([^;]*);", expired_cookie_header)[1]
+    expired_session_match = re.search(r"session=([^;]*);", expired_cookie_header)
+    assert expired_session_match is not None
+    expired_session_value = expired_session_match[1]
     client = test_client_factory(app, cookies={"session": expired_session_value})
     response = client.get("/view_session")
     assert response.json() == {"session": {}}
@@ -112,7 +114,9 @@ def test_session_cookie_subpath(test_client_factory):
     response = client.post("/second_app/update_session", json={"some": "data"})
     assert response.status_code == 200
     cookie = response.headers["set-cookie"]
-    cookie_path = re.search(r"; path=(\S+);", cookie).groups()[0]
+    cookie_path_match = re.search(r"; path=(\S+);", cookie)
+    assert cookie_path_match is not None
+    cookie_path = cookie_path_match.groups()[0]
     assert cookie_path == "/second_app"
 
 
@@ -126,5 +130,22 @@ def test_invalid_session_cookie(test_client_factory):
 
     # we expect it to not raise an exception if we provide a bogus session cookie
     client = test_client_factory(app, cookies={"session": "invalid"})
+    response = client.get("/view_session")
+    assert response.json() == {"session": {}}
+
+
+def test_session_cookie(test_client_factory):
+    app = create_app()
+    app.add_middleware(SessionMiddleware, secret_key="example", max_age=None)
+    client = test_client_factory(app)
+
+    response = client.post("/update_session", json={"some": "data"})
+    assert response.json() == {"session": {"some": "data"}}
+
+    # check cookie max-age
+    set_cookie = response.headers["set-cookie"]
+    assert "Max-Age" not in set_cookie
+
+    client.cookies.clear_session_cookies()
     response = client.get("/view_session")
     assert response.json() == {"session": {}}
