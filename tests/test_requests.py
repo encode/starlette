@@ -45,7 +45,7 @@ def test_request_headers(test_client_factory):
         "headers": {
             "host": "example.org",
             "user-agent": "testclient",
-            "accept-encoding": "gzip, deflate",
+            "accept-encoding": "gzip, deflate, br",
             "accept": "*/*",
             "connection": "keep-alive",
         }
