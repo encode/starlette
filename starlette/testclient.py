@@ -7,6 +7,7 @@ import math
 import queue
 import sys
 import typing
+import warnings
 from concurrent.futures import Future
 from types import GeneratorType
 from urllib.parse import unquote, urljoin
@@ -14,7 +15,6 @@ from urllib.parse import unquote, urljoin
 import anyio
 import httpx
 from anyio.streams.stapled import StapledObjectStream
-from httpx._types import CookieTypes
 
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from starlette.websockets import WebSocketDisconnect
@@ -363,7 +363,7 @@ class TestClient(httpx.Client):
         root_path: str = "",
         backend: str = "asyncio",
         backend_options: typing.Optional[typing.Dict[str, typing.Any]] = None,
-        cookies: CookieTypes = None,
+        cookies: httpx._client.CookieTypes = None,
     ) -> None:
         self.async_backend = _AsyncBackend(
             backend=backend, backend_options=backend_options or {}
@@ -398,7 +398,30 @@ class TestClient(httpx.Client):
             with anyio.start_blocking_portal(**self.async_backend) as portal:
                 yield portal
 
-    def request(
+    def _choose_redirect_arg(
+        self,
+        follow_redirects: typing.Optional[bool],
+        allow_redirects: typing.Optional[bool],
+    ) -> typing.Union[bool, httpx._client.UseClientDefault]:
+        redirect: typing.Union[
+            bool, httpx._client.UseClientDefault
+        ] = httpx._client.USE_CLIENT_DEFAULT
+        if allow_redirects is not None:
+            message = (
+                "The `allow_redirects` argument is deprecated. "
+                "Use `follow_redirects` instead."
+            )
+            warnings.warn(message, DeprecationWarning)
+            redirect = allow_redirects
+        if follow_redirects is not None:
+            redirect = follow_redirects
+        elif allow_redirects is not None and follow_redirects is not None:
+            raise RuntimeError(  # pragma: no cover
+                "Cannot use both `allow_redirects` and `follow_redirects`."
+            )
+        return redirect
+
+    def request(  # type: ignore[override]
         self,
         method: str,
         url: httpx._types.URLTypes,
@@ -413,15 +436,15 @@ class TestClient(httpx.Client):
         auth: typing.Union[
             httpx._types.AuthTypes, httpx._client.UseClientDefault
         ] = httpx._client.USE_CLIENT_DEFAULT,
-        follow_redirects: typing.Union[
-            bool, httpx._client.UseClientDefault
-        ] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: bool = None,
+        allow_redirects: bool = None,
         timeout: typing.Union[
             httpx._client.TimeoutTypes, httpx._client.UseClientDefault
         ] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: dict = None,
     ) -> httpx.Response:
         url = self.base_url.join(url)
+        redirect = self._choose_redirect_arg(follow_redirects, allow_redirects)
         return super().request(
             method,
             url,
@@ -433,7 +456,234 @@ class TestClient(httpx.Client):
             headers=headers,
             cookies=cookies,
             auth=auth,
-            follow_redirects=follow_redirects,
+            follow_redirects=redirect,
+            timeout=timeout,
+            extensions=extensions,
+        )
+
+    def get(  # type: ignore[override]
+        self,
+        url: httpx._types.URLTypes,
+        *,
+        params: httpx._types.QueryParamTypes = None,
+        headers: httpx._types.HeaderTypes = None,
+        cookies: httpx._types.CookieTypes = None,
+        auth: typing.Union[
+            httpx._types.AuthTypes, httpx._client.UseClientDefault
+        ] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: bool = None,
+        allow_redirects: bool = None,
+        timeout: typing.Union[
+            httpx._client.TimeoutTypes, httpx._client.UseClientDefault
+        ] = httpx._client.USE_CLIENT_DEFAULT,
+        extensions: dict = None,
+    ) -> httpx.Response:
+        redirect = self._choose_redirect_arg(follow_redirects, allow_redirects)
+        return super().get(
+            url,
+            params=params,
+            headers=headers,
+            cookies=cookies,
+            auth=auth,
+            follow_redirects=redirect,
+            timeout=timeout,
+            extensions=extensions,
+        )
+
+    def options(  # type: ignore[override]
+        self,
+        url: httpx._types.URLTypes,
+        *,
+        params: httpx._types.QueryParamTypes = None,
+        headers: httpx._types.HeaderTypes = None,
+        cookies: httpx._types.CookieTypes = None,
+        auth: typing.Union[
+            httpx._types.AuthTypes, httpx._client.UseClientDefault
+        ] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: bool = None,
+        allow_redirects: bool = None,
+        timeout: typing.Union[
+            httpx._client.TimeoutTypes, httpx._client.UseClientDefault
+        ] = httpx._client.USE_CLIENT_DEFAULT,
+        extensions: dict = None,
+    ) -> httpx.Response:
+        redirect = self._choose_redirect_arg(follow_redirects, allow_redirects)
+        return super().options(
+            url,
+            params=params,
+            headers=headers,
+            cookies=cookies,
+            auth=auth,
+            follow_redirects=redirect,
+            timeout=timeout,
+            extensions=extensions,
+        )
+
+    def head(  # type: ignore[override]
+        self,
+        url: httpx._types.URLTypes,
+        *,
+        params: httpx._types.QueryParamTypes = None,
+        headers: httpx._types.HeaderTypes = None,
+        cookies: httpx._types.CookieTypes = None,
+        auth: typing.Union[
+            httpx._types.AuthTypes, httpx._client.UseClientDefault
+        ] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: bool = None,
+        allow_redirects: bool = None,
+        timeout: typing.Union[
+            httpx._client.TimeoutTypes, httpx._client.UseClientDefault
+        ] = httpx._client.USE_CLIENT_DEFAULT,
+        extensions: dict = None,
+    ) -> httpx.Response:
+        redirect = self._choose_redirect_arg(follow_redirects, allow_redirects)
+        return super().head(
+            url,
+            params=params,
+            headers=headers,
+            cookies=cookies,
+            auth=auth,
+            follow_redirects=redirect,
+            timeout=timeout,
+            extensions=extensions,
+        )
+
+    def post(  # type: ignore[override]
+        self,
+        url: httpx._types.URLTypes,
+        *,
+        content: httpx._types.RequestContent = None,
+        data: httpx._types.RequestData = None,
+        files: httpx._types.RequestFiles = None,
+        json: typing.Any = None,
+        params: httpx._types.QueryParamTypes = None,
+        headers: httpx._types.HeaderTypes = None,
+        cookies: httpx._types.CookieTypes = None,
+        auth: typing.Union[
+            httpx._types.AuthTypes, httpx._client.UseClientDefault
+        ] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: bool = None,
+        allow_redirects: bool = None,
+        timeout: typing.Union[
+            httpx._client.TimeoutTypes, httpx._client.UseClientDefault
+        ] = httpx._client.USE_CLIENT_DEFAULT,
+        extensions: dict = None,
+    ) -> httpx.Response:
+        redirect = self._choose_redirect_arg(follow_redirects, allow_redirects)
+        return super().post(
+            url,
+            content=content,
+            data=data,
+            files=files,
+            json=json,
+            params=params,
+            headers=headers,
+            cookies=cookies,
+            auth=auth,
+            follow_redirects=redirect,
+            timeout=timeout,
+            extensions=extensions,
+        )
+
+    def put(  # type: ignore[override]
+        self,
+        url: httpx._types.URLTypes,
+        *,
+        content: httpx._types.RequestContent = None,
+        data: httpx._types.RequestData = None,
+        files: httpx._types.RequestFiles = None,
+        json: typing.Any = None,
+        params: httpx._types.QueryParamTypes = None,
+        headers: httpx._types.HeaderTypes = None,
+        cookies: httpx._types.CookieTypes = None,
+        auth: typing.Union[
+            httpx._types.AuthTypes, httpx._client.UseClientDefault
+        ] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: bool = None,
+        allow_redirects: bool = None,
+        timeout: typing.Union[
+            httpx._client.TimeoutTypes, httpx._client.UseClientDefault
+        ] = httpx._client.USE_CLIENT_DEFAULT,
+        extensions: dict = None,
+    ) -> httpx.Response:
+        redirect = self._choose_redirect_arg(follow_redirects, allow_redirects)
+        return super().put(
+            url,
+            content=content,
+            data=data,
+            files=files,
+            json=json,
+            params=params,
+            headers=headers,
+            cookies=cookies,
+            auth=auth,
+            follow_redirects=redirect,
+            timeout=timeout,
+            extensions=extensions,
+        )
+
+    def patch(  # type: ignore[override]
+        self,
+        url: httpx._types.URLTypes,
+        *,
+        content: httpx._types.RequestContent = None,
+        data: httpx._types.RequestData = None,
+        files: httpx._types.RequestFiles = None,
+        json: typing.Any = None,
+        params: httpx._types.QueryParamTypes = None,
+        headers: httpx._types.HeaderTypes = None,
+        cookies: httpx._types.CookieTypes = None,
+        auth: typing.Union[
+            httpx._types.AuthTypes, httpx._client.UseClientDefault
+        ] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: bool = None,
+        allow_redirects: bool = None,
+        timeout: typing.Union[
+            httpx._client.TimeoutTypes, httpx._client.UseClientDefault
+        ] = httpx._client.USE_CLIENT_DEFAULT,
+        extensions: dict = None,
+    ) -> httpx.Response:
+        redirect = self._choose_redirect_arg(follow_redirects, allow_redirects)
+        return super().patch(
+            url,
+            content=content,
+            data=data,
+            files=files,
+            json=json,
+            params=params,
+            headers=headers,
+            cookies=cookies,
+            auth=auth,
+            follow_redirects=redirect,
+            timeout=timeout,
+            extensions=extensions,
+        )
+
+    def delete(  # type: ignore[override]
+        self,
+        url: httpx._types.URLTypes,
+        *,
+        params: httpx._types.QueryParamTypes = None,
+        headers: httpx._types.HeaderTypes = None,
+        cookies: httpx._types.CookieTypes = None,
+        auth: typing.Union[
+            httpx._types.AuthTypes, httpx._client.UseClientDefault
+        ] = httpx._client.USE_CLIENT_DEFAULT,
+        follow_redirects: bool = None,
+        allow_redirects: bool = None,
+        timeout: typing.Union[
+            httpx._client.TimeoutTypes, httpx._client.UseClientDefault
+        ] = httpx._client.USE_CLIENT_DEFAULT,
+        extensions: dict = None,
+    ) -> httpx.Response:
+        redirect = self._choose_redirect_arg(follow_redirects, allow_redirects)
+        return super().delete(
+            url,
+            params=params,
+            headers=headers,
+            cookies=cookies,
+            auth=auth,
+            follow_redirects=redirect,
             timeout=timeout,
             extensions=extensions,
         )
