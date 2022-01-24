@@ -4,7 +4,7 @@
 import os
 import re
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 
 def get_version(package):
@@ -40,7 +40,7 @@ setup(
     install_requires=[
         "anyio>=3.0.0,<4",
         "asgiref>=3.4.0,<4",
-        "typing_extensions; python_version < '3.8'",
+        "typing_extensions; python_version < '3.10'",
         "contextlib2 >= 21.6.0; python_version < '3.7'",
     ],
     extras_require={

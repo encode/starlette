@@ -23,8 +23,9 @@ class WebSocketState(enum.Enum):
 
 
 class WebSocketDisconnect(Exception):
-    def __init__(self, code: int = 1000) -> None:
+    def __init__(self, code: int = 1000, reason: str = None) -> None:
         self.code = code
+        self.reason = reason or ""
 
 
 class WebSocket(HTTPConnection):
@@ -81,12 +82,18 @@ class WebSocket(HTTPConnection):
         else:
             raise RuntimeError('Cannot call "send" once a close message has been sent.')
 
-    async def accept(self, subprotocol: str = None) -> None:
+    async def accept(
+        self,
+        subprotocol: str = None,
+        headers: typing.Iterable[typing.Tuple[bytes, bytes]] = None,
+    ) -> None:
+        headers = headers or []
+
         if self.client_state == WebSocketState.CONNECTING:
             # If we haven't yet seen the 'connect' message, then wait for it first.
             await self.receive()
         accept_event = WebSocketAcceptEvent(
-            type="websocket.accept", subprotocol=subprotocol, headers=()
+            type="websocket.accept", subprotocol=subprotocol, headers=headers
         )
         await self.send(accept_event)
 
@@ -180,18 +187,19 @@ class WebSocket(HTTPConnection):
             )
             await self.send(send_event)
 
-    async def close(self, code: int = 1000) -> None:
+    async def close(self, code: int = 1000, reason: str = None) -> None:
         close_event = WebSocketCloseEvent(
             type="websocket.close",
             code=code,
-            reason=None,
+            reason=reason or "",
         )
         await self.send(close_event)
 
 
 class WebSocketClose:
-    def __init__(self, code: int = 1000) -> None:
+    def __init__(self, code: int = 1000, reason: str = None) -> None:
         self.code = code
+        self.reason = reason or ""
 
     async def __call__(
         self, scope: WWWScope, receive: ASGIReceiveCallable, send: ASGISendCallable
@@ -199,6 +207,6 @@ class WebSocketClose:
         close_event = WebSocketCloseEvent(
             type="websocket.close",
             code=self.code,
-            reason=None,
+            reason=self.reason,
         )
         await send(close_event)

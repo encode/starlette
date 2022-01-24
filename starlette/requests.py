@@ -57,7 +57,7 @@ def cookie_parser(cookie_string: str) -> typing.Dict[str, str]:
         key, val = key.strip(), val.strip()
         if key or val:
             # unquote using Python's algorithm.
-            cookie_dict[key] = http_cookies._unquote(val)  # type: ignore
+            cookie_dict[key] = http_cookies._unquote(val)
     return cookie_dict
 
 
@@ -187,11 +187,11 @@ class HTTPConnection(Mapping):
         return url_path.make_absolute_url(base_url=self.base_url)
 
 
-async def empty_receive() -> ASGIReceiveEvent:
+async def empty_receive() -> typing.NoReturn:
     raise RuntimeError("Receive channel has not been made available")
 
 
-async def empty_send(message: ASGISendEvent) -> None:
+async def empty_send(message: ASGISendEvent) -> typing.NoReturn:
     raise RuntimeError("Send channel has not been made available")
 
 

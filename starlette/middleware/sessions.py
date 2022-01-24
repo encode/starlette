@@ -22,7 +22,7 @@ class SessionMiddleware:
         app: ASGI3Application,
         secret_key: typing.Union[str, Secret],
         session_cookie: str = "session",
-        max_age: int = 14 * 24 * 60 * 60,  # 14 days, in seconds
+        max_age: typing.Optional[int] = 14 * 24 * 60 * 60,  # 14 days, in seconds
         same_site: str = "lax",
         https_only: bool = False,
     ) -> None:
@@ -65,13 +65,13 @@ class SessionMiddleware:
                     scope_session = scope["session"]  # type: ignore[typeddict-item]
                     data = b64encode(json.dumps(scope_session).encode("utf-8"))
                     data = self.signer.sign(data)
-                    headers = MutableHeaders(scope=message)  # type: ignore[arg-type]
-                    header_value = "%s=%s; path=%s; Max-Age=%d; %s" % (
-                        self.session_cookie,
-                        data.decode("utf-8"),
-                        path,
-                        self.max_age,
-                        self.security_flags,
+                    headers = MutableHeaders(scope=message)
+                    header_value = "{session_cookie}={data}; path={path}; {max_age}{security_flags}".format(  # noqa E501
+                        session_cookie=self.session_cookie,
+                        data=data.decode("utf-8"),
+                        path=path,
+                        max_age=f"Max-Age={self.max_age}; " if self.max_age else "",
+                        security_flags=self.security_flags,
                     )
                     headers.append("Set-Cookie", header_value)
                 elif not initial_session_was_empty:

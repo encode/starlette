@@ -133,5 +133,5 @@ class GZipResponder:
             await self.send(message)
 
 
-async def unattached_send(message: ASGISendEvent) -> None:
+async def unattached_send(message: ASGISendEvent) -> typing.NoReturn:
     raise RuntimeError("send awaitable not set")  # pragma: no cover

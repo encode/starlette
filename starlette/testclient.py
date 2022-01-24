@@ -326,7 +326,8 @@ class WebSocketTestSession:
     ) -> None:
         self.app = app
         self.scope = scope
-        self.accepted_subprotocol: typing.Optional[str] = None
+        self.accepted_subprotocol = None
+        self.extra_headers = None
         self.portal_factory = portal_factory
         self._receive_queue: "queue.Queue[typing.Any]" = queue.Queue()
         self._send_queue: "queue.Queue[typing.Any]" = queue.Queue()
@@ -343,12 +344,8 @@ class WebSocketTestSession:
         except Exception:
             self.exit_stack.close()
             raise
-        if message.get("subprotocol"):
-            message_subprotocol = message.get("subprotocol")
-            assert isinstance(message_subprotocol, str)
-            self.accepted_subprotocol = message_subprotocol
-        else:
-            self.accepted_subprotocol = None
+        self.accepted_subprotocol = message.get("subprotocol", None)
+        self.extra_headers = message.get("headers", None)
         return self
 
     def __exit__(self, *args: typing.Any) -> None:
@@ -387,8 +384,9 @@ class WebSocketTestSession:
     ) -> None:
         if message["type"] == "websocket.close":
             message_code = message.get("code", 1000)
+            message_reason = message.get("reason", "")
             assert isinstance(message_code, int)
-            raise WebSocketDisconnect(message_code)
+            raise WebSocketDisconnect(message_code, message_reason)
 
     def send(self, message: ASGIReceiveEvent) -> None:
         self._receive_queue.put(message)
