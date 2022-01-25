@@ -65,7 +65,7 @@ class SessionMiddleware:
                     scope_session = scope["session"]  # type: ignore[typeddict-item]
                     data = b64encode(json.dumps(scope_session).encode("utf-8"))
                     data = self.signer.sign(data)
-                    headers = MutableHeaders(scope=message)
+                    headers = MutableHeaders(scope=message)  # type: ignore[arg-type]
                     header_value = "{session_cookie}={data}; path={path}; {max_age}{security_flags}".format(  # noqa E501
                         session_cookie=self.session_cookie,
                         data=data.decode("utf-8"),
