@@ -164,7 +164,7 @@ class StaticFiles:
             if os.path.commonprefix([full_path, directory]) != directory:
                 # Don't allow misbehaving clients to break out of the static files
                 # directory.
-                continue
+                continue  # pragma: nocover
             try:
                 return full_path, os.stat(full_path)
             except (FileNotFoundError, NotADirectoryError):

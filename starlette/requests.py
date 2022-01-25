@@ -80,7 +80,7 @@ class HTTPConnection(Mapping):
         return self.scope[key]  # type: ignore[misc]
 
     def __iter__(self) -> typing.Iterator[str]:
-        return iter(self.scope)
+        return iter(self.scope)  # pragma: nocover
 
     def __len__(self) -> int:
         return len(self.scope)
