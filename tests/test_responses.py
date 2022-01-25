@@ -327,10 +327,11 @@ def test_head_method(test_client_factory):
 
 
 def test_empty_response(test_client_factory):
-    app = Response(status_code=200)
+    app = Response()
     client: TestClient = test_client_factory(app)
     response = client.get("/")
     assert response.headers["content-length"] == "0"
+    assert response.status_code == 204
 
 
 def test_empty_204_response(test_client_factory):
