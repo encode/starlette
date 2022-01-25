@@ -53,7 +53,7 @@ class Response:
             self.status_code = status_code or 204
         else:
             self.body = self.render(content)
-            self.status_code = status_code or self.default_status_code
+            self.status_code = status_code or 200
 
         self.init_headers(headers)
 
