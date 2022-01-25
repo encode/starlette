@@ -38,7 +38,7 @@ def test_bytes_response(test_client_factory):
 
 def test_json_none_response(test_client_factory):
     async def app(scope, receive, send):
-        response = JSONResponse(status_code=200)
+        response = JSONResponse()
         await response(scope, receive, send)
 
     client = test_client_factory(app)
