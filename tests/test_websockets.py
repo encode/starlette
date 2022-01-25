@@ -1,5 +1,6 @@
 import anyio
 import pytest
+from asgiref.typing import WebSocketScope
 
 from starlette import status
 from starlette.websockets import WebSocket, WebSocketDisconnect
@@ -375,7 +376,7 @@ def test_duplicate_disconnect(test_client_factory):
             websocket.close()
 
 
-def test_websocket_scope_interface():
+def test_websocket_scope_interface(websocket_scope: WebSocketScope):
     """
     A WebSocket can be instantiated with a scope, and presents a `Mapping`
     interface.
@@ -388,17 +389,16 @@ def test_websocket_scope_interface():
         pass  # pragma: no cover
 
     websocket = WebSocket(
-        {"type": "websocket", "path": "/abc/", "headers": []},
+        websocket_scope,
         receive=mock_receive,
         send=mock_send,
     )
     assert websocket["type"] == "websocket"
-    assert dict(websocket) == {"type": "websocket", "path": "/abc/", "headers": []}
-    assert len(websocket) == 3
+    assert len(websocket) == 13
 
     # check __eq__ and __hash__
     assert websocket != WebSocket(
-        {"type": "websocket", "path": "/abc/", "headers": []},
+        websocket_scope,
         receive=mock_receive,
         send=mock_send,
     )

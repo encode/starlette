@@ -88,23 +88,27 @@ def test_wsgi_exc_info(test_client_factory):
 
 
 def test_build_environ():
-    scope = {
-        "type": "http",
-        "http_version": "1.1",
-        "method": "GET",
-        "scheme": "https",
-        "path": "/",
-        "query_string": b"a=123&b=456",
-        "headers": [
+    scope = HTTPScope(
+        type="http",
+        asgi=asgi_version,
+        http_version="1.1",
+        method="GET",
+        scheme="https",
+        path="/",
+        raw_path="/".encode(),
+        root_path="",
+        query_string=b"a=123&b=456",
+        headers=[
             (b"host", b"www.example.org"),
             (b"content-type", b"application/json"),
             (b"content-length", b"18"),
             (b"accept", b"application/json"),
             (b"accept", b"text/plain"),
         ],
-        "client": ("134.56.78.4", 1453),
-        "server": ("www.example.org", 443),
-    }
+        client=("134.56.78.4", 1453),
+        server=("www.example.org", 443),
+        extensions=None,
+    )
     body = b'{"example":"body"}'
     environ = build_environ(scope, body)
     stream = environ.pop("wsgi.input")

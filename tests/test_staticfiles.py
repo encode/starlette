@@ -5,6 +5,7 @@ import time
 
 import anyio
 import pytest
+from asgiref.typing import HTTPScope
 
 from starlette.applications import Starlette
 from starlette.exceptions import HTTPException
@@ -46,7 +47,13 @@ def test_staticfiles_head_with_middleware(tmpdir, test_client_factory):
     with open(path, "w") as file:
         file.write("x" * 100)
 
-    routes = [Mount("/static", app=StaticFiles(directory=tmpdir), name="static")]
+    routes = [
+        Mount(
+            "/static",
+            app=StaticFiles(directory=tmpdir),  # type: ignore[arg-type]
+            name="static",
+        )
+    ]
     app = Starlette(routes=routes)
 
     @app.middleware("http")
@@ -79,7 +86,13 @@ def test_staticfiles_post(tmpdir, test_client_factory):
     with open(path, "w") as file:
         file.write("<file content>")
 
-    routes = [Mount("/", app=StaticFiles(directory=tmpdir), name="static")]
+    routes = [
+        Mount(
+            "/",
+            app=StaticFiles(directory=tmpdir),  # type: ignore[arg-type]
+            name="static",
+        )
+    ]
     app = Starlette(routes=routes)
     client = test_client_factory(app)
 
@@ -93,7 +106,13 @@ def test_staticfiles_with_directory_returns_404(tmpdir, test_client_factory):
     with open(path, "w") as file:
         file.write("<file content>")
 
-    routes = [Mount("/", app=StaticFiles(directory=tmpdir), name="static")]
+    routes = [
+        Mount(
+            "/",
+            app=StaticFiles(directory=tmpdir),  # type: ignore[arg-type]
+            name="static",
+        )
+    ]
     app = Starlette(routes=routes)
     client = test_client_factory(app)
 
@@ -107,7 +126,13 @@ def test_staticfiles_with_missing_file_returns_404(tmpdir, test_client_factory):
     with open(path, "w") as file:
         file.write("<file content>")
 
-    routes = [Mount("/", app=StaticFiles(directory=tmpdir), name="static")]
+    routes = [
+        Mount(
+            "/",
+            app=StaticFiles(directory=tmpdir),  # type: ignore[arg-type]
+            name="static",
+        )
+    ]
     app = Starlette(routes=routes)
     client = test_client_factory(app)
 
@@ -160,7 +185,7 @@ def test_staticfiles_config_check_occurs_only_once(tmpdir, test_client_factory):
         client.get("/")
 
 
-def test_staticfiles_prevents_breaking_out_of_directory(tmpdir):
+def test_staticfiles_prevents_breaking_out_of_directory(http_scope: HTTPScope, tmpdir):
     directory = os.path.join(tmpdir, "foo")
     os.mkdir(directory)
 
@@ -170,7 +195,7 @@ def test_staticfiles_prevents_breaking_out_of_directory(tmpdir):
 
     app = StaticFiles(directory=directory)
     # We can't test this with 'requests', so we test the app directly here.
-    path = app.get_path({"path": "/../example.txt"})
+    path = app.get_path(scope=http_scope)
     scope = {"method": "GET"}
 
     with pytest.raises(HTTPException) as exc_info:
@@ -383,7 +408,13 @@ def test_staticfiles_with_invalid_dir_permissions_returns_401(
 
     os.chmod(tmpdir, stat.S_IRWXO)
 
-    routes = [Mount("/", app=StaticFiles(directory=tmpdir), name="static")]
+    routes = [
+        Mount(
+            "/",
+            app=StaticFiles(directory=tmpdir),  # type: ignore[arg-type]
+            name="static",
+        )
+    ]
     app = Starlette(routes=routes)
     client = test_client_factory(app)
 
@@ -397,7 +428,13 @@ def test_staticfiles_with_missing_dir_returns_404(tmpdir, test_client_factory):
     with open(path, "w") as file:
         file.write("<file content>")
 
-    routes = [Mount("/", app=StaticFiles(directory=tmpdir), name="static")]
+    routes = [
+        Mount(
+            "/",
+            app=StaticFiles(directory=tmpdir),  # type: ignore[arg-type]
+            name="static",
+        )
+    ]
     app = Starlette(routes=routes)
     client = test_client_factory(app)
 
@@ -411,7 +448,13 @@ def test_staticfiles_access_file_as_dir_returns_404(tmpdir, test_client_factory)
     with open(path, "w") as file:
         file.write("<file content>")
 
-    routes = [Mount("/", app=StaticFiles(directory=tmpdir), name="static")]
+    routes = [
+        Mount(
+            "/",
+            app=StaticFiles(directory=tmpdir),  # type: ignore[arg-type]
+            name="static",
+        )
+    ]
     app = Starlette(routes=routes)
     client = test_client_factory(app)
 
@@ -430,7 +473,13 @@ def test_staticfiles_unhandled_os_error_returns_500(
     with open(path, "w") as file:
         file.write("<file content>")
 
-    routes = [Mount("/", app=StaticFiles(directory=tmpdir), name="static")]
+    routes = [
+        Mount(
+            "/",
+            app=StaticFiles(directory=tmpdir),  # type: ignore[arg-type]
+            name="static",
+        )
+    ]
     app = Starlette(routes=routes)
     client = test_client_factory(app, raise_server_exceptions=False)
 

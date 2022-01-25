@@ -1,5 +1,6 @@
 import anyio
 import pytest
+from asgiref.typing import HTTPScope
 
 from starlette.requests import ClientDisconnect, Request, State
 from starlette.responses import JSONResponse, Response
@@ -165,15 +166,15 @@ def test_request_json(test_client_factory):
     assert response.json() == {"json": {"a": "123"}}
 
 
-def test_request_scope_interface():
+def test_request_scope_interface(http_scope: HTTPScope):
     """
     A Request can be instantiated with a scope, and presents a `Mapping`
     interface.
     """
-    request = Request({"type": "http", "method": "GET", "path": "/abc/"})
+    request = Request(http_scope)
+    assert request["type"] == "http"
     assert request["method"] == "GET"
-    assert dict(request) == {"type": "http", "method": "GET", "path": "/abc/"}
-    assert len(request) == 3
+    assert len(request) == 13
 
 
 def test_request_without_setting_receive(test_client_factory):

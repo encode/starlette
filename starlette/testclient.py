@@ -344,8 +344,10 @@ class WebSocketTestSession:
         except Exception:
             self.exit_stack.close()
             raise
-        self.accepted_subprotocol = message.get("subprotocol", None)
-        self.extra_headers = message.get("headers", None)
+        self.accepted_subprotocol = message.get(  # type: ignore[assignment]
+            "subprotocol"
+        )
+        self.extra_headers = message.get("headers")  # type: ignore[assignment]
         return self
 
     def __exit__(self, *args: typing.Any) -> None:

@@ -29,7 +29,7 @@ def test_trusted_host_middleware(test_client_factory):
 
 def test_default_allowed_hosts():
     app = Starlette()
-    middleware = TrustedHostMiddleware(app)
+    middleware = TrustedHostMiddleware(app)  # type: ignore[arg-type]
     assert middleware.allowed_hosts == ["*"]
 
 

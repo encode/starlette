@@ -1,6 +1,7 @@
 import io
 
 import pytest
+from asgiref.typing import HTTPScope
 
 from starlette.datastructures import (
     URL,
@@ -87,34 +88,18 @@ def test_csv():
     assert str(csv) == "'localhost', '127.0.0.1', '0.0.0.0'"
 
 
-def test_url_from_scope():
-    u = URL(
-        scope={"path": "/path/to/somewhere", "query_string": b"abc=123", "headers": []}
-    )
+def test_url_from_scope(http_scope: HTTPScope):
+    u = URL(scope=http_scope)
     assert u == "/path/to/somewhere?abc=123"
     assert repr(u) == "URL('/path/to/somewhere?abc=123')"
 
-    u = URL(
-        scope={
-            "scheme": "https",
-            "server": ("example.org", 123),
-            "path": "/path/to/somewhere",
-            "query_string": b"abc=123",
-            "headers": [],
-        }
-    )
+    http_scope["server"] = ("example.org", 123)
+    u = URL(scope=http_scope)
     assert u == "https://example.org:123/path/to/somewhere?abc=123"
     assert repr(u) == "URL('https://example.org:123/path/to/somewhere?abc=123')"
 
-    u = URL(
-        scope={
-            "scheme": "https",
-            "server": ("example.org", 443),
-            "path": "/path/to/somewhere",
-            "query_string": b"abc=123",
-            "headers": [],
-        }
-    )
+    http_scope["server"] = ("example.org", 443)
+    u = URL(scope=http_scope)
     assert u == "https://example.org/path/to/somewhere?abc=123"
     assert repr(u) == "URL('https://example.org/path/to/somewhere?abc=123')"
 

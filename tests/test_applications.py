@@ -210,7 +210,7 @@ def test_app_mount(tmpdir, test_client_factory):
         file.write("<file content>")
 
     app = Starlette()
-    app.mount("/static", StaticFiles(directory=tmpdir))
+    app.mount("/static", StaticFiles(directory=tmpdir))  # type: ignore[arg-type]
 
     client = test_client_factory(app)
 
