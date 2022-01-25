@@ -49,8 +49,8 @@ class Response:
         self.background = background
 
         if content is None:
-            self.body = self.default_response
-            self.status_code = status_code
+            self.body = b""
+            self.status_code = status_code or 204
         else:
             self.body = self.render(content)
             self.status_code = status_code or self.default_status_code
