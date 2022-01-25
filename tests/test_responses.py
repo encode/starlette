@@ -43,7 +43,7 @@ def test_json_none_response(test_client_factory):
 
     client = test_client_factory(app)
     response = client.get("/")
-    assert response.json() == {}
+    assert response.content == b""
 
 
 def test_redirect_response(test_client_factory):
