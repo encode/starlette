@@ -330,8 +330,8 @@ def test_empty_response(test_client_factory):
     app = Response()
     client: TestClient = test_client_factory(app)
     response = client.get("/")
-    assert response.headers["content-length"] == "0"
     assert response.status_code == 204
+    assert "content-length" not in response.headers
 
 
 def test_empty_204_response(test_client_factory):
