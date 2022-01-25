@@ -33,8 +33,6 @@ def guess_type(
 class Response:
     media_type = None
     charset = "utf-8"
-    default_status_code = 200
-    default_response = b""
 
     def __init__(
         self,
@@ -80,11 +78,7 @@ class Response:
         if (
             body is not None
             and populate_content_length
-            and not (
-                self.status_code
-                and self.status_code < 200
-                or self.status_code in (204, 304)
-            )
+            and not (self.status_code < 200 or self.status_code in (204, 304))
         ):
             content_length = str(len(body))
             raw_headers.append((b"content-length", content_length.encode("latin-1")))
@@ -183,7 +177,6 @@ class PlainTextResponse(Response):
 
 class JSONResponse(Response):
     media_type = "application/json"
-    default_response = b"{}"
 
     def render(self, content: typing.Any) -> bytes:
         return json.dumps(
