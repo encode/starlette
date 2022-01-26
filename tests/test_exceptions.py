@@ -20,11 +20,11 @@ def no_content(request):
 def not_modified(request):
     raise HTTPException(status_code=304)
 
-    
+
 def not_allowed(request):
     raise HTTPException(status_code=405)
 
-    
+
 def with_headers(request):
     raise HTTPException(status_code=200, headers={"x-potato": "always"})
 
