@@ -20,9 +20,13 @@ def no_content(request):
 def not_modified(request):
     raise HTTPException(status_code=304)
 
-
+    
 def not_allowed(request):
     raise HTTPException(status_code=405)
+
+    
+def with_headers(request):
+    raise HTTPException(status_code=200, headers={"x-potato": "always"})
 
 
 class HandledExcAfterResponse:
@@ -39,6 +43,7 @@ router = Router(
         Route("/no_content", endpoint=no_content),
         Route("/not_modified", endpoint=not_modified),
         Route("/not_allowed", endpoint=not_allowed),
+        Route("/with_headers", endpoint=with_headers),
         Route("/handled_exc_after_response", endpoint=HandledExcAfterResponse()),
         WebSocketRoute("/runtime_error", endpoint=raise_runtime_error),
     ]
@@ -76,6 +81,12 @@ def test_not_allowed(client):
     response = client.get("/not_allowed")
     assert response.status_code == 405
     assert set(response.headers["allow"].split(", ")) == {"HEAD", "GET"}
+
+
+def test_with_headers(client):
+    response = client.get("/with_headers")
+    assert response.status_code == 200
+    assert response.headers["x-potato"] == "always"
 
 
 def test_websockets_should_raise(client):
