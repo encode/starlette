@@ -17,6 +17,10 @@ def not_modified(request):
     raise HTTPException(status_code=304)
 
 
+def not_allowed(request):
+    raise HTTPException(status_code=405)
+
+
 class HandledExcAfterResponse:
     async def __call__(self, scope, receive, send):
         response = PlainTextResponse("OK", status_code=200)
@@ -29,6 +33,7 @@ router = Router(
         Route("/runtime_error", endpoint=raise_runtime_error),
         Route("/not_acceptable", endpoint=not_acceptable),
         Route("/not_modified", endpoint=not_modified),
+        Route("/not_allowed", endpoint=not_allowed),
         Route("/handled_exc_after_response", endpoint=HandledExcAfterResponse()),
         WebSocketRoute("/runtime_error", endpoint=raise_runtime_error),
     ]
@@ -54,6 +59,12 @@ def test_not_modified(client):
     response = client.get("/not_modified")
     assert response.status_code == 304
     assert response.text == ""
+
+
+def test_not_allowed(client):
+    response = client.get("/not_allowed")
+    assert response.status_code == 405
+    assert set(response.headers["allow"].split(", ")) == {"HEAD", "GET"}
 
 
 def test_websockets_should_raise(client):

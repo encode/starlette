@@ -98,6 +98,16 @@ class ExceptionMiddleware:
             await response(scope, receive, sender)
 
     def http_exception(self, request: Request, exc: HTTPException) -> Response:
+        headers = {}
+        if exc.status_code == 405:
+            router = request.scope["router"]
+            for route in router.routes:
+                match, _ = route.matches(request.scope)
+                methods = getattr(route, "methods", [])
+                if methods and match != 0:  # not Match.NONE
+                    headers = {"allow": ", ".join(methods)}
         if exc.status_code in {204, 304}:
             return Response(b"", status_code=exc.status_code)
-        return PlainTextResponse(exc.detail, status_code=exc.status_code)
+        return PlainTextResponse(
+            exc.detail, status_code=exc.status_code, headers=headers
+        )

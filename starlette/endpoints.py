@@ -43,9 +43,17 @@ class HTTPEndpoint:
         # If we're running inside a starlette application then raise an
         # exception, so that the configurable exception handler can deal with
         # returning the response. For plain ASGI apps, just return the response.
+        allowed_methods = filter(
+            lambda method: getattr(self, method.lower(), None) is not None,
+            ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        )
         if "app" in self.scope:
             raise HTTPException(status_code=405)
-        return PlainTextResponse("Method Not Allowed", status_code=405)
+        return PlainTextResponse(
+            "Method Not Allowed",
+            status_code=405,
+            headers={"allow": ", ".join(allowed_methods)},
+        )
 
 
 class WebSocketEndpoint:

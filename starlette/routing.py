@@ -253,7 +253,11 @@ class Route(BaseRoute):
             if "app" in scope:
                 raise HTTPException(status_code=405)
             else:
-                response = PlainTextResponse("Method Not Allowed", status_code=405)
+                response = PlainTextResponse(
+                    "Method Not Allowed",
+                    status_code=405,
+                    headers={"allow": ", ".join(self.methods)},
+                )
             await response(scope, receive, send)
         else:
             await self.app(scope, receive, send)
