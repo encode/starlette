@@ -46,7 +46,6 @@ class Response:
         if media_type is not None:
             self.media_type = media_type
         self.background = background
-
         self.body = self.render(content)
         self.init_headers(headers)
 
