@@ -17,10 +17,11 @@ class HTTPEndpoint:
         self.scope = scope
         self.receive = receive
         self.send = send
-        self._allowed_methods = filter(
-            lambda method: getattr(self, method.lower(), None) is not None,
-            ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        )
+        self._allowed_methods = [
+            method
+            for method in ("GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+            if getattr(self, method.lower(), None) is not None
+        ]
 
     def __await__(self) -> typing.Generator:
         return self.dispatch().__await__()
