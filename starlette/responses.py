@@ -37,25 +37,22 @@ class Response:
     def __init__(
         self,
         content: typing.Any = None,
-        status_code: int = None,
+        status_code: int = 200,
         headers: dict = None,
         media_type: str = None,
         background: BackgroundTask = None,
     ) -> None:
+        self.status_code = status_code
         if media_type is not None:
             self.media_type = media_type
         self.background = background
 
-        if content is None:
-            self.body = b""
-            self.status_code = status_code or 204
-        else:
-            self.body = self.render(content)
-            self.status_code = status_code or 200
-
+        self.body = self.render(content)
         self.init_headers(headers)
 
     def render(self, content: typing.Any) -> bytes:
+        if content is None:
+            return b""
         if isinstance(content, bytes):
             return content
         return content.encode(self.charset)
@@ -177,6 +174,16 @@ class PlainTextResponse(Response):
 
 class JSONResponse(Response):
     media_type = "application/json"
+
+    def __init__(
+        self,
+        content: typing.Any,
+        status_code: int = 200,
+        headers: dict = None,
+        media_type: str = None,
+        background: BackgroundTask = None,
+    ) -> None:
+        super().__init__(content, status_code, headers, media_type, background)
 
     def render(self, content: typing.Any) -> bytes:
         return json.dumps(
