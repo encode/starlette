@@ -250,10 +250,13 @@ class Route(BaseRoute):
 
     async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
         if self.methods and scope["method"] not in self.methods:
+            headers = {"Allow": ", ".join(self.methods)}
             if "app" in scope:
-                raise HTTPException(status_code=405)
+                raise HTTPException(status_code=405, headers=headers)
             else:
-                response = PlainTextResponse("Method Not Allowed", status_code=405)
+                response = PlainTextResponse(
+                    "Method Not Allowed", status_code=405, headers=headers
+                )
             await response(scope, receive, send)
         else:
             await self.app(scope, receive, send)
@@ -350,7 +353,7 @@ class Mount(BaseRoute):
 
     @property
     def routes(self) -> typing.List[BaseRoute]:
-        return getattr(self.app, "routes", None)
+        return getattr(self.app, "routes", [])
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] in ("http", "websocket"):
@@ -440,7 +443,7 @@ class Host(BaseRoute):
 
     @property
     def routes(self) -> typing.List[BaseRoute]:
-        return getattr(self.app, "routes", None)
+        return getattr(self.app, "routes", [])
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] in ("http", "websocket"):

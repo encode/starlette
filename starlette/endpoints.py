@@ -17,6 +17,11 @@ class HTTPEndpoint:
         self.scope = scope
         self.receive = receive
         self.send = send
+        self._allowed_methods = [
+            method
+            for method in ("GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+            if getattr(self, method.lower(), None) is not None
+        ]
 
     def __await__(self) -> typing.Generator:
         return self.dispatch().__await__()
@@ -29,7 +34,9 @@ class HTTPEndpoint:
             else request.method.lower()
         )
 
-        handler = getattr(self, handler_name, self.method_not_allowed)
+        handler: typing.Callable[[Request], typing.Any] = getattr(
+            self, handler_name, self.method_not_allowed
+        )
         is_async = asyncio.iscoroutinefunction(handler)
         if is_async:
             response = await handler(request)
@@ -41,9 +48,10 @@ class HTTPEndpoint:
         # If we're running inside a starlette application then raise an
         # exception, so that the configurable exception handler can deal with
         # returning the response. For plain ASGI apps, just return the response.
+        headers = {"Allow": ", ".join(self._allowed_methods)}
         if "app" in self.scope:
-            raise HTTPException(status_code=405)
-        return PlainTextResponse("Method Not Allowed", status_code=405)
+            raise HTTPException(status_code=405, headers=headers)
+        return PlainTextResponse("Method Not Allowed", status_code=405, headers=headers)
 
 
 class WebSocketEndpoint:

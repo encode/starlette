@@ -122,12 +122,12 @@ multidict, containing both file uploads and text input. File upload items are re
 * `filename`: A `str` with the original file name that was uploaded (e.g. `myimage.jpg`).
 * `content_type`: A `str` with the content type (MIME type / media type) (e.g. `image/jpeg`).
 * `file`: A <a href="https://docs.python.org/3/library/tempfile.html#tempfile.SpooledTemporaryFile" target="_blank">`SpooledTemporaryFile`</a> (a <a href="https://docs.python.org/3/glossary.html#term-file-like-object" target="_blank">file-like</a> object). This is the actual Python file that you can pass directly to other functions or libraries that expect a "file-like" object.
-
+* `headers`: A `Headers` object. Often this will only be the `Content-Type` header, but if additional headers were included in the multipart field they will be included here. Note that these headers have no relationship with the headers in `Request.headers`.
 
 `UploadFile` has the following `async` methods. They all call the corresponding file methods underneath (using the internal `SpooledTemporaryFile`).
 
-* `async write(data)`: Writes `data` (`str` or `bytes`) to the file.
-* `async read(size)`: Reads `size` (`int`) bytes/characters of the file.
+* `async write(data)`: Writes `data` (`bytes`) to the file.
+* `async read(size)`: Reads `size` (`int`) bytes of the file.
 * `async seek(offset)`: Goes to the byte position `offset` (`int`) in the file.
     * E.g., `await myfile.seek(0)` would go to the start of the file.
 * `async close()`: Closes the file.
@@ -141,6 +141,7 @@ form = await request.form()
 filename = form["upload_file"].filename
 contents = await form["upload_file"].read()
 ```
+
 
 #### Application
 
