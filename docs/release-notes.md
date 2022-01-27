@@ -1,3 +1,13 @@
+## 0.19.0
+
+January, 27, 2022
+
+#### Added
+
+* Add `headers` parameter to `HTTPException` [#1435]().
+* Responses with `405 Method Not Allowed` returned from Starlette now insert an `Allow` header, as described by [RFC 7231](https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.5) [#1436]().
+* The `content` argument in `JSONResponse` is now required [#1431]().
+
 ## 0.18.0
 
 January 23, 2022
