@@ -28,6 +28,9 @@ exception_handlers = {
 app = Starlette(routes=routes, exception_handlers=exception_handlers)
 ```
 
+Exception handlers have the callable signature of `handler(conn, exception) -> response` and
+the conn is an `HTTPConnection` or it's subclasses either `Request` or `WebSocket` instance.
+
 If `debug` is enabled and an error occurs, then instead of using the installed
 500 handler, Starlette will respond with a traceback response.
 

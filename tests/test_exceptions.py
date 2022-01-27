@@ -1,27 +1,28 @@
 import pytest
 
 from starlette.exceptions import ExceptionMiddleware, HTTPException
+from starlette.requests import HTTPConnection
 from starlette.responses import PlainTextResponse
 from starlette.routing import Route, Router, WebSocketRoute
 
 
-def raise_runtime_error(request):
+def raise_runtime_error(conn: HTTPConnection):
     raise RuntimeError("Yikes")
 
 
-def not_acceptable(request):
+def not_acceptable(conn: HTTPConnection):
     raise HTTPException(status_code=406)
 
 
-def no_content(request):
+def no_content(conn: HTTPConnection):
     raise HTTPException(status_code=204)
 
 
-def not_modified(request):
+def not_modified(conn: HTTPConnection):
     raise HTTPException(status_code=304)
 
 
-def with_headers(request):
+def with_headers(conn: HTTPConnection):
     raise HTTPException(status_code=200, headers={"x-potato": "always"})
 
 
