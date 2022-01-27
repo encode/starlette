@@ -1,3 +1,5 @@
+## HTTP Routing
+
 Starlette has a simple but capable request routing system. A routing table
 is defined as a list of routes, and passed when instantiating the application.
 
@@ -26,8 +28,7 @@ The `endpoint` argument can be one of:
 
 * A regular function or async function, which accepts a single `request`
 argument and which should return a response.
-* A class that implements the ASGI interface, such as Starlette's [class based
-views](endpoints.md).
+* A class that implements the ASGI interface, such as Starlette's [HTTPEndpoint](endpoints.md#httpendpoint).
 
 ## Path Parameters
 
@@ -38,7 +39,7 @@ Route('/users/{username}', user)
 ```
 By default this will capture characters up to the end of the path or the next `/`.
 
-You can use convertors to modify what is captured. Four convertors are available:
+You can use convertors to modify what is captured. The available convertors are:
 
 * `str` returns a string, and is the default.
 * `int` returns a Python integer.
@@ -178,6 +179,51 @@ against the application, although these will only return the URL path.
 url = app.url_path_for("user_detail", username=...)
 ```
 
+## Host-based routing
+
+If you want to use different routes for the same path based on the `Host` header.
+
+Note that port is removed from the `Host` header when matching.
+For example, `Host (host='example.org:3600', ...)` will be processed 
+even if the `Host` header contains or does not contain a port other than `3600`
+(`example.org:5600`, `example.org`). 
+Therefore, you can specify the port if you need it for use in `url_for`.
+
+There are several ways to connect host-based routes to your application
+
+```python
+site = Router()  # Use eg. `@site.route()` to configure this.
+api = Router()  # Use eg. `@api.route()` to configure this.
+news = Router()  # Use eg. `@news.route()` to configure this.
+
+routes = [
+    Host('api.example.org', api, name="site_api")
+]
+
+app = Starlette(routes=routes)
+
+app.host('www.example.org', site, name="main_site")
+
+news_host = Host('news.example.org', news)
+app.router.routes.append(news_host)
+```
+
+URL lookups can include host parameters just like path parameters
+
+```python
+routes = [
+    Host("{subdomain}.example.org", name="sub", app=Router(routes=[
+        Mount("/users", name="users", routes=[
+            Route("/", user, name="user_list"),
+            Route("/{username}", user, name="user_detail")
+        ])
+    ]))
+]
+...
+url = request.url_for("sub:users:user_detail", username=..., subdomain=...)
+url = request.url_for("sub:users:user_list", subdomain=...)
+```
+
 ## Route priority
 
 Incoming paths are matched against each `Route` in order.
@@ -217,3 +263,42 @@ app = Router(routes=[
     ])
 ])
 ```
+
+## WebSocket Routing
+
+When working with WebSocket endpoints, you should use `WebSocketRoute`
+instead of the usual `Route`.
+
+Path parameters, and reverse URL lookups for `WebSocketRoute` work the the same
+as HTTP `Route`, which can be found in the HTTP [Route](#http-routing) section above.
+
+```python
+from starlette.applications import Starlette
+from starlette.routing import WebSocketRoute
+
+
+async def websocket_index(websocket):
+    await websocket.accept()
+    await websocket.send_text("Hello, websocket!")
+    await websocket.close()
+
+
+async def websocket_user(websocket):
+    name = websocket.path_params["name"]
+    await websocket.accept()
+    await websocket.send_text(f"Hello, {name}")
+    await websocket.close()
+
+
+routes = [
+    WebSocketRoute("/", endpoint=websocket_index),
+    WebSocketRoute("/{name}", endpoint=websocket_user),
+]
+
+app = Starlette(routes=routes)
+```
+
+The `endpoint` argument can be one of:
+
+* An async function, which accepts a single `websocket` argument.
+* A class that implements the ASGI interface, such as Starlette's [WebSocketEndpoint](endpoints.md#websocketendpoint).

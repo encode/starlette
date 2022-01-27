@@ -3,7 +3,7 @@ import typing
 from base64 import b64decode, b64encode
 
 import itsdangerous
-from itsdangerous.exc import BadTimeSignature, SignatureExpired
+from itsdangerous.exc import BadSignature
 
 from starlette.datastructures import MutableHeaders, Secret
 from starlette.requests import HTTPConnection
@@ -16,7 +16,7 @@ class SessionMiddleware:
         app: ASGIApp,
         secret_key: typing.Union[str, Secret],
         session_cookie: str = "session",
-        max_age: int = 14 * 24 * 60 * 60,  # 14 days, in seconds
+        max_age: typing.Optional[int] = 14 * 24 * 60 * 60,  # 14 days, in seconds
         same_site: str = "lax",
         https_only: bool = False,
     ) -> None:
@@ -42,7 +42,7 @@ class SessionMiddleware:
                 data = self.signer.unsign(data, max_age=self.max_age)
                 scope["session"] = json.loads(b64decode(data))
                 initial_session_was_empty = False
-            except (BadTimeSignature, SignatureExpired):
+            except BadSignature:
                 scope["session"] = {}
         else:
             scope["session"] = {}
@@ -55,12 +55,12 @@ class SessionMiddleware:
                     data = b64encode(json.dumps(scope["session"]).encode("utf-8"))
                     data = self.signer.sign(data)
                     headers = MutableHeaders(scope=message)
-                    header_value = "%s=%s; path=%s; Max-Age=%d; %s" % (
-                        self.session_cookie,
-                        data.decode("utf-8"),
-                        path,
-                        self.max_age,
-                        self.security_flags,
+                    header_value = "{session_cookie}={data}; path={path}; {max_age}{security_flags}".format(  # noqa E501
+                        session_cookie=self.session_cookie,
+                        data=data.decode("utf-8"),
+                        path=path,
+                        max_age=f"Max-Age={self.max_age}; " if self.max_age else "",
+                        security_flags=self.security_flags,
                     )
                     headers.append("Set-Cookie", header_value)
                 elif not initial_session_was_empty:
