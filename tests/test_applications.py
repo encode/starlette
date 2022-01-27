@@ -204,6 +204,7 @@ def test_websocket_raise_websocket_exception(client):
         assert response == {
             "type": "websocket.close",
             "code": status.WS_1003_UNSUPPORTED_DATA,
+            "reason": "",
         }
 
 
@@ -213,6 +214,7 @@ def test_websocket_raise_custom_exception(client):
         assert response == {
             "type": "websocket.close",
             "code": status.WS_1013_TRY_AGAIN_LATER,
+            "reason": "",
         }
 
 
