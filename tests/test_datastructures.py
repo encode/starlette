@@ -228,26 +228,22 @@ async def test_upload_file_file_input():
 
 
 @pytest.mark.anyio
-async def test_uploadfile_rolled():
-    stream: BinaryIO = SpooledTemporaryFile(max_size=1)  # type: ignore[assignment]
+@pytest.mark.parametrize(
+    "max_size", [1, 1024]
+)
+async def test_uploadfile_rolling(max_size: int) -> None:
+    """Test that we can r/w to a file before and after it rolls to disk"""
+    stream: BinaryIO = SpooledTemporaryFile(max_size=max_size)  # type: ignore[assignment]
     file = UploadFile(filename="file", file=stream)
     assert await file.read() == b""
     await file.write(b"data")
     assert await file.read() == b""
     await file.seek(0)
     assert await file.read() == b"data"
-    await file.close()
-
-
-@pytest.mark.anyio
-async def test_uploadfile_not_rolled():
-    stream: BinaryIO = SpooledTemporaryFile(max_size=1024)  # type: ignore[assignment]
-    file = UploadFile(filename="file", file=stream)
-    assert await file.read() == b""
-    await file.write(b"data")
+    await file.write(b" more")
     assert await file.read() == b""
     await file.seek(0)
-    assert await file.read() == b"data"
+    assert await file.read() == b"data more"
     await file.close()
 
 
