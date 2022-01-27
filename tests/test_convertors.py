@@ -21,7 +21,7 @@ class DateTimeConvertor(Convertor):
     def convert(self, value: str) -> datetime:
         return datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")
 
-    def to_string(self, value: dt.datetime) -> str:
+    def to_string(self, value: datetime) -> str:
         return value.strftime("%Y-%m-%dT%H:%M:%S")
 
 
