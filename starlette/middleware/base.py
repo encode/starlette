@@ -22,9 +22,11 @@ class BaseHTTPMiddleware:
             await self.app(scope, receive, send)
             return
 
+        call_next_response = None
+        send_stream, recv_stream = anyio.create_memory_object_stream()
+
         async def call_next(request: Request) -> Response:
             app_exc: typing.Optional[Exception] = None
-            send_stream, recv_stream = anyio.create_memory_object_stream()
 
             async def coro() -> None:
                 nonlocal app_exc
@@ -52,17 +54,22 @@ class BaseHTTPMiddleware:
                         assert message["type"] == "http.response.body"
                         yield message.get("body", b"")
 
-            response = StreamingResponse(
+            nonlocal call_next_response
+
+            call_next_response = StreamingResponse(
                 status_code=message["status"], content=body_stream()
             )
-            response.raw_headers = message["headers"]
-            return response
+            call_next_response.raw_headers = message["headers"]
+            return call_next_response
 
         async with anyio.create_task_group() as task_group:
             request = Request(scope, receive=receive)
             response = await self.dispatch_func(request, call_next)
+            if call_next_response and response is not call_next_response:
+                async with recv_stream:
+                    async for _ in recv_stream:
+                        ...
             await response(scope, receive, send)
-            task_group.cancel_scope.cancel()
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
