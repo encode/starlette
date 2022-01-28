@@ -68,7 +68,7 @@ class BaseHTTPMiddleware:
             if call_next_response and response is not call_next_response:
                 async with recv_stream:
                     async for _ in recv_stream:
-                        ...
+                        ...  # pragma: no cover
             await response(scope, receive, send)
 
     async def dispatch(
