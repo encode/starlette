@@ -2,4 +2,4 @@
 
 - [ ] I've updated the documentation.
 - [ ] I've added tests.
-- [ ] I've added an entry to the release-notes.md file.
+- [ ] I've added an entry to the `docs/release-notes.md` file.
