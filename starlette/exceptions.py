@@ -22,6 +22,9 @@ class HTTPException(Exception):
         class_name = self.__class__.__name__
         return f"{class_name}(status_code={self.status_code!r}, detail={self.detail!r})"
 
+    def __str__(self) -> str:
+        return f"(status_code={self.status_code!r}, detail={self.detail!r})"
+
 
 class ExceptionMiddleware:
     def __init__(
@@ -33,7 +36,7 @@ class ExceptionMiddleware:
         debug: bool = False,
     ) -> None:
         self.app = app
-        self.debug = debug  # TODO: We ought to handle 404 cases if debug is set.
+        self.debug = debug
         self._status_handlers: typing.Dict[int, typing.Callable] = {}
         self._exception_handlers: typing.Dict[
             typing.Type[Exception], typing.Callable
@@ -101,6 +104,13 @@ class ExceptionMiddleware:
             await response(scope, receive, sender)
 
     def http_exception(self, request: Request, exc: HTTPException) -> Response:
+        if self.debug:
+            from starlette.middleware.errors import ServerErrorMiddleware
+
+            return ServerErrorMiddleware.debug_response(
+                request, exc, status_code=exc.status_code
+            )
+
         if exc.status_code in {204, 304}:
             return Response(status_code=exc.status_code, headers=exc.headers)
         return PlainTextResponse(

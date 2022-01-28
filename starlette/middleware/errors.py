@@ -1,5 +1,6 @@
 import asyncio
 import html
+import http
 import inspect
 import traceback
 import typing
@@ -89,7 +90,7 @@ TEMPLATE = """
         <title>Starlette Debugger</title>
     </head>
     <body>
-        <h1>500 Server Error</h1>
+        <h1>{status_code} {status_code_phrase}</h1>
         <h2>{error}</h2>
         <div class="traceback-container">
             <p class="traceback-title">Traceback</p>
@@ -180,9 +181,8 @@ class ServerErrorMiddleware:
             # to optionally raise the error within the test case.
             raise exc
 
-    def format_line(
-        self, index: int, line: str, frame_lineno: int, frame_index: int
-    ) -> str:
+    @staticmethod
+    def format_line(index: int, line: str, frame_lineno: int, frame_index: int) -> str:
         values = {
             # HTML escape - line could contain < or >
             "line": html.escape(line).replace(" ", "&nbsp"),
@@ -193,9 +193,10 @@ class ServerErrorMiddleware:
             return LINE.format(**values)
         return CENTER_LINE.format(**values)
 
-    def generate_frame_html(self, frame: inspect.FrameInfo, is_collapsed: bool) -> str:
+    @staticmethod
+    def generate_frame_html(frame: inspect.FrameInfo, is_collapsed: bool) -> str:
         code_context = "".join(
-            self.format_line(index, line, frame.lineno, frame.index)  # type: ignore
+            ServerErrorMiddleware.format_line(index, line, frame.lineno, frame.index)  # type: ignore
             for index, line in enumerate(frame.code_context or [])
         )
 
@@ -213,7 +214,8 @@ class ServerErrorMiddleware:
         }
         return FRAME_TEMPLATE.format(**values)
 
-    def generate_html(self, exc: Exception, limit: int = 7) -> str:
+    @staticmethod
+    def generate_html(exc: Exception, limit: int = 7, status_code: int = 500) -> str:
         traceback_obj = traceback.TracebackException.from_exception(
             exc, capture_locals=True
         )
@@ -224,7 +226,9 @@ class ServerErrorMiddleware:
         if exc_traceback is not None:
             frames = inspect.getinnerframes(exc_traceback, limit)
             for frame in reversed(frames):
-                exc_html += self.generate_frame_html(frame, is_collapsed)
+                exc_html += ServerErrorMiddleware.generate_frame_html(
+                    frame, is_collapsed
+                )
                 is_collapsed = True
 
         # escape error class and text
@@ -233,19 +237,28 @@ class ServerErrorMiddleware:
             f"{html.escape(str(traceback_obj))}"
         )
 
-        return TEMPLATE.format(styles=STYLES, js=JS, error=error, exc_html=exc_html)
+        return TEMPLATE.format(
+            styles=STYLES,
+            js=JS,
+            error=error,
+            exc_html=exc_html,
+            status_code=status_code,
+            status_code_phrase=http.HTTPStatus(status_code).phrase,
+        )
 
-    def generate_plain_text(self, exc: Exception) -> str:
+    @staticmethod
+    def generate_plain_text(exc: Exception) -> str:
         return "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
 
-    def debug_response(self, request: Request, exc: Exception) -> Response:
+    @staticmethod
+    def debug_response(request: Request, exc: Exception, status_code=500) -> Response:
         accept = request.headers.get("accept", "")
 
         if "text/html" in accept:
-            content = self.generate_html(exc)
-            return HTMLResponse(content, status_code=500)
-        content = self.generate_plain_text(exc)
-        return PlainTextResponse(content, status_code=500)
+            content = ServerErrorMiddleware.generate_html(exc, status_code=status_code)
+            return HTMLResponse(content, status_code=status_code)
+        content = ServerErrorMiddleware.generate_plain_text(exc)
+        return PlainTextResponse(content, status_code=status_code)
 
     def error_response(self, request: Request, exc: Exception) -> Response:
         return PlainTextResponse("Internal Server Error", status_code=500)
