@@ -350,10 +350,9 @@ class Mount(BaseRoute):
         self.path = path.rstrip("/")
         if app is not None:
             self.app: ASGIApp = app
-            self._routes = getattr(app, "routes", [])
         else:
             self.app = Router(routes=routes)
-            self._routes = getattr(self.app, "routes", [])
+        self._routes = getattr(self.app, "routes", [])
         self.name = name
         self.path_regex, self.path_format, self.param_convertors = compile_path(
             self.path + "/{path:path}"
