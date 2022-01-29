@@ -68,3 +68,12 @@ def test_async_partial_object_call():
 
     partial = functools.partial(Sync(), 1)
     assert not iscoroutinefunction(partial)
+
+
+def test_async_nested_partial():
+    async def async_func(a, b):
+        return a + b
+
+    partial = functools.partial(async_func, b=2)
+    nested_partial = functools.partial(partial, a=1)
+    assert iscoroutinefunction(nested_partial)
