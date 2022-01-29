@@ -4,6 +4,7 @@ import sys
 
 import anyio
 import pytest
+import requests
 import sniffio
 import trio.lowlevel
 
@@ -229,3 +230,79 @@ def test_websocket_blocking_receive(test_client_factory):
     with client.websocket_connect("/") as websocket:
         data = websocket.receive_json()
         assert data == {"message": "test"}
+
+
+def test_timeout(test_client_factory):
+    done = False
+
+    async def app(scope, receive, send):
+        nonlocal done
+        assert (await receive())["type"] == "http.request"
+        assert (await receive())["type"] == "http.disconnect"
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 200,
+                "headers": [[b"content-type", b"text/plain"]],
+            }
+        )
+        await send({"type": "http.response.body", "body": b"Hello, world!"})
+        done = True
+
+    client = test_client_factory(app)
+    with pytest.raises(requests.ReadTimeout):
+        client.get("/", timeout=0.001)
+    assert done
+
+
+def test_timeout_generator(test_client_factory):
+    done = False
+
+    async def app(scope, receive, send):
+        nonlocal done
+        assert (await receive())["type"] == "http.request"
+        await anyio.sleep(0.01)
+        assert (await receive())["type"] == "http.request"
+        assert (await receive())["type"] == "http.disconnect"
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 200,
+                "headers": [[b"content-type", b"text/plain"]],
+            }
+        )
+        await send({"type": "http.response.body", "body": b"Hello, world!"})
+        done = True
+
+    client = test_client_factory(app)
+
+    def gen():
+        yield "hello"
+
+    with pytest.raises(requests.ReadTimeout):
+        client.post("/", data=gen(), timeout=0.001)
+    assert done
+
+
+def test_timeout_early_done(test_client_factory):
+    done = False
+
+    async def app(scope, receive, send):
+        nonlocal done
+        await anyio.sleep(0.01)
+        assert (await receive())["type"] == "http.request"
+        assert (await receive())["type"] == "http.disconnect"
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 200,
+                "headers": [[b"content-type", b"text/plain"]],
+            }
+        )
+        await send({"type": "http.response.body", "body": b"Hello, world!"})
+        done = True
+
+    client = test_client_factory(app)
+    with pytest.raises(requests.ReadTimeout):
+        client.get("/", timeout=0.001)
+    assert done

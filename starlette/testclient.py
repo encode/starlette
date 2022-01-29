@@ -12,6 +12,7 @@ import typing
 from concurrent.futures import Future
 from urllib.parse import unquote, urljoin, urlsplit
 
+import anyio
 import anyio.abc
 import requests
 from anyio.streams.stapled import StapledObjectStream
@@ -190,9 +191,17 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
         request_complete = False
         response_started = False
         response_complete: anyio.Event
+        timeout_called = False
         raw_kwargs: typing.Dict[str, typing.Any] = {"body": io.BytesIO()}
         template = None
         context = None
+
+        def do_timeout() -> None:
+            nonlocal timeout_called, response_complete, response_started
+            timeout_called = True
+            if request_complete:
+                response_started = True
+                response_complete.set()
 
         async def receive() -> Message:
             nonlocal request_complete
@@ -215,17 +224,23 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                     return {"type": "http.request", "body": chunk, "more_body": True}
                 except StopIteration:
                     request_complete = True
+                    if timeout_called:
+                        do_timeout()
                     return {"type": "http.request", "body": b""}
             else:
                 body_bytes = body
 
             request_complete = True
+            if timeout_called:
+                do_timeout()
             return {"type": "http.request", "body": body_bytes}
 
         async def send(message: Message) -> None:
             nonlocal raw_kwargs, response_started, template, context
 
-            if message["type"] == "http.response.start":
+            if timeout_called:
+                pass
+            elif message["type"] == "http.response.start":
                 assert (
                     not response_started
                 ), 'Received multiple "http.response.start" messages.'
@@ -259,15 +274,24 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 template = message["template"]
                 context = message["context"]
 
+        async def timeout_task(delay: float) -> None:
+            await anyio.sleep(delay)
+            do_timeout()
+
+        timeout: typing.Optional[float] = kwargs.get("timeout")
         try:
             with self.portal_factory() as portal:
                 response_complete = portal.call(anyio.Event)
+                if timeout:
+                    portal.start_task_soon(timeout_task, timeout)
                 portal.call(self.app, scope, receive, send)
         except BaseException as exc:
             if self.raise_server_exceptions:
                 raise exc
 
-        if self.raise_server_exceptions:
+        if timeout_called:
+            raise requests.exceptions.ReadTimeout()
+        elif self.raise_server_exceptions:
             assert response_started, "TestClient did not receive any response."
         elif not response_started:
             raw_kwargs = {
