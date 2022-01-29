@@ -1,8 +1,8 @@
-import asyncio
 import functools
 import inspect
 import typing
 
+from starlette._utils import iscoroutinefunction
 from starlette.exceptions import HTTPException
 from starlette.requests import HTTPConnection, Request
 from starlette.responses import RedirectResponse, Response
@@ -52,7 +52,7 @@ def requires(
 
             return websocket_wrapper
 
-        elif asyncio.iscoroutinefunction(func):
+        elif iscoroutinefunction(func):
             # Handle async request/response functions.
             @functools.wraps(func)
             async def async_wrapper(

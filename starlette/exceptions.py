@@ -1,7 +1,7 @@
-import asyncio
 import http
 import typing
 
+from starlette._utils import iscoroutinefunction
 from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, Response
@@ -94,7 +94,7 @@ class ExceptionMiddleware:
                 raise RuntimeError(msg) from exc
 
             request = Request(scope, receive=receive)
-            if asyncio.iscoroutinefunction(handler):
+            if iscoroutinefunction(handler):
                 response = await handler(request, exc)
             else:
                 response = await run_in_threadpool(handler, request, exc)

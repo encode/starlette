@@ -1,4 +1,3 @@
-import asyncio
 import contextlib
 import functools
 import inspect
@@ -10,6 +9,7 @@ import typing
 import warnings
 from enum import Enum
 
+from starlette._utils import iscoroutinefunction
 from starlette.concurrency import run_in_threadpool
 from starlette.convertors import CONVERTOR_TYPES, Convertor
 from starlette.datastructures import URL, Headers, URLPath
@@ -600,7 +600,7 @@ class Router:
         Run any `.on_startup` event handlers.
         """
         for handler in self.on_startup:
-            if asyncio.iscoroutinefunction(handler):
+            if iscoroutinefunction(handler):
                 await handler()
             else:
                 handler()
@@ -610,7 +610,7 @@ class Router:
         Run any `.on_shutdown` event handlers.
         """
         for handler in self.on_shutdown:
-            if asyncio.iscoroutinefunction(handler):
+            if iscoroutinefunction(handler):
                 await handler()
             else:
                 handler()
