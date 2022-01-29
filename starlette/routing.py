@@ -14,6 +14,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.convertors import CONVERTOR_TYPES, Convertor
 from starlette.datastructures import URL, Headers, URLPath
 from starlette.exceptions import HTTPException
+from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, RedirectResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -539,6 +540,8 @@ class Router:
         on_startup: typing.Sequence[typing.Callable] = None,
         on_shutdown: typing.Sequence[typing.Callable] = None,
         lifespan: typing.Callable[[typing.Any], typing.AsyncContextManager] = None,
+        *,
+        middleware: typing.Optional[typing.Sequence[Middleware]] = None,
     ) -> None:
         self.routes = [] if routes is None else list(routes)
         self.redirect_slashes = redirect_slashes
@@ -571,6 +574,11 @@ class Router:
             )
         else:
             self.lifespan_context = lifespan
+
+        self._app = self._route
+        if middleware is not None:
+            for cls, options in reversed(middleware):
+                self._app = cls(app=self._app, **options)
 
     async def not_found(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "websocket":
@@ -637,6 +645,43 @@ class Router:
             raise
         else:
             await send({"type": "lifespan.shutdown.complete"})
+        
+    def _route(self, scope: Scope, receive: Receive, send: Send) -> typing.Awaitable[None]:
+        partial = None
+
+        for route in self.routes:
+            # Determine if any route matches the incoming scope,
+            # and hand over to the matching route if found.
+            match, child_scope = route.matches(scope)
+            if match == Match.FULL:
+                scope.update(child_scope)
+                return route.handle(scope, receive, send)
+            elif match == Match.PARTIAL and partial is None:
+                partial = route
+                partial_scope = child_scope
+
+        if partial is not None:
+            #  Handle partial matches. These are cases where an endpoint is
+            # able to handle the request, but is not a preferred option.
+            # We use this in particular to deal with "405 Method Not Allowed".
+            scope.update(partial_scope)
+            return partial.handle(scope, receive, send)
+
+        if scope["type"] == "http" and self.redirect_slashes and scope["path"] != "/":
+            redirect_scope = dict(scope)
+            if scope["path"].endswith("/"):
+                redirect_scope["path"] = redirect_scope["path"].rstrip("/")
+            else:
+                redirect_scope["path"] = redirect_scope["path"] + "/"
+
+            for route in self.routes:
+                match, child_scope = route.matches(redirect_scope)
+                if match != Match.NONE:
+                    redirect_url = URL(scope=redirect_scope)
+                    response = RedirectResponse(url=str(redirect_url))
+                    return response(scope, receive, send)
+
+        return self.default(scope, receive, send)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         """
@@ -651,44 +696,7 @@ class Router:
             await self.lifespan(scope, receive, send)
             return
 
-        partial = None
-
-        for route in self.routes:
-            # Determine if any route matches the incoming scope,
-            # and hand over to the matching route if found.
-            match, child_scope = route.matches(scope)
-            if match == Match.FULL:
-                scope.update(child_scope)
-                await route.handle(scope, receive, send)
-                return
-            elif match == Match.PARTIAL and partial is None:
-                partial = route
-                partial_scope = child_scope
-
-        if partial is not None:
-            #  Handle partial matches. These are cases where an endpoint is
-            # able to handle the request, but is not a preferred option.
-            # We use this in particular to deal with "405 Method Not Allowed".
-            scope.update(partial_scope)
-            await partial.handle(scope, receive, send)
-            return
-
-        if scope["type"] == "http" and self.redirect_slashes and scope["path"] != "/":
-            redirect_scope = dict(scope)
-            if scope["path"].endswith("/"):
-                redirect_scope["path"] = redirect_scope["path"].rstrip("/")
-            else:
-                redirect_scope["path"] = redirect_scope["path"] + "/"
-
-            for route in self.routes:
-                match, child_scope = route.matches(redirect_scope)
-                if match != Match.NONE:
-                    redirect_url = URL(scope=redirect_scope)
-                    response = RedirectResponse(url=str(redirect_url))
-                    await response(scope, receive, send)
-                    return
-
-        await self.default(scope, receive, send)
+        await self._app(scope, receive, send)
 
     def __eq__(self, other: typing.Any) -> bool:
         return isinstance(other, Router) and self.routes == other.routes
