@@ -255,6 +255,7 @@ class CommaSeparatedStrings(typing.Sequence[str]):
 
 
 class ImmutableMultiDict(typing.Mapping[_KT, _VT_co]):
+    _dict: typing.Dict[_KT, _VT_co]
     def __init__(
         self,
         *args: typing.Union[
@@ -317,7 +318,7 @@ class ImmutableMultiDict(typing.Mapping[_KT, _VT_co]):
 
     def get(self, key: _KT, default: typing.Any = None) -> typing.Any:
         if key in self._dict:
-            return typing.cast(_VT_co, self._dict[key])
+            return self._dict[key]
         return default
 
     def __getitem__(self, key: _KT) -> _VT_co:
