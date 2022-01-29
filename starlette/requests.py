@@ -136,7 +136,7 @@ class HTTPConnection(Mapping):
     @property
     def client(self) -> Address:
         host, port = self.scope.get("client") or (None, None)
-        return Address(host=host, port=port)  # type: ignore[arg-type]
+        return Address(host=host, port=port)
 
     @property
     def session(self) -> dict:
