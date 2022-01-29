@@ -14,8 +14,7 @@ class CustomMiddleware(BaseHTTPMiddleware):
         return response
 
 
-app = Starlette()
-app.add_middleware(CustomMiddleware)
+app = Starlette(middleware=[Middleware(CustomMiddleware)])
 
 
 @app.route("/")

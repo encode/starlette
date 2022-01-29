@@ -1,12 +1,17 @@
 import functools
+from typing import Awaitable, Callable, List
 import uuid
 
 import pytest
 
 from starlette.applications import Starlette
+from starlette.middleware import Middleware
+from starlette.requests import Request
 from starlette.responses import JSONResponse, PlainTextResponse, Response
 from starlette.routing import Host, Mount, NoMatchFound, Route, Router, WebSocketRoute
+from starlette.types import ASGIApp, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketDisconnect
+from starlette.testclient import TestClient
 
 
 def homepage(request):
@@ -700,3 +705,32 @@ def test_duplicated_param_names():
         match="Duplicated param names id, name at path /{id}/{name}/{id}/{name}",
     ):
         Route("/{id}/{name}/{id}/{name}", user)
+
+
+def test_middleware(test_client_factory: Callable[[ASGIApp], TestClient]) -> None:
+
+    class LoggingMiddleware:
+        def __init__(self, app: ASGIApp, log: List[str]) -> None:
+            self.app = app
+            self.log = log
+        
+        def __call__(self, scope: Scope, receive: Receive, send: Send) -> Awaitable[None]:
+            self.log.append(scope["path"])
+            return self.app(scope, receive, send)
+
+    async def endpoint(request: Request) -> Response:
+        return Response()
+
+    log: List[str] = []
+
+    app = Router(
+        routes=[Route("/", endpoint)],
+        middleware=[Middleware(LoggingMiddleware, log=log)]
+    )
+
+    client = test_client_factory(app)
+
+    resp = client.get("/")
+    assert resp.status_code == 200, resp.content
+
+    assert log == ["/"]

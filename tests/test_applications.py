@@ -6,6 +6,7 @@ import pytest
 from starlette.applications import Starlette
 from starlette.endpoints import HTTPEndpoint
 from starlette.exceptions import HTTPException
+from starlette.middleware import Middleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.responses import JSONResponse, PlainTextResponse
 from starlette.routing import Host, Mount, Route, Router, WebSocketRoute
@@ -16,25 +17,27 @@ if sys.version_info >= (3, 7):
 else:
     from contextlib2 import asynccontextmanager  # pragma: no cover
 
-app = Starlette()
 
-
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=["testserver", "*.example.org"])
-
-
-@app.exception_handler(500)
 async def error_500(request, exc):
     return JSONResponse({"detail": "Server Error"}, status_code=500)
 
 
-@app.exception_handler(405)
 async def method_not_allowed(request, exc):
     return JSONResponse({"detail": "Custom message"}, status_code=405)
 
 
-@app.exception_handler(HTTPException)
 async def http_exception(request, exc):
     return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
+
+
+app = Starlette(
+    middleware=[Middleware(TrustedHostMiddleware, allowed_hosts=["testserver", "*.example.org"])],
+    exception_handlers={
+        500: error_500,
+        405: method_not_allowed,
+        HTTPException: http_exception
+    }
+)
 
 
 @app.route("/func")
@@ -224,8 +227,7 @@ def test_app_mount(tmpdir, test_client_factory):
 
 
 def test_app_debug(test_client_factory):
-    app = Starlette()
-    app.debug = True
+    app = Starlette(debug=True)
 
     @app.route("/")
     async def homepage(request):

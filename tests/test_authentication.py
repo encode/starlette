@@ -12,6 +12,7 @@ from starlette.authentication import (
     requires,
 )
 from starlette.endpoints import HTTPEndpoint
+from starlette.middleware import Middleware
 from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -34,8 +35,9 @@ class BasicAuth(AuthenticationBackend):
         return AuthCredentials(["authenticated"]), SimpleUser(username)
 
 
-app = Starlette()
-app.add_middleware(AuthenticationMiddleware, backend=BasicAuth())
+app = Starlette(
+    middleware=[Middleware(AuthenticationMiddleware, backend=BasicAuth())]
+)
 
 
 @app.route("/")
@@ -319,10 +321,7 @@ def on_auth_error(request: Request, exc: Exception):
     return JSONResponse({"error": str(exc)}, status_code=401)
 
 
-other_app = Starlette()
-other_app.add_middleware(
-    AuthenticationMiddleware, backend=BasicAuth(), on_error=on_auth_error
-)
+other_app = Starlette(middleware=[Middleware(AuthenticationMiddleware, backend=BasicAuth(), on_error=on_auth_error)])
 
 
 @other_app.route("/control-panel")
