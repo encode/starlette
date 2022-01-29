@@ -38,7 +38,7 @@ class Match(Enum):
     FULL = 2
 
 
-def iscoroutinefunction_or_partial(obj: typing.Any) -> bool:
+def iscoroutinefunction_or_partial(obj: typing.Any) -> bool:  # pragma: no cover
     """
     Correctly determines if an object is a coroutine function,
     including those wrapped in functools.partial objects.
