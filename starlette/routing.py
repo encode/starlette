@@ -43,6 +43,11 @@ def iscoroutinefunction_or_partial(obj: typing.Any) -> bool:
     Correctly determines if an object is a coroutine function,
     including those wrapped in functools.partial objects.
     """
+    warnings.warn(
+        "iscoroutinefunction_or_partial is deprecated, "
+        "and will be removed in a future release.",
+        DeprecationWarning,
+    )
     while isinstance(obj, functools.partial):
         obj = obj.func
     return inspect.iscoroutinefunction(obj)
@@ -53,7 +58,7 @@ def request_response(func: typing.Callable) -> ASGIApp:
     Takes a function or coroutine `func(request) -> response`,
     and returns an ASGI application.
     """
-    is_coroutine = iscoroutinefunction_or_partial(func)
+    is_coroutine = iscoroutinefunction(func)
 
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive=receive, send=send)
