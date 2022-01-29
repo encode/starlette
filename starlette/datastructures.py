@@ -497,7 +497,7 @@ class Headers(typing.Mapping[str, str]):
         self,
         headers: typing.Optional[typing.Mapping[str, str]] = None,
         raw: typing.Optional[typing.List[typing.Tuple[bytes, bytes]]] = None,
-        scope: typing.Optional[typing.Mapping[str, str]] = None,
+        scope: typing.Optional[typing.Mapping[str, typing.Any]] = None,
     ) -> None:
         self._list: typing.List[typing.Tuple[bytes, bytes]] = []
         if headers is not None:
