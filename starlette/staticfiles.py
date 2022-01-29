@@ -4,16 +4,14 @@ import stat
 import typing
 from email.utils import parsedate
 
-from aiofiles.os import stat as aio_stat
+import anyio
 
 from starlette.datastructures import URL, Headers
-from starlette.responses import (
-    FileResponse,
-    PlainTextResponse,
-    RedirectResponse,
-    Response,
-)
+from starlette.exceptions import HTTPException
+from starlette.responses import FileResponse, RedirectResponse, Response
 from starlette.types import Receive, Scope, Send
+
+PathLike = typing.Union[str, "os.PathLike[str]"]
 
 
 class NotModifiedResponse(Response):
@@ -41,8 +39,8 @@ class StaticFiles:
     def __init__(
         self,
         *,
-        directory: str = None,
-        packages: typing.List[str] = None,
+        directory: PathLike = None,
+        packages: typing.List[typing.Union[str, typing.Tuple[str, str]]] = None,
         html: bool = False,
         check_dir: bool = True,
     ) -> None:
@@ -55,8 +53,10 @@ class StaticFiles:
             raise RuntimeError(f"Directory '{directory}' does not exist")
 
     def get_directories(
-        self, directory: str = None, packages: typing.List[str] = None
-    ) -> typing.List[str]:
+        self,
+        directory: PathLike = None,
+        packages: typing.List[typing.Union[str, typing.Tuple[str, str]]] = None,
+    ) -> typing.List[PathLike]:
         """
         Given `directory` and `packages` arguments, return a list of all the
         directories that should be used for serving static files from.
@@ -66,16 +66,20 @@ class StaticFiles:
             directories.append(directory)
 
         for package in packages or []:
+            if isinstance(package, tuple):
+                package, statics_dir = package
+            else:
+                statics_dir = "statics"
             spec = importlib.util.find_spec(package)
             assert spec is not None, f"Package {package!r} could not be found."
-            assert (
-                spec.origin is not None
-            ), f"Directory 'statics' in package {package!r} could not be found."
-            directory = os.path.normpath(os.path.join(spec.origin, "..", "statics"))
+            assert spec.origin is not None, f"Package {package!r} could not be found."
+            package_directory = os.path.normpath(
+                os.path.join(spec.origin, "..", statics_dir)
+            )
             assert os.path.isdir(
-                directory
-            ), f"Directory 'statics' in package {package!r} could not be found."
-            directories.append(directory)
+                package_directory
+            ), f"Directory '{statics_dir!r}' in package {package!r} could not be found."
+            directories.append(package_directory)
 
         return directories
 
@@ -96,7 +100,7 @@ class StaticFiles:
     def get_path(self, scope: Scope) -> str:
         """
         Given the ASGI scope, return the `path` string to serve up,
-        with OS specific path seperators, and any '..', '.' components removed.
+        with OS specific path separators, and any '..', '.' components removed.
         """
         return os.path.normpath(os.path.join(*scope["path"].split("/")))
 
@@ -105,15 +109,16 @@ class StaticFiles:
         Returns an HTTP response, given the incoming path, method and request headers.
         """
         if scope["method"] not in ("GET", "HEAD"):
-            return PlainTextResponse("Method Not Allowed", status_code=405)
+            raise HTTPException(status_code=405)
 
-        if path.startswith(".."):
-            # Most clients will normalize the path, so we shouldn't normally
-            # get this, but don't allow misbehaving clients to break out of
-            # the static files directory.
-            return PlainTextResponse("Not Found", status_code=404)
-
-        full_path, stat_result = await self.lookup_path(path)
+        try:
+            full_path, stat_result = await anyio.to_thread.run_sync(
+                self.lookup_path, path
+            )
+        except PermissionError:
+            raise HTTPException(status_code=401)
+        except OSError:
+            raise
 
         if stat_result and stat.S_ISREG(stat_result.st_mode):
             # We have a static file to serve.
@@ -123,7 +128,9 @@ class StaticFiles:
             # We're in HTML mode, and have got a directory URL.
             # Check if we have 'index.html' file to serve.
             index_path = os.path.join(path, "index.html")
-            full_path, stat_result = await self.lookup_path(index_path)
+            full_path, stat_result = await anyio.to_thread.run_sync(
+                self.lookup_path, index_path
+            )
             if stat_result is not None and stat.S_ISREG(stat_result.st_mode):
                 if not scope["path"].endswith("/"):
                     # Directory URLs should redirect to always end in "/".
@@ -134,29 +141,37 @@ class StaticFiles:
 
         if self.html:
             # Check for '404.html' if we're in HTML mode.
-            full_path, stat_result = await self.lookup_path("404.html")
-            if stat_result is not None and stat.S_ISREG(stat_result.st_mode):
-                return self.file_response(
-                    full_path, stat_result, scope, status_code=404
+            full_path, stat_result = await anyio.to_thread.run_sync(
+                self.lookup_path, "404.html"
+            )
+            if stat_result and stat.S_ISREG(stat_result.st_mode):
+                return FileResponse(
+                    full_path,
+                    stat_result=stat_result,
+                    method=scope["method"],
+                    status_code=404,
                 )
+        raise HTTPException(status_code=404)
 
-        return PlainTextResponse("Not Found", status_code=404)
-
-    async def lookup_path(
+    def lookup_path(
         self, path: str
     ) -> typing.Tuple[str, typing.Optional[os.stat_result]]:
         for directory in self.all_directories:
-            full_path = os.path.join(directory, path)
+            full_path = os.path.realpath(os.path.join(directory, path))
+            directory = os.path.realpath(directory)
+            if os.path.commonprefix([full_path, directory]) != directory:
+                # Don't allow misbehaving clients to break out of the static files
+                # directory.
+                continue
             try:
-                stat_result = await aio_stat(full_path)
-                return (full_path, stat_result)
-            except FileNotFoundError:
-                pass
-        return ("", None)
+                return full_path, os.stat(full_path)
+            except (FileNotFoundError, NotADirectoryError):
+                continue
+        return "", None
 
     def file_response(
         self,
-        full_path: str,
+        full_path: PathLike,
         stat_result: os.stat_result,
         scope: Scope,
         status_code: int = 200,
@@ -181,7 +196,7 @@ class StaticFiles:
             return
 
         try:
-            stat_result = await aio_stat(self.directory)
+            stat_result = await anyio.to_thread.run_sync(os.stat, self.directory)
         except FileNotFoundError:
             raise RuntimeError(
                 f"StaticFiles directory '{self.directory}' does not exist."

@@ -5,6 +5,8 @@ from starlette.exceptions import ExceptionMiddleware
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.errors import ServerErrorMiddleware
+from starlette.requests import Request
+from starlette.responses import Response
 from starlette.routing import BaseRoute, Router
 from starlette.types import ASGIApp, Receive, Scope, Send
 
@@ -19,14 +21,15 @@ class Starlette:
     * **routes** - A list of routes to serve incoming HTTP and WebSocket requests.
     * **middleware** - A list of middleware to run for every request. A starlette
     application will always automatically include two middleware classes.
-    `ServerErrorMiddleware` is added the very outermost middleware, to handle
-    any uncaught errors occuring anywhere in the entire stack.
+    `ServerErrorMiddleware` is added as the very outermost middleware, to handle
+    any uncaught errors occurring anywhere in the entire stack.
     `ExceptionMiddleware` is added as the very innermost middleware, to deal
-    with handled exception cases occuring in the routing or endpoints.
-    * **exception_handlers** - A dictionary mapping either integer status codes,
+    with handled exception cases occurring in the routing or endpoints.
+    * **exception_handlers** - A mapping of either integer status codes,
     or exception class types onto callables which handle the exceptions.
-    Exception handler callables should be of the form `handler(request, exc) -> response`
-    and may be be either standard functions, or async functions.
+    Exception handler callables should be of the form
+    `handler(request, exc) -> response` and may be be either standard functions, or
+    async functions.
     * **on_startup** - A list of callables to run on application startup.
     Startup handler callables do not take any arguments, and may be be either
     standard functions, or async functions.
@@ -40,15 +43,27 @@ class Starlette:
         debug: bool = False,
         routes: typing.Sequence[BaseRoute] = None,
         middleware: typing.Sequence[Middleware] = None,
-        exception_handlers: typing.Dict[
-            typing.Union[int, typing.Type[Exception]], typing.Callable
+        exception_handlers: typing.Mapping[
+            typing.Any,
+            typing.Callable[
+                [Request, Exception], typing.Union[Response, typing.Awaitable[Response]]
+            ],
         ] = None,
         on_startup: typing.Sequence[typing.Callable] = None,
         on_shutdown: typing.Sequence[typing.Callable] = None,
+        lifespan: typing.Callable[["Starlette"], typing.AsyncContextManager] = None,
     ) -> None:
+        # The lifespan context function is a newer style that replaces
+        # on_startup / on_shutdown handlers. Use one or the other, not both.
+        assert lifespan is None or (
+            on_startup is None and on_shutdown is None
+        ), "Use either 'lifespan' or 'on_startup'/'on_shutdown', not both."
+
         self._debug = debug
         self.state = State()
-        self.router = Router(routes, on_startup=on_startup, on_shutdown=on_shutdown)
+        self.router = Router(
+            routes, on_startup=on_startup, on_shutdown=on_shutdown, lifespan=lifespan
+        )
         self.exception_handlers = (
             {} if exception_handlers is None else dict(exception_handlers)
         )
@@ -58,7 +73,9 @@ class Starlette:
     def build_middleware_stack(self) -> ASGIApp:
         debug = self.debug
         error_handler = None
-        exception_handlers = {}
+        exception_handlers: typing.Dict[
+            typing.Any, typing.Callable[[Request, Exception], Response]
+        ] = {}
 
         for key, value in self.exception_handlers.items():
             if key in (500, Exception):
@@ -67,11 +84,11 @@ class Starlette:
                 exception_handlers[key] = value
 
         middleware = (
-            [Middleware(ServerErrorMiddleware, handler=error_handler, debug=debug,)]
+            [Middleware(ServerErrorMiddleware, handler=error_handler, debug=debug)]
             + self.user_middleware
             + [
                 Middleware(
-                    ExceptionMiddleware, handlers=exception_handlers, debug=debug,
+                    ExceptionMiddleware, handlers=exception_handlers, debug=debug
                 )
             ]
         )
@@ -94,7 +111,7 @@ class Starlette:
         self._debug = value
         self.middleware_stack = self.build_middleware_stack()
 
-    def url_path_for(self, name: str, **path_params: str) -> URLPath:
+    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         return self.router.url_path_for(name, **path_params)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:

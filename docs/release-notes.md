@@ -1,3 +1,187 @@
+## 0.18.0
+
+January 23, 2022
+
+#### Added
+* Change default chunk size from 4Kb to 64Kb on `FileResponse` [#1345](https://github.com/encode/starlette/pull/1345).
+* Add support for `functools.partial` in `WebSocketRoute` [#1356](https://github.com/encode/starlette/pull/1356).
+* Add `StaticFiles` packages with directory [#1350](https://github.com/encode/starlette/pull/1350).
+* Allow environment options in `Jinja2Templates` [#1401](https://github.com/encode/starlette/pull/1401).
+* Allow HEAD method on `HttpEndpoint` [#1346](https://github.com/encode/starlette/pull/1346).
+* Accept additional headers on `websocket.accept` message [#1361](https://github.com/encode/starlette/pull/1361) and [#1422](https://github.com/encode/starlette/pull/1422).
+* Add `reason` to `WebSocket` close ASGI event [#1417](https://github.com/encode/starlette/pull/1417).
+* Add headers attribute to `UploadFile` [#1382](https://github.com/encode/starlette/pull/1382).
+* Don't omit `Content-Length` header for `Content-Length: 0` cases [#1395](https://github.com/encode/starlette/pull/1395).
+* Don't set headers for responses with 1xx, 204 and 304 status code [#1397](https://github.com/encode/starlette/pull/1397).
+* `SessionMiddleware.max_age` now accepts `None`, so cookie can last as long as the browser session [#1387](https://github.com/encode/starlette/pull/1387).
+
+#### Fixed
+* Tweak `hashlib.md5()` function on `FileResponse`s ETag generation. The parameter [`usedforsecurity`](https://bugs.python.org/issue9216) flag is set to `False`, if the flag is available on the system. This fixes an error raised on systems with [FIPS](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/FIPS_Mode_-_an_explanation) enabled [#1366](https://github.com/encode/starlette/pull/1366) and [#1410](https://github.com/encode/starlette/pull/1410).
+* Fix `path_params` type on `url_path_for()` method i.e. turn `str` into `Any` [#1341](https://github.com/encode/starlette/pull/1341).
+* `Host` now ignores `port` on routing [#1322](https://github.com/encode/starlette/pull/1322).
+
+## 0.17.1
+
+November 17, 2021
+
+### Fixed
+* Fix `IndexError` in authentication `requires` when wrapped function arguments are distributed between `*args` and `**kwargs` [#1335](https://github.com/encode/starlette/pull/1335).
+
+## 0.17.0
+
+November 4, 2021
+
+### Added
+* `Response.delete_cookie` now accepts the same parameters as `Response.set_cookie` [#1228](https://github.com/encode/starlette/pull/1228).
+* Update the `Jinja2Templates` constructor to allow `PathLike` [#1292](https://github.com/encode/starlette/pull/1292).
+
+### Fixed
+* Fix BadSignature exception handling in SessionMiddleware [#1264](https://github.com/encode/starlette/pull/1264).
+* Change `HTTPConnection.__getitem__` return type from `str` to `typing.Any` [#1118](https://github.com/encode/starlette/pull/1118).
+* Change `ImmutableMultiDict.getlist` return type from `typing.List[str]` to `typing.List[typing.Any]` [#1235](https://github.com/encode/starlette/pull/1235).
+* Handle `OSError` exceptions on `StaticFiles` [#1220](https://github.com/encode/starlette/pull/1220).
+* Fix `StaticFiles` 404.html in HTML mode [#1314](https://github.com/encode/starlette/pull/1314).
+* Prevent anyio.ExceptionGroup in error views under a BaseHTTPMiddleware [#1262](https://github.com/encode/starlette/pull/1262).
+
+### Removed
+* Remove GraphQL support [#1198](https://github.com/encode/starlette/pull/1198).
+
+## 0.16.0
+
+July 19, 2021
+
+### Added
+ * Added [Encode](https://github.com/sponsors/encode) funding option
+   [#1219](https://github.com/encode/starlette/pull/1219)
+
+### Fixed
+ * `starlette.websockets.WebSocket` instances are now hashable and compare by identity
+    [#1039](https://github.com/encode/starlette/pull/1039)
+ * A number of fixes related to running task groups in lifespan
+   [#1213](https://github.com/encode/starlette/pull/1213),
+   [#1227](https://github.com/encode/starlette/pull/1227)
+
+### Deprecated/removed
+ * The method `starlette.templates.Jinja2Templates.get_env` was removed
+   [#1218](https://github.com/encode/starlette/pull/1218)
+ * The ClassVar `starlette.testclient.TestClient.async_backend` was removed,
+   the backend is now configured using constructor kwargs
+   [#1211](https://github.com/encode/starlette/pull/1211)
+ * Passing an Async Generator Function or a Generator Function to `starlette.router.Router(lifespan_context=)` is deprecated. You should wrap your lifespan in `@contextlib.asynccontextmanager`.
+   [#1227](https://github.com/encode/starlette/pull/1227)
+   [#1110](https://github.com/encode/starlette/pull/1110)
+
+## 0.15.0
+
+June 23, 2021
+
+This release includes major changes to the low-level asynchronous parts of Starlette. As a result,
+**Starlette now depends on [AnyIO](https://anyio.readthedocs.io/en/stable/)** and some minor API
+changes have occurred. Another significant change with this release is the
+**deprecation of built-in GraphQL support**.
+
+### Added
+* Starlette now supports [Trio](https://trio.readthedocs.io/en/stable/) as an async runtime via
+  AnyIO - [#1157](https://github.com/encode/starlette/pull/1157).
+* `TestClient.websocket_connect()` now must be used as a context manager.
+* Initial support for Python 3.10 - [#1201](https://github.com/encode/starlette/pull/1201).
+* The compression level used in `GZipMiddleware` is now adjustable -
+  [#1128](https://github.com/encode/starlette/pull/1128).
+
+### Fixed
+* Several fixes to `CORSMiddleware`. See [#1111](https://github.com/encode/starlette/pull/1111),
+  [#1112](https://github.com/encode/starlette/pull/1112),
+  [#1113](https://github.com/encode/starlette/pull/1113),
+  [#1199](https://github.com/encode/starlette/pull/1199).
+* Improved exception messages in the case of duplicated path parameter names -
+  [#1177](https://github.com/encode/starlette/pull/1177).
+* `RedirectResponse` now uses `quote` instead of `quote_plus` encoding for the `Location` header
+  to better match the behaviour in other frameworks such as Django -
+  [#1164](https://github.com/encode/starlette/pull/1164).
+* Exception causes are now preserved in more cases -
+  [#1158](https://github.com/encode/starlette/pull/1158).
+* Session cookies now use the ASGI root path in the case of mounted applications -
+  [#1147](https://github.com/encode/starlette/pull/1147).
+* Fixed a cache invalidation bug when static files were deleted in certain circumstances -
+  [#1023](https://github.com/encode/starlette/pull/1023).
+* Improved memory usage of `BaseHTTPMiddleware` when handling large responses -
+  [#1012](https://github.com/encode/starlette/issues/1012) fixed via #1157
+
+### Deprecated/removed
+
+* Built-in GraphQL support via the `GraphQLApp` class has been deprecated and will be removed in a
+  future release. Please see [#619](https://github.com/encode/starlette/issues/619). GraphQL is not
+  supported on Python 3.10.
+* The `executor` parameter to `GraphQLApp` was removed. Use `executor_class` instead.
+* The `workers` parameter to `WSGIMiddleware` was removed. This hasn't had any effect since
+  Starlette v0.6.3.
+
+## 0.14.2
+
+February 2, 2021
+
+### Fixed
+
+* Fixed `ServerErrorMiddleware` compatibility with Python 3.9.1/3.8.7 when debug mode is enabled -
+  [#1132](https://github.com/encode/starlette/pull/1132).
+* Fixed unclosed socket `ResourceWarning`s when using the `TestClient` with WebSocket endpoints -
+  #1132.
+* Improved detection of `async` endpoints wrapped in `functools.partial` on Python 3.8+ -
+  [#1106](https://github.com/encode/starlette/pull/1106).
+
+
+## 0.14.1
+
+November 9th, 2020
+
+### Removed
+
+* `UJSONResponse` was removed (this change was intended to be included in 0.14.0). Please see the
+  [documentation](https://www.starlette.io/responses/#custom-json-serialization) for how to
+  implement responses using custom JSON serialization -
+  [#1074](https://github.com/encode/starlette/pull/1047).
+
+## 0.14.0
+
+November 8th, 2020
+
+### Added
+
+* Starlette now officially supports Python3.9.
+* In `StreamingResponse`, allow custom async iterator such as objects from classes implementing `__aiter__`.
+* Allow usage of `functools.partial` async handlers in Python versions 3.6 and 3.7.
+* Add 418 I'm A Teapot status code.
+
+### Changed
+
+* Create tasks from handler coroutines before sending them to `asyncio.wait`.
+* Use `format_exception` instead of `format_tb` in `ServerErrorMiddleware`'s `debug` responses.
+* Be more lenient with handler arguments when using the `requires` decorator.
+
+## 0.13.8
+
+* Revert `Queue(maxsize=1)` fix for `BaseHTTPMiddleware` middleware classes and streaming responses.
+
+* The `StaticFiles` constructor now allows `pathlib.Path` in addition to strings for its `directory` argument.
+
+## 0.13.7
+
+* Fix high memory usage when using `BaseHTTPMiddleware` middleware classes and streaming responses.
+
+## 0.13.6
+
+* Fix 404 errors with `StaticFiles`.
+
+## 0.13.5
+
+* Add support for `Starlette(lifespan=...)` functions.
+* More robust path-traversal check in StaticFiles app.
+* Fix WSGI PATH_INFO encoding.
+* RedirectResponse now accepts optional background parameter
+* Allow path routes to contain regex meta characters
+* Treat ASGI HTTP 'body' as an optional key.
+* Don't use thread pooling for writing to in-memory upload files.
+
 ## 0.13.0
 
 * Switch to promoting application configuration on init style everywhere.

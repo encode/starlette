@@ -13,8 +13,9 @@ class WebSocketState(enum.Enum):
 
 
 class WebSocketDisconnect(Exception):
-    def __init__(self, code: int = 1000) -> None:
+    def __init__(self, code: int = 1000, reason: str = None) -> None:
         self.code = code
+        self.reason = reason or ""
 
 
 class WebSocket(HTTPConnection):
@@ -69,11 +70,19 @@ class WebSocket(HTTPConnection):
         else:
             raise RuntimeError('Cannot call "send" once a close message has been sent.')
 
-    async def accept(self, subprotocol: str = None) -> None:
+    async def accept(
+        self,
+        subprotocol: str = None,
+        headers: typing.Iterable[typing.Tuple[bytes, bytes]] = None,
+    ) -> None:
+        headers = headers or []
+
         if self.client_state == WebSocketState.CONNECTING:
             # If we haven't yet seen the 'connect' message, then wait for it first.
             await self.receive()
-        await self.send({"type": "websocket.accept", "subprotocol": subprotocol})
+        await self.send(
+            {"type": "websocket.accept", "subprotocol": subprotocol, "headers": headers}
+        )
 
     def _raise_on_disconnect(self, message: Message) -> None:
         if message["type"] == "websocket.disconnect":
@@ -103,6 +112,27 @@ class WebSocket(HTTPConnection):
             text = message["bytes"].decode("utf-8")
         return json.loads(text)
 
+    async def iter_text(self) -> typing.AsyncIterator[str]:
+        try:
+            while True:
+                yield await self.receive_text()
+        except WebSocketDisconnect:
+            pass
+
+    async def iter_bytes(self) -> typing.AsyncIterator[bytes]:
+        try:
+            while True:
+                yield await self.receive_bytes()
+        except WebSocketDisconnect:
+            pass
+
+    async def iter_json(self) -> typing.AsyncIterator[typing.Any]:
+        try:
+            while True:
+                yield await self.receive_json()
+        except WebSocketDisconnect:
+            pass
+
     async def send_text(self, data: str) -> None:
         await self.send({"type": "websocket.send", "text": data})
 
@@ -117,13 +147,18 @@ class WebSocket(HTTPConnection):
         else:
             await self.send({"type": "websocket.send", "bytes": text.encode("utf-8")})
 
-    async def close(self, code: int = 1000) -> None:
-        await self.send({"type": "websocket.close", "code": code})
+    async def close(self, code: int = 1000, reason: str = None) -> None:
+        await self.send(
+            {"type": "websocket.close", "code": code, "reason": reason or ""}
+        )
 
 
 class WebSocketClose:
-    def __init__(self, code: int = 1000) -> None:
+    def __init__(self, code: int = 1000, reason: str = None) -> None:
         self.code = code
+        self.reason = reason or ""
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        await send({"type": "websocket.close", "code": self.code})
+        await send(
+            {"type": "websocket.close", "code": self.code, "reason": self.reason}
+        )

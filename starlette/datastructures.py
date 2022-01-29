@@ -163,7 +163,7 @@ class URLPath(str):
 
     def __new__(cls, path: str, protocol: str = "", host: str = "") -> "URLPath":
         assert protocol in ("http", "websocket", "")
-        return str.__new__(cls, path)  # type: ignore
+        return str.__new__(cls, path)
 
     def __init__(self, path: str, protocol: str = "", host: str = "") -> None:
         self.protocol = protocol
@@ -180,11 +180,7 @@ class URLPath(str):
         else:
             scheme = base_url.scheme
 
-        if self.host:
-            netloc = self.host
-        else:
-            netloc = base_url.netloc
-
+        netloc = self.host or base_url.netloc
         path = base_url.path.rstrip("/") + str(self)
         return str(URL(scheme=scheme, netloc=netloc, path=path))
 
@@ -231,7 +227,7 @@ class CommaSeparatedStrings(Sequence):
         return f"{class_name}({items!r})"
 
     def __str__(self) -> str:
-        return ", ".join([repr(item) for item in self])
+        return ", ".join(repr(item) for item in self)
 
 
 class ImmutableMultiDict(typing.Mapping):
@@ -246,11 +242,7 @@ class ImmutableMultiDict(typing.Mapping):
     ) -> None:
         assert len(args) < 2, "Too many arguments."
 
-        if args:
-            value = args[0]
-        else:
-            value = []
-
+        value = args[0] if args else []
         if kwargs:
             value = (
                 ImmutableMultiDict(value).multi_items()
@@ -258,7 +250,7 @@ class ImmutableMultiDict(typing.Mapping):
             )
 
         if not value:
-            _items = []  # type: typing.List[typing.Tuple[typing.Any, typing.Any]]
+            _items: typing.List[typing.Tuple[typing.Any, typing.Any]] = []
         elif hasattr(value, "multi_items"):
             value = typing.cast(ImmutableMultiDict, value)
             _items = list(value.multi_items())
@@ -274,7 +266,7 @@ class ImmutableMultiDict(typing.Mapping):
         self._dict = {k: v for k, v in _items}
         self._list = _items
 
-    def getlist(self, key: typing.Any) -> typing.List[str]:
+    def getlist(self, key: typing.Any) -> typing.List[typing.Any]:
         return [item_value for item_key, item_value in self._list if item_key == key]
 
     def keys(self) -> typing.KeysView:
@@ -423,27 +415,52 @@ class UploadFile:
     """
 
     spool_max_size = 1024 * 1024
+    file: typing.BinaryIO
+    headers: "Headers"
 
     def __init__(
-        self, filename: str, file: typing.IO = None, content_type: str = ""
+        self,
+        filename: str,
+        file: typing.Optional[typing.BinaryIO] = None,
+        content_type: str = "",
+        *,
+        headers: "typing.Optional[Headers]" = None,
     ) -> None:
         self.filename = filename
         self.content_type = content_type
         if file is None:
-            file = tempfile.SpooledTemporaryFile(max_size=self.spool_max_size)
-        self.file = file
+            self.file = tempfile.SpooledTemporaryFile(max_size=self.spool_max_size)  # type: ignore  # noqa: E501
+        else:
+            self.file = file
+        self.headers = headers or Headers()
 
-    async def write(self, data: typing.Union[bytes, str]) -> None:
-        await run_in_threadpool(self.file.write, data)
+    @property
+    def _in_memory(self) -> bool:
+        rolled_to_disk = getattr(self.file, "_rolled", True)
+        return not rolled_to_disk
 
-    async def read(self, size: int = None) -> typing.Union[bytes, str]:
+    async def write(self, data: bytes) -> None:
+        if self._in_memory:
+            self.file.write(data)
+        else:
+            await run_in_threadpool(self.file.write, data)
+
+    async def read(self, size: int = -1) -> bytes:
+        if self._in_memory:
+            return self.file.read(size)
         return await run_in_threadpool(self.file.read, size)
 
     async def seek(self, offset: int) -> None:
-        await run_in_threadpool(self.file.seek, offset)
+        if self._in_memory:
+            self.file.seek(offset)
+        else:
+            await run_in_threadpool(self.file.seek, offset)
 
     async def close(self) -> None:
-        await run_in_threadpool(self.file.close)
+        if self._in_memory:
+            self.file.close()
+        else:
+            await run_in_threadpool(self.file.close)
 
 
 class FormData(ImmutableMultiDict):
@@ -460,7 +477,7 @@ class FormData(ImmutableMultiDict):
         ],
         **kwargs: typing.Union[str, UploadFile],
     ) -> None:
-        super().__init__(*args, **kwargs)  # type: ignore
+        super().__init__(*args, **kwargs)
 
     async def close(self) -> None:
         for key, value in self.multi_items():
@@ -479,7 +496,7 @@ class Headers(typing.Mapping[str, str]):
         raw: typing.List[typing.Tuple[bytes, bytes]] = None,
         scope: Scope = None,
     ) -> None:
-        self._list = []  # type: typing.List[typing.Tuple[bytes, bytes]]
+        self._list: typing.List[typing.Tuple[bytes, bytes]] = []
         if headers is not None:
             assert raw is None, 'Cannot set both "headers" and "raw".'
             assert scope is None, 'Cannot set both "headers" and "scope".'
@@ -633,7 +650,7 @@ class MutableHeaders(Headers):
         self["vary"] = vary
 
 
-class State(object):
+class State:
     """
     An object that can be used to store arbitrary state.
 
@@ -643,7 +660,7 @@ class State(object):
     def __init__(self, state: typing.Dict = None):
         if state is None:
             state = {}
-        super(State, self).__setattr__("_state", state)
+        super().__setattr__("_state", state)
 
     def __setattr__(self, key: typing.Any, value: typing.Any) -> None:
         self._state[key] = value

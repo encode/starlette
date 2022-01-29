@@ -1,10 +1,11 @@
-import asyncio
 import io
+import math
 import sys
 import typing
 
-from starlette.concurrency import run_in_threadpool
-from starlette.types import Message, Receive, Scope, Send
+import anyio
+
+from starlette.types import Receive, Scope, Send
 
 
 def build_environ(scope: Scope, body: bytes) -> dict:
@@ -13,8 +14,8 @@ def build_environ(scope: Scope, body: bytes) -> dict:
     """
     environ = {
         "REQUEST_METHOD": scope["method"],
-        "SCRIPT_NAME": scope.get("root_path", ""),
-        "PATH_INFO": scope["path"],
+        "SCRIPT_NAME": scope.get("root_path", "").encode("utf8").decode("latin1"),
+        "PATH_INFO": scope["path"].encode("utf8").decode("latin1"),
         "QUERY_STRING": scope["query_string"].decode("ascii"),
         "SERVER_PROTOCOL": f"HTTP/{scope['http_version']}",
         "wsgi.version": (1, 0),
@@ -44,7 +45,8 @@ def build_environ(scope: Scope, body: bytes) -> dict:
             corrected_name = "CONTENT_TYPE"
         else:
             corrected_name = f"HTTP_{name}".upper().replace("-", "_")
-        # HTTPbis say only ASCII chars are allowed in headers, but we latin1 just in case
+        # HTTPbis say only ASCII chars are allowed in headers, but we latin1 just in
+        # case
         value = value.decode("latin1")
         if corrected_name in environ:
             value = environ[corrected_name] + "," + value
@@ -53,7 +55,7 @@ def build_environ(scope: Scope, body: bytes) -> dict:
 
 
 class WSGIMiddleware:
-    def __init__(self, app: typing.Callable, workers: int = 10) -> None:
+    def __init__(self, app: typing.Callable) -> None:
         self.app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -68,11 +70,11 @@ class WSGIResponder:
         self.scope = scope
         self.status = None
         self.response_headers = None
-        self.send_event = asyncio.Event()
-        self.send_queue = []  # type: typing.List[typing.Optional[Message]]
-        self.loop = asyncio.get_event_loop()
+        self.stream_send, self.stream_receive = anyio.create_memory_object_stream(
+            math.inf
+        )
         self.response_started = False
-        self.exc_info = None  # type: typing.Any
+        self.exc_info: typing.Any = None
 
     async def __call__(self, receive: Receive, send: Send) -> None:
         body = b""
@@ -82,31 +84,18 @@ class WSGIResponder:
             body += message.get("body", b"")
             more_body = message.get("more_body", False)
         environ = build_environ(self.scope, body)
-        sender = None
-        try:
-            sender = self.loop.create_task(self.sender(send))
-            await run_in_threadpool(self.wsgi, environ, self.start_response)
-            self.send_queue.append(None)
-            self.send_event.set()
-            await asyncio.wait_for(sender, None)  # type: ignore
-            if self.exc_info is not None:
-                raise self.exc_info[0].with_traceback(
-                    self.exc_info[1], self.exc_info[2]
-                )
-        finally:
-            if sender and not sender.done():
-                sender.cancel()  # pragma: no cover
+
+        async with anyio.create_task_group() as task_group:
+            task_group.start_soon(self.sender, send)
+            async with self.stream_send:
+                await anyio.to_thread.run_sync(self.wsgi, environ, self.start_response)
+        if self.exc_info is not None:
+            raise self.exc_info[0].with_traceback(self.exc_info[1], self.exc_info[2])
 
     async def sender(self, send: Send) -> None:
-        while True:
-            if self.send_queue:
-                message = self.send_queue.pop(0)
-                if message is None:
-                    return
+        async with self.stream_receive:
+            async for message in self.stream_receive:
                 await send(message)
-            else:
-                await self.send_event.wait()
-                self.send_event.clear()
 
     def start_response(
         self,
@@ -120,24 +109,25 @@ class WSGIResponder:
             status_code_string, _ = status.split(" ", 1)
             status_code = int(status_code_string)
             headers = [
-                (name.strip().encode("ascii"), value.strip().encode("ascii"))
+                (name.strip().encode("ascii").lower(), value.strip().encode("ascii"))
                 for name, value in response_headers
             ]
-            self.send_queue.append(
+            anyio.from_thread.run(
+                self.stream_send.send,
                 {
                     "type": "http.response.start",
                     "status": status_code,
                     "headers": headers,
-                }
+                },
             )
-            self.loop.call_soon_threadsafe(self.send_event.set)
 
     def wsgi(self, environ: dict, start_response: typing.Callable) -> None:
         for chunk in self.app(environ, start_response):
-            self.send_queue.append(
-                {"type": "http.response.body", "body": chunk, "more_body": True}
+            anyio.from_thread.run(
+                self.stream_send.send,
+                {"type": "http.response.body", "body": chunk, "more_body": True},
             )
-            self.loop.call_soon_threadsafe(self.send_event.set)
 
-        self.send_queue.append({"type": "http.response.body", "body": b""})
-        self.loop.call_soon_threadsafe(self.send_event.set)
+        anyio.from_thread.run(
+            self.stream_send.send, {"type": "http.response.body", "body": b""}
+        )

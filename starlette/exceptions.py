@@ -9,11 +9,14 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
 class HTTPException(Exception):
-    def __init__(self, status_code: int, detail: str = None) -> None:
+    def __init__(
+        self, status_code: int, detail: str = None, headers: dict = None
+    ) -> None:
         if detail is None:
             detail = http.HTTPStatus(status_code).phrase
         self.status_code = status_code
         self.detail = detail
+        self.headers = headers
 
     def __repr__(self) -> str:
         class_name = self.__class__.__name__
@@ -22,14 +25,19 @@ class HTTPException(Exception):
 
 class ExceptionMiddleware:
     def __init__(
-        self, app: ASGIApp, handlers: dict = None, debug: bool = False
+        self,
+        app: ASGIApp,
+        handlers: typing.Mapping[
+            typing.Any, typing.Callable[[Request, Exception], Response]
+        ] = None,
+        debug: bool = False,
     ) -> None:
         self.app = app
         self.debug = debug  # TODO: We ought to handle 404 cases if debug is set.
-        self._status_handlers = {}  # type: typing.Dict[int, typing.Callable]
-        self._exception_handlers = {
-            HTTPException: self.http_exception
-        }  # type: typing.Dict[typing.Type[Exception], typing.Callable]
+        self._status_handlers: typing.Dict[int, typing.Callable] = {}
+        self._exception_handlers: typing.Dict[
+            typing.Type[Exception], typing.Callable
+        ] = {HTTPException: self.http_exception}
         if handlers is not None:
             for key, value in handlers.items():
                 self.add_exception_handler(key, value)
@@ -37,7 +45,7 @@ class ExceptionMiddleware:
     def add_exception_handler(
         self,
         exc_class_or_status_code: typing.Union[int, typing.Type[Exception]],
-        handler: typing.Callable,
+        handler: typing.Callable[[Request, Exception], Response],
     ) -> None:
         if isinstance(exc_class_or_status_code, int):
             self._status_handlers[exc_class_or_status_code] = handler
@@ -79,7 +87,7 @@ class ExceptionMiddleware:
                 handler = self._lookup_exception_handler(exc)
 
             if handler is None:
-                raise exc from None
+                raise exc
 
             if response_started:
                 msg = "Caught handled exception, but response already started."
@@ -94,5 +102,7 @@ class ExceptionMiddleware:
 
     def http_exception(self, request: Request, exc: HTTPException) -> Response:
         if exc.status_code in {204, 304}:
-            return Response(b"", status_code=exc.status_code)
-        return PlainTextResponse(exc.detail, status_code=exc.status_code)
+            return Response(status_code=exc.status_code, headers=exc.headers)
+        return PlainTextResponse(
+            exc.detail, status_code=exc.status_code, headers=exc.headers
+        )
