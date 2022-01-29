@@ -5,8 +5,8 @@ from urllib.parse import unquote_plus
 from starlette.datastructures import FormData, Headers, UploadFile
 
 try:
-    from multipart.multipart import parse_options_header
     import multipart
+    from multipart.multipart import parse_options_header
 except ImportError:  # pragma: nocover
     parse_options_header = None
     multipart = None
@@ -47,7 +47,7 @@ class FormParser:
         ), "The `python-multipart` library must be installed to use form parsing."
         self.headers = headers
         self.stream = stream
-        self.messages = []  # type: typing.List[typing.Tuple[FormMessage, bytes]]
+        self.messages: typing.List[typing.Tuple[FormMessage, bytes]] = []
 
     def on_field_start(self) -> None:
         message = (FormMessage.FIELD_START, b"")
@@ -84,9 +84,7 @@ class FormParser:
         field_name = b""
         field_value = b""
 
-        items = (
-            []
-        )  # type: typing.List[typing.Tuple[str, typing.Union[str, UploadFile]]]
+        items: typing.List[typing.Tuple[str, typing.Union[str, UploadFile]]] = []
 
         # Feed the parser with data from the request.
         async for chunk in self.stream:
@@ -108,8 +106,6 @@ class FormParser:
                     name = unquote_plus(field_name.decode("latin-1"))
                     value = unquote_plus(field_value.decode("latin-1"))
                     items.append((name, value))
-                elif message_type == FormMessage.END:
-                    pass
 
         return FormData(items)
 
@@ -123,7 +119,7 @@ class MultiPartParser:
         ), "The `python-multipart` library must be installed to use form parsing."
         self.headers = headers
         self.stream = stream
-        self.messages = []  # type: typing.List[typing.Tuple[MultiPartMessage, bytes]]
+        self.messages: typing.List[typing.Tuple[MultiPartMessage, bytes]] = []
 
     def on_part_begin(self) -> None:
         message = (MultiPartMessage.PART_BEGIN, b"")
@@ -185,11 +181,10 @@ class MultiPartParser:
         content_type = b""
         field_name = ""
         data = b""
-        file = None  # type: typing.Optional[UploadFile]
+        file: typing.Optional[UploadFile] = None
 
-        items = (
-            []
-        )  # type: typing.List[typing.Tuple[str, typing.Union[str, UploadFile]]]
+        items: typing.List[typing.Tuple[str, typing.Union[str, UploadFile]]] = []
+        item_headers: typing.List[typing.Tuple[bytes, bytes]] = []
 
         # Feed the parser with data from the request.
         async for chunk in self.stream:
@@ -201,6 +196,7 @@ class MultiPartParser:
                     content_disposition = None
                     content_type = b""
                     data = b""
+                    item_headers = []
                 elif message_type == MultiPartMessage.HEADER_FIELD:
                     header_field += message_bytes
                 elif message_type == MultiPartMessage.HEADER_VALUE:
@@ -211,6 +207,7 @@ class MultiPartParser:
                         content_disposition = header_value
                     elif field == b"content-type":
                         content_type = header_value
+                    item_headers.append((field, header_value))
                     header_field = b""
                     header_value = b""
                 elif message_type == MultiPartMessage.HEADERS_FINISHED:
@@ -221,6 +218,7 @@ class MultiPartParser:
                         file = UploadFile(
                             filename=filename,
                             content_type=content_type.decode("latin-1"),
+                            headers=Headers(raw=item_headers),
                         )
                     else:
                         file = None
@@ -235,8 +233,6 @@ class MultiPartParser:
                     else:
                         await file.seek(0)
                         items.append((field_name, file))
-                elif message_type == MultiPartMessage.END:
-                    pass
 
         parser.finalize()
         return FormData(items)

@@ -1,9 +1,9 @@
 import os
+import typing
 
 from starlette.formparsers import UploadFile, _user_safe_decode
 from starlette.requests import Request
 from starlette.responses import JSONResponse
-from starlette.testclient import TestClient
 
 
 class ForceMultipartDict(dict):
@@ -37,7 +37,7 @@ async def app(scope, receive, send):
 async def multi_items_app(scope, receive, send):
     request = Request(scope, receive)
     data = await request.form()
-    output = {}
+    output: typing.Dict[str, list] = {}
     for key, value in data.multi_items():
         if key not in output:
             output[key] = []
@@ -57,6 +57,26 @@ async def multi_items_app(scope, receive, send):
     await response(scope, receive, send)
 
 
+async def app_with_headers(scope, receive, send):
+    request = Request(scope, receive)
+    data = await request.form()
+    output = {}
+    for key, value in data.items():
+        if isinstance(value, UploadFile):
+            content = await value.read()
+            output[key] = {
+                "filename": value.filename,
+                "content": content.decode(),
+                "content_type": value.content_type,
+                "headers": list(value.headers.items()),
+            }
+        else:
+            output[key] = value
+    await request.close()
+    response = JSONResponse(output)
+    await response(scope, receive, send)
+
+
 async def app_read_body(scope, receive, send):
     request = Request(scope, receive)
     # Read bytes, to force request.stream() to return the already parsed body
@@ -70,18 +90,18 @@ async def app_read_body(scope, receive, send):
     await response(scope, receive, send)
 
 
-def test_multipart_request_data(tmpdir):
-    client = TestClient(app)
+def test_multipart_request_data(tmpdir, test_client_factory):
+    client = test_client_factory(app)
     response = client.post("/", data={"some": "data"}, files=FORCE_MULTIPART)
     assert response.json() == {"some": "data"}
 
 
-def test_multipart_request_files(tmpdir):
+def test_multipart_request_files(tmpdir, test_client_factory):
     path = os.path.join(tmpdir, "test.txt")
     with open(path, "wb") as file:
         file.write(b"<file content>")
 
-    client = TestClient(app)
+    client = test_client_factory(app)
     with open(path, "rb") as f:
         response = client.post("/", files={"test": f})
         assert response.json() == {
@@ -93,12 +113,12 @@ def test_multipart_request_files(tmpdir):
         }
 
 
-def test_multipart_request_files_with_content_type(tmpdir):
+def test_multipart_request_files_with_content_type(tmpdir, test_client_factory):
     path = os.path.join(tmpdir, "test.txt")
     with open(path, "wb") as file:
         file.write(b"<file content>")
 
-    client = TestClient(app)
+    client = test_client_factory(app)
     with open(path, "rb") as f:
         response = client.post("/", files={"test": ("test.txt", f, "text/plain")})
         assert response.json() == {
@@ -110,7 +130,7 @@ def test_multipart_request_files_with_content_type(tmpdir):
         }
 
 
-def test_multipart_request_multiple_files(tmpdir):
+def test_multipart_request_multiple_files(tmpdir, test_client_factory):
     path1 = os.path.join(tmpdir, "test1.txt")
     with open(path1, "wb") as file:
         file.write(b"<file1 content>")
@@ -119,7 +139,7 @@ def test_multipart_request_multiple_files(tmpdir):
     with open(path2, "wb") as file:
         file.write(b"<file2 content>")
 
-    client = TestClient(app)
+    client = test_client_factory(app)
     with open(path1, "rb") as f1, open(path2, "rb") as f2:
         response = client.post(
             "/", files={"test1": f1, "test2": ("test2.txt", f2, "text/plain")}
@@ -138,7 +158,7 @@ def test_multipart_request_multiple_files(tmpdir):
         }
 
 
-def test_multi_items(tmpdir):
+def test_multipart_request_multiple_files_with_headers(tmpdir, test_client_factory):
     path1 = os.path.join(tmpdir, "test1.txt")
     with open(path1, "wb") as file:
         file.write(b"<file1 content>")
@@ -147,7 +167,43 @@ def test_multi_items(tmpdir):
     with open(path2, "wb") as file:
         file.write(b"<file2 content>")
 
-    client = TestClient(multi_items_app)
+    client = test_client_factory(app_with_headers)
+    with open(path1, "rb") as f1, open(path2, "rb") as f2:
+        response = client.post(
+            "/",
+            files=[
+                ("test1", (None, f1)),
+                ("test2", ("test2.txt", f2, "text/plain", {"x-custom": "f2"})),
+            ],
+        )
+        assert response.json() == {
+            "test1": "<file1 content>",
+            "test2": {
+                "filename": "test2.txt",
+                "content": "<file2 content>",
+                "content_type": "text/plain",
+                "headers": [
+                    [
+                        "content-disposition",
+                        'form-data; name="test2"; filename="test2.txt"',
+                    ],
+                    ["content-type", "text/plain"],
+                    ["x-custom", "f2"],
+                ],
+            },
+        }
+
+
+def test_multi_items(tmpdir, test_client_factory):
+    path1 = os.path.join(tmpdir, "test1.txt")
+    with open(path1, "wb") as file:
+        file.write(b"<file1 content>")
+
+    path2 = os.path.join(tmpdir, "test2.txt")
+    with open(path2, "wb") as file:
+        file.write(b"<file2 content>")
+
+    client = test_client_factory(multi_items_app)
     with open(path1, "rb") as f1, open(path2, "rb") as f2:
         response = client.post(
             "/",
@@ -171,8 +227,8 @@ def test_multi_items(tmpdir):
         }
 
 
-def test_multipart_request_mixed_files_and_data(tmpdir):
-    client = TestClient(app)
+def test_multipart_request_mixed_files_and_data(tmpdir, test_client_factory):
+    client = test_client_factory(app)
     response = client.post(
         "/",
         data=(
@@ -192,7 +248,9 @@ def test_multipart_request_mixed_files_and_data(tmpdir):
             b"--a7f7ac8d4e2e437c877bb7b8d7cc549c--\r\n"
         ),
         headers={
-            "Content-Type": "multipart/form-data; boundary=a7f7ac8d4e2e437c877bb7b8d7cc549c"
+            "Content-Type": (
+                "multipart/form-data; boundary=a7f7ac8d4e2e437c877bb7b8d7cc549c"
+            )
         },
     )
     assert response.json() == {
@@ -206,20 +264,23 @@ def test_multipart_request_mixed_files_and_data(tmpdir):
     }
 
 
-def test_multipart_request_with_charset_for_filename(tmpdir):
-    client = TestClient(app)
+def test_multipart_request_with_charset_for_filename(tmpdir, test_client_factory):
+    client = test_client_factory(app)
     response = client.post(
         "/",
         data=(
             # file
             b"--a7f7ac8d4e2e437c877bb7b8d7cc549c\r\n"
-            b'Content-Disposition: form-data; name="file"; filename="\xe6\x96\x87\xe6\x9b\xb8.txt"\r\n'
+            b'Content-Disposition: form-data; name="file"; filename="\xe6\x96\x87\xe6\x9b\xb8.txt"\r\n'  # noqa: E501
             b"Content-Type: text/plain\r\n\r\n"
             b"<file content>\r\n"
             b"--a7f7ac8d4e2e437c877bb7b8d7cc549c--\r\n"
         ),
         headers={
-            "Content-Type": "multipart/form-data; charset=utf-8; boundary=a7f7ac8d4e2e437c877bb7b8d7cc549c"
+            "Content-Type": (
+                "multipart/form-data; charset=utf-8; "
+                "boundary=a7f7ac8d4e2e437c877bb7b8d7cc549c"
+            )
         },
     )
     assert response.json() == {
@@ -231,20 +292,22 @@ def test_multipart_request_with_charset_for_filename(tmpdir):
     }
 
 
-def test_multipart_request_without_charset_for_filename(tmpdir):
-    client = TestClient(app)
+def test_multipart_request_without_charset_for_filename(tmpdir, test_client_factory):
+    client = test_client_factory(app)
     response = client.post(
         "/",
         data=(
             # file
             b"--a7f7ac8d4e2e437c877bb7b8d7cc549c\r\n"
-            b'Content-Disposition: form-data; name="file"; filename="\xe7\x94\xbb\xe5\x83\x8f.jpg"\r\n'
+            b'Content-Disposition: form-data; name="file"; filename="\xe7\x94\xbb\xe5\x83\x8f.jpg"\r\n'  # noqa: E501
             b"Content-Type: image/jpeg\r\n\r\n"
             b"<file content>\r\n"
             b"--a7f7ac8d4e2e437c877bb7b8d7cc549c--\r\n"
         ),
         headers={
-            "Content-Type": "multipart/form-data; boundary=a7f7ac8d4e2e437c877bb7b8d7cc549c"
+            "Content-Type": (
+                "multipart/form-data; boundary=a7f7ac8d4e2e437c877bb7b8d7cc549c"
+            )
         },
     )
     assert response.json() == {
@@ -256,8 +319,8 @@ def test_multipart_request_without_charset_for_filename(tmpdir):
     }
 
 
-def test_multipart_request_with_encoded_value(tmpdir):
-    client = TestClient(app)
+def test_multipart_request_with_encoded_value(tmpdir, test_client_factory):
+    client = test_client_factory(app)
     response = client.post(
         "/",
         data=(
@@ -268,44 +331,47 @@ def test_multipart_request_with_encoded_value(tmpdir):
             b"--20b303e711c4ab8c443184ac833ab00f--\r\n"
         ),
         headers={
-            "Content-Type": "multipart/form-data; charset=utf-8; boundary=20b303e711c4ab8c443184ac833ab00f"
+            "Content-Type": (
+                "multipart/form-data; charset=utf-8; "
+                "boundary=20b303e711c4ab8c443184ac833ab00f"
+            )
         },
     )
     assert response.json() == {"value": "Transférer"}
 
 
-def test_urlencoded_request_data(tmpdir):
-    client = TestClient(app)
+def test_urlencoded_request_data(tmpdir, test_client_factory):
+    client = test_client_factory(app)
     response = client.post("/", data={"some": "data"})
     assert response.json() == {"some": "data"}
 
 
-def test_no_request_data(tmpdir):
-    client = TestClient(app)
+def test_no_request_data(tmpdir, test_client_factory):
+    client = test_client_factory(app)
     response = client.post("/")
     assert response.json() == {}
 
 
-def test_urlencoded_percent_encoding(tmpdir):
-    client = TestClient(app)
+def test_urlencoded_percent_encoding(tmpdir, test_client_factory):
+    client = test_client_factory(app)
     response = client.post("/", data={"some": "da ta"})
     assert response.json() == {"some": "da ta"}
 
 
-def test_urlencoded_percent_encoding_keys(tmpdir):
-    client = TestClient(app)
+def test_urlencoded_percent_encoding_keys(tmpdir, test_client_factory):
+    client = test_client_factory(app)
     response = client.post("/", data={"so me": "data"})
     assert response.json() == {"so me": "data"}
 
 
-def test_urlencoded_multi_field_app_reads_body(tmpdir):
-    client = TestClient(app_read_body)
+def test_urlencoded_multi_field_app_reads_body(tmpdir, test_client_factory):
+    client = test_client_factory(app_read_body)
     response = client.post("/", data={"some": "data", "second": "key pair"})
     assert response.json() == {"some": "data", "second": "key pair"}
 
 
-def test_multipart_multi_field_app_reads_body(tmpdir):
-    client = TestClient(app_read_body)
+def test_multipart_multi_field_app_reads_body(tmpdir, test_client_factory):
+    client = test_client_factory(app_read_body)
     response = client.post(
         "/", data={"some": "data", "second": "key pair"}, files=FORCE_MULTIPART
     )
