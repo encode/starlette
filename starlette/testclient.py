@@ -87,15 +87,14 @@ class _WrapASGI2:
     def __init__(self, app: typing.Union[ASGI2App, ASGI3App]) -> None:
         self.app = app
 
-    def __call__(
-        self, scope: Scope, receive: Receive, send: Send
-    ) -> typing.Awaitable[None]:
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         try:
             asgi3app = typing.cast(ASGI3App, self.app)
-            return asgi3app(scope, receive, send)
+            aw = asgi3app(scope, receive, send)
         except TypeError:
             asgi2app = typing.cast(ASGI2App, self.app)
-            return asgi2app(scope)(receive, send)
+            aw = asgi2app(scope)(receive, send)
+        await aw
 
 
 class _AsyncBackend(TypedDict):

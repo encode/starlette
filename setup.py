@@ -38,7 +38,7 @@ setup(
     package_data={"starlette": ["py.typed"]},
     include_package_data=True,
     install_requires=[
-        "anyio @ git+https://github.com/adriangb/anyio.git@allow-awaitable-in-to-thread",
+        "anyio>=3.0.0,<4",
         "typing_extensions; python_version < '3.10'",
         "contextlib2 >= 21.6.0; python_version < '3.7'",
     ],
