@@ -1,3 +1,4 @@
+import typing
 from datetime import datetime
 
 import pytest
@@ -25,14 +26,30 @@ class DateTimeConvertor(Convertor):
         return value.strftime("%Y-%m-%dT%H:%M:%S")
 
 
+class RegexConvertor(Convertor):
+    def __init__(self, *args):
+        self.regex = args[0]
+
+    def convert(self, value: str) -> typing.Any:
+        return value
+
+    def to_string(self, value: typing.Any) -> str:
+        return str(value)
+
+
 @pytest.fixture(scope="function")
 def app() -> Router:
-    register_url_convertor("datetime", DateTimeConvertor())
+    register_url_convertor("datetime", DateTimeConvertor)
+    register_url_convertor("regex", RegexConvertor)
 
     def datetime_convertor(request):
         param = request.path_params["param"]
         assert isinstance(param, datetime)
         return JSONResponse({"datetime": param.strftime("%Y-%m-%dT%H:%M:%S")})
+
+    def regex_convertor(request):
+        param = request.path_params["param"]
+        return JSONResponse({"regex": param})
 
     return Router(
         routes=[
@@ -40,7 +57,12 @@ def app() -> Router:
                 "/datetime/{param:datetime}",
                 endpoint=datetime_convertor,
                 name="datetime-convertor",
-            )
+            ),
+            Route(
+                "/regex/{param:regex([0-9]{3}-[0-9]{3}-[0-9]{4})}",
+                endpoint=regex_convertor,
+                name="regex-convertor",
+            ),
         ]
     )
 
@@ -53,4 +75,15 @@ def test_datetime_convertor(test_client_factory, app: Router):
     assert (
         app.url_path_for("datetime-convertor", param=datetime(1996, 1, 22, 23, 0, 0))
         == "/datetime/1996-01-22T23:00:00"
+    )
+
+
+def test_regex_convertor(test_client_factory, app: Router):
+    client = test_client_factory(app)
+    response = client.get("/regex/123-456-7890")
+    assert response.status_code == 200
+    assert response.json() == {"regex": "123-456-7890"}
+    assert (
+        app.url_path_for("regex-convertor", param="123-456-7890")
+        == "/regex/123-456-7890"
     )

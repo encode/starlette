@@ -8,6 +8,9 @@ T = typing.TypeVar("T")
 class Convertor(typing.Generic[T]):
     regex: typing.ClassVar[str] = ""
 
+    def __init__(self, *args) -> typing.NoReturn:
+        pass
+
     def convert(self, value: str) -> T:
         raise NotImplementedError()  # pragma: no cover
 
@@ -75,11 +78,11 @@ class UUIDConvertor(Convertor):
 
 
 CONVERTOR_TYPES = {
-    "str": StringConvertor(),
-    "path": PathConvertor(),
-    "int": IntegerConvertor(),
-    "float": FloatConvertor(),
-    "uuid": UUIDConvertor(),
+    "str": StringConvertor,
+    "path": PathConvertor,
+    "int": IntegerConvertor,
+    "float": FloatConvertor,
+    "uuid": UUIDConvertor,
 }
 
 
