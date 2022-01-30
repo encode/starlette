@@ -233,6 +233,25 @@ def test_testclient_endpoint_class(test_client_factory):
     assert response.text == "Hello, world!"
 
 
+def test_testclient_coro_closure(test_client_factory):
+    async def inner_app(scope, receive, send):
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 200,
+                "headers": [[b"content-type", b"text/plain"]],
+            }
+        )
+        await send({"type": "http.response.body", "body": b"Hello, world!"})
+    
+    def outer_app(scope, receive, send):
+        return inner_app(scope, receive, send)
+
+    client = test_client_factory(outer_app)
+    response = client.get("/")
+    assert response.text == "Hello, world!"
+
+
 def test_websocket_blocking_receive(test_client_factory):
     def app(scope):
         async def respond(websocket):
