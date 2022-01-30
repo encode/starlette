@@ -72,9 +72,9 @@ def websocket_session(func: typing.Callable) -> ASGIApp:
     """
     # assert asyncio.iscoroutinefunction(func), "WebSocket endpoints must be async"
 
-    async def app(scope: Scope, receive: Receive, send: Send) -> None:
+    def app(scope: Scope, receive: Receive, send: Send) -> typing.Awaitable[None]:
         session = WebSocket(scope, receive=receive, send=send)
-        await func(session)
+        return func(session)
 
     return app
 
@@ -159,10 +159,14 @@ class BaseRoute:
     def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         raise NotImplementedError()  # pragma: no cover
 
-    async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
+    def handle(
+        self, scope: Scope, receive: Receive, send: Send
+    ) -> typing.Awaitable[None]:
         raise NotImplementedError()  # pragma: no cover
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    def __call__(
+        self, scope: Scope, receive: Receive, send: Send
+    ) -> typing.Awaitable[None]:
         """
         A route may be used in isolation as a stand-alone ASGI app.
         This is a somewhat contrived case, as they'll almost always be used
@@ -172,14 +176,13 @@ class BaseRoute:
         if match == Match.NONE:
             if scope["type"] == "http":
                 response = PlainTextResponse("Not Found", status_code=404)
-                await response(scope, receive, send)
+                return response(scope, receive, send)
             elif scope["type"] == "websocket":
                 websocket_close = WebSocketClose()
-                await websocket_close(scope, receive, send)
-            return
+                return websocket_close(scope, receive, send)
 
         scope.update(child_scope)
-        await self.handle(scope, receive, send)
+        return self.handle(scope, receive, send)
 
 
 class Route(BaseRoute):
@@ -248,7 +251,9 @@ class Route(BaseRoute):
         assert not remaining_params
         return URLPath(path=path, protocol="http")
 
-    async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
+    def handle(
+        self, scope: Scope, receive: Receive, send: Send
+    ) -> typing.Awaitable[None]:
         if self.methods and scope["method"] not in self.methods:
             headers = {"Allow": ", ".join(self.methods)}
             if "app" in scope:
@@ -257,9 +262,9 @@ class Route(BaseRoute):
                 response = PlainTextResponse(
                     "Method Not Allowed", status_code=405, headers=headers
                 )
-            await response(scope, receive, send)
+            return response(scope, receive, send)
         else:
-            await self.app(scope, receive, send)
+            return self.app(scope, receive, send)
 
     def __eq__(self, other: typing.Any) -> bool:
         return (
@@ -317,8 +322,10 @@ class WebSocketRoute(BaseRoute):
         assert not remaining_params
         return URLPath(path=path, protocol="websocket")
 
-    async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
-        await self.app(scope, receive, send)
+    def handle(
+        self, scope: Scope, receive: Receive, send: Send
+    ) -> typing.Awaitable[None]:
+        return self.app(scope, receive, send)
 
     def __eq__(self, other: typing.Any) -> bool:
         return (
@@ -410,8 +417,10 @@ class Mount(BaseRoute):
                     pass
         raise NoMatchFound()
 
-    async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
-        await self.app(scope, receive, send)
+    def handle(
+        self, scope: Scope, receive: Receive, send: Send
+    ) -> typing.Awaitable[None]:
+        return self.app(scope, receive, send)
 
     def __eq__(self, other: typing.Any) -> bool:
         return (
@@ -474,8 +483,10 @@ class Host(BaseRoute):
                     pass
         raise NoMatchFound()
 
-    async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
-        await self.app(scope, receive, send)
+    def handle(
+        self, scope: Scope, receive: Receive, send: Send
+    ) -> typing.Awaitable[None]:
+        return self.app(scope, receive, send)
 
     def __eq__(self, other: typing.Any) -> bool:
         return (
@@ -572,11 +583,12 @@ class Router:
         else:
             self.lifespan_context = lifespan
 
-    async def not_found(self, scope: Scope, receive: Receive, send: Send) -> None:
+    def not_found(
+        self, scope: Scope, receive: Receive, send: Send
+    ) -> typing.Awaitable[None]:
         if scope["type"] == "websocket":
             websocket_close = WebSocketClose()
-            await websocket_close(scope, receive, send)
-            return
+            return websocket_close(scope, receive, send)
 
         # If we're running inside a starlette application then raise an
         # exception, so that the configurable exception handler can deal with
@@ -585,7 +597,7 @@ class Router:
             raise HTTPException(status_code=404)
         else:
             response = PlainTextResponse("Not Found", status_code=404)
-        await response(scope, receive, send)
+        return response(scope, receive, send)
 
     def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         for route in self.routes:
@@ -638,7 +650,9 @@ class Router:
         else:
             await send({"type": "lifespan.shutdown.complete"})
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    def __call__(
+        self, scope: Scope, receive: Receive, send: Send
+    ) -> typing.Awaitable[None]:
         """
         The main entry point to the Router class.
         """
@@ -648,8 +662,7 @@ class Router:
             scope["router"] = self
 
         if scope["type"] == "lifespan":
-            await self.lifespan(scope, receive, send)
-            return
+            return self.lifespan(scope, receive, send)
 
         partial = None
 
@@ -659,8 +672,7 @@ class Router:
             match, child_scope = route.matches(scope)
             if match == Match.FULL:
                 scope.update(child_scope)
-                await route.handle(scope, receive, send)
-                return
+                return route.handle(scope, receive, send)
             elif match == Match.PARTIAL and partial is None:
                 partial = route
                 partial_scope = child_scope
@@ -670,8 +682,7 @@ class Router:
             # able to handle the request, but is not a preferred option.
             # We use this in particular to deal with "405 Method Not Allowed".
             scope.update(partial_scope)
-            await partial.handle(scope, receive, send)
-            return
+            return partial.handle(scope, receive, send)
 
         if scope["type"] == "http" and self.redirect_slashes and scope["path"] != "/":
             redirect_scope = dict(scope)
@@ -685,10 +696,9 @@ class Router:
                 if match != Match.NONE:
                     redirect_url = URL(scope=redirect_scope)
                     response = RedirectResponse(url=str(redirect_url))
-                    await response(scope, receive, send)
-                    return
+                    return response(scope, receive, send)
 
-        await self.default(scope, receive, send)
+        return self.default(scope, receive, send)
 
     def __eq__(self, other: typing.Any) -> bool:
         return isinstance(other, Router) and self.routes == other.routes

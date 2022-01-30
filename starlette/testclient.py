@@ -1,4 +1,5 @@
 import asyncio
+import collections
 import contextlib
 import http
 import inspect
@@ -87,7 +88,7 @@ def _is_asgi3(app: typing.Union[ASGI2App, ASGI3App]) -> bool:
     elif inspect.isfunction(app):
         return asyncio.iscoroutinefunction(app)
     call = getattr(app, "__call__", None)
-    return asyncio.iscoroutinefunction(call)
+    return asyncio.iscoroutinefunction(call) or typing.get_origin(typing.get_type_hints(call).get("return")) in (collections.Awaitable, typing.Awaitable)
 
 
 class _WrapASGI2:
