@@ -22,8 +22,9 @@ class BaseHTTPMiddleware:
             await self.app(scope, receive, send)
             return
 
+        app_exc: typing.Optional[Exception] = None
+
         async def call_next(request: Request) -> Response:
-            app_exc: typing.Optional[Exception] = None
             send_stream, recv_stream = anyio.create_memory_object_stream()
 
             async def coro() -> None:
@@ -63,6 +64,9 @@ class BaseHTTPMiddleware:
             response = await self.dispatch_func(request, call_next)
             await response(scope, receive, send)
             task_group.cancel_scope.cancel()
+
+        if app_exc is not None:
+            raise app_exc
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
