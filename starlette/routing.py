@@ -146,7 +146,7 @@ def compile_path(
         ending = "s" if len(duplicated_params) > 1 else ""
         raise ValueError(f"Duplicated param name{ending} {names} at path {path}")
 
-    path_regex += re.escape(path[idx:]) + "$"
+    path_regex += re.escape(path[idx:].split(":")[0]) + "$"
     path_format += path[idx:]
 
     return re.compile(path_regex), path_format, param_convertors
@@ -156,7 +156,7 @@ class BaseRoute:
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         raise NotImplementedError()  # pragma: no cover
 
-    def url_path_for(self, name: str, **path_params: str) -> URLPath:
+    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         raise NotImplementedError()  # pragma: no cover
 
     async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -235,7 +235,7 @@ class Route(BaseRoute):
                     return Match.FULL, child_scope
         return Match.NONE, {}
 
-    def url_path_for(self, name: str, **path_params: str) -> URLPath:
+    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         seen_params = set(path_params.keys())
         expected_params = set(self.param_convertors.keys())
 
@@ -250,10 +250,13 @@ class Route(BaseRoute):
 
     async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
         if self.methods and scope["method"] not in self.methods:
+            headers = {"Allow": ", ".join(self.methods)}
             if "app" in scope:
-                raise HTTPException(status_code=405)
+                raise HTTPException(status_code=405, headers=headers)
             else:
-                response = PlainTextResponse("Method Not Allowed", status_code=405)
+                response = PlainTextResponse(
+                    "Method Not Allowed", status_code=405, headers=headers
+                )
             await response(scope, receive, send)
         else:
             await self.app(scope, receive, send)
@@ -276,7 +279,10 @@ class WebSocketRoute(BaseRoute):
         self.endpoint = endpoint
         self.name = get_name(endpoint) if name is None else name
 
-        if inspect.isfunction(endpoint) or inspect.ismethod(endpoint):
+        endpoint_handler = endpoint
+        while isinstance(endpoint_handler, functools.partial):
+            endpoint_handler = endpoint_handler.func
+        if inspect.isfunction(endpoint_handler) or inspect.ismethod(endpoint_handler):
             # Endpoint is function or method. Treat it as `func(websocket)`.
             self.app = websocket_session(endpoint)
         else:
@@ -298,7 +304,7 @@ class WebSocketRoute(BaseRoute):
                 return Match.FULL, child_scope
         return Match.NONE, {}
 
-    def url_path_for(self, name: str, **path_params: str) -> URLPath:
+    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         seen_params = set(path_params.keys())
         expected_params = set(self.param_convertors.keys())
 
@@ -346,7 +352,7 @@ class Mount(BaseRoute):
 
     @property
     def routes(self) -> typing.List[BaseRoute]:
-        return getattr(self.app, "routes", None)
+        return getattr(self.app, "routes", [])
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] in ("http", "websocket"):
@@ -371,7 +377,7 @@ class Mount(BaseRoute):
                 return Match.FULL, child_scope
         return Match.NONE, {}
 
-    def url_path_for(self, name: str, **path_params: str) -> URLPath:
+    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         if self.name is not None and name == self.name and "path" in path_params:
             # 'name' matches "<mount_name>".
             path_params["path"] = path_params["path"].lstrip("/")
@@ -424,7 +430,7 @@ class Host(BaseRoute):
 
     @property
     def routes(self) -> typing.List[BaseRoute]:
-        return getattr(self.app, "routes", None)
+        return getattr(self.app, "routes", [])
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] in ("http", "websocket"):
@@ -441,7 +447,7 @@ class Host(BaseRoute):
                 return Match.FULL, child_scope
         return Match.NONE, {}
 
-    def url_path_for(self, name: str, **path_params: str) -> URLPath:
+    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         if self.name is not None and name == self.name and "path" in path_params:
             # 'name' matches "<mount_name>".
             path = path_params.pop("path")
@@ -581,7 +587,7 @@ class Router:
             response = PlainTextResponse("Not Found", status_code=404)
         await response(scope, receive, send)
 
-    def url_path_for(self, name: str, **path_params: str) -> URLPath:
+    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         for route in self.routes:
             try:
                 return route.url_path_for(name, **path_params)
