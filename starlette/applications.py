@@ -73,7 +73,7 @@ class Starlette:
         self.router = Router(
             routes, on_startup=on_startup, on_shutdown=on_shutdown, lifespan=lifespan
         )
-        self.exception_handlers: typing.Dict[_ExcKey, _ExcHandler] = (
+        self.exception_handlers: _ExcDict = (
             {} if exception_handlers is None else dict(exception_handlers)
         )
         self.user_middleware = [] if middleware is None else list(middleware)
