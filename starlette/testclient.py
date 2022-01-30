@@ -21,9 +21,9 @@ from starlette.types import Message, Receive, Scope, Send
 from starlette.websockets import WebSocketDisconnect
 
 if sys.version_info >= (3, 8):  # pragma: no cover
-    from typing import TypedDict
+    from typing import TypedDict, get_origin, get_type_hints
 else:  # pragma: no cover
-    from typing_extensions import TypedDict
+    from typing_extensions import TypedDict, get_origin, get_type_hints
 
 
 _PortalFactoryType = typing.Callable[
@@ -88,8 +88,8 @@ def _is_asgi3(app: typing.Union[ASGI2App, ASGI3App]) -> bool:
     elif inspect.isfunction(app):
         return asyncio.iscoroutinefunction(app)
     call = getattr(app, "__call__", None)
-    return asyncio.iscoroutinefunction(call) or typing.get_origin(
-        typing.get_type_hints(call).get("return")
+    return asyncio.iscoroutinefunction(call) or get_origin(
+        get_type_hints(call).get("return")
     ) in (collections.Awaitable, typing.Awaitable)
 
 
