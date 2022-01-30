@@ -206,6 +206,33 @@ def test_testclient_asgi3(test_client_factory):
     assert response.text == "Hello, world!"
 
 
+def test_testclient_endpoint_class(test_client_factory):
+    """Test for support of non-coroutine ASGI apps
+    e.g. starlette.endpoints.HTTPEndpoint"""
+
+    class Endpoint:
+        def __init__(self, scope, receive, send) -> None:
+            self.scope = scope
+            self.receive = receive
+            self.send = send
+
+        def __await__(self):
+            yield from self.send(
+                {
+                    "type": "http.response.start",
+                    "status": 200,
+                    "headers": [[b"content-type", b"text/plain"]],
+                }
+            ).__await__()
+            yield from self.send(
+                {"type": "http.response.body", "body": b"Hello, world!"}
+            ).__await__()
+
+    client = test_client_factory(Endpoint)
+    response = client.get("/")
+    assert response.text == "Hello, world!"
+
+
 def test_websocket_blocking_receive(test_client_factory):
     def app(scope):
         async def respond(websocket):

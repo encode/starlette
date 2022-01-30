@@ -1,7 +1,5 @@
-import asyncio
 import contextlib
 import http
-import inspect
 import io
 import json
 import math
@@ -81,26 +79,22 @@ def _get_reason_phrase(status_code: int) -> str:
         return ""
 
 
-def _is_asgi3(app: typing.Union[ASGI2App, ASGI3App]) -> bool:
-    if inspect.isclass(app):
-        return hasattr(app, "__await__")
-    elif inspect.isfunction(app):
-        return asyncio.iscoroutinefunction(app)
-    call = getattr(app, "__call__", None)
-    return asyncio.iscoroutinefunction(call)
-
-
 class _WrapASGI2:
     """
     Provide an ASGI3 interface onto an ASGI2 app.
     """
 
-    def __init__(self, app: ASGI2App) -> None:
+    def __init__(self, app: typing.Union[ASGI2App, ASGI3App]) -> None:
         self.app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        instance = self.app(scope)
-        await instance(receive, send)
+        try:
+            asgi3app = typing.cast(ASGI3App, self.app)
+            aw = asgi3app(scope, receive, send)
+        except TypeError:
+            asgi2app = typing.cast(ASGI2App, self.app)
+            aw = asgi2app(scope)(receive, send)
+        await aw
 
 
 class _AsyncBackend(TypedDict):
@@ -421,12 +415,7 @@ class TestClient(requests.Session):
         self.async_backend = _AsyncBackend(
             backend=backend, backend_options=backend_options or {}
         )
-        if _is_asgi3(app):
-            app = typing.cast(ASGI3App, app)
-            asgi_app = app
-        else:
-            app = typing.cast(ASGI2App, app)
-            asgi_app = _WrapASGI2(app)  #  type: ignore
+        asgi_app = _WrapASGI2(app)
         adapter = _ASGIAdapter(
             asgi_app,
             portal_factory=self._portal_factory,
