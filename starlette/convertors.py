@@ -8,7 +8,7 @@ T = typing.TypeVar("T")
 class Convertor(typing.Generic[T]):
     regex: typing.ClassVar[str] = ""
 
-    def __init__(self, *args) -> typing.NoReturn:
+    def __init__(self, *args) -> None:
         pass
 
     def convert(self, value: str) -> T:
