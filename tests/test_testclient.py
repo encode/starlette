@@ -243,7 +243,7 @@ def test_testclient_coro_closure(test_client_factory):
             }
         )
         await send({"type": "http.response.body", "body": b"Hello, world!"})
-    
+
     def outer_app(scope, receive, send):
         return inner_app(scope, receive, send)
 
