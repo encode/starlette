@@ -63,10 +63,9 @@ class BaseHTTPMiddleware:
             request = Request(scope, receive=receive)
             response = await self.dispatch_func(request, call_next)
             await response(scope, receive, send)
+            if app_exc is not None:
+                raise app_exc
             task_group.cancel_scope.cancel()
-
-        if app_exc is not None:
-            raise app_exc
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
