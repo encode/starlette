@@ -416,7 +416,7 @@ class TestClient(requests.Session):
         self.async_backend = _AsyncBackend(
             backend=backend, backend_options=backend_options or {}
         )
-        asgi_app = _WrapASGI2(app)  #  type: ignore
+        asgi_app = _WrapASGI2(app)
         adapter = _ASGIAdapter(
             asgi_app,
             portal_factory=self._portal_factory,
