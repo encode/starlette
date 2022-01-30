@@ -8,7 +8,7 @@ T = typing.TypeVar("T")
 class Convertor(typing.Generic[T]):
     regex: typing.ClassVar[str] = ""
 
-    def __init__(self, *args) -> None:
+    def __init__(self, *args: typing.Any) -> None:
         pass
 
     def convert(self, value: str) -> T:
@@ -86,5 +86,5 @@ CONVERTOR_TYPES = {
 }
 
 
-def register_url_convertor(key: str, convertor: Convertor) -> None:
+def register_url_convertor(key: str, convertor: typing.Any) -> None:
     CONVERTOR_TYPES[key] = convertor
