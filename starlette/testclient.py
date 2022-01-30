@@ -1,8 +1,5 @@
-import asyncio
-import collections
 import contextlib
 import http
-import inspect
 import io
 import json
 import math
@@ -21,9 +18,9 @@ from starlette.types import Message, Receive, Scope, Send
 from starlette.websockets import WebSocketDisconnect
 
 if sys.version_info >= (3, 8):  # pragma: no cover
-    from typing import TypedDict, get_origin, get_type_hints
+    from typing import TypedDict
 else:  # pragma: no cover
-    from typing_extensions import TypedDict, get_origin, get_type_hints
+    from typing_extensions import TypedDict
 
 
 _PortalFactoryType = typing.Callable[
@@ -82,28 +79,23 @@ def _get_reason_phrase(status_code: int) -> str:
         return ""
 
 
-def _is_asgi3(app: typing.Union[ASGI2App, ASGI3App]) -> bool:
-    if inspect.isclass(app):
-        return hasattr(app, "__await__")
-    elif inspect.isfunction(app):
-        return asyncio.iscoroutinefunction(app)
-    call: typing.Any = getattr(app, "__call__", None)
-    return asyncio.iscoroutinefunction(call) or get_origin(
-        get_type_hints(call).get("return")
-    ) in (collections.Awaitable, typing.Awaitable)
-
-
 class _WrapASGI2:
     """
     Provide an ASGI3 interface onto an ASGI2 app.
     """
 
-    def __init__(self, app: ASGI2App) -> None:
+    def __init__(self, app: typing.Union[ASGI2App, ASGI3App]) -> None:
         self.app = app
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        instance = self.app(scope)
-        await instance(receive, send)
+    def __call__(
+        self, scope: Scope, receive: Receive, send: Send
+    ) -> typing.Awaitable[None]:
+        try:
+            asgi3app = typing.cast(ASGI3App, self.app)
+            return asgi3app(scope, receive, send)
+        except TypeError:
+            asgi2app = typing.cast(ASGI2App, self.app)
+            return asgi2app(scope)(receive, send)
 
 
 class _AsyncBackend(TypedDict):
@@ -424,12 +416,8 @@ class TestClient(requests.Session):
         self.async_backend = _AsyncBackend(
             backend=backend, backend_options=backend_options or {}
         )
-        if _is_asgi3(app):
-            app = typing.cast(ASGI3App, app)
-            asgi_app = app
-        else:
-            app = typing.cast(ASGI2App, app)
-            asgi_app = _WrapASGI2(app)  #  type: ignore
+        app = typing.cast(ASGI2App, app)
+        asgi_app = _WrapASGI2(app)  #  type: ignore
         adapter = _ASGIAdapter(
             asgi_app,
             portal_factory=self._portal_factory,
