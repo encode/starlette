@@ -27,8 +27,8 @@ class DateTimeConvertor(Convertor):
 
 
 class RegexConvertor(Convertor):
-    def __init__(self, *args: typing.Any) -> None:
-        self.__class__.regex = args[0]
+    def __init__(self, *args: str) -> None:
+        self.regex = args[0]
 
     def convert(self, value: str) -> typing.Any:
         return value

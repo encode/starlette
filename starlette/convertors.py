@@ -6,9 +6,9 @@ T = typing.TypeVar("T")
 
 
 class Convertor(typing.Generic[T]):
-    regex: typing.ClassVar[str] = ""
+    regex: str = ""
 
-    def __init__(self, *args: typing.Any) -> None:
+    def __init__(self, *args: str) -> None:
         pass
 
     def convert(self, value: str) -> T:

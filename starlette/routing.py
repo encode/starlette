@@ -129,8 +129,11 @@ def compile_path(
         assert (
             convertor_type in CONVERTOR_TYPES
         ), f"Unknown path convertor '{convertor_type}'"
-        convertor = CONVERTOR_TYPES[convertor_type](args)
-
+        if args:
+            normalized_args = args.strip("()").split(",")
+            convertor = CONVERTOR_TYPES[convertor_type](*normalized_args)
+        else:
+            convertor = CONVERTOR_TYPES[convertor_type]()
         path_regex += re.escape(path[idx : match.start()])
         path_regex += f"(?P<{param_name}>{convertor.regex})"
 
