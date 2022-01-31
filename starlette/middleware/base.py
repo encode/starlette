@@ -47,8 +47,6 @@ class BaseHTTPMiddleware:
             assert message["type"] == "http.response.start"
 
             async def body_stream() -> typing.AsyncGenerator[bytes, None]:
-                nonlocal app_exc
-
                 async with recv_stream:
                     async for message in recv_stream:
                         assert message["type"] == "http.response.body"
