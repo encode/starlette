@@ -173,6 +173,7 @@ def test_fully_evaluated_response(test_client_factory):
     response = client.get("/does_not_exist")
     assert response.text == "Custom"
 
+
 def test_exception_on_mounted_apps(test_client_factory):
     sub_app = Starlette(routes=[Route("/", exc)])
     app.mount("/sub", sub_app)
