@@ -2,19 +2,21 @@
 
 January, 28, 2022
 
-#### Added
-
+### Added
 * Add `headers` parameter to `HTTPException` [#1435](https://github.com/encode/starlette/pull/1435).
 * Internal responses with `405` status code insert an `Allow` header, as described by [RFC 7231](https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.5) [#1436](https://github.com/encode/starlette/pull/1436).
 * The `content` argument in `JSONResponse` is now required [#1431](https://github.com/encode/starlette/pull/1431).
 * Add custom URL convertor register [#1437](https://github.com/encode/starlette/pull/1437).
 * Add `raw_path` to `TestClient` scope [#1445](https://github.com/encode/starlette/pull/1445).
 
+### Fixed
+* Prevent `BaseHTTPMiddleware` from hiding errors of `StreamingResponse` and mounted applications [#1459](https://github.com/encode/starlette/pull/1459).
+
 ## 0.18.0
 
 January 23, 2022
 
-#### Added
+### Added
 * Change default chunk size from 4Kb to 64Kb on `FileResponse` [#1345](https://github.com/encode/starlette/pull/1345).
 * Add support for `functools.partial` in `WebSocketRoute` [#1356](https://github.com/encode/starlette/pull/1356).
 * Add `StaticFiles` packages with directory [#1350](https://github.com/encode/starlette/pull/1350).
@@ -27,7 +29,7 @@ January 23, 2022
 * Don't set headers for responses with 1xx, 204 and 304 status code [#1397](https://github.com/encode/starlette/pull/1397).
 * `SessionMiddleware.max_age` now accepts `None`, so cookie can last as long as the browser session [#1387](https://github.com/encode/starlette/pull/1387).
 
-#### Fixed
+### Fixed
 * Tweak `hashlib.md5()` function on `FileResponse`s ETag generation. The parameter [`usedforsecurity`](https://bugs.python.org/issue9216) flag is set to `False`, if the flag is available on the system. This fixes an error raised on systems with [FIPS](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/FIPS_Mode_-_an_explanation) enabled [#1366](https://github.com/encode/starlette/pull/1366) and [#1410](https://github.com/encode/starlette/pull/1410).
 * Fix `path_params` type on `url_path_for()` method i.e. turn `str` into `Any` [#1341](https://github.com/encode/starlette/pull/1341).
 * `Host` now ignores `port` on routing [#1322](https://github.com/encode/starlette/pull/1322).
