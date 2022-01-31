@@ -8,6 +8,7 @@ January, 28, 2022
 * Internal responses with `405` status code insert an `Allow` header, as described by [RFC 7231](https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.5) [#1436](https://github.com/encode/starlette/pull/1436).
 * The `content` argument in `JSONResponse` is now required [#1431](https://github.com/encode/starlette/pull/1431).
 * Add custom URL convertor register [#1437](https://github.com/encode/starlette/pull/1437).
+* Add `raw_path` to `TestClient` scope [#1445](https://github.com/encode/starlette/pull/1445).
 
 ## 0.18.0
 
