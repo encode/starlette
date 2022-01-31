@@ -215,7 +215,7 @@ class Request(HTTPConnection):
             self.scope["extensions"]["starlette"] = {}
         self.scope["extensions"]["starlette"]["stream"] = chunks
 
-    async def _wrap_stream(self) -> typing.AsyncGenerator[bytes, None]:
+    async def _cache_stream(self) -> typing.AsyncGenerator[bytes, None]:
         _stream: typing.List[bytes] = []
 
         async for chunk in self.stream():
@@ -250,7 +250,7 @@ class Request(HTTPConnection):
 
     async def body(self) -> bytes:
         chunks = []
-        async for chunk in self._wrap_stream():
+        async for chunk in self._cache_stream():
             chunks.append(chunk)
         return b"".join(chunks)
 
@@ -265,10 +265,10 @@ class Request(HTTPConnection):
         content_type_header = self.headers.get("Content-Type")
         content_type, options = parse_options_header(content_type_header)
         if content_type == b"multipart/form-data":
-            multipart_parser = MultiPartParser(self.headers, self._wrap_stream())
+            multipart_parser = MultiPartParser(self.headers, self._cache_stream())
             self._form = await multipart_parser.parse()
         elif content_type == b"application/x-www-form-urlencoded":
-            form_parser = FormParser(self.headers, self._wrap_stream())
+            form_parser = FormParser(self.headers, self._cache_stream())
             self._form = await form_parser.parse()
         else:
             self._form = FormData()
