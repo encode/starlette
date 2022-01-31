@@ -87,3 +87,9 @@ def test_regex_convertor(test_client_factory, app: Router):
         app.url_path_for("regex-convertor", param="123-456-7890")
         == "/regex/123-456-7890"
     )
+
+
+def test_regex_convertor_fail(test_client_factory, app: Router):
+    client = test_client_factory(app)
+    response = client.get("/regex/123-456-7890-")
+    assert response.status_code == 404

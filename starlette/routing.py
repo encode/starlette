@@ -130,7 +130,8 @@ def compile_path(
             convertor_type in CONVERTOR_TYPES
         ), f"Unknown path convertor '{convertor_type}'"
         if args:
-            normalized_args = args.split(",")
+            # split args by comma except in {}
+            normalized_args = re.split(r"\,(?![^\{]*\})", args)
             convertor = CONVERTOR_TYPES[convertor_type](*normalized_args)
         else:
             convertor = CONVERTOR_TYPES[convertor_type]()
