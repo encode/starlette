@@ -202,9 +202,24 @@ class Request(HTTPConnection):
     def receive(self) -> Receive:
         return self._receive
 
+    @property
+    def _body(self) -> bytes:
+        try:
+            return self.scope["body"]
+        except KeyError:
+            raise AttributeError("_body")
+
+    @_body.setter
+    def _body(self, bytes):
+        self.scope["body"] = bytes
+
+    @_body.deleter
+    def _body(self):
+        del self.scope["body"]
+
     async def stream(self) -> typing.AsyncGenerator[bytes, None]:
-        if "body" in self.scope:
-            yield self.scope["body"]
+        if hasattr(self, "_body"):
+            yield self._body
             yield b""
             return
 
@@ -226,18 +241,31 @@ class Request(HTTPConnection):
         yield b""
 
     async def body(self) -> bytes:
-        if "body" not in self.scope:
-            self.scope["body"] = b"".join([chunk async for chunk in self.stream()])
-        return self.scope["body"]
+        if not hasattr(self, "_body"):
+            self._body = b"".join([chunk async for chunk in self.stream()])
+        return self._body
 
     async def json(self) -> typing.Any:
-        if "json" not in self.scope:
-            body = await self.body()
-            self.scope["json"] = json.loads(body)
-        return self.scope["json"]
+        body = await self.body()
+        return json.loads(body)
+
+    @property
+    def _form(self) -> bytes:
+        try:
+            return self.scope["form"]
+        except KeyError:
+            raise AttributeError("_form")
+
+    @_form.setter
+    def _form(self, bytes):
+        self.scope["form"] = bytes
+
+    @_form.deleter
+    def _form(self):
+        del self.scope["form"]
 
     async def form(self) -> FormData:
-        if "form" not in self.scope:
+        if not hasattr(self, "_form"):
             assert (
                 parse_options_header is not None
             ), "The `python-multipart` library must be installed to use form parsing."
@@ -245,17 +273,17 @@ class Request(HTTPConnection):
             content_type, options = parse_options_header(content_type_header)
             if content_type == b"multipart/form-data":
                 multipart_parser = MultiPartParser(self.headers, self.stream())
-                self.scope["form"] = await multipart_parser.parse()
+                self._form = await multipart_parser.parse()
             elif content_type == b"application/x-www-form-urlencoded":
                 form_parser = FormParser(self.headers, self.stream())
-                self.scope["form"] = await form_parser.parse()
+                self._form = await form_parser.parse()
             else:
-                self.scope["form"] = FormData()
-        return self.scope["form"]
+                self._form = FormData()
+        return self._form
 
     async def close(self) -> None:
-        if "form" in self.scope:
-            await self.scope["form"].close()
+        if hasattr(self, "_form"):
+            await self._form.close()
 
     async def is_disconnected(self) -> bool:
         if not self._is_disconnected:
