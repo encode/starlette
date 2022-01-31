@@ -204,17 +204,24 @@ class Request(HTTPConnection):
     @property
     def _stream(self) -> bytes:
         try:
-            return self.scope["stream"]
+            return self.scope["extensions"]["starlette"]["stream"]
         except KeyError:
             raise AttributeError("_stream")
 
     @_stream.setter
     def _stream(self, bytes):
-        self.scope["stream"] = bytes
+        if "extensions" not in self.scope:
+            self.scope["extensions"] = {}
+        if "starlette" not in self.scope["extensions"]:
+            self.scope["extensions"]["starlette"] = {}
+        self.scope["extensions"]["starlette"]["stream"] = bytes
 
     @_stream.deleter
     def _stream(self):
-        del self.scope["stream"]
+        try:
+            del self.scope["extensions"]["starlette"]["stream"]
+        except KeyError:
+            raise AttributeError("_stream")
 
     async def stream(self) -> typing.AsyncGenerator[bytes, None]:
         if hasattr(self, "_stream"):
