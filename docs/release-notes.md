@@ -8,7 +8,7 @@ January, 28, 2022
 * The `content` argument in `JSONResponse` is now required [#1431](https://github.com/encode/starlette/pull/1431).
 * Add custom URL convertor register [#1437](https://github.com/encode/starlette/pull/1437).
 * Add `raw_path` to `TestClient` scope [#1445](https://github.com/encode/starlette/pull/1445).
-* Bump `anyio` minimal version to `3.4.0` [#1421](https://github.com/encode/starlette/pull/#1421).
+* Bump `anyio` minimal version to `3.4.0` [#1421](https://github.com/encode/starlette/pull/1421).
 
 ### Fixed
 * Prevent `BaseHTTPMiddleware` from hiding errors of `StreamingResponse` and mounted applications [#1459](https://github.com/encode/starlette/pull/1459).
