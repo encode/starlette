@@ -228,10 +228,7 @@ async def test_upload_file_file_input():
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize(
-    "max_size", [1, 1024],
-    ids=["rolled", "unrolled"]
-)
+@pytest.mark.parametrize("max_size", [1, 1024], ids=["rolled", "unrolled"])
 async def test_uploadfile_rolling(max_size: int) -> None:
     """Test that we can r/w to a SpooledTemporaryFile
     managed by UploadFile before and after it rolls to disk
