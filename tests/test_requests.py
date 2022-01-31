@@ -140,14 +140,17 @@ def test_request_stream_then_body(test_client_factory):
         chunks = b""
         async for chunk in request.stream():
             chunks += chunk
-        body = await request.body()
+        try:
+            body = await request.body()
+        except RuntimeError:
+            body = b"<stream consumed>"
         response = JSONResponse({"body": body.decode(), "stream": chunks.decode()})
         await response(scope, receive, send)
 
     client = test_client_factory(app)
 
     response = client.post("/", data="abc")
-    assert response.json() == {"body": "abc", "stream": "abc"}
+    assert response.json() == {"body": "<stream consumed>", "stream": "abc"}
 
 
 def test_request_body_then_request_body(test_client_factory):

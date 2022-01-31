@@ -191,6 +191,7 @@ class Request(HTTPConnection):
         assert scope["type"] == "http"
         self._receive = receive
         self._send = send
+        self._stream_consumed = False
         self._is_disconnected = False
 
     @property
@@ -210,11 +211,19 @@ class Request(HTTPConnection):
 
     @_stream.setter
     def _stream(self, chunks: typing.List[bytes]) -> None:
-        if "extensions" not in self.scope:
-            self.scope["extensions"] = {}
         if "starlette" not in self.scope["extensions"]:
             self.scope["extensions"]["starlette"] = {}
         self.scope["extensions"]["starlette"]["stream"] = chunks
+
+    async def _wrap_stream(self) -> typing.AsyncGenerator[bytes, None]:
+        _stream: typing.List[bytes] = []
+
+        async for chunk in self.stream():
+            _stream.append(chunk)
+            yield chunk
+
+        if not hasattr(self, "_stream"):
+            self._stream = _stream
 
     async def stream(self) -> typing.AsyncGenerator[bytes, None]:
         if hasattr(self, "_stream"):
@@ -222,25 +231,26 @@ class Request(HTTPConnection):
                 yield chunk
             return
 
-        self._stream = []
+        if self._stream_consumed:
+            raise RuntimeError("Stream consumed")
+
+        self._stream_consumed = True
         while True:
             message = await self._receive()
             if message["type"] == "http.request":
                 body = message.get("body", b"")
                 if body:
-                    self._stream.append(body)
                     yield body
                 if not message.get("more_body", False):
                     break
             elif message["type"] == "http.disconnect":
                 self._is_disconnected = True
                 raise ClientDisconnect()
-        self._stream.append(b"")
         yield b""
 
     async def body(self) -> bytes:
         chunks = []
-        async for chunk in self.stream():
+        async for chunk in self._wrap_stream():
             chunks.append(chunk)
         return b"".join(chunks)
 
@@ -255,10 +265,10 @@ class Request(HTTPConnection):
         content_type_header = self.headers.get("Content-Type")
         content_type, options = parse_options_header(content_type_header)
         if content_type == b"multipart/form-data":
-            multipart_parser = MultiPartParser(self.headers, self.stream())
+            multipart_parser = MultiPartParser(self.headers, self._wrap_stream())
             self._form = await multipart_parser.parse()
         elif content_type == b"application/x-www-form-urlencoded":
-            form_parser = FormParser(self.headers, self.stream())
+            form_parser = FormParser(self.headers, self._wrap_stream())
             self._form = await form_parser.parse()
         else:
             self._form = FormData()
