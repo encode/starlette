@@ -233,7 +233,9 @@ async def test_uploadfile_rolling(max_size: int) -> None:
     """Test that we can r/w to a SpooledTemporaryFile
     managed by UploadFile before and after it rolls to disk
     """
-    stream: BinaryIO = SpooledTemporaryFile(max_size=max_size)  # type: ignore[assignment]
+    stream: BinaryIO = SpooledTemporaryFile(  # type: ignore[assignment]
+        max_size=max_size
+    )
     file = UploadFile(filename="file", file=stream)
     assert await file.read() == b""
     await file.write(b"data")
