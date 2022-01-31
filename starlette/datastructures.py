@@ -20,7 +20,10 @@ _VT_co = typing.TypeVar("_VT_co", covariant=True)  # value type for covariant co
 
 class URL:
     def __init__(
-        self, url: str = "", scope: Scope = None, **components: typing.Any
+        self,
+        url: str = "",
+        scope: typing.Optional[Scope] = None,
+        **components: typing.Any,
     ) -> None:
         if scope is not None:
             assert not url, 'Cannot set both "url" and "scope".'
@@ -511,9 +514,9 @@ class Headers(typing.Mapping[str, str]):
 
     def __init__(
         self,
-        headers: typing.Mapping[str, str] = None,
-        raw: typing.List[typing.Tuple[bytes, bytes]] = None,
-        scope: Scope = None,
+        headers: typing.Optional[typing.Mapping[str, str]] = None,
+        raw: typing.Optional[typing.List[typing.Tuple[bytes, bytes]]] = None,
+        scope: typing.Optional[typing.Mapping[str, typing.Any]] = None,
     ) -> None:
         self._list: typing.List[typing.Tuple[bytes, bytes]] = []
         if headers is not None:
@@ -676,7 +679,9 @@ class State:
     Used for `request.state` and `app.state`.
     """
 
-    def __init__(self, state: typing.Dict = None):
+    _state: typing.Dict[str, typing.Any]
+
+    def __init__(self, state: typing.Optional[typing.Dict[str, typing.Any]] = None):
         if state is None:
             state = {}
         super().__setattr__("_state", state)
