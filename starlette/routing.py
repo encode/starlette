@@ -102,7 +102,7 @@ def replace_params(
 # Match parameters in URL paths, eg. '{param}', and '{param:int}'
 PARAM_REGEX = re.compile(
     "{([a-zA-Z_][a-zA-Z0-9_]*)(:[a-zA-Z_][a-zA-Z0-9_]*)?"
-    "((?:(?:\\(.*\\))|(?:\\[.*\\]))*)}"
+    "(?:\\((.*?)\\))?}"  # Match any number of characters in parentheses
 )
 
 
@@ -130,7 +130,7 @@ def compile_path(
             convertor_type in CONVERTOR_TYPES
         ), f"Unknown path convertor '{convertor_type}'"
         if args:
-            normalized_args = args.strip("()").split(",")
+            normalized_args = args.split(",")
             convertor = CONVERTOR_TYPES[convertor_type](*normalized_args)
         else:
             convertor = CONVERTOR_TYPES[convertor_type]()
