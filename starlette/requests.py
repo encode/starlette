@@ -191,7 +191,6 @@ class Request(HTTPConnection):
         assert scope["type"] == "http"
         self._receive = receive
         self._send = send
-        self._stream_consumed = False
         self._is_disconnected = False
 
     @property
@@ -203,85 +202,66 @@ class Request(HTTPConnection):
         return self._receive
 
     @property
-    def _body(self) -> bytes:
+    def _stream(self) -> bytes:
         try:
-            return self.scope["body"]
+            return self.scope["stream"]
         except KeyError:
-            raise AttributeError("_body")
+            raise AttributeError("_stream")
 
-    @_body.setter
-    def _body(self, bytes):
-        self.scope["body"] = bytes
+    @_stream.setter
+    def _stream(self, bytes):
+        self.scope["stream"] = bytes
 
-    @_body.deleter
-    def _body(self):
-        del self.scope["body"]
+    @_stream.deleter
+    def _stream(self):
+        del self.scope["stream"]
 
     async def stream(self) -> typing.AsyncGenerator[bytes, None]:
-        if hasattr(self, "_body"):
-            yield self._body
-            yield b""
+        if hasattr(self, "_stream"):
+            for chunk in self._stream:
+                yield chunk
             return
 
-        if self._stream_consumed:
-            raise RuntimeError("Stream consumed")
-
-        self._stream_consumed = True
+        self._stream = []
         while True:
             message = await self._receive()
             if message["type"] == "http.request":
                 body = message.get("body", b"")
                 if body:
+                    self._stream.append(body)
                     yield body
                 if not message.get("more_body", False):
                     break
             elif message["type"] == "http.disconnect":
                 self._is_disconnected = True
                 raise ClientDisconnect()
+        self._stream.append(b"")
         yield b""
 
     async def body(self) -> bytes:
-        if not hasattr(self, "_body"):
-            chunks = []
-            async for chunk in self.stream():
-                chunks.append(chunk)
-            self._body = b"".join(chunks)
-        return self._body
+        chunks = []
+        async for chunk in self.stream():
+            chunks.append(chunk)
+        return b"".join(chunks)
 
     async def json(self) -> typing.Any:
         body = await self.body()
         return json.loads(body)
 
-    @property
-    def _form(self) -> bytes:
-        try:
-            return self.scope["form"]
-        except KeyError:
-            raise AttributeError("_form")
-
-    @_form.setter
-    def _form(self, bytes):
-        self.scope["form"] = bytes
-
-    @_form.deleter
-    def _form(self):
-        del self.scope["form"]
-
     async def form(self) -> FormData:
-        if not hasattr(self, "_form"):
-            assert (
-                parse_options_header is not None
-            ), "The `python-multipart` library must be installed to use form parsing."
-            content_type_header = self.headers.get("Content-Type")
-            content_type, options = parse_options_header(content_type_header)
-            if content_type == b"multipart/form-data":
-                multipart_parser = MultiPartParser(self.headers, self.stream())
-                self._form = await multipart_parser.parse()
-            elif content_type == b"application/x-www-form-urlencoded":
-                form_parser = FormParser(self.headers, self.stream())
-                self._form = await form_parser.parse()
-            else:
-                self._form = FormData()
+        assert (
+            parse_options_header is not None
+        ), "The `python-multipart` library must be installed to use form parsing."
+        content_type_header = self.headers.get("Content-Type")
+        content_type, options = parse_options_header(content_type_header)
+        if content_type == b"multipart/form-data":
+            multipart_parser = MultiPartParser(self.headers, self.stream())
+            self._form = await multipart_parser.parse()
+        elif content_type == b"application/x-www-form-urlencoded":
+            form_parser = FormParser(self.headers, self.stream())
+            self._form = await form_parser.parse()
+        else:
+            self._form = FormData()
         return self._form
 
     async def close(self) -> None:
