@@ -22,7 +22,6 @@ _ExcHandler = typing.Callable[
     [Request, _HandledException], typing.Union[Response, typing.Awaitable[Response]]
 ]
 _ExcDict = typing.Dict[_ExcKey, _ExcHandler]
-_C = typing.TypeVar("_C", bound=typing.Callable)
 
 
 class Starlette:
@@ -118,7 +117,7 @@ class Starlette:
         self._debug = value
         self.middleware_stack = self.build_middleware_stack()
 
-    def url_path_for(self, name: str, **path_params: str) -> URLPath:
+    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         return self.router.url_path_for(name, **path_params)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -169,9 +168,9 @@ class Starlette:
         self.router.add_websocket_route(path, route, name=name)
 
     def exception_handler(
-        self, exc_class_or_status_code: _ExcKey
-    ) -> typing.Callable[[_C], _C]:
-        def decorator(func: _C) -> _C:
+        self, exc_class_or_status_code: typing.Union[int, typing.Type[Exception]]
+    ) -> typing.Callable:
+        def decorator(func: typing.Callable) -> typing.Callable:
             self.add_exception_handler(exc_class_or_status_code, func)
             return func
 
