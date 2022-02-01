@@ -77,7 +77,7 @@ In this case the flow of execution for a request to `"/admin/dashboard"` would l
 * `app`'s middleware
   * `ServerErrorMiddleware`
   * `ExceptionMiddleware`
-* `app` (via `app.router`) routes to `admin_router` via `Mount`
+* `app` routes to `admin_router` (`app.router` → `Mount` → `admin_router`)
 * `admin_router`'s middleware`
   * `AdminAuthMiddleware`
 * `admin_router` routes to `endpoint`
