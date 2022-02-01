@@ -10,11 +10,11 @@ import typing
 import warnings
 from enum import Enum
 
-from starlette.middleware import Middleware
 from starlette.concurrency import run_in_threadpool
 from starlette.convertors import CONVERTOR_TYPES, Convertor
 from starlette.datastructures import URL, Headers, URLPath
 from starlette.exceptions import HTTPException
+from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, RedirectResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -573,7 +573,7 @@ class Router:
             )
         else:
             self.lifespan_context = lifespan
-        
+
         self._app = self._route
         if middleware:
             for cls, options in reversed(middleware):
@@ -644,14 +644,15 @@ class Router:
             raise
         else:
             await send({"type": "lifespan.shutdown.complete"})
-    
+
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        """
+        The main entry point to the Router class.
+        Runs middleware as an ASGI app, eventually calling Router._route.
+        """
         return await self._app(scope, receive, send)
 
     async def _route(self, scope: Scope, receive: Receive, send: Send) -> None:
-        """
-        The main entry point to the Router class.
-        """
         assert scope["type"] in ("http", "websocket", "lifespan")
 
         if "router" not in scope:

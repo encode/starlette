@@ -4,12 +4,12 @@ import uuid
 import pytest
 
 from starlette.applications import Starlette
+from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, PlainTextResponse, Response
 from starlette.routing import Host, Mount, NoMatchFound, Route, Router, WebSocketRoute
+from starlette.types import ASGIApp, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketDisconnect
-from starlette.types import ASGIApp, Scope, Receive, Send
-from starlette.middleware import Middleware
 
 
 def homepage(request):
@@ -709,22 +709,19 @@ def test_router_middleware(test_client_factory) -> None:
     class RedirectMiddleware:
         def __init__(self, app: ASGIApp) -> None:
             self.app = app
-        
+
         async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
             scope["path"] = scope["path"].replace("foo", "bar")
             await self.app(scope, receive, send)
-    
+
     async def endpoint(request: Request) -> Response:
         return Response(content=request.scope["path"])
 
     app = Router(
         routes=[
-            Route(
-                "/bar",
-                endpoint=endpoint
-            ),
+            Route("/bar", endpoint=endpoint),
         ],
-        middleware=[Middleware(RedirectMiddleware)]
+        middleware=[Middleware(RedirectMiddleware)],
     )
 
     client = test_client_factory(app)
