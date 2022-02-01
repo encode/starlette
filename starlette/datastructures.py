@@ -1,6 +1,5 @@
 import tempfile
 import typing
-from collections import namedtuple
 from collections.abc import Sequence
 from shlex import shlex
 from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit
@@ -8,12 +7,18 @@ from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit
 from starlette.concurrency import run_in_threadpool
 from starlette.types import Scope
 
-Address = namedtuple("Address", ["host", "port"])
+
+class Address(typing.NamedTuple):
+    host: str
+    port: int
 
 
 class URL:
     def __init__(
-        self, url: str = "", scope: Scope = None, **components: typing.Any
+        self,
+        url: str = "",
+        scope: typing.Optional[Scope] = None,
+        **components: typing.Any,
     ) -> None:
         if scope is not None:
             assert not url, 'Cannot set both "url" and "scope".'
@@ -163,7 +168,7 @@ class URLPath(str):
 
     def __new__(cls, path: str, protocol: str = "", host: str = "") -> "URLPath":
         assert protocol in ("http", "websocket", "")
-        return str.__new__(cls, path)  # type: ignore
+        return str.__new__(cls, path)
 
     def __init__(self, path: str, protocol: str = "", host: str = "") -> None:
         self.protocol = protocol
@@ -415,28 +420,37 @@ class UploadFile:
     """
 
     spool_max_size = 1024 * 1024
+    file: typing.BinaryIO
+    headers: "Headers"
 
     def __init__(
-        self, filename: str, file: typing.IO = None, content_type: str = ""
+        self,
+        filename: str,
+        file: typing.Optional[typing.BinaryIO] = None,
+        content_type: str = "",
+        *,
+        headers: "typing.Optional[Headers]" = None,
     ) -> None:
         self.filename = filename
         self.content_type = content_type
         if file is None:
-            file = tempfile.SpooledTemporaryFile(max_size=self.spool_max_size)
-        self.file = file
+            self.file = tempfile.SpooledTemporaryFile(max_size=self.spool_max_size)  # type: ignore  # noqa: E501
+        else:
+            self.file = file
+        self.headers = headers or Headers()
 
     @property
     def _in_memory(self) -> bool:
         rolled_to_disk = getattr(self.file, "_rolled", True)
         return not rolled_to_disk
 
-    async def write(self, data: typing.Union[bytes, str]) -> None:
+    async def write(self, data: bytes) -> None:
         if self._in_memory:
-            self.file.write(data)  # type: ignore
+            self.file.write(data)
         else:
             await run_in_threadpool(self.file.write, data)
 
-    async def read(self, size: int = -1) -> typing.Union[bytes, str]:
+    async def read(self, size: int = -1) -> bytes:
         if self._in_memory:
             return self.file.read(size)
         return await run_in_threadpool(self.file.read, size)
@@ -489,9 +503,9 @@ class Headers(typing.Mapping[str, str]):
 
     def __init__(
         self,
-        headers: typing.Mapping[str, str] = None,
-        raw: typing.List[typing.Tuple[bytes, bytes]] = None,
-        scope: Scope = None,
+        headers: typing.Optional[typing.Mapping[str, str]] = None,
+        raw: typing.Optional[typing.List[typing.Tuple[bytes, bytes]]] = None,
+        scope: typing.Optional[typing.Mapping[str, typing.Any]] = None,
     ) -> None:
         self._list: typing.List[typing.Tuple[bytes, bytes]] = []
         if headers is not None:
@@ -654,7 +668,9 @@ class State:
     Used for `request.state` and `app.state`.
     """
 
-    def __init__(self, state: typing.Dict = None):
+    _state: typing.Dict[str, typing.Any]
+
+    def __init__(self, state: typing.Optional[typing.Dict[str, typing.Any]] = None):
         if state is None:
             state = {}
         super().__setattr__("_state", state)

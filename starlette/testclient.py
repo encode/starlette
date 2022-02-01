@@ -151,6 +151,8 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             for key, value in request.headers.items()
         ]
 
+        scope: typing.Dict[str, typing.Any]
+
         if scheme in {"ws", "wss"}:
             subprotocol = request.headers.get("sec-websocket-protocol", None)
             if subprotocol is None:
@@ -160,6 +162,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             scope = {
                 "type": "websocket",
                 "path": unquote(path),
+                "raw_path": path.encode(),
                 "root_path": self.root_path,
                 "scheme": scheme,
                 "query_string": query.encode(),
@@ -176,6 +179,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             "http_version": "1.1",
             "method": request.method,
             "path": unquote(path),
+            "raw_path": path.encode(),
             "root_path": self.root_path,
             "scheme": scheme,
             "query_string": query.encode(),
@@ -296,6 +300,7 @@ class WebSocketTestSession:
         self.app = app
         self.scope = scope
         self.accepted_subprotocol = None
+        self.extra_headers = None
         self.portal_factory = portal_factory
         self._receive_queue: "queue.Queue[typing.Any]" = queue.Queue()
         self._send_queue: "queue.Queue[typing.Any]" = queue.Queue()
@@ -313,6 +318,7 @@ class WebSocketTestSession:
             self.exit_stack.close()
             raise
         self.accepted_subprotocol = message.get("subprotocol", None)
+        self.extra_headers = message.get("headers", None)
         return self
 
     def __exit__(self, *args: typing.Any) -> None:
@@ -348,7 +354,9 @@ class WebSocketTestSession:
 
     def _raise_on_close(self, message: Message) -> None:
         if message["type"] == "websocket.close":
-            raise WebSocketDisconnect(message.get("code", 1000))
+            raise WebSocketDisconnect(
+                message.get("code", 1000), message.get("reason", "")
+            )
 
     def send(self, message: Message) -> None:
         self._receive_queue.put(message)

@@ -15,6 +15,10 @@ except ImportError:  # pragma: nocover
     parse_options_header = None
 
 
+if typing.TYPE_CHECKING:
+    from starlette.routing import Router
+
+
 SERVER_PUSH_HEADERS_TO_COPY = {
     "accept",
     "accept-encoding",
@@ -47,7 +51,7 @@ def cookie_parser(cookie_string: str) -> typing.Dict[str, str]:
         key, val = key.strip(), val.strip()
         if key or val:
             # unquote using Python's algorithm.
-            cookie_dict[key] = http_cookies._unquote(val)  # type: ignore
+            cookie_dict[key] = http_cookies._unquote(val)
     return cookie_dict
 
 
@@ -115,7 +119,7 @@ class HTTPConnection(Mapping):
         return self._query_params
 
     @property
-    def path_params(self) -> dict:
+    def path_params(self) -> typing.Dict[str, typing.Any]:
         return self.scope.get("path_params", {})
 
     @property
@@ -130,9 +134,12 @@ class HTTPConnection(Mapping):
         return self._cookies
 
     @property
-    def client(self) -> Address:
-        host, port = self.scope.get("client") or (None, None)
-        return Address(host=host, port=port)
+    def client(self) -> typing.Optional[Address]:
+        # client is a 2 item tuple of (host, port), None or missing
+        host_port = self.scope.get("client")
+        if host_port is not None:
+            return Address(*host_port)
+        return None
 
     @property
     def session(self) -> dict:
@@ -166,16 +173,16 @@ class HTTPConnection(Mapping):
         return self._state
 
     def url_for(self, name: str, **path_params: typing.Any) -> str:
-        router = self.scope["router"]
+        router: Router = self.scope["router"]
         url_path = router.url_path_for(name, **path_params)
         return url_path.make_absolute_url(base_url=self.base_url)
 
 
-async def empty_receive() -> Message:
+async def empty_receive() -> typing.NoReturn:
     raise RuntimeError("Receive channel has not been made available")
 
 
-async def empty_send(message: Message) -> None:
+async def empty_send(message: Message) -> typing.NoReturn:
     raise RuntimeError("Send channel has not been made available")
 
 
