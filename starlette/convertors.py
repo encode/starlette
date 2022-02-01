@@ -9,7 +9,7 @@ class Convertor(typing.Generic[T]):
     regex: str = ""
 
     def __init__(self, *args: str) -> None:
-        pass
+        self.args = args
 
     def convert(self, value: str) -> T:
         raise NotImplementedError()  # pragma: no cover

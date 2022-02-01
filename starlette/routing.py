@@ -124,16 +124,17 @@ def compile_path(
     idx = 0
     param_convertors = {}
     for match in PARAM_REGEX.finditer(path):
-        param_name, convertor_type, args = match.groups("str")
+        param_name, convertor_type, args = match.groups()
+        convertor_type = convertor_type or "str"
         convertor_type = convertor_type.lstrip(":")
         assert (
             convertor_type in CONVERTOR_TYPES
         ), f"Unknown path convertor '{convertor_type}'"
-        if args:  # pragma: no cover
+        if args:
             # split args by comma except in {}
             normalized_args = re.split(r"\,(?![^\{]*\})", args)
             convertor = CONVERTOR_TYPES[convertor_type](*normalized_args)
-        else:  # pragma: no cover
+        else:
             convertor = CONVERTOR_TYPES[convertor_type]()
         path_regex += re.escape(path[idx : match.start()])
         path_regex += f"(?P<{param_name}>{convertor.regex})"

@@ -5,7 +5,15 @@ import pytest
 
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse, PlainTextResponse, Response
-from starlette.routing import Host, Mount, NoMatchFound, Route, Router, WebSocketRoute
+from starlette.routing import (
+    Host,
+    Mount,
+    NoMatchFound,
+    Route,
+    Router,
+    WebSocketRoute,
+    compile_path,
+)
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 
@@ -700,3 +708,13 @@ def test_duplicated_param_names():
         match="Duplicated param names id, name at path /{id}/{name}/{id}/{name}",
     ):
         Route("/{id}/{name}/{id}/{name}", user)
+
+
+def test_compile_path_with_arguments():
+    _, _, param_convertors = compile_path("/{foo:str([0-1]{2},[2-3]{3})}")
+    assert param_convertors["foo"].args == ("[0-1]{2}", "[2-3]{3}")
+
+
+def test_compile_path_without_arguments():
+    _, _, param_convertors = compile_path("/{foo:str}")
+    assert param_convertors["foo"].args == ()
