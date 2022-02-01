@@ -82,6 +82,8 @@ In this case the flow of execution for a request to `"/admin/dashboard"` would l
   * `AdminAuthMiddleware`
 * `admin_router` routes to `endpoint`
 
+See the [routing](routing.md) section of the documentation for more information on Starlette's routing system and how you can compose routing tables using `Route`, `Mount` and `Router`.
+
 The following middleware implementations are available in the Starlette package:
 
 ## CORSMiddleware
