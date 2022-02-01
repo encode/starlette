@@ -77,7 +77,7 @@ In this case the flow of execution for a request to `"/admin/dashboard"` would l
 * `app`'s middleware
   * `ServerErrorMiddleware`
   * `ExceptionMiddleware`
-* `Starlette.router` routes to `admin_router`
+* `app` (via `app.router`) routes to `admin_router` via `Mount`
 * `admin_router`'s middleware`
   * `AdminAuthMiddleware`
 * `admin_router` routes to `endpoint`
