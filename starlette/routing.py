@@ -10,6 +10,7 @@ import typing
 import warnings
 from enum import Enum
 
+from starlette.middleware import Middleware
 from starlette.concurrency import run_in_threadpool
 from starlette.convertors import CONVERTOR_TYPES, Convertor
 from starlette.datastructures import URL, Headers, URLPath
@@ -539,6 +540,7 @@ class Router:
         on_startup: typing.Sequence[typing.Callable] = None,
         on_shutdown: typing.Sequence[typing.Callable] = None,
         lifespan: typing.Callable[[typing.Any], typing.AsyncContextManager] = None,
+        middleware: typing.Optional[typing.Sequence[Middleware]] = None,
     ) -> None:
         self.routes = [] if routes is None else list(routes)
         self.redirect_slashes = redirect_slashes
@@ -571,6 +573,11 @@ class Router:
             )
         else:
             self.lifespan_context = lifespan
+        
+        self._app = self._route
+        if middleware:
+            for cls, options in reversed(middleware):
+                self._app = cls(self._app, **options)
 
     async def not_found(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "websocket":
@@ -637,8 +644,11 @@ class Router:
             raise
         else:
             await send({"type": "lifespan.shutdown.complete"})
-
+    
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        return await self._app(scope, receive, send)
+
+    async def _route(self, scope: Scope, receive: Receive, send: Send) -> None:
         """
         The main entry point to the Router class.
         """
