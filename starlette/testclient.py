@@ -197,6 +197,7 @@ class _TestClientTransport(httpx.BaseTransport):
         scheme = request.url.scheme
         netloc = unquote(request.url.netloc.decode(encoding="ascii"))
         path = request.url.path
+        raw_path = request.url.raw_path
         query = unquote(request.url.query.decode(encoding="ascii"))
 
         default_port = {"http": 80, "ws": 80, "https": 443, "wss": 443}[scheme]
@@ -233,7 +234,7 @@ class _TestClientTransport(httpx.BaseTransport):
             scope = {
                 "type": "websocket",
                 "path": unquote(path),
-                "raw_path": path.encode(),
+                "raw_path": raw_path,
                 "root_path": self.root_path,
                 "scheme": scheme,
                 "query_string": query.encode(),
@@ -250,7 +251,7 @@ class _TestClientTransport(httpx.BaseTransport):
             "http_version": "1.1",
             "method": request.method,
             "path": unquote(path),
-            "raw_path": path.encode(),
+            "raw_path": raw_path,
             "root_path": self.root_path,
             "scheme": scheme,
             "query_string": query.encode(),
