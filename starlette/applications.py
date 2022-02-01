@@ -11,6 +11,9 @@ from starlette.routing import BaseRoute, Router
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 
+_C = typing.TypeVar("_C", bound=typing.Callable)
+
+
 class Starlette:
     """
     Creates an application instance.
@@ -163,8 +166,8 @@ class Starlette:
 
     def exception_handler(
         self, exc_class_or_status_code: typing.Union[int, typing.Type[Exception]]
-    ) -> typing.Callable:
-        def decorator(func: typing.Callable) -> typing.Callable:
+    ) -> typing.Callable[[_C], _C]:
+        def decorator(func: _C) -> _C:
             self.add_exception_handler(exc_class_or_status_code, func)
             return func
 
@@ -176,8 +179,8 @@ class Starlette:
         methods: typing.List[str] = None,
         name: str = None,
         include_in_schema: bool = True,
-    ) -> typing.Callable:
-        def decorator(func: typing.Callable) -> typing.Callable:
+    ) -> typing.Callable[[_C], _C]:
+        def decorator(func: _C) -> _C:
             self.router.add_route(
                 path,
                 func,
@@ -189,19 +192,19 @@ class Starlette:
 
         return decorator
 
-    def websocket_route(self, path: str, name: str = None) -> typing.Callable:
-        def decorator(func: typing.Callable) -> typing.Callable:
+    def websocket_route(self, path: str, name: str = None) -> typing.Callable[[_C], _C]:
+        def decorator(func: _C) -> _C:
             self.router.add_websocket_route(path, func, name=name)
             return func
 
         return decorator
 
-    def middleware(self, middleware_type: str) -> typing.Callable:
+    def middleware(self, middleware_type: str) -> typing.Callable[[_C], _C]:
         assert (
             middleware_type == "http"
         ), 'Currently only middleware("http") is supported.'
 
-        def decorator(func: typing.Callable) -> typing.Callable:
+        def decorator(func: _C) -> _C:
             self.add_middleware(BaseHTTPMiddleware, dispatch=func)
             return func
 
