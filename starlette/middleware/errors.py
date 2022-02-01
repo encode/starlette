@@ -196,7 +196,9 @@ class ServerErrorMiddleware:
     @staticmethod
     def generate_frame_html(frame: inspect.FrameInfo, is_collapsed: bool) -> str:
         code_context = "".join(
-            ServerErrorMiddleware.format_line(index, line, frame.lineno, frame.index)  # type: ignore
+            ServerErrorMiddleware.format_line(
+                index, line, frame.lineno, frame.index  # type: ignore
+            )
             for index, line in enumerate(frame.code_context or [])
         )
 
@@ -251,7 +253,9 @@ class ServerErrorMiddleware:
         return "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
 
     @staticmethod
-    def debug_response(request: Request, exc: Exception, status_code=500) -> Response:
+    def debug_response(
+        request: Request, exc: Exception, status_code: int = 500
+    ) -> Response:
         accept = request.headers.get("accept", "")
 
         if "text/html" in accept:
