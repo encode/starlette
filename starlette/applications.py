@@ -10,7 +10,6 @@ from starlette.responses import Response
 from starlette.routing import BaseRoute, Router
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-
 _C = typing.TypeVar("_C", bound=typing.Callable)
 
 
