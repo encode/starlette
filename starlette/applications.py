@@ -21,7 +21,6 @@ _HandledException = typing.TypeVar("_HandledException", bound=Exception)
 _ExcHandler = typing.Callable[
     [Request, _HandledException], typing.Union[Response, typing.Awaitable[Response]]
 ]
-_ExcDict = typing.Dict[_ExcKey, _ExcHandler]
 
 
 class Starlette:
@@ -72,7 +71,7 @@ class Starlette:
         self.router = Router(
             routes, on_startup=on_startup, on_shutdown=on_shutdown, lifespan=lifespan
         )
-        self.exception_handlers: _ExcDict = (
+        self.exception_handlers = (
             {} if exception_handlers is None else dict(exception_handlers)
         )
         self.user_middleware = [] if middleware is None else list(middleware)
@@ -81,7 +80,7 @@ class Starlette:
     def build_middleware_stack(self) -> ASGIApp:
         debug = self.debug
         error_handler = None
-        exception_handlers: _ExcDict = {}
+        exception_handlers = {}
 
         for key, value in self.exception_handlers.items():
             if key in (500, Exception):
