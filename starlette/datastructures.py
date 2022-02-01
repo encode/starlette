@@ -9,8 +9,8 @@ from starlette.types import Scope
 
 
 class Address(typing.NamedTuple):
-    host: typing.Optional[str]
-    port: typing.Optional[int]
+    host: str
+    port: int
 
 
 _T = typing.TypeVar("_T")
