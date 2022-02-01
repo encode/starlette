@@ -3,6 +3,7 @@
 January, 28, 2022
 
 ### Added
+* Error handler will always run, even if the error happens on a background task [#761](https://github.com/encode/starlette/pull/761).
 * Add `headers` parameter to `HTTPException` [#1435](https://github.com/encode/starlette/pull/1435).
 * Internal responses with `405` status code insert an `Allow` header, as described by [RFC 7231](https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.5) [#1436](https://github.com/encode/starlette/pull/1436).
 * The `content` argument in `JSONResponse` is now required [#1431](https://github.com/encode/starlette/pull/1431).
@@ -12,6 +13,7 @@ January, 28, 2022
 
 ### Fixed
 * Prevent `BaseHTTPMiddleware` from hiding errors of `StreamingResponse` and mounted applications [#1459](https://github.com/encode/starlette/pull/1459).
+* `Request.client` is now compliant with the ASGI specifications [#1462](https://github.com/encode/starlette/pull/1462).
 
 ## 0.18.0
 
