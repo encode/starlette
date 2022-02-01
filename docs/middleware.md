@@ -41,6 +41,47 @@ application would look like this:
 * Routing
 * Endpoint
 
+## Router middleware
+
+You can also add middleware to a `Router`, in which case the middleware will run before routing:
+
+```python
+from starlette.applications import Starlette
+from starlette.middleware.trustedhost import TrustedHostMiddleware
+
+router_middleware = [Middleware(AdminAuthMiddleware, ...)]
+
+admin_router = Router(
+    routes=[
+        Route(
+            "/dashboard,
+            endpoint=...
+        )
+    ],
+    middleware=router_middleware
+)
+
+routes = [
+    Mount(
+        "/admin",
+        app=admin_router
+    )
+]
+
+
+app = Starlette(routes=routes)
+```
+
+In this case the flow of execution for a request to `"/admin/dashboard"` would look like:
+
+* `app`'s middleware
+  * `ServerErrorMiddleware`
+  * `ExceptionMiddleware`
+* `Starlette.router` routes to `admin_router`
+* `admin_router`'s middleware`
+  * `AdminAuthMiddleware`
+* `admin_router` routes to `endpoint`
+
 The following middleware implementations are available in the Starlette package:
 
 ## CORSMiddleware
