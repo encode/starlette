@@ -38,13 +38,12 @@ setup(
     package_data={"starlette": ["py.typed"]},
     include_package_data=True,
     install_requires=[
-        "anyio>=3.0.0,<4",
-        "typing_extensions; python_version < '3.8'",
+        "anyio>=3.4.0,<4",
+        "typing_extensions; python_version < '3.10'",
         "contextlib2 >= 21.6.0; python_version < '3.7'",
     ],
     extras_require={
         "full": [
-            "graphene; python_version<'3.10'",
             "itsdangerous",
             "jinja2",
             "python-multipart",
@@ -59,6 +58,7 @@ setup(
         "License :: OSI Approved :: BSD License",
         "Operating System :: OS Independent",
         "Topic :: Internet :: WWW/HTTP",
+        "Framework :: AnyIO",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
