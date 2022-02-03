@@ -1,4 +1,5 @@
 import os
+import typing
 
 import pytest
 from starlette.formparsers import UploadFile, _user_safe_decode
@@ -37,7 +38,7 @@ async def app(scope, receive, send):
 async def multi_items_app(scope, receive, send):
     request = Request(scope, receive)
     data = await request.form()
-    output = {}
+    output: typing.Dict[str, list] = {}
     for key, value in data.multi_items():
         if key not in output:
             output[key] = []
