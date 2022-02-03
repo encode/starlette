@@ -422,3 +422,75 @@ def test_websocket_close_reason(test_client_factory) -> None:
             websocket.receive_text()
         assert exc.value.code == status.WS_1001_GOING_AWAY
         assert exc.value.reason == "Going Away"
+
+
+def test_send_json_invalid_mode(test_client_factory):
+    def app(scope):
+        async def asgi(receive, send):
+            websocket = WebSocket(scope, receive=receive, send=send)
+            await websocket.accept()
+            await websocket.send_json({"url": str(websocket.url)}, mode="invalid")
+
+        return asgi
+
+    client = test_client_factory(app)
+    with pytest.raises(RuntimeError) as exc:
+        with client.websocket_connect("/"):
+            assert exc.match('The "mode" argument should be "text" or "binary".')
+
+
+def test_receive_json_invalid_mode(test_client_factory):
+    def app(scope):
+        async def asgi(receive, send):
+            websocket = WebSocket(scope, receive=receive, send=send)
+            await websocket.accept()
+            await websocket.receive_json(mode="invalid")
+
+        return asgi
+
+    client = test_client_factory(app)
+    with pytest.raises(RuntimeError):
+        with client.websocket_connect("/"):
+            pass  # pragma: nocover
+
+
+def test_receive_text_before_accept(test_client_factory):
+    def app(scope):
+        async def asgi(receive, send):
+            websocket = WebSocket(scope, receive=receive, send=send)
+            await websocket.receive_text()
+
+        return asgi
+
+    client = test_client_factory(app)
+    with pytest.raises(RuntimeError):
+        with client.websocket_connect("/"):
+            pass  # pragma: nocover
+
+
+def test_receive_bytes_before_accept(test_client_factory):
+    def app(scope):
+        async def asgi(receive, send):
+            websocket = WebSocket(scope, receive=receive, send=send)
+            await websocket.receive_bytes()
+
+        return asgi
+
+    client = test_client_factory(app)
+    with pytest.raises(RuntimeError):
+        with client.websocket_connect("/"):
+            pass  # pragma: nocover
+
+
+def test_receive_json_before_accept(test_client_factory):
+    def app(scope):
+        async def asgi(receive, send):
+            websocket = WebSocket(scope, receive=receive, send=send)
+            await websocket.receive_json()
+
+        return asgi
+
+    client = test_client_factory(app)
+    with pytest.raises(RuntimeError):
+        with client.websocket_connect("/"):
+            pass  # pragma: nocover
