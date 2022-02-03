@@ -2,7 +2,7 @@ import anyio
 import pytest
 
 from starlette import status
-from starlette.websockets import WebSocket, WebSocketDisconnect
+from starlette.websockets import WebSocket, WebSocketDisconnect, WebSocketState
 
 
 def test_websocket_url(test_client_factory):
@@ -429,14 +429,14 @@ def test_send_json_invalid_mode(test_client_factory):
         async def asgi(receive, send):
             websocket = WebSocket(scope, receive=receive, send=send)
             await websocket.accept()
-            await websocket.send_json({"url": str(websocket.url)}, mode="invalid")
+            await websocket.send_json({}, mode="invalid")
 
         return asgi
 
     client = test_client_factory(app)
-    with pytest.raises(RuntimeError) as exc:
+    with pytest.raises(RuntimeError):
         with client.websocket_connect("/"):
-            assert exc.match('The "mode" argument should be "text" or "binary".')
+            pass  # pragma: nocover
 
 
 def test_receive_json_invalid_mode(test_client_factory):
@@ -494,3 +494,63 @@ def test_receive_json_before_accept(test_client_factory):
     with pytest.raises(RuntimeError):
         with client.websocket_connect("/"):
             pass  # pragma: nocover
+
+
+def test_send_before_accept(test_client_factory):
+    def app(scope):
+        async def asgi(receive, send):
+            websocket = WebSocket(scope, receive=receive, send=send)
+            await websocket.send({"type": "websocket.send"})
+
+        return asgi
+
+    client = test_client_factory(app)
+    with pytest.raises(RuntimeError):
+        with client.websocket_connect("/"):
+            pass  # pragma: nocover
+
+
+def test_send_wrong_message_type(test_client_factory):
+    def app(scope):
+        async def asgi(receive, send):
+            websocket = WebSocket(scope, receive=receive, send=send)
+            await websocket.send({"type": "websocket.accept"})
+            await websocket.send({"type": "websocket.accept"})
+
+        return asgi
+
+    client = test_client_factory(app)
+    with pytest.raises(RuntimeError):
+        with client.websocket_connect("/"):
+            pass  # pragma: nocover
+
+
+def test_receive_before_accept(test_client_factory):
+    def app(scope):
+        async def asgi(receive, send):
+            websocket = WebSocket(scope, receive=receive, send=send)
+            await websocket.accept()
+            websocket.client_state = WebSocketState.CONNECTING
+            await websocket.receive()
+
+        return asgi
+
+    client = test_client_factory(app)
+    with pytest.raises(RuntimeError):
+        with client.websocket_connect("/") as websocket:
+            websocket.send({"type": "websocket.send"})
+
+
+def test_receive_wrong_message_type(test_client_factory):
+    def app(scope):
+        async def asgi(receive, send):
+            websocket = WebSocket(scope, receive=receive, send=send)
+            await websocket.accept()
+            await websocket.receive()
+
+        return asgi
+
+    client = test_client_factory(app)
+    with pytest.raises(RuntimeError):
+        with client.websocket_connect("/") as websocket:
+            websocket.send({"type": "websocket.connect"})
