@@ -392,7 +392,7 @@ def test_user_safe_decode_ignores_wrong_charset():
 
 def test_missing_boundary_parameter(test_client_factory):
     client = test_client_factory(app)
-    with pytest.raises(KeyError, match='boundary') as exc:
+    with pytest.raises(KeyError, match="boundary") as exc:
         client.post(
             "/",
             data=(
@@ -401,7 +401,5 @@ def test_missing_boundary_parameter(test_client_factory):
                 b"Content-Type: text/plain\r\n\r\n"
                 b"<file content>\r\n"
             ),
-            headers={
-                "Content-Type": "multipart/form-data; charset=utf-8"
-            },
+            headers={"Content-Type": "multipart/form-data; charset=utf-8"},
         )
