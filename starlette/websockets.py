@@ -36,7 +36,7 @@ class WebSocket(HTTPConnection):
             message_type = message["type"]
             if message_type != "websocket.connect":
                 raise RuntimeError(
-                    'Expected ASGI message "websocket.connect",'
+                    'Expected ASGI message "websocket.connect", '
                     f"but got {message_type!r}"
                 )
             self.client_state = WebSocketState.CONNECTED
@@ -46,7 +46,7 @@ class WebSocket(HTTPConnection):
             message_type = message["type"]
             if message_type not in {"websocket.receive", "websocket.disconnect"}:
                 raise RuntimeError(
-                    'Expected ASGI message "websocket.receive" or'
+                    'Expected ASGI message "websocket.receive" or '
                     f'"websocket.disconnect", but got {message_type!r}'
                 )
             if message_type == "websocket.disconnect":
@@ -65,7 +65,7 @@ class WebSocket(HTTPConnection):
             message_type = message["type"]
             if message_type not in {"websocket.accept", "websocket.close"}:
                 raise RuntimeError(
-                    'Expected ASGI message "websocket.connect",'
+                    'Expected ASGI message "websocket.connect", '
                     f"but got {message_type!r}"
                 )
             if message_type == "websocket.close":
@@ -77,7 +77,7 @@ class WebSocket(HTTPConnection):
             message_type = message["type"]
             if message_type not in {"websocket.send", "websocket.close"}:
                 raise RuntimeError(
-                    'Expected ASGI message "websocket.send" or "websocket.close",'
+                    'Expected ASGI message "websocket.send" or "websocket.close", '
                     f"but got {message_type!r}"
                 )
             if message_type == "websocket.close":
