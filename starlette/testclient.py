@@ -1,7 +1,5 @@
-import asyncio
 import contextlib
 import http
-import inspect
 import io
 import json
 import math
@@ -16,7 +14,7 @@ import anyio.abc
 import requests
 from anyio.streams.stapled import StapledObjectStream
 
-from starlette.types import Message, Receive, Scope, Send
+from starlette.types import ASGIApp, Message, Scope
 from starlette.websockets import WebSocketDisconnect
 
 if sys.version_info >= (3, 8):  # pragma: no cover
@@ -43,11 +41,6 @@ AuthType = typing.Union[
     requests.auth.AuthBase,
     typing.Callable[[requests.PreparedRequest], requests.PreparedRequest],
 ]
-
-
-ASGIInstance = typing.Callable[[Receive, Send], typing.Awaitable[None]]
-ASGI2App = typing.Callable[[Scope], ASGIInstance]
-ASGI3App = typing.Callable[[Scope, Receive, Send], typing.Awaitable[None]]
 
 
 class _HeaderDict(requests.packages.urllib3._collections.HTTPHeaderDict):
@@ -81,28 +74,6 @@ def _get_reason_phrase(status_code: int) -> str:
         return ""
 
 
-def _is_asgi3(app: typing.Union[ASGI2App, ASGI3App]) -> bool:
-    if inspect.isclass(app):
-        return hasattr(app, "__await__")
-    elif inspect.isfunction(app):
-        return asyncio.iscoroutinefunction(app)
-    call = getattr(app, "__call__", None)
-    return asyncio.iscoroutinefunction(call)
-
-
-class _WrapASGI2:
-    """
-    Provide an ASGI3 interface onto an ASGI2 app.
-    """
-
-    def __init__(self, app: ASGI2App) -> None:
-        self.app = app
-
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        instance = self.app(scope)
-        await instance(receive, send)
-
-
 class _AsyncBackend(TypedDict):
     backend: str
     backend_options: typing.Dict[str, typing.Any]
@@ -111,7 +82,7 @@ class _AsyncBackend(TypedDict):
 class _ASGIAdapter(requests.adapters.HTTPAdapter):
     def __init__(
         self,
-        app: ASGI3App,
+        app: ASGIApp,
         portal_factory: _PortalFactoryType,
         raise_server_exceptions: bool = True,
         root_path: str = "",
@@ -293,7 +264,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
 class WebSocketTestSession:
     def __init__(
         self,
-        app: ASGI3App,
+        app: ASGIApp,
         scope: Scope,
         portal_factory: _PortalFactoryType,
     ) -> None:
@@ -412,7 +383,7 @@ class TestClient(requests.Session):
 
     def __init__(
         self,
-        app: typing.Union[ASGI2App, ASGI3App],
+        app: ASGIApp,
         base_url: str = "http://testserver",
         raise_server_exceptions: bool = True,
         root_path: str = "",
@@ -423,14 +394,8 @@ class TestClient(requests.Session):
         self.async_backend = _AsyncBackend(
             backend=backend, backend_options=backend_options or {}
         )
-        if _is_asgi3(app):
-            app = typing.cast(ASGI3App, app)
-            asgi_app = app
-        else:
-            app = typing.cast(ASGI2App, app)
-            asgi_app = _WrapASGI2(app)  #  type: ignore
         adapter = _ASGIAdapter(
-            asgi_app,
+            app,
             portal_factory=self._portal_factory,
             raise_server_exceptions=raise_server_exceptions,
             root_path=root_path,
@@ -440,7 +405,7 @@ class TestClient(requests.Session):
         self.mount("ws://", adapter)
         self.mount("wss://", adapter)
         self.headers.update({"user-agent": "testclient"})
-        self.app = asgi_app
+        self.app = app
         self.base_url = base_url
 
     @contextlib.contextmanager

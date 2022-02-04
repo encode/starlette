@@ -99,7 +99,7 @@ def test_handled_exc_after_response(test_client_factory, client):
 
 
 def test_force_500_response(test_client_factory):
-    def app(scope):
+    def app(scope, receive, send):
         raise RuntimeError()
 
     force_500_client = test_client_factory(app, raise_server_exceptions=False)

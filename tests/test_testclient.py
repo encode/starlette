@@ -171,59 +171,21 @@ def test_exception_in_middleware(test_client_factory):
             pass  # pragma: no cover
 
 
-def test_testclient_asgi2(test_client_factory):
-    def app(scope):
-        async def inner(receive, send):
-            await send(
-                {
-                    "type": "http.response.start",
-                    "status": 200,
-                    "headers": [[b"content-type", b"text/plain"]],
-                }
-            )
-            await send({"type": "http.response.body", "body": b"Hello, world!"})
-
-        return inner
-
-    client = test_client_factory(app)
-    response = client.get("/")
-    assert response.text == "Hello, world!"
-
-
-def test_testclient_asgi3(test_client_factory):
-    async def app(scope, receive, send):
-        await send(
-            {
-                "type": "http.response.start",
-                "status": 200,
-                "headers": [[b"content-type", b"text/plain"]],
-            }
-        )
-        await send({"type": "http.response.body", "body": b"Hello, world!"})
-
-    client = test_client_factory(app)
-    response = client.get("/")
-    assert response.text == "Hello, world!"
-
-
 def test_websocket_blocking_receive(test_client_factory):
-    def app(scope):
-        async def respond(websocket):
-            await websocket.send_json({"message": "test"})
+    async def respond(websocket):
+        await websocket.send_json({"message": "test"})
 
-        async def asgi(receive, send):
-            websocket = WebSocket(scope, receive=receive, send=send)
-            await websocket.accept()
-            async with anyio.create_task_group() as task_group:
-                task_group.start_soon(respond, websocket)
-                try:
-                    # this will block as the client does not send us data
-                    # it should not prevent `respond` from executing though
-                    await websocket.receive_json()
-                except WebSocketDisconnect:
-                    pass
-
-        return asgi
+    async def app(scope, receive, send):
+        websocket = WebSocket(scope, receive=receive, send=send)
+        await websocket.accept()
+        async with anyio.create_task_group() as task_group:
+            task_group.start_soon(respond, websocket)
+            try:
+                # this will block as the client does not send us data
+                # it should not prevent `respond` from executing though
+                await websocket.receive_json()
+            except WebSocketDisconnect:
+                pass
 
     client = test_client_factory(app)
     with client.websocket_connect("/") as websocket:
