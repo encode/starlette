@@ -36,7 +36,8 @@ class WebSocket(HTTPConnection):
             message_type = message["type"]
             if message_type != "websocket.connect":
                 raise RuntimeError(
-                    'WebSocket is not connected. Need to call "accept" first.'
+                    'Expected ASGI message "websocket.connect",'
+                    f"but got {message_type!r}"
                 )
             self.client_state = WebSocketState.CONNECTED
             return message
@@ -45,8 +46,8 @@ class WebSocket(HTTPConnection):
             message_type = message["type"]
             if message_type not in {"websocket.receive", "websocket.disconnect"}:
                 raise RuntimeError(
-                    "Websocket is connected."
-                    'Message type should be either "receive" or "disconnect".'
+                    'Expected ASGI message "websocket.receive" or'
+                    f'"websocket.disconnect", but got {message_type!r}'
                 )
             if message_type == "websocket.disconnect":
                 self.client_state = WebSocketState.DISCONNECTED
@@ -64,7 +65,8 @@ class WebSocket(HTTPConnection):
             message_type = message["type"]
             if message_type not in {"websocket.accept", "websocket.close"}:
                 raise RuntimeError(
-                    'WebSocket is not connected. Need to call "accept" first.'
+                    'Expected ASGI message "websocket.connect",'
+                    f"but got {message_type!r}"
                 )
             if message_type == "websocket.close":
                 self.application_state = WebSocketState.DISCONNECTED
@@ -75,8 +77,8 @@ class WebSocket(HTTPConnection):
             message_type = message["type"]
             if message_type not in {"websocket.send", "websocket.close"}:
                 raise RuntimeError(
-                    "Websocket is connected."
-                    'Message type should be either "send" or "close".'
+                    'Expected ASGI message "websocket.send" or "websocket.close",'
+                    f"but got {message_type!r}"
                 )
             if message_type == "websocket.close":
                 self.application_state = WebSocketState.DISCONNECTED
