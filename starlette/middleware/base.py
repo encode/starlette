@@ -54,6 +54,9 @@ class BaseHTTPMiddleware:
                         assert message["type"] == "http.response.body"
                         yield message.get("body", b"")
 
+                if app_exc is not None:
+                    raise app_exc
+
             nonlocal call_next_response
 
             call_next_response = StreamingResponse(
