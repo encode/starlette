@@ -59,6 +59,21 @@ class ClientDisconnect(Exception):
     pass
 
 
+def _get_extension_from_scope(scope: Scope) -> typing.Dict[str, typing.Any]:
+    extensions = scope["extensions"] = scope.get("extensions", None) or {}
+    extension = extensions["starlette"] = (
+        scope["extensions"].get("starlette", None) or {}
+    )
+    return extension
+
+
+def _get_from_extension(scope: Scope, key: str, default: typing.Any) -> typing.Any:
+    starlette_extension_scope = _get_extension_from_scope(scope)
+    if key in starlette_extension_scope:
+        return starlette_extension_scope[key]
+    return default
+
+
 class HTTPConnection(Mapping):
     """
     A base class for incoming HTTP connections, that is used to provide
@@ -68,6 +83,11 @@ class HTTPConnection(Mapping):
     def __init__(self, scope: Scope, receive: Receive = None) -> None:
         assert scope["type"] in ("http", "websocket")
         self.scope = scope
+        instance = _get_from_extension(scope, "connection", None)
+        if instance is not None:
+            self.__dict__ = instance.__dict__
+        else:
+            _get_extension_from_scope(scope)["connection"] = self
 
     def __getitem__(self, key: str) -> typing.Any:
         return self.scope[key]
