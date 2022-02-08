@@ -1,6 +1,5 @@
 import tempfile
 import typing
-from collections import namedtuple
 from collections.abc import Sequence
 from shlex import shlex
 from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit
@@ -8,12 +7,18 @@ from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit
 from starlette.concurrency import run_in_threadpool
 from starlette.types import Scope
 
-Address = namedtuple("Address", ["host", "port"])
+
+class Address(typing.NamedTuple):
+    host: str
+    port: int
 
 
 class URL:
     def __init__(
-        self, url: str = "", scope: Scope = None, **components: typing.Any
+        self,
+        url: str = "",
+        scope: typing.Optional[Scope] = None,
+        **components: typing.Any,
     ) -> None:
         if scope is not None:
             assert not url, 'Cannot set both "url" and "scope".'
@@ -163,7 +168,7 @@ class URLPath(str):
 
     def __new__(cls, path: str, protocol: str = "", host: str = "") -> "URLPath":
         assert protocol in ("http", "websocket", "")
-        return str.__new__(cls, path)  # type: ignore
+        return str.__new__(cls, path)
 
     def __init__(self, path: str, protocol: str = "", host: str = "") -> None:
         self.protocol = protocol
@@ -441,7 +446,7 @@ class UploadFile:
 
     async def write(self, data: bytes) -> None:
         if self._in_memory:
-            self.file.write(data)  # type: ignore
+            self.file.write(data)
         else:
             await run_in_threadpool(self.file.write, data)
 
@@ -492,9 +497,9 @@ class Headers(typing.Mapping[str, str]):
 
     def __init__(
         self,
-        headers: typing.Mapping[str, str] = None,
-        raw: typing.List[typing.Tuple[bytes, bytes]] = None,
-        scope: Scope = None,
+        headers: typing.Optional[typing.Mapping[str, str]] = None,
+        raw: typing.Optional[typing.List[typing.Tuple[bytes, bytes]]] = None,
+        scope: typing.Optional[typing.Mapping[str, typing.Any]] = None,
     ) -> None:
         self._list: typing.List[typing.Tuple[bytes, bytes]] = []
         if headers is not None:
@@ -657,7 +662,9 @@ class State:
     Used for `request.state` and `app.state`.
     """
 
-    def __init__(self, state: typing.Dict = None):
+    _state: typing.Dict[str, typing.Any]
+
+    def __init__(self, state: typing.Optional[typing.Dict[str, typing.Any]] = None):
         if state is None:
             state = {}
         super().__setattr__("_state", state)
