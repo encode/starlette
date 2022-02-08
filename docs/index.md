@@ -127,7 +127,7 @@ in isolation.
 
 ---
 
-<p align="center"><i>Starlette is <a href="https://github.com/encode/starlette/blob/master/LICENSE.md">BSD licensed</a> code.<br/>Designed and crafted with care.</i></br>&mdash; ⭐️ &mdash;</p>
+<p align="center"><i>Starlette is <a href="https://github.com/encode/starlette/blob/master/LICENSE.md">BSD licensed</a> code.<br/>Designed & crafted with care.</i></br>&mdash; ⭐️ &mdash;</p>
 
 [asgi]: https://asgi.readthedocs.io/en/latest/
 [requests]: http://docs.python-requests.org/en/master/
