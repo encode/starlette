@@ -765,7 +765,7 @@ class Router:
         Instead you should use the following approach:
 
         routes = [
-            WebSocketReoute(path, endpoint=..., ...),
+            WebSocketRoute(path, endpoint=..., ...),
             ...
         ]
 
