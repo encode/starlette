@@ -1,4 +1,5 @@
 import pytest
+from fastapi import WebSocketDisconnect
 
 from starlette.applications import Starlette
 from starlette.background import BackgroundTask
@@ -58,16 +59,12 @@ def test_debug_after_response_sent(test_client_factory):
 
 
 def test_debug_not_http(test_client_factory):
-    """
-    DebugMiddleware should just pass through any non-http messages as-is.
-    """
-
     async def app(scope, receive, send):
         raise RuntimeError("Something went wrong")
 
     app = ServerErrorMiddleware(app)
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(WebSocketDisconnect):
         client = test_client_factory(app)
         with client.websocket_connect("/"):
             pass  # pragma: nocover

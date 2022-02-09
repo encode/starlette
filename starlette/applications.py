@@ -1,11 +1,15 @@
 import typing
 
 from starlette.datastructures import State, URLPath
-from starlette.exceptions import ExceptionMiddleware
+from starlette.exceptions import (
+    ExceptionHandler,
+    ExceptionMiddleware,
+    ExceptionTypeOrStatusCode,
+)
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.errors import ServerErrorMiddleware
-from starlette.requests import Request
+from starlette.requests import HTTPConnection, Request
 from starlette.responses import Response
 from starlette.routing import BaseRoute, Router
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -44,10 +48,7 @@ class Starlette:
         routes: typing.Sequence[BaseRoute] = None,
         middleware: typing.Sequence[Middleware] = None,
         exception_handlers: typing.Mapping[
-            typing.Any,
-            typing.Callable[
-                [Request, Exception], typing.Union[Response, typing.Awaitable[Response]]
-            ],
+            ExceptionTypeOrStatusCode, ExceptionHandler
         ] = None,
         on_startup: typing.Sequence[typing.Callable] = None,
         on_shutdown: typing.Sequence[typing.Callable] = None,
@@ -74,7 +75,7 @@ class Starlette:
         debug = self.debug
         error_handler = None
         exception_handlers: typing.Dict[
-            typing.Any, typing.Callable[[Request, Exception], Response]
+            ExceptionTypeOrStatusCode, ExceptionHandler
         ] = {}
 
         for key, value in self.exception_handlers.items():
@@ -135,8 +136,8 @@ class Starlette:
 
     def add_exception_handler(
         self,
-        exc_class_or_status_code: typing.Union[int, typing.Type[Exception]],
-        handler: typing.Callable,
+        exc_class_or_status_code: ExceptionTypeOrStatusCode,
+        handler: ExceptionHandler,
     ) -> None:
         self.exception_handlers[exc_class_or_status_code] = handler
         self.middleware_stack = self.build_middleware_stack()

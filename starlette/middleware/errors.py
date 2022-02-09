@@ -1,11 +1,10 @@
-import asyncio
 import html
 import inspect
 import traceback
-import typing
 
 from starlette.concurrency import run_in_threadpool
-from starlette.requests import Request
+from starlette.exceptions import BaseExceptionMiddleware, ExceptionHandler
+from starlette.requests import HTTPConnection, Request
 from starlette.responses import HTMLResponse, PlainTextResponse, Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
@@ -122,7 +121,7 @@ CENTER_LINE = """
 """
 
 
-class ServerErrorMiddleware:
+class ServerErrorMiddleware(BaseExceptionMiddleware):
     """
     Handles returning 500 responses when a server error occurs.
 
@@ -135,50 +134,19 @@ class ServerErrorMiddleware:
     """
 
     def __init__(
-        self, app: ASGIApp, handler: typing.Callable = None, debug: bool = False
+        self, app: ASGIApp, handler: ExceptionHandler = None, debug: bool = False
     ) -> None:
         self.app = app
         self.handler = handler
         self.debug = debug
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] != "http":
-            await self.app(scope, receive, send)
-            return
-
-        response_started = False
-
-        async def _send(message: Message) -> None:
-            nonlocal response_started, send
-
-            if message["type"] == "http.response.start":
-                response_started = True
-            await send(message)
-
-        try:
-            await self.app(scope, receive, _send)
-        except Exception as exc:
-            request = Request(scope)
-            if self.debug:
-                # In debug mode, return traceback responses.
-                response = self.debug_response(request, exc)
-            elif self.handler is None:
-                # Use our default 500 error handler.
-                response = self.error_response(request, exc)
-            else:
-                # Use an installed 500 error handler.
-                if asyncio.iscoroutinefunction(self.handler):
-                    response = await self.handler(request, exc)
-                else:
-                    response = await run_in_threadpool(self.handler, request, exc)
-
-            if not response_started:
-                await response(scope, receive, send)
-
-            # We always continue to raise the exception.
-            # This allows servers to log the error, or allows test clients
-            # to optionally raise the error within the test case.
-            raise exc
+    def get_exception_handler(self, exc: Exception) -> ExceptionHandler:
+        if self.debug:
+            return self.debug_response
+        elif self.handler is None:
+            return self.error_response
+        else:
+            return self.handler
 
     def format_line(
         self, index: int, line: str, frame_lineno: int, frame_index: int
@@ -238,8 +206,8 @@ class ServerErrorMiddleware:
     def generate_plain_text(self, exc: Exception) -> str:
         return "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
 
-    def debug_response(self, request: Request, exc: Exception) -> Response:
-        accept = request.headers.get("accept", "")
+    def debug_response(self, conn: HTTPConnection, exc: Exception) -> Response:
+        accept = conn.headers.get("accept", "")
 
         if "text/html" in accept:
             content = self.generate_html(exc)
@@ -247,5 +215,5 @@ class ServerErrorMiddleware:
         content = self.generate_plain_text(exc)
         return PlainTextResponse(content, status_code=500)
 
-    def error_response(self, request: Request, exc: Exception) -> Response:
+    def error_response(self, conn: HTTPConnection, exc: Exception) -> Response:
         return PlainTextResponse("Internal Server Error", status_code=500)
