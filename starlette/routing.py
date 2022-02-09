@@ -733,6 +733,10 @@ class Router:
         name: str = None,
         include_in_schema: bool = True,
     ) -> typing.Callable:
+        """
+        We no longer document this decorator style API, and its usage is discouraged.
+        """
+
         def decorator(func: typing.Callable) -> typing.Callable:
             self.add_route(
                 path,
@@ -746,6 +750,10 @@ class Router:
         return decorator
 
     def websocket_route(self, path: str, name: str = None) -> typing.Callable:
+        """
+        We no longer document this decorator style API, and its usage is discouraged.
+        """
+
         def decorator(func: typing.Callable) -> typing.Callable:
             self.add_websocket_route(path, func, name=name)
             return func
@@ -761,6 +769,10 @@ class Router:
             self.on_shutdown.append(func)
 
     def on_event(self, event_type: str) -> typing.Callable:
+        """
+        We no longer document this decorator style API, and its usage is discouraged.
+        """
+
         def decorator(func: typing.Callable) -> typing.Callable:
             self.add_event_handler(event_type, func)
             return func
