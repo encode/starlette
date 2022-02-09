@@ -118,6 +118,8 @@ class Starlette:
         scope["app"] = self
         await self.middleware_stack(scope, receive, send)
 
+    # The following usages are now discouraged in favour of configuration
+    # during Starlette.__init__(...)
     def on_event(self, event_type: str) -> typing.Callable:  # pragma: nocover
         """
         We no longer document this decorator style API, and its usage is discouraged.
