@@ -736,7 +736,7 @@ class Router:
         """
         We no longer document this decorator style API, and its usage is discouraged.
         Instead you should use the following approach:
- 
+
         routes = [
             Route(path, endpoint=..., ...),
             ...
