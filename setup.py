@@ -39,7 +39,7 @@ setup(
     include_package_data=True,
     install_requires=[
         "anyio @ git+https://github.com/agronholm/anyio.git#4.0-dev",
-        "typing_extensions; python_version < '3.10'",
+        "typing_extensions>=3.10.0; python_version < '3.10'",
         "contextlib2 >= 21.6.0; python_version < '3.7'",
     ],
     extras_require={
@@ -58,6 +58,7 @@ setup(
         "License :: OSI Approved :: BSD License",
         "Operating System :: OS Independent",
         "Topic :: Internet :: WWW/HTTP",
+        "Framework :: AnyIO",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
