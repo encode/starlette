@@ -732,7 +732,7 @@ class Router:
         methods: typing.List[str] = None,
         name: str = None,
         include_in_schema: bool = True,
-    ) -> typing.Callable:
+    ) -> typing.Callable:  # pragma: nocover
         """
         We no longer document this decorator style API, and its usage is discouraged.
         """
@@ -749,7 +749,9 @@ class Router:
 
         return decorator
 
-    def websocket_route(self, path: str, name: str = None) -> typing.Callable:
+    def websocket_route(
+        self, path: str, name: str = None
+    ) -> typing.Callable:  # pragma: nocover
         """
         We no longer document this decorator style API, and its usage is discouraged.
         """
@@ -768,7 +770,7 @@ class Router:
         else:
             self.on_shutdown.append(func)
 
-    def on_event(self, event_type: str) -> typing.Callable:
+    def on_event(self, event_type: str) -> typing.Callable:  # pragma: nocover
         """
         We no longer document this decorator style API, and its usage is discouraged.
         """

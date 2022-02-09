@@ -118,7 +118,7 @@ class Starlette:
         scope["app"] = self
         await self.middleware_stack(scope, receive, send)
 
-    def on_event(self, event_type: str) -> typing.Callable:
+    def on_event(self, event_type: str) -> typing.Callable:  # pragma: nocover
         """
         We no longer document this decorator style API, and its usage is discouraged.
         """
@@ -165,7 +165,7 @@ class Starlette:
 
     def exception_handler(
         self, exc_class_or_status_code: typing.Union[int, typing.Type[Exception]]
-    ) -> typing.Callable:
+    ) -> typing.Callable:  # pragma: nocover
         """
         We no longer document this decorator style API, and its usage is discouraged.
         """
@@ -182,7 +182,7 @@ class Starlette:
         methods: typing.List[str] = None,
         name: str = None,
         include_in_schema: bool = True,
-    ) -> typing.Callable:
+    ) -> typing.Callable:  # pragma: nocover
         """
         We no longer document this decorator style API, and its usage is discouraged.
         """
@@ -199,7 +199,9 @@ class Starlette:
 
         return decorator
 
-    def websocket_route(self, path: str, name: str = None) -> typing.Callable:
+    def websocket_route(
+        self, path: str, name: str = None
+    ) -> typing.Callable:  # pragma: nocover
         """
         We no longer document this decorator style API, and its usage is discouraged.
         """
@@ -210,7 +212,7 @@ class Starlette:
 
         return decorator
 
-    def middleware(self, middleware_type: str) -> typing.Callable:
+    def middleware(self, middleware_type: str) -> typing.Callable:  # pragma: nocover
         """
         We no longer document this decorator style API, and its usage is discouraged.
         """
