@@ -107,7 +107,14 @@ class Starlette:
         return self._debug
 
     @debug.setter
-    def debug(self, value: bool) -> None:
+    def debug(self, value: bool) -> None:  # pragma: no cover
+        """
+        We no longer document this API, and its usage is discouraged.
+        Instead you should use the following approach:
+
+        app = Starlette(debug=True)
+        """
+
         self._debug = value
         self.middleware_stack = self.build_middleware_stack()
 
@@ -124,9 +131,35 @@ class Starlette:
         return self.router.on_event(event_type)
 
     def mount(self, path: str, app: ASGIApp, name: str = None) -> None:
+        """
+        We no longer document this API, and its usage is discouraged.
+        Instead you should use the following approach:
+
+        routes = [
+            Mount(path, ...),
+            ...
+        ]
+
+        app = Starlette(routes=routes)
+        """
+
         self.router.mount(path, app=app, name=name)
 
-    def host(self, host: str, app: ASGIApp, name: str = None) -> None:
+    def host(
+        self, host: str, app: ASGIApp, name: str = None
+    ) -> None:  # pragma: no cover
+        """
+        We no longer document this API, and its usage is discouraged.
+        Instead you should use the following approach:
+
+        routes = [
+            Host(path, ...),
+            ...
+        ]
+
+        app = Starlette(routes=routes)
+        """
+
         self.router.host(host, app=app, name=name)
 
     def add_middleware(self, middleware_class: type, **options: typing.Any) -> None:
@@ -137,11 +170,13 @@ class Starlette:
         self,
         exc_class_or_status_code: typing.Union[int, typing.Type[Exception]],
         handler: typing.Callable,
-    ) -> None:
+    ) -> None:  # pragma: no cover
         self.exception_handlers[exc_class_or_status_code] = handler
         self.middleware_stack = self.build_middleware_stack()
 
-    def add_event_handler(self, event_type: str, func: typing.Callable) -> None:
+    def add_event_handler(
+        self, event_type: str, func: typing.Callable
+    ) -> None:  # pragma: no cover
         self.router.add_event_handler(event_type, func)
 
     def add_route(
@@ -158,7 +193,7 @@ class Starlette:
 
     def add_websocket_route(
         self, path: str, route: typing.Callable, name: str = None
-    ) -> None:
+    ) -> None:  # pragma: no cover
         self.router.add_websocket_route(path, route, name=name)
 
     def exception_handler(
