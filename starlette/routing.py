@@ -735,6 +735,14 @@ class Router:
     ) -> typing.Callable:  # pragma: nocover
         """
         We no longer document this decorator style API, and its usage is discouraged.
+        Instead you should use the following approach:
+ 
+        routes = [
+            Route(path, endpoint=..., ...),
+            ...
+        ]
+
+        app = Starlette(routes=routes)
         """
 
         def decorator(func: typing.Callable) -> typing.Callable:
@@ -754,6 +762,14 @@ class Router:
     ) -> typing.Callable:  # pragma: nocover
         """
         We no longer document this decorator style API, and its usage is discouraged.
+        Instead you should use the following approach:
+
+        routes = [
+            WebSocketReoute(path, endpoint=..., ...),
+            ...
+        ]
+
+        app = Starlette(routes=routes)
         """
 
         def decorator(func: typing.Callable) -> typing.Callable:
@@ -771,10 +787,6 @@ class Router:
             self.on_shutdown.append(func)
 
     def on_event(self, event_type: str) -> typing.Callable:  # pragma: nocover
-        """
-        We no longer document this decorator style API, and its usage is discouraged.
-        """
-
         def decorator(func: typing.Callable) -> typing.Callable:
             self.add_event_handler(event_type, func)
             return func

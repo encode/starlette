@@ -121,10 +121,6 @@ class Starlette:
     # The following usages are now discouraged in favour of configuration
     # during Starlette.__init__(...)
     def on_event(self, event_type: str) -> typing.Callable:  # pragma: nocover
-        """
-        We no longer document this decorator style API, and its usage is discouraged.
-        """
-
         return self.router.on_event(event_type)
 
     def mount(self, path: str, app: ASGIApp, name: str = None) -> None:
@@ -168,10 +164,6 @@ class Starlette:
     def exception_handler(
         self, exc_class_or_status_code: typing.Union[int, typing.Type[Exception]]
     ) -> typing.Callable:  # pragma: nocover
-        """
-        We no longer document this decorator style API, and its usage is discouraged.
-        """
-
         def decorator(func: typing.Callable) -> typing.Callable:
             self.add_exception_handler(exc_class_or_status_code, func)
             return func
@@ -187,6 +179,14 @@ class Starlette:
     ) -> typing.Callable:  # pragma: nocover
         """
         We no longer document this decorator style API, and its usage is discouraged.
+        Instead you should use the following approach:
+ 
+        routes = [
+            Route(path, endpoint=..., ...),
+            ...
+        ]
+
+        app = Starlette(routes=routes)
         """
 
         def decorator(func: typing.Callable) -> typing.Callable:
@@ -206,6 +206,14 @@ class Starlette:
     ) -> typing.Callable:  # pragma: nocover
         """
         We no longer document this decorator style API, and its usage is discouraged.
+        Instead you should use the following approach:
+
+        routes = [
+            WebSocketReoute(path, endpoint=..., ...),
+            ...
+        ]
+
+        app = Starlette(routes=routes)
         """
 
         def decorator(func: typing.Callable) -> typing.Callable:
@@ -217,6 +225,14 @@ class Starlette:
     def middleware(self, middleware_type: str) -> typing.Callable:  # pragma: nocover
         """
         We no longer document this decorator style API, and its usage is discouraged.
+        Instead you should use the following approach:
+
+        middleware = [
+            Middleware(...),
+            ...
+        ]
+
+        app = Starlette(middleware=middleware)
         """
 
         assert (
