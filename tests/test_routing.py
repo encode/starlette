@@ -134,7 +134,6 @@ app = Router(
             name="path-with-parentheses",
         ),
         WebSocketRoute("/ws", endpoint=websocket_endpoint),
-        # WebSocketRoute("/ws/{room}", endpoint=websocket_params),
     ]
 )
 
