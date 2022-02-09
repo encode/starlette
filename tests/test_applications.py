@@ -242,11 +242,11 @@ def test_app_debug(test_client_factory):
         raise RuntimeError()
 
     app = Starlette(
-        debug=True,
         routes=[
             Route("/", homepage),
         ],
     )
+    app.debug = True
 
     client = test_client_factory(app, raise_server_exceptions=False)
     response = client.get("/")
