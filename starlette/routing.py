@@ -17,7 +17,7 @@ from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, RedirectResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
-from starlette.websockets import WebSocket, WebSocketClose
+from starlette.websockets import WebSocket, WebsocketDenialResponse
 
 if sys.version_info >= (3, 7):
     from contextlib import asynccontextmanager  # pragma: no cover
@@ -170,12 +170,10 @@ class BaseRoute:
         """
         match, child_scope = self.matches(scope)
         if match == Match.NONE:
-            if scope["type"] == "http":
-                response = PlainTextResponse("Not Found", status_code=404)
-                await response(scope, receive, send)
-            elif scope["type"] == "websocket":
-                websocket_close = WebSocketClose()
-                await websocket_close(scope, receive, send)
+            response = PlainTextResponse("Not Found", status_code=404)
+            if scope["type"] == "websocket":
+                response = WebsocketDenialResponse(response)
+            await response(scope, receive, send)
             return
 
         scope.update(child_scope)
@@ -573,11 +571,6 @@ class Router:
             self.lifespan_context = lifespan
 
     async def not_found(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] == "websocket":
-            websocket_close = WebSocketClose()
-            await websocket_close(scope, receive, send)
-            return
-
         # If we're running inside a starlette application then raise an
         # exception, so that the configurable exception handler can deal with
         # returning the response. For plain ASGI apps, just return the response.
@@ -585,6 +578,8 @@ class Router:
             raise HTTPException(status_code=404)
         else:
             response = PlainTextResponse("Not Found", status_code=404)
+            if scope["type"] == "websocket":
+                response = WebsocketDenialResponse(response)
         await response(scope, receive, send)
 
     def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:

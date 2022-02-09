@@ -2,7 +2,8 @@ import enum
 import json
 import typing
 
-from starlette.requests import HTTPConnection
+from starlette.requests import HTTPConnection, empty_receive, empty_send
+from starlette.responses import Response
 from starlette.types import Message, Receive, Scope, Send
 
 
@@ -19,7 +20,9 @@ class WebSocketDisconnect(Exception):
 
 
 class WebSocket(HTTPConnection):
-    def __init__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    def __init__(
+        self, scope: Scope, receive: Receive = empty_receive, send: Send = empty_send
+    ) -> None:
         super().__init__(scope)
         assert scope["type"] == "websocket"
         self._receive = receive
@@ -180,12 +183,56 @@ class WebSocket(HTTPConnection):
         )
 
 
-class WebSocketClose:
-    def __init__(self, code: int = 1000, reason: str = None) -> None:
-        self.code = code
-        self.reason = reason or ""
+class WebsocketDenialResponse:
+    """
+    Represents a failure to stabilish a websocket connection
+
+    Otherwise a standard 'close' event is sent, resulting in a generic HTTP 403 error
+    """
+
+    def __init__(self, response: Response = None) -> None:
+        self.response = response
+
+    message_type_map = {
+        "http.response.start": "websocket.http.response.start",
+        "http.response.body": "websocket.http.response.body",
+        "websocket.disconnect": "http.disconnect",
+    }
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        await send(
-            {"type": "websocket.close", "code": self.code, "reason": self.reason}
-        )
+        assert (
+            scope["type"] == "websocket"
+        ), "WebsocketDenialResponse requires a websocket scope"
+
+        if Response is None or "websocket.http.response" not in scope.get(
+            "extensions", {}
+        ):
+            # Cannot send a Websocket Denial Response, just close it instead
+            await send({"type": "websocket.close"})
+            return
+
+        # call the response, mapping send/receive events between http/websocket protocols
+        async def xsend(msg: Message) -> None:
+            new_type = self.message_type_map.get(msg["type"])
+            if new_type is not None:
+                msg["type"] = new_type
+                await send(msg)
+
+        async def xreceive() -> Message:
+            while True:
+                msg = await receive()
+                new_type = self.message_type_map.get(msg["type"])
+                if new_type is not None:
+                    msg["type"] = new_type
+                    return msg
+
+        await self.response(scope, xreceive, xsend)
+
+    async def send(self, websocket: WebSocket):
+        assert (
+            websocket.application_state == WebSocketState.CONNECTING
+        ), f"Cannot send Websocket Denial Response: websocket status is {websocket.application_state}"
+
+        # FIXME: websocket class currently doesn't support WebsocketDenialResponse,
+        # so we need to use the underlying _receive and _send to bypass it
+        self(websocket.scope, websocket._receive, websocket._send)
