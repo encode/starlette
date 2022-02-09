@@ -55,9 +55,9 @@ app = Starlette(
         Route("/exc-stream", endpoint=exc_stream),
         Route("/no-response", endpoint=NoResponse),
         WebSocketRoute("/ws", endpoint=websocket_endpoint),
-    ]
+    ],
+    middleware=[Middleware(CustomMiddleware)],
 )
-app.add_middleware(CustomMiddleware)
 
 
 def test_custom_middleware(test_client_factory):
