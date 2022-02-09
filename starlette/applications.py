@@ -107,14 +107,7 @@ class Starlette:
         return self._debug
 
     @debug.setter
-    def debug(self, value: bool) -> None:  # pragma: no cover
-        """
-        We no longer document this API, and its usage is discouraged.
-        Instead you should use the following approach:
-
-        app = Starlette(debug=True)
-        """
-
+    def debug(self, value: bool) -> None:
         self._debug = value
         self.middleware_stack = self.build_middleware_stack()
 
