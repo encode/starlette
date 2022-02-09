@@ -93,6 +93,12 @@ async def websocket_endpoint(session: WebSocket):
     await session.close()
 
 
+async def websocket_params(session: WebSocket):
+    await session.accept()
+    await session.send_text(f"Hello, {session.path_params['room']}!")
+    await session.close()
+
+
 app = Router(
     [
         Route("/", endpoint=homepage, methods=["GET"]),
@@ -134,15 +140,9 @@ app = Router(
             name="path-with-parentheses",
         ),
         WebSocketRoute("/ws", endpoint=websocket_endpoint),
+        WebSocketRoute("/ws/{room}", endpoint=websocket_params),
     ]
 )
-
-
-@app.websocket_route("/ws/{room}")
-async def websocket_params(session: WebSocket):
-    await session.accept()
-    await session.send_text(f"Hello, {session.path_params['room']}!")
-    await session.close()
 
 
 @pytest.fixture
