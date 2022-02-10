@@ -80,6 +80,7 @@ def test_custom_middleware(test_client_factory):
         text = session.receive_text()
         assert text == "Hello, world!"
 
+
 def test_state_data_across_multiple_middlewares(test_client_factory):
     expected_value1 = "foo"
     expected_value2 = "bar"
