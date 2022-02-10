@@ -27,7 +27,7 @@ def mock_service_endpoint(request):
 
 mock_service = Starlette(
     routes=[
-        Route("/", endpoint=mock_service_endpoint)
+        Route("/", endpoint=mock_service_endpoint),
     ]
 )
 
