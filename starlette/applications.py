@@ -179,7 +179,7 @@ class Starlette:
         methods: typing.List[str] = None,
         name: str = None,
         include_in_schema: bool = True,
-    ) -> None:
+    ) -> None:  # pragma: no cover
         self.router.add_route(
             path, route, methods=methods, name=name, include_in_schema=include_in_schema
         )
