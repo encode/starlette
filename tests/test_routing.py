@@ -715,6 +715,7 @@ def test_router_middleware(test_client_factory) -> None:
             self.app = app
 
         async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+            # this ensures that middleware gets run before routing
             scope["path"] = scope["path"].replace("foo", "bar")
             await self.app(scope, receive, send)
 
@@ -730,9 +731,12 @@ def test_router_middleware(test_client_factory) -> None:
 
     client = test_client_factory(app)
 
+    # send a request to /foo and the middleware should
+    # modify the path to /bar so we get a 200 back
     resp = client.get("/foo")
     assert resp.status_code == 200, resp.content
     assert resp.text == "/bar"
 
+    # but any other path works as expected
     resp = client.get("/baz")
     assert resp.status_code == 404, resp.content
