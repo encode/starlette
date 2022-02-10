@@ -82,7 +82,6 @@ def test_custom_middleware(test_client_factory):
 
 
 def test_middleware_decorator(test_client_factory):
-
     def homepage(request):
         return PlainTextResponse("Homepage")
 
@@ -95,7 +94,7 @@ def test_middleware_decorator(test_client_factory):
 
     app = Starlette(
         routes=[Route("/homepage", homepage)],
-        middleware=[Middleware(BaseHTTPMiddleware, dispatch=plaintext)]
+        middleware=[Middleware(BaseHTTPMiddleware, dispatch=plaintext)],
     )
 
     client = test_client_factory(app)
@@ -129,7 +128,7 @@ def test_state_data_across_multiple_middlewares(test_client_factory):
             response = await call_next(request)
             response.headers["X-State-Bar"] = request.state.bar
             return response
-    
+
     def homepage(request):
         return PlainTextResponse("OK")
 
@@ -139,8 +138,8 @@ def test_state_data_across_multiple_middlewares(test_client_factory):
             Middleware(aMiddleware),
             Middleware(bMiddleware),
             Middleware(cMiddleware),
-        ]
-    )    
+        ],
+    )
 
     client = test_client_factory(app)
     response = client.get("/")
