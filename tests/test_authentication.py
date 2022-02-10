@@ -337,11 +337,11 @@ def control_panel(request):
 other_app = Starlette(
     routes=[Route("/control-panel", control_panel)],
     middleware=[
-        Middleware(AuthenticationMiddleware, backend=BasicAuth(), on_error=on_auth_error)
-    ]
+        Middleware(
+            AuthenticationMiddleware, backend=BasicAuth(), on_error=on_auth_error
+        )
+    ],
 )
-
-
 
 
 def test_custom_on_error(test_client_factory):
