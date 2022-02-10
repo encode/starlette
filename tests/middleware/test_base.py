@@ -80,32 +80,6 @@ def test_custom_middleware(test_client_factory):
         text = session.receive_text()
         assert text == "Hello, world!"
 
-
-def test_middleware_decorator(test_client_factory):
-    def homepage(request):
-        return PlainTextResponse("Homepage")
-
-    async def plaintext(request, call_next):
-        if request.url.path == "/":
-            return PlainTextResponse("OK")
-        response = await call_next(request)
-        response.headers["Custom"] = "Example"
-        return response
-
-    app = Starlette(
-        routes=[Route("/homepage", homepage)],
-        middleware=[Middleware(BaseHTTPMiddleware, dispatch=plaintext)],
-    )
-
-    client = test_client_factory(app)
-    response = client.get("/")
-    assert response.text == "OK"
-
-    response = client.get("/homepage")
-    assert response.text == "Homepage"
-    assert response.headers["Custom"] == "Example"
-
-
 def test_state_data_across_multiple_middlewares(test_client_factory):
     expected_value1 = "foo"
     expected_value2 = "bar"
