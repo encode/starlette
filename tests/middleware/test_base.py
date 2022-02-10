@@ -4,7 +4,7 @@ from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import PlainTextResponse, StreamingResponse
-from starlette.routing import Route, WebSocketRoute
+from starlette.routing import Mount, Route, WebSocketRoute
 
 
 class CustomMiddleware(BaseHTTPMiddleware):
@@ -82,19 +82,21 @@ def test_custom_middleware(test_client_factory):
 
 
 def test_middleware_decorator(test_client_factory):
-    app = Starlette()
 
-    @app.route("/homepage")
     def homepage(request):
         return PlainTextResponse("Homepage")
 
-    @app.middleware("http")
     async def plaintext(request, call_next):
         if request.url.path == "/":
             return PlainTextResponse("OK")
         response = await call_next(request)
         response.headers["Custom"] = "Example"
         return response
+
+    app = Starlette(
+        routes=[Route("/homepage", homepage)],
+        middleware=[Middleware(BaseHTTPMiddleware, dispatch=plaintext)]
+    )
 
     client = test_client_factory(app)
     response = client.get("/")
@@ -127,15 +129,18 @@ def test_state_data_across_multiple_middlewares(test_client_factory):
             response = await call_next(request)
             response.headers["X-State-Bar"] = request.state.bar
             return response
-
-    app = Starlette()
-    app.add_middleware(aMiddleware)
-    app.add_middleware(bMiddleware)
-    app.add_middleware(cMiddleware)
-
-    @app.route("/")
+    
     def homepage(request):
         return PlainTextResponse("OK")
+
+    app = Starlette(
+        routes=[Route("/", homepage)],
+        middleware=[
+            Middleware(aMiddleware),
+            Middleware(bMiddleware),
+            Middleware(cMiddleware),
+        ]
+    )    
 
     client = test_client_factory(app)
     response = client.get("/")
@@ -169,8 +174,7 @@ def test_fully_evaluated_response(test_client_factory):
             await call_next(request)
             return PlainTextResponse("Custom")
 
-    app = Starlette()
-    app.add_middleware(CustomMiddleware)
+    app = Starlette(middleware=[Middleware(CustomMiddleware)])
 
     client = test_client_factory(app)
     response = client.get("/does_not_exist")
@@ -179,7 +183,7 @@ def test_fully_evaluated_response(test_client_factory):
 
 def test_exception_on_mounted_apps(test_client_factory):
     sub_app = Starlette(routes=[Route("/", exc)])
-    app.mount("/sub", sub_app)
+    app = Starlette(routes=[Mount("/sub", app=sub_app)])
 
     client = test_client_factory(app)
     with pytest.raises(Exception) as ctx:
