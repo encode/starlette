@@ -706,11 +706,39 @@ class Router:
 
     # The following usages are now discouraged in favour of configuration
     #  during Router.__init__(...)
-    def mount(self, path: str, app: ASGIApp, name: str = None) -> None:
+    def mount(
+        self, path: str, app: ASGIApp, name: str = None
+    ) -> None:  # pragma: nocover
+        """
+        We no longer document this API, and its usage is discouraged.
+        Instead you should use the following approach:
+
+        routes = [
+            Mount(path, ...),
+            ...
+        ]
+
+        app = Starlette(routes=routes)
+        """
+
         route = Mount(path, app=app, name=name)
         self.routes.append(route)
 
-    def host(self, host: str, app: ASGIApp, name: str = None) -> None:
+    def host(
+        self, host: str, app: ASGIApp, name: str = None
+    ) -> None:  # pragma: no cover
+        """
+        We no longer document this API, and its usage is discouraged.
+        Instead you should use the following approach:
+
+        routes = [
+            Host(path, ...),
+            ...
+        ]
+
+        app = Starlette(routes=routes)
+        """
+
         route = Host(host, app=app, name=name)
         self.routes.append(route)
 
@@ -721,7 +749,7 @@ class Router:
         methods: typing.List[str] = None,
         name: str = None,
         include_in_schema: bool = True,
-    ) -> None:
+    ) -> None:  # pragma: nocover
         route = Route(
             path,
             endpoint=endpoint,
@@ -733,7 +761,7 @@ class Router:
 
     def add_websocket_route(
         self, path: str, endpoint: typing.Callable, name: str = None
-    ) -> None:
+    ) -> None:  # pragma: no cover
         route = WebSocketRoute(path, endpoint=endpoint, name=name)
         self.routes.append(route)
 
@@ -789,7 +817,9 @@ class Router:
 
         return decorator
 
-    def add_event_handler(self, event_type: str, func: typing.Callable) -> None:
+    def add_event_handler(
+        self, event_type: str, func: typing.Callable
+    ) -> None:  # pragma: no cover
         assert event_type in ("startup", "shutdown")
 
         if event_type == "startup":
