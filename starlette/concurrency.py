@@ -13,7 +13,7 @@ try:
     from contextvars import Context
 except ImportError:  # pragma: no cover
     contextvars = None  # type: ignore
-    Context = ContextVar = None  # type: ignore
+    Context = None  # type: ignore
 
 
 T = typing.TypeVar("T")
@@ -51,9 +51,8 @@ async def run_in_threadpool(
         func = functools.partial(func, **kwargs)
     if contextvars is not None:
         context = contextvars.copy_context()
-        func = functools.partial(context.run, func, *args)
-        args = ()
-    else:
+        func = functools.partial(context.run, func)  # type: ignore[assignment]
+    else:  # pragma: no cover
         context = None
     res = await anyio.to_thread.run_sync(func, *args)
     if context is not None:
