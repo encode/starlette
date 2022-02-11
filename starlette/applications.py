@@ -160,20 +160,6 @@ class Starlette:
     def add_middleware(
         self, middleware_class: type, **options: typing.Any
     ) -> None:  # pragma: no cover
-        """
-        We no longer document this API, and its usage is discouraged.
-        Instead you should use the following approach:
-
-        from starlette.middleware import Middleware
-        from starlette.middleware.cors import CORSMiddleware  # just an example
-
-        middleware = [
-            Middleware(CORSMiddleware, ...),
-            ...
-        ]
-
-        app = Starlette(middleware=middleware)
-        """
         self.user_middleware.insert(0, Middleware(middleware_class, **options))
         self.middleware_stack = self.build_middleware_stack()
 
