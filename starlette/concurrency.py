@@ -1,9 +1,13 @@
 import functools
+import sys
 import typing
-from typing import Any, AsyncGenerator, Iterator
 
 import anyio
 
+if sys.version_info >= (3, 10):  # pragma: no cover
+    from typing import ParamSpec
+else:  # pragma: no cover
+    from typing_extensions import ParamSpec
 try:
     import contextvars  # Python 3.7+ only or via contextvars backport.
     from contextvars import Context
@@ -13,6 +17,7 @@ except ImportError:  # pragma: no cover
 
 
 T = typing.TypeVar("T")
+P = ParamSpec("P")
 
 
 def _restore_context(context: Context) -> None:
@@ -38,34 +43,29 @@ async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -
             task_group.start_soon(run, functools.partial(func, **kwargs))
 
 
-def _no_restore() -> None:
-    ...  # pragma: no cover
-
-
 async def run_in_threadpool(
-    func: typing.Callable[..., T], *args: typing.Any, **kwargs: typing.Any
+    func: typing.Callable[P, T], *args: P.args, **kwargs: P.kwargs
 ) -> T:
-    if contextvars is not None:  # pragma: no cover
-        # Ensure we run in the same context
-        child = functools.partial(func, *args, **kwargs)
-        context = contextvars.copy_context()
-        restore = functools.partial(_restore_context, context)
-        func = context.run
-        args = (child,)
-    elif kwargs:  # pragma: no cover
+    if kwargs:  # pragma: no cover
         # run_sync doesn't accept 'kwargs', so bind them in here
-        restore = _no_restore
         func = functools.partial(func, **kwargs)
+    if contextvars is not None:
+        context = contextvars.copy_context()
+        func = functools.partial(context.run, func, *args)
+        args = ()
+    else:
+        context = None
     res = await anyio.to_thread.run_sync(func, *args)
-    restore()
-    return res  # type: ignore
+    if context is not None:
+        _restore_context(context)
+    return res
 
 
 class _StopIteration(Exception):
     pass
 
 
-def _next(iterator: Iterator) -> Any:
+def _next(iterator: typing.Iterator[T]) -> T:
     # We can't raise `StopIteration` from within the threadpool iterator
     # and catch it outside that context, so we coerce them into a different
     # exception type.
@@ -75,7 +75,9 @@ def _next(iterator: Iterator) -> Any:
         raise _StopIteration
 
 
-async def iterate_in_threadpool(iterator: Iterator) -> AsyncGenerator:
+async def iterate_in_threadpool(
+    iterator: typing.Iterator[T],
+) -> typing.AsyncIterator[T]:
     while True:
         try:
             yield await anyio.to_thread.run_sync(_next, iterator)

@@ -38,7 +38,7 @@ class Response:
         self,
         content: typing.Any = None,
         status_code: int = 200,
-        headers: dict = None,
+        headers: typing.Mapping[str, str] = None,
         media_type: str = None,
         background: BackgroundTask = None,
     ) -> None:
@@ -70,8 +70,12 @@ class Response:
             populate_content_length = b"content-length" not in keys
             populate_content_type = b"content-type" not in keys
 
-        body = getattr(self, "body", b"")
-        if body and populate_content_length:
+        body = getattr(self, "body", None)
+        if (
+            body is not None
+            and populate_content_length
+            and not (self.status_code < 200 or self.status_code in (204, 304))
+        ):
             content_length = str(len(body))
             raw_headers.append((b"content-length", content_length.encode("latin-1")))
 
@@ -170,6 +174,16 @@ class PlainTextResponse(Response):
 class JSONResponse(Response):
     media_type = "application/json"
 
+    def __init__(
+        self,
+        content: typing.Any,
+        status_code: int = 200,
+        headers: dict = None,
+        media_type: str = None,
+        background: BackgroundTask = None,
+    ) -> None:
+        super().__init__(content, status_code, headers, media_type, background)
+
     def render(self, content: typing.Any) -> bytes:
         return json.dumps(
             content,
@@ -185,7 +199,7 @@ class RedirectResponse(Response):
         self,
         url: typing.Union[str, URL],
         status_code: int = 307,
-        headers: dict = None,
+        headers: typing.Mapping[str, str] = None,
         background: BackgroundTask = None,
     ) -> None:
         super().__init__(
@@ -199,7 +213,7 @@ class StreamingResponse(Response):
         self,
         content: typing.Any,
         status_code: int = 200,
-        headers: dict = None,
+        headers: typing.Mapping[str, str] = None,
         media_type: str = None,
         background: BackgroundTask = None,
     ) -> None:
@@ -254,7 +268,7 @@ class FileResponse(Response):
         self,
         path: typing.Union[str, "os.PathLike[str]"],
         status_code: int = 200,
-        headers: dict = None,
+        headers: typing.Mapping[str, str] = None,
         media_type: str = None,
         background: BackgroundTask = None,
         filename: str = None,

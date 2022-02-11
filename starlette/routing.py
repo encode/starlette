@@ -250,10 +250,13 @@ class Route(BaseRoute):
 
     async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
         if self.methods and scope["method"] not in self.methods:
+            headers = {"Allow": ", ".join(self.methods)}
             if "app" in scope:
-                raise HTTPException(status_code=405)
+                raise HTTPException(status_code=405, headers=headers)
             else:
-                response = PlainTextResponse("Method Not Allowed", status_code=405)
+                response = PlainTextResponse(
+                    "Method Not Allowed", status_code=405, headers=headers
+                )
             await response(scope, receive, send)
         else:
             await self.app(scope, receive, send)
@@ -692,11 +695,39 @@ class Router:
 
     # The following usages are now discouraged in favour of configuration
     #  during Router.__init__(...)
-    def mount(self, path: str, app: ASGIApp, name: str = None) -> None:
+    def mount(
+        self, path: str, app: ASGIApp, name: str = None
+    ) -> None:  # pragma: nocover
+        """
+        We no longer document this API, and its usage is discouraged.
+        Instead you should use the following approach:
+
+        routes = [
+            Mount(path, ...),
+            ...
+        ]
+
+        app = Starlette(routes=routes)
+        """
+
         route = Mount(path, app=app, name=name)
         self.routes.append(route)
 
-    def host(self, host: str, app: ASGIApp, name: str = None) -> None:
+    def host(
+        self, host: str, app: ASGIApp, name: str = None
+    ) -> None:  # pragma: no cover
+        """
+        We no longer document this API, and its usage is discouraged.
+        Instead you should use the following approach:
+
+        routes = [
+            Host(path, ...),
+            ...
+        ]
+
+        app = Starlette(routes=routes)
+        """
+
         route = Host(host, app=app, name=name)
         self.routes.append(route)
 
@@ -707,7 +738,7 @@ class Router:
         methods: typing.List[str] = None,
         name: str = None,
         include_in_schema: bool = True,
-    ) -> None:
+    ) -> None:  # pragma: nocover
         route = Route(
             path,
             endpoint=endpoint,
@@ -719,7 +750,7 @@ class Router:
 
     def add_websocket_route(
         self, path: str, endpoint: typing.Callable, name: str = None
-    ) -> None:
+    ) -> None:  # pragma: no cover
         route = WebSocketRoute(path, endpoint=endpoint, name=name)
         self.routes.append(route)
 
@@ -729,7 +760,19 @@ class Router:
         methods: typing.List[str] = None,
         name: str = None,
         include_in_schema: bool = True,
-    ) -> typing.Callable:
+    ) -> typing.Callable:  # pragma: nocover
+        """
+        We no longer document this decorator style API, and its usage is discouraged.
+        Instead you should use the following approach:
+
+        routes = [
+            Route(path, endpoint=..., ...),
+            ...
+        ]
+
+        app = Starlette(routes=routes)
+        """
+
         def decorator(func: typing.Callable) -> typing.Callable:
             self.add_route(
                 path,
@@ -742,14 +785,30 @@ class Router:
 
         return decorator
 
-    def websocket_route(self, path: str, name: str = None) -> typing.Callable:
+    def websocket_route(
+        self, path: str, name: str = None
+    ) -> typing.Callable:  # pragma: nocover
+        """
+        We no longer document this decorator style API, and its usage is discouraged.
+        Instead you should use the following approach:
+
+        routes = [
+            WebSocketRoute(path, endpoint=..., ...),
+            ...
+        ]
+
+        app = Starlette(routes=routes)
+        """
+
         def decorator(func: typing.Callable) -> typing.Callable:
             self.add_websocket_route(path, func, name=name)
             return func
 
         return decorator
 
-    def add_event_handler(self, event_type: str, func: typing.Callable) -> None:
+    def add_event_handler(
+        self, event_type: str, func: typing.Callable
+    ) -> None:  # pragma: no cover
         assert event_type in ("startup", "shutdown")
 
         if event_type == "startup":
@@ -757,7 +816,7 @@ class Router:
         else:
             self.on_shutdown.append(func)
 
-    def on_event(self, event_type: str) -> typing.Callable:
+    def on_event(self, event_type: str) -> typing.Callable:  # pragma: nocover
         def decorator(func: typing.Callable) -> typing.Callable:
             self.add_event_handler(event_type, func)
             return func

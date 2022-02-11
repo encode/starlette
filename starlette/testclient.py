@@ -162,6 +162,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             scope = {
                 "type": "websocket",
                 "path": unquote(path),
+                "raw_path": path.encode(),
                 "root_path": self.root_path,
                 "scheme": scheme,
                 "query_string": query.encode(),
@@ -178,6 +179,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             "http_version": "1.1",
             "method": request.method,
             "path": unquote(path),
+            "raw_path": path.encode(),
             "root_path": self.root_path,
             "scheme": scheme,
             "query_string": query.encode(),
@@ -352,7 +354,9 @@ class WebSocketTestSession:
 
     def _raise_on_close(self, message: Message) -> None:
         if message["type"] == "websocket.close":
-            raise WebSocketDisconnect(message.get("code", 1000))
+            raise WebSocketDisconnect(
+                message.get("code", 1000), message.get("reason", "")
+            )
 
     def send(self, message: Message) -> None:
         self._receive_queue.put(message)
