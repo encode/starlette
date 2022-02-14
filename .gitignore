@@ -2,7 +2,6 @@
 test.db
 .coverage
 .pytest_cache/
-.python-version
 .mypy_cache/
 __pycache__/
 htmlcov/
