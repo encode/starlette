@@ -5,6 +5,7 @@ from http import cookies as http_cookies
 
 import anyio
 
+from starlette._asgi_extension import get_extension_from_scope, get_from_extension
 from starlette.datastructures import URL, Address, FormData, Headers, QueryParams, State
 from starlette.formparsers import FormParser, MultiPartParser
 from starlette.types import Message, Receive, Scope, Send
@@ -196,6 +197,18 @@ class Request(HTTPConnection):
         self._send = send
         self._stream_consumed = False
         self._is_disconnected = False
+
+    def __new__(
+        cls, scope: Scope, receive: Receive = empty_receive, send: Send = empty_send
+    ) -> "Request":
+        instance = get_from_extension(scope, "connection", None)
+        if instance is not None:
+            return instance
+        instance = get_extension_from_scope(scope)["connection"] = object.__new__(
+            Request
+        )
+        instance.__init__(scope, receive, send)
+        return instance
 
     @property
     def method(self) -> str:

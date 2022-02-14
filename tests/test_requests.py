@@ -177,8 +177,13 @@ def test_request_scope_interface():
     """
     request = Request({"type": "http", "method": "GET", "path": "/abc/"})
     assert request["method"] == "GET"
-    assert dict(request) == {"type": "http", "method": "GET", "path": "/abc/"}
-    assert len(request) == 3
+    assert dict(request) == {
+        "type": "http",
+        "method": "GET",
+        "path": "/abc/",
+        "extensions": {"starlette": {"connection": request}},
+    }
+    assert len(request) == 4
 
 
 def test_request_raw_path(test_client_factory):
@@ -488,3 +493,21 @@ def test_request_send_push_promise_without_setting_send(test_client_factory):
     client = test_client_factory(app)
     response = client.get("/")
     assert response.json() == {"json": "Send channel not available"}
+
+
+def test_request_preserves_body_when_re_using_scope(test_client_factory):
+    async def app(scope, receive, send):
+        request = Request(scope, receive)
+        body1 = await request.body()
+        request = Request(scope, receive)
+        body2 = await request.body()
+        assert body1 == body2
+        await Response()(scope, receive, send)
+
+    client = test_client_factory(app)
+
+    def post_body():
+        yield b"foo"
+
+    response = client.post("/", data=post_body())
+    assert response.status_code == 200, response.content
