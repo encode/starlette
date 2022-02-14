@@ -82,12 +82,12 @@ class HTTPConnection(Mapping):
 
     def __init__(self, scope: Scope, receive: Receive = None) -> None:
         assert scope["type"] in ("http", "websocket")
-        self.scope = scope
         instance = _get_from_extension(scope, "connection", None)
         if instance is not None:
             self.__dict__ = instance.__dict__
         else:
             _get_extension_from_scope(scope)["connection"] = self
+        self.scope = scope
 
     def __getitem__(self, key: str) -> typing.Any:
         return self.scope[key]
