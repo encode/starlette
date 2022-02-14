@@ -207,7 +207,6 @@ class Request(HTTPConnection):
         instance = get_extension_from_scope(scope)["connection"] = object.__new__(
             Request
         )
-        instance.__init__(scope, receive, send)
         return instance
 
     @property
