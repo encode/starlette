@@ -1,4 +1,3 @@
-import hashlib
 import http.cookies
 import json
 import os
@@ -12,6 +11,7 @@ from urllib.parse import quote
 
 import anyio
 
+from starlette._compat import md5_hexdigest
 from starlette.background import BackgroundTask
 from starlette.concurrency import iterate_in_threadpool
 from starlette.datastructures import URL, MutableHeaders
@@ -38,7 +38,7 @@ class Response:
         self,
         content: typing.Any = None,
         status_code: int = 200,
-        headers: dict = None,
+        headers: typing.Mapping[str, str] = None,
         media_type: str = None,
         background: BackgroundTask = None,
     ) -> None:
@@ -70,8 +70,12 @@ class Response:
             populate_content_length = b"content-length" not in keys
             populate_content_type = b"content-type" not in keys
 
-        body = getattr(self, "body", b"")
-        if body and populate_content_length:
+        body = getattr(self, "body", None)
+        if (
+            body is not None
+            and populate_content_length
+            and not (self.status_code < 200 or self.status_code in (204, 304))
+        ):
             content_length = str(len(body))
             raw_headers.append((b"content-length", content_length.encode("latin-1")))
 
@@ -125,8 +129,25 @@ class Response:
         cookie_val = cookie.output(header="").strip()
         self.raw_headers.append((b"set-cookie", cookie_val.encode("latin-1")))
 
-    def delete_cookie(self, key: str, path: str = "/", domain: str = None) -> None:
-        self.set_cookie(key, expires=0, max_age=0, path=path, domain=domain)
+    def delete_cookie(
+        self,
+        key: str,
+        path: str = "/",
+        domain: str = None,
+        secure: bool = False,
+        httponly: bool = False,
+        samesite: str = "lax",
+    ) -> None:
+        self.set_cookie(
+            key,
+            max_age=0,
+            expires=0,
+            path=path,
+            domain=domain,
+            secure=secure,
+            httponly=httponly,
+            samesite=samesite,
+        )
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         await send(
@@ -153,6 +174,16 @@ class PlainTextResponse(Response):
 class JSONResponse(Response):
     media_type = "application/json"
 
+    def __init__(
+        self,
+        content: typing.Any,
+        status_code: int = 200,
+        headers: dict = None,
+        media_type: str = None,
+        background: BackgroundTask = None,
+    ) -> None:
+        super().__init__(content, status_code, headers, media_type, background)
+
     def render(self, content: typing.Any) -> bytes:
         return json.dumps(
             content,
@@ -168,7 +199,7 @@ class RedirectResponse(Response):
         self,
         url: typing.Union[str, URL],
         status_code: int = 307,
-        headers: dict = None,
+        headers: typing.Mapping[str, str] = None,
         background: BackgroundTask = None,
     ) -> None:
         super().__init__(
@@ -182,7 +213,7 @@ class StreamingResponse(Response):
         self,
         content: typing.Any,
         status_code: int = 200,
-        headers: dict = None,
+        headers: typing.Mapping[str, str] = None,
         media_type: str = None,
         background: BackgroundTask = None,
     ) -> None:
@@ -231,13 +262,13 @@ class StreamingResponse(Response):
 
 
 class FileResponse(Response):
-    chunk_size = 4096
+    chunk_size = 64 * 1024
 
     def __init__(
         self,
         path: typing.Union[str, "os.PathLike[str]"],
         status_code: int = 200,
-        headers: dict = None,
+        headers: typing.Mapping[str, str] = None,
         media_type: str = None,
         background: BackgroundTask = None,
         filename: str = None,
@@ -273,7 +304,7 @@ class FileResponse(Response):
         content_length = str(stat_result.st_size)
         last_modified = formatdate(stat_result.st_mtime, usegmt=True)
         etag_base = str(stat_result.st_mtime) + "-" + str(stat_result.st_size)
-        etag = hashlib.md5(etag_base.encode()).hexdigest()
+        etag = md5_hexdigest(etag_base.encode(), usedforsecurity=False)
 
         self.headers.setdefault("content-length", content_length)
         self.headers.setdefault("last-modified", last_modified)

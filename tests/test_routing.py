@@ -32,6 +32,73 @@ def user_no_match(request):  # pragma: no cover
     return Response(content, media_type="text/plain")
 
 
+async def partial_endpoint(arg, request):
+    return JSONResponse({"arg": arg})
+
+
+async def partial_ws_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    await websocket.send_json({"url": str(websocket.url)})
+    await websocket.close()
+
+
+class PartialRoutes:
+    @classmethod
+    async def async_endpoint(cls, arg, request):
+        return JSONResponse({"arg": arg})
+
+    @classmethod
+    async def async_ws_endpoint(cls, websocket: WebSocket):
+        await websocket.accept()
+        await websocket.send_json({"url": str(websocket.url)})
+        await websocket.close()
+
+
+def func_homepage(request):
+    return Response("Hello, world!", media_type="text/plain")
+
+
+def contact(request):
+    return Response("Hello, POST!", media_type="text/plain")
+
+
+def int_convertor(request):
+    number = request.path_params["param"]
+    return JSONResponse({"int": number})
+
+
+def float_convertor(request):
+    num = request.path_params["param"]
+    return JSONResponse({"float": num})
+
+
+def path_convertor(request):
+    path = request.path_params["param"]
+    return JSONResponse({"path": path})
+
+
+def uuid_converter(request):
+    uuid_param = request.path_params["param"]
+    return JSONResponse({"uuid": str(uuid_param)})
+
+
+def path_with_parentheses(request):
+    number = request.path_params["param"]
+    return JSONResponse({"int": number})
+
+
+async def websocket_endpoint(session: WebSocket):
+    await session.accept()
+    await session.send_text("Hello, world!")
+    await session.close()
+
+
+async def websocket_params(session: WebSocket):
+    await session.accept()
+    await session.send_text(f"Hello, {session.path_params['room']}!")
+    await session.close()
+
+
 app = Router(
     [
         Route("/", endpoint=homepage, methods=["GET"]),
@@ -44,64 +111,38 @@ app = Router(
                 Route("/nomatch", endpoint=user_no_match),
             ],
         ),
+        Mount(
+            "/partial",
+            routes=[
+                Route("/", endpoint=functools.partial(partial_endpoint, "foo")),
+                Route(
+                    "/cls",
+                    endpoint=functools.partial(PartialRoutes.async_endpoint, "foo"),
+                ),
+                WebSocketRoute("/ws", endpoint=functools.partial(partial_ws_endpoint)),
+                WebSocketRoute(
+                    "/ws/cls",
+                    endpoint=functools.partial(PartialRoutes.async_ws_endpoint),
+                ),
+            ],
+        ),
         Mount("/static", app=Response("xxxxx", media_type="image/png")),
+        Route("/func", endpoint=func_homepage, methods=["GET"]),
+        Route("/func", endpoint=contact, methods=["POST"]),
+        Route("/int/{param:int}", endpoint=int_convertor, name="int-convertor"),
+        Route("/float/{param:float}", endpoint=float_convertor, name="float-convertor"),
+        Route("/path/{param:path}", endpoint=path_convertor, name="path-convertor"),
+        Route("/uuid/{param:uuid}", endpoint=uuid_converter, name="uuid-convertor"),
+        # Route with chars that conflict with regex meta chars
+        Route(
+            "/path-with-parentheses({param:int})",
+            endpoint=path_with_parentheses,
+            name="path-with-parentheses",
+        ),
+        WebSocketRoute("/ws", endpoint=websocket_endpoint),
+        WebSocketRoute("/ws/{room}", endpoint=websocket_params),
     ]
 )
-
-
-@app.route("/func")
-def func_homepage(request):
-    return Response("Hello, world!", media_type="text/plain")
-
-
-@app.route("/func", methods=["POST"])
-def contact(request):
-    return Response("Hello, POST!", media_type="text/plain")
-
-
-@app.route("/int/{param:int}", name="int-convertor")
-def int_convertor(request):
-    number = request.path_params["param"]
-    return JSONResponse({"int": number})
-
-
-@app.route("/float/{param:float}", name="float-convertor")
-def float_convertor(request):
-    num = request.path_params["param"]
-    return JSONResponse({"float": num})
-
-
-@app.route("/path/{param:path}", name="path-convertor")
-def path_convertor(request):
-    path = request.path_params["param"]
-    return JSONResponse({"path": path})
-
-
-@app.route("/uuid/{param:uuid}", name="uuid-convertor")
-def uuid_converter(request):
-    uuid_param = request.path_params["param"]
-    return JSONResponse({"uuid": str(uuid_param)})
-
-
-# Route with chars that conflict with regex meta chars
-@app.route("/path-with-parentheses({param:int})", name="path-with-parentheses")
-def path_with_parentheses(request):
-    number = request.path_params["param"]
-    return JSONResponse({"int": number})
-
-
-@app.websocket_route("/ws")
-async def websocket_endpoint(session):
-    await session.accept()
-    await session.send_text("Hello, world!")
-    await session.close()
-
-
-@app.websocket_route("/ws/{room}")
-async def websocket_params(session):
-    await session.accept()
-    await session.send_text(f"Hello, {session.path_params['room']}!")
-    await session.close()
 
 
 @pytest.fixture
@@ -124,6 +165,7 @@ def test_router(client):
     response = client.post("/")
     assert response.status_code == 405
     assert response.text == "Method Not Allowed"
+    assert set(response.headers["allow"].split(", ")) == {"HEAD", "GET"}
 
     response = client.get("/foo")
     assert response.status_code == 404
@@ -201,8 +243,14 @@ def test_url_path_for():
     assert app.url_path_for("homepage") == "/"
     assert app.url_path_for("user", username="tomchristie") == "/users/tomchristie"
     assert app.url_path_for("websocket_endpoint") == "/ws"
-    with pytest.raises(NoMatchFound):
+    with pytest.raises(
+        NoMatchFound, match='No route exists for name "broken" and params "".'
+    ):
         assert app.url_path_for("broken")
+    with pytest.raises(
+        NoMatchFound, match='No route exists for name "broken" and params "key, key2".'
+    ):
+        assert app.url_path_for("broken", key="value", key2="value2")
     with pytest.raises(AssertionError):
         app.url_path_for("user", username="tom/christie")
     with pytest.raises(AssertionError):
@@ -352,6 +400,11 @@ mixed_hosts_app = Router(
             name="api",
             app=Router([Route("/users", users_api, name="users")]),
         ),
+        Host(
+            "port.example.org:3600",
+            name="port",
+            app=Router([Route("/", homepage, name="homepage")]),
+        ),
     ]
 )
 
@@ -375,6 +428,21 @@ def test_host_routing(test_client_factory):
     response = client.get("/")
     assert response.status_code == 200
 
+    client = test_client_factory(mixed_hosts_app, base_url="https://port.example.org/")
+
+    response = client.get("/users")
+    assert response.status_code == 404
+
+    response = client.get("/")
+    assert response.status_code == 200
+
+    client = test_client_factory(
+        mixed_hosts_app, base_url="https://port.example.org:5600/"
+    )
+
+    response = client.get("/")
+    assert response.status_code == 200
+
 
 def test_host_reverse_urls():
     assert (
@@ -389,6 +457,12 @@ def test_host_reverse_urls():
         mixed_hosts_app.url_path_for("api:users").make_absolute_url("https://whatever")
         == "https://api.example.org/users"
     )
+    assert (
+        mixed_hosts_app.url_path_for("port:homepage").make_absolute_url(
+            "https://whatever"
+        )
+        == "https://port.example.org:3600/"
+    )
 
 
 async def subdomain_app(scope, receive, send):
@@ -396,13 +470,13 @@ async def subdomain_app(scope, receive, send):
     await response(scope, receive, send)
 
 
-subdomain_app = Router(
+subdomain_router = Router(
     routes=[Host("{subdomain}.example.org", app=subdomain_app, name="subdomains")]
 )
 
 
 def test_subdomain_routing(test_client_factory):
-    client = test_client_factory(subdomain_app, base_url="https://foo.example.org/")
+    client = test_client_factory(subdomain_router, base_url="https://foo.example.org/")
 
     response = client.get("/")
     assert response.status_code == 200
@@ -411,7 +485,7 @@ def test_subdomain_routing(test_client_factory):
 
 def test_subdomain_reverse_urls():
     assert (
-        subdomain_app.url_path_for(
+        subdomain_router.url_path_for(
             "subdomains", subdomain="foo", path="/homepage"
         ).make_absolute_url("https://whatever")
         == "https://foo.example.org/homepage"
@@ -574,6 +648,7 @@ def test_raise_on_startup(test_client_factory):
         raise RuntimeError()
 
     router = Router(on_startup=[run_startup])
+    startup_failed = False
 
     async def app(scope, receive, send):
         async def _send(message):
@@ -584,7 +659,6 @@ def test_raise_on_startup(test_client_factory):
 
         await router(scope, receive, _send)
 
-    startup_failed = False
     with pytest.raises(RuntimeError):
         with test_client_factory(app):
             pass  # pragma: nocover
@@ -602,38 +676,26 @@ def test_raise_on_shutdown(test_client_factory):
             pass  # pragma: nocover
 
 
-class AsyncEndpointClassMethod:
-    @classmethod
-    async def async_endpoint(cls, arg, request):
-        return JSONResponse({"arg": arg})
-
-
-async def _partial_async_endpoint(arg, request):
-    return JSONResponse({"arg": arg})
-
-
-partial_async_endpoint = functools.partial(_partial_async_endpoint, "foo")
-partial_cls_async_endpoint = functools.partial(
-    AsyncEndpointClassMethod.async_endpoint, "foo"
-)
-
-partial_async_app = Router(
-    routes=[
-        Route("/", partial_async_endpoint),
-        Route("/cls", partial_cls_async_endpoint),
-    ]
-)
-
-
 def test_partial_async_endpoint(test_client_factory):
-    test_client = test_client_factory(partial_async_app)
-    response = test_client.get("/")
+    test_client = test_client_factory(app)
+    response = test_client.get("/partial")
     assert response.status_code == 200
     assert response.json() == {"arg": "foo"}
 
-    cls_method_response = test_client.get("/cls")
+    cls_method_response = test_client.get("/partial/cls")
     assert cls_method_response.status_code == 200
     assert cls_method_response.json() == {"arg": "foo"}
+
+
+def test_partial_async_ws_endpoint(test_client_factory):
+    test_client = test_client_factory(app)
+    with test_client.websocket_connect("/partial/ws") as websocket:
+        data = websocket.receive_json()
+        assert data == {"url": "ws://testserver/partial/ws"}
+
+    with test_client.websocket_connect("/partial/ws/cls") as websocket:
+        data = websocket.receive_json()
+        assert data == {"url": "ws://testserver/partial/ws/cls"}
 
 
 def test_duplicated_param_names():

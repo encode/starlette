@@ -5,6 +5,8 @@ from starlette.exceptions import ExceptionMiddleware
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.errors import ServerErrorMiddleware
+from starlette.requests import Request
+from starlette.responses import Response
 from starlette.routing import BaseRoute, Router
 from starlette.types import ASGIApp, Receive, Scope, Send
 
@@ -23,7 +25,7 @@ class Starlette:
     any uncaught errors occurring anywhere in the entire stack.
     `ExceptionMiddleware` is added as the very innermost middleware, to deal
     with handled exception cases occurring in the routing or endpoints.
-    * **exception_handlers** - A dictionary mapping either integer status codes,
+    * **exception_handlers** - A mapping of either integer status codes,
     or exception class types onto callables which handle the exceptions.
     Exception handler callables should be of the form
     `handler(request, exc) -> response` and may be be either standard functions, or
@@ -41,8 +43,11 @@ class Starlette:
         debug: bool = False,
         routes: typing.Sequence[BaseRoute] = None,
         middleware: typing.Sequence[Middleware] = None,
-        exception_handlers: typing.Dict[
-            typing.Union[int, typing.Type[Exception]], typing.Callable
+        exception_handlers: typing.Mapping[
+            typing.Any,
+            typing.Callable[
+                [Request, Exception], typing.Union[Response, typing.Awaitable[Response]]
+            ],
         ] = None,
         on_startup: typing.Sequence[typing.Callable] = None,
         on_shutdown: typing.Sequence[typing.Callable] = None,
@@ -68,7 +73,9 @@ class Starlette:
     def build_middleware_stack(self) -> ASGIApp:
         debug = self.debug
         error_handler = None
-        exception_handlers = {}
+        exception_handlers: typing.Dict[
+            typing.Any, typing.Callable[[Request, Exception], Response]
+        ] = {}
 
         for key, value in self.exception_handlers.items():
             if key in (500, Exception):
@@ -104,7 +111,7 @@ class Starlette:
         self._debug = value
         self.middleware_stack = self.build_middleware_stack()
 
-    def url_path_for(self, name: str, **path_params: str) -> URLPath:
+    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         return self.router.url_path_for(name, **path_params)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -112,17 +119,47 @@ class Starlette:
         await self.middleware_stack(scope, receive, send)
 
     # The following usages are now discouraged in favour of configuration
-    #  during Starlette.__init__(...)
-    def on_event(self, event_type: str) -> typing.Callable:
+    # during Starlette.__init__(...)
+    def on_event(self, event_type: str) -> typing.Callable:  # pragma: nocover
         return self.router.on_event(event_type)
 
-    def mount(self, path: str, app: ASGIApp, name: str = None) -> None:
+    def mount(
+        self, path: str, app: ASGIApp, name: str = None
+    ) -> None:  # pragma: nocover
+        """
+        We no longer document this API, and its usage is discouraged.
+        Instead you should use the following approach:
+
+        routes = [
+            Mount(path, ...),
+            ...
+        ]
+
+        app = Starlette(routes=routes)
+        """
+
         self.router.mount(path, app=app, name=name)
 
-    def host(self, host: str, app: ASGIApp, name: str = None) -> None:
+    def host(
+        self, host: str, app: ASGIApp, name: str = None
+    ) -> None:  # pragma: no cover
+        """
+        We no longer document this API, and its usage is discouraged.
+        Instead you should use the following approach:
+
+        routes = [
+            Host(path, ...),
+            ...
+        ]
+
+        app = Starlette(routes=routes)
+        """
+
         self.router.host(host, app=app, name=name)
 
-    def add_middleware(self, middleware_class: type, **options: typing.Any) -> None:
+    def add_middleware(
+        self, middleware_class: type, **options: typing.Any
+    ) -> None:  # pragma: no cover
         self.user_middleware.insert(0, Middleware(middleware_class, **options))
         self.middleware_stack = self.build_middleware_stack()
 
@@ -130,11 +167,13 @@ class Starlette:
         self,
         exc_class_or_status_code: typing.Union[int, typing.Type[Exception]],
         handler: typing.Callable,
-    ) -> None:
+    ) -> None:  # pragma: no cover
         self.exception_handlers[exc_class_or_status_code] = handler
         self.middleware_stack = self.build_middleware_stack()
 
-    def add_event_handler(self, event_type: str, func: typing.Callable) -> None:
+    def add_event_handler(
+        self, event_type: str, func: typing.Callable
+    ) -> None:  # pragma: no cover
         self.router.add_event_handler(event_type, func)
 
     def add_route(
@@ -144,19 +183,19 @@ class Starlette:
         methods: typing.List[str] = None,
         name: str = None,
         include_in_schema: bool = True,
-    ) -> None:
+    ) -> None:  # pragma: no cover
         self.router.add_route(
             path, route, methods=methods, name=name, include_in_schema=include_in_schema
         )
 
     def add_websocket_route(
         self, path: str, route: typing.Callable, name: str = None
-    ) -> None:
+    ) -> None:  # pragma: no cover
         self.router.add_websocket_route(path, route, name=name)
 
     def exception_handler(
         self, exc_class_or_status_code: typing.Union[int, typing.Type[Exception]]
-    ) -> typing.Callable:
+    ) -> typing.Callable:  # pragma: nocover
         def decorator(func: typing.Callable) -> typing.Callable:
             self.add_exception_handler(exc_class_or_status_code, func)
             return func
@@ -169,7 +208,19 @@ class Starlette:
         methods: typing.List[str] = None,
         name: str = None,
         include_in_schema: bool = True,
-    ) -> typing.Callable:
+    ) -> typing.Callable:  # pragma: nocover
+        """
+        We no longer document this decorator style API, and its usage is discouraged.
+        Instead you should use the following approach:
+
+        routes = [
+            Route(path, endpoint=..., ...),
+            ...
+        ]
+
+        app = Starlette(routes=routes)
+        """
+
         def decorator(func: typing.Callable) -> typing.Callable:
             self.router.add_route(
                 path,
@@ -182,14 +233,40 @@ class Starlette:
 
         return decorator
 
-    def websocket_route(self, path: str, name: str = None) -> typing.Callable:
+    def websocket_route(
+        self, path: str, name: str = None
+    ) -> typing.Callable:  # pragma: nocover
+        """
+        We no longer document this decorator style API, and its usage is discouraged.
+        Instead you should use the following approach:
+
+        routes = [
+            WebSocketRoute(path, endpoint=..., ...),
+            ...
+        ]
+
+        app = Starlette(routes=routes)
+        """
+
         def decorator(func: typing.Callable) -> typing.Callable:
             self.router.add_websocket_route(path, func, name=name)
             return func
 
         return decorator
 
-    def middleware(self, middleware_type: str) -> typing.Callable:
+    def middleware(self, middleware_type: str) -> typing.Callable:  # pragma: nocover
+        """
+        We no longer document this decorator style API, and its usage is discouraged.
+        Instead you should use the following approach:
+
+        middleware = [
+            Middleware(...),
+            ...
+        ]
+
+        app = Starlette(middleware=middleware)
+        """
+
         assert (
             middleware_type == "http"
         ), 'Currently only middleware("http") is supported.'

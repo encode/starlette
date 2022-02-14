@@ -51,7 +51,7 @@ For example: `websocket.path_params['username']`
 
 ### Accepting the connection
 
-* `await websocket.accept(subprotocol=None)`
+* `await websocket.accept(subprotocol=None, headers=None)`
 
 ### Sending data
 
@@ -75,7 +75,7 @@ Use `websocket.receive_json(data, mode="binary")` to receive JSON over binary da
 
 ### Closing the connection
 
-* `await websocket.close(code=1000)`
+* `await websocket.close(code=1000, reason=None)`
 
 ### Sending and receiving messages
 

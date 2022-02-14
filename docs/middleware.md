@@ -98,7 +98,7 @@ The following arguments are supported:
 
 * `secret_key` - Should be a random string.
 * `session_cookie` - Defaults to "session".
-* `max_age` - Session expiry time in seconds. Defaults to 2 weeks.
+* `max_age` - Session expiry time in seconds. Defaults to 2 weeks. If set to `None` then the cookie will last as long as the browser session.
 * `same_site` - SameSite flag prevents the browser from sending session cookie along with cross-site requests. Defaults to `'lax'`.
 * `https_only` - Indicate that Secure flag should be set (can be used with HTTPS only). Defaults to `False`.
 
@@ -244,48 +244,68 @@ to use the `middleware=<List of Middleware instances>` style, as it will:
 
 ## Third party middleware
 
-#### [SentryMiddleware](https://github.com/encode/sentry-asgi)
-
-A middleware class for logging exceptions to [Sentry](https://sentry.io/).
-
-#### [ProxyHeadersMiddleware](https://github.com/encode/uvicorn/blob/master/uvicorn/middleware/proxy_headers.py)
-
-Uvicorn includes a middleware class for determining the client IP address,
-when proxy servers are being used, based on the `X-Forwarded-Proto` and `X-Forwarded-For` headers. For more complex proxy configurations, you might want to adapt this middleware.
-
-#### [TimingMiddleware](https://github.com/steinnes/timing-asgi)
-
-A middleware class to emit timing information (cpu and wall time) for each request which
-passes through it.  Includes examples for how to emit these timings as statsd metrics.
-
-#### [datasette-auth-github](https://github.com/simonw/datasette-auth-github)
+#### [asgi-auth-github](https://github.com/simonw/asgi-auth-github)
 
 This middleware adds authentication to any ASGI application, requiring users to sign in
 using their GitHub account (via [OAuth](https://developer.github.com/apps/building-oauth-apps/authorizing-oauth-apps/)).
 Access can be restricted to specific users or to members of specific GitHub organizations or teams.
 
-#### [PrometheusMiddleware](https://github.com/perdy/starlette-prometheus)
+#### [asgi-csrf](https://github.com/simonw/asgi-csrf)
 
-A middleware class for capturing Prometheus metrics related to requests and responses, including in progress requests, timing...
-
-#### [BugsnagMiddleware](https://github.com/ashinabraham/starlette-bugsnag)
-
-A middleware class for logging exceptions to [Bugsnag](https://www.bugsnag.com/).
-
-#### [EarlyDataMiddleware](https://github.com/HarrySky/starlette-early-data)
-
-Middleware and decorator for detecting and denying [TLSv1.3 early data](https://tools.ietf.org/html/rfc8470) requests.
+Middleware for protecting against CSRF attacks. This middleware implements the Double Submit Cookie pattern, where a cookie is set, then it is compared to a csrftoken hidden form field or an `x-csrftoken` HTTP header.
 
 #### [AuthlibMiddleware](https://github.com/aogier/starlette-authlib)
 
 A drop-in replacement for Starlette session middleware, using [authlib's jwt](https://docs.authlib.org/en/latest/jose/jwt.html)
 module.
 
+#### [BugsnagMiddleware](https://github.com/ashinabraham/starlette-bugsnag)
+
+A middleware class for logging exceptions to [Bugsnag](https://www.bugsnag.com/).
+
+#### [CSRFMiddleware](https://github.com/frankie567/starlette-csrf)
+
+Middleware for protecting against CSRF attacks. This middleware implements the Double Submit Cookie pattern, where a cookie is set, then it is compared to an `x-csrftoken` HTTP header.
+
+#### [EarlyDataMiddleware](https://github.com/HarrySky/starlette-early-data)
+
+Middleware and decorator for detecting and denying [TLSv1.3 early data](https://tools.ietf.org/html/rfc8470) requests.
+
+#### [PrometheusMiddleware](https://github.com/perdy/starlette-prometheus)
+
+A middleware class for capturing Prometheus metrics related to requests and responses, including in progress requests, timing...
+
+#### [ProxyHeadersMiddleware](https://github.com/encode/uvicorn/blob/master/uvicorn/middleware/proxy_headers.py)
+
+Uvicorn includes a middleware class for determining the client IP address,
+when proxy servers are being used, based on the `X-Forwarded-Proto` and `X-Forwarded-For` headers. For more complex proxy configurations, you might want to adapt this middleware.
+
+#### [RateLimitMiddleware](https://github.com/abersheeran/asgi-ratelimit)
+
+A rate limit middleware. Regular expression matches url; flexible rules; highly customizable. Very easy to use.
+
+#### [RequestIdMiddleware](https://github.com/snok/asgi-correlation-id)
+
+A middleware class for reading/generating request IDs and attaching them to application logs.
+
+#### [RollbarMiddleware](https://docs.rollbar.com/docs/starlette)
+
+A middleware class for logging exceptions, errors, and log messages to [Rollbar](https://www.rollbar.com).
+
+#### [SentryMiddleware](https://github.com/encode/sentry-asgi)
+
+A middleware class for logging exceptions to [Sentry](https://sentry.io/).
+
 #### [StarletteOpentracing](https://github.com/acidjunk/starlette-opentracing)
 
 A middleware class that emits tracing info to [OpenTracing.io](https://opentracing.io/) compatible tracers and
 can be used to profile and monitor distributed applications.
 
-#### [RateLimitMiddleware](https://github.com/abersheeran/asgi-ratelimit)
+#### [TimingMiddleware](https://github.com/steinnes/timing-asgi)
 
-A rate limit middleware. Regular expression matches url; flexible rules; highly customizable. Very easy to use.
+A middleware class to emit timing information (cpu and wall time) for each request which
+passes through it.  Includes examples for how to emit these timings as statsd metrics.
+
+#### [WSGIMiddleware](https://github.com/abersheeran/a2wsgi)
+
+A middleware class in charge of converting a WSGI application into an ASGI one.
