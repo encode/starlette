@@ -259,19 +259,20 @@ class Request(HTTPConnection):
         return json.loads(body)
 
     async def form(self) -> FormData:
-        assert (
-            parse_options_header is not None
-        ), "The `python-multipart` library must be installed to use form parsing."
-        content_type_header = self.headers.get("Content-Type")
-        content_type, options = parse_options_header(content_type_header)
-        if content_type == b"multipart/form-data":
-            multipart_parser = MultiPartParser(self.headers, self._cache_stream())
-            self._form = await multipart_parser.parse()
-        elif content_type == b"application/x-www-form-urlencoded":
-            form_parser = FormParser(self.headers, self._cache_stream())
-            self._form = await form_parser.parse()
-        else:
-            self._form = FormData()
+        if not hasattr(self, "_form"):
+            assert (
+                parse_options_header is not None
+            ), "The `python-multipart` library must be installed to use form parsing."
+            content_type_header = self.headers.get("Content-Type")
+            content_type, options = parse_options_header(content_type_header)
+            if content_type == b"multipart/form-data":
+                multipart_parser = MultiPartParser(self.headers, self.stream())
+                self._form = await multipart_parser.parse()
+            elif content_type == b"application/x-www-form-urlencoded":
+                form_parser = FormParser(self.headers, self.stream())
+                self._form = await form_parser.parse()
+            else:
+                self._form = FormData()
         return self._form
 
     async def close(self) -> None:

@@ -168,21 +168,6 @@ def test_request_body_then_request_body(test_client_factory):
     assert response.json() == {"body": "abc", "body2": "abc"}
 
 
-def test_request_form_then_request_form(test_client_factory):
-    async def app(scope, receive, send):
-        request = Request(scope, receive)
-        form = await request.form()
-        request2 = Request(scope, request.receive)
-        form2 = await request2.form()
-        response = JSONResponse({"form": dict(form), "form2": dict(form2)})
-        await response(scope, receive, send)
-
-    client = test_client_factory(app)
-
-    response = client.post("/", data={"abc": "123 @"})
-    assert response.json() == {"form": {"abc": "123 @"}, "form2": {"abc": "123 @"}}
-
-
 def test_request_json(test_client_factory):
     async def app(scope, receive, send):
         request = Request(scope, receive)
