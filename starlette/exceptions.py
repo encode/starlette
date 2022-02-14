@@ -3,10 +3,10 @@ import http
 from typing import Awaitable, Callable, Dict, Mapping, Optional, Type, Union
 
 from starlette.concurrency import run_in_threadpool
-from starlette.requests import HTTPConnection, Request
+from starlette.requests import HTTPConnection
 from starlette.responses import PlainTextResponse, Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
-from starlette.websockets import WebSocket, WebsocketDenialResponse
+from starlette.websockets import WebsocketDenialResponse
 
 
 class HTTPException(Exception):
@@ -127,12 +127,13 @@ class ExceptionMiddleware(BaseExceptionMiddleware):
         return None
 
     def response_already_started(self, exc: Exception):
-        # Just note that this exception would have been handled if the response hadn't started yet
+        # Just note that this exception would have been handled
+        # if the response hadn't started yet
         msg = "Caught handled exception, but response already started."
         raise RuntimeError(msg) from exc
 
     def propagate_exception(self, exc: Exception):
-        # ExceptionMiddleware does not propagate exceptions to the server or test clients
+        # ExceptionMiddleware does not propagate exceptions
         pass
 
     def http_exception(self, conn: HTTPConnection, exc: HTTPException) -> Response:

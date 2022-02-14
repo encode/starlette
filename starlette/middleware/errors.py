@@ -2,11 +2,10 @@ import html
 import inspect
 import traceback
 
-from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import BaseExceptionMiddleware, ExceptionHandler
-from starlette.requests import HTTPConnection, Request
+from starlette.requests import HTTPConnection
 from starlette.responses import HTMLResponse, PlainTextResponse, Response
-from starlette.types import ASGIApp, Message, Receive, Scope, Send
+from starlette.types import ASGIApp
 
 STYLES = """
 p {
