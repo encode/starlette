@@ -1,5 +1,7 @@
-## Checklist
+The starting point for contributions should usually be [a discussion](https://github.com/encode/httpx/discussions)
 
-- [ ] I've updated the documentation.
-- [ ] I've added tests.
-- [ ] I've added an entry to the `docs/release-notes.md` file. No need if the PR is a typo fix, type annotation or just adding docs.
+Simple documentation typos may be raised as stand-alone pull requests, but otherwise please ensure you've discussed your proposal prior to issuing a pull request.
+
+This will help us direct work appropriately, and ensure that any suggested changes have been okayed by the maintainers.
+
+- [ ] Initially raised as discussion #...
