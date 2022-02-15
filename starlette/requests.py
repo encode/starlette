@@ -194,8 +194,18 @@ class Request(HTTPConnection):
         assert scope["type"] == "http"
         self._receive = receive
         self._send = send
-        self._stream_consumed = False
         self._is_disconnected = False
+
+    def _get_request_state(self, name: str, default: typing.Any = None) -> typing.Any:
+        return self.scope.get("extensions", {}).get("starlette", {}).get(name, default)
+
+    def _set_request_state(self, name: str, value: typing.Any) -> None:
+        if "extensions" not in self.scope:
+            self.scope["extensions"] = {"starlette": {name: value}}
+        elif "starlette" not in self.scope["extensions"]:
+            self.scope["extensions"]["starlette"] = {name: value}
+        else:
+            self.scope["extensions"]["starlette"][name] = value
 
     @property
     def method(self) -> str:
@@ -206,15 +216,17 @@ class Request(HTTPConnection):
         return self._receive
 
     async def stream(self) -> typing.AsyncGenerator[bytes, None]:
-        if hasattr(self, "_body"):
-            yield self._body
+        body = self._get_request_state("body")
+        if body is not None:
+            yield body
             yield b""
             return
 
-        if self._stream_consumed:
+        stream_consumed = self._get_request_state("stream_consumed", default=False)
+        if stream_consumed:
             raise RuntimeError("Stream consumed")
 
-        self._stream_consumed = True
+        self._set_request_state("stream_consumed", True)
         while True:
             message = await self._receive()
             if message["type"] == "http.request":
@@ -229,12 +241,14 @@ class Request(HTTPConnection):
         yield b""
 
     async def body(self) -> bytes:
-        if not hasattr(self, "_body"):
+        body = self._get_request_state("body")
+        if body is None:
             chunks = []
             async for chunk in self.stream():
                 chunks.append(chunk)
-            self._body = b"".join(chunks)
-        return self._body
+            body = b"".join(chunks)
+            self._set_request_state("body", body)
+        return body
 
     async def json(self) -> typing.Any:
         if not hasattr(self, "_json"):
