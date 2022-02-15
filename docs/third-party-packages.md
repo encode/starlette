@@ -154,3 +154,17 @@ yaml support, OpenAPI schema generation, background tasks, graphql.
 Roll your own framework with a simple app system, like [Django-GDAPS](https://gdaps.readthedocs.io/en/latest/) or [CakePHP](https://cakephp.org/).
 
 <a href="https://github.com/yourlabs/starlette-apps" target="_blank">GitHub</a>
+
+### Dark Star
+
+A simple framework to help minimise the code needed to get HTML to the browser. Changes your file paths into Starlette routes and puts your view code right next to your template. Includes support for [htmx](https://htmx.org) to help enhance your frontend.
+
+<a href="https://lllama.github.io/dark-star" target="_blank">Docs</a>
+<a href="https://github.com/lllama/dark-star" target="_blank">GitHub</a>
+
+### Xpresso
+
+A flexible and extendable web framework built on top of Starlette, Pydantic and [di](https://github.com/adriangb/di).
+
+<a href="https://github.com/adriangb/xpresso" target="_blank">GitHub</a> |
+<a href=https://xpresso-api.dev/" target="_blank">Documentation</a>
