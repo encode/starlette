@@ -44,9 +44,9 @@ setup(
     ],
     extras_require={
         "full": [
+            "baize",
             "itsdangerous",
             "jinja2",
-            "python-multipart",
             "pyyaml",
             "requests",
         ]

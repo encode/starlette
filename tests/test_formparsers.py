@@ -3,7 +3,7 @@ import typing
 
 import pytest
 
-from starlette.formparsers import UploadFile, _user_safe_decode
+from starlette.formparsers import UploadFile
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
@@ -380,16 +380,6 @@ def test_multipart_multi_field_app_reads_body(tmpdir, test_client_factory):
     assert response.json() == {"some": "data", "second": "key pair"}
 
 
-def test_user_safe_decode_helper():
-    result = _user_safe_decode(b"\xc4\x99\xc5\xbc\xc4\x87", "utf-8")
-    assert result == "ężć"
-
-
-def test_user_safe_decode_ignores_wrong_charset():
-    result = _user_safe_decode(b"abc", "latin-8")
-    assert result == "abc"
-
-
 def test_missing_boundary_parameter(test_client_factory):
     client = test_client_factory(app)
     with pytest.raises(KeyError, match="boundary"):
@@ -403,3 +393,32 @@ def test_missing_boundary_parameter(test_client_factory):
             ),
             headers={"Content-Type": "multipart/form-data; charset=utf-8"},
         )
+
+
+def test_postman_multipart_form_data(test_client_factory):
+    postman_body = b'----------------------------850116600781883365617864\r\nContent-Disposition: form-data; name="attributes"; filename="test-attribute_5.tsv"\r\nContent-Type: text/tab-separated-values\r\n\r\n"Campaign ID"\t"Plate Set ID"\t"No"\n\r\n----------------------------850116600781883365617864\r\nContent-Disposition: form-data; name="fasta"; filename="test-sequence_correct_5.fasta"\r\nContent-Type: application/octet-stream\r\n\r\n>P23G01_IgG1-1411:H:Q10C3:1/1:NID18\r\nCAGGTATTGAA\r\n\r\n----------------------------850116600781883365617864--\r\n'  # noqa: E501
+    postman_headers = {
+        "content-type": "multipart/form-data; boundary=--------------------------850116600781883365617864",  # noqa: E501
+        "user-agent": "PostmanRuntime/7.26.0",
+        "accept": "*/*",
+        "cache-control": "no-cache",
+        "host": "10.0.5.13:80",
+        "accept-encoding": "gzip, deflate, br",
+        "connection": "keep-alive",
+        "content-length": "2455",
+    }
+
+    client = test_client_factory(app)
+    response = client.post("/", data=postman_body, headers=postman_headers)
+    assert response.json() == {
+        "attributes": {
+            "filename": "test-attribute_5.tsv",
+            "content": '"Campaign ID"\t"Plate Set ID"\t"No"\n',
+            "content_type": "text/tab-separated-values",
+        },
+        "fasta": {
+            "filename": "test-sequence_correct_5.fasta",
+            "content": ">P23G01_IgG1-1411:H:Q10C3:1/1:NID18\r\nCAGGTATTGAA\r\n",
+            "content_type": "application/octet-stream",
+        },
+    }

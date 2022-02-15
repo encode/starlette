@@ -241,7 +241,7 @@ class ImmutableMultiDict(typing.Mapping):
         *args: typing.Union[
             "ImmutableMultiDict",
             typing.Mapping,
-            typing.List[typing.Tuple[typing.Any, typing.Any]],
+            typing.Sequence[typing.Tuple[typing.Any, typing.Any]],
         ],
         **kwargs: typing.Any,
     ) -> None:
@@ -384,7 +384,7 @@ class QueryParams(ImmutableMultiDict):
         *args: typing.Union[
             "ImmutableMultiDict",
             typing.Mapping,
-            typing.List[typing.Tuple[typing.Any, typing.Any]],
+            typing.Sequence[typing.Tuple[typing.Any, typing.Any]],
             str,
             bytes,
         ],
@@ -478,7 +478,7 @@ class FormData(ImmutableMultiDict):
         *args: typing.Union[
             "FormData",
             typing.Mapping[str, typing.Union[str, UploadFile]],
-            typing.List[typing.Tuple[str, typing.Union[str, UploadFile]]],
+            typing.Sequence[typing.Tuple[str, typing.Union[str, UploadFile]]],
         ],
         **kwargs: typing.Union[str, UploadFile],
     ) -> None:
