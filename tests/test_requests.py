@@ -6,7 +6,7 @@ import pytest
 from starlette.datastructures import Address
 from starlette.requests import ClientDisconnect, Request, State
 from starlette.responses import JSONResponse, PlainTextResponse, Response
-from starlette.types import Scope
+from starlette.types import Scope, Receive, Send, Message
 
 
 def test_request_url(test_client_factory):
@@ -550,3 +550,24 @@ def test_request_body_then_request_stream(test_client_factory):
 
     response = client.post("/", data="abc")
     assert response.json() == {"body": "abc", "stream": "abc"}
+
+
+def test_request_middleware_replaces_receive(test_client_factory):
+    """Test the behavior of middleware consuming the request body"""
+
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
+        # a middleware consumes the body
+        await Request(scope, receive, send).body()
+        # another middleware replaces receive
+
+        async def new_receive() -> Message:
+            return {"type": "http.request", "body": b"data"}
+
+        # the endpoint creates a new Request that uses wrapped_receive
+        data = await Request(scope, new_receive, send).body()
+        await Response(data)(scope, receive, send)
+
+    client = test_client_factory(app)
+    resp = client.get("/", content=b"original data")
+    assert resp.status_code == 200, resp.content
+    assert resp.content == b"data"
