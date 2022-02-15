@@ -488,3 +488,65 @@ def test_request_send_push_promise_without_setting_send(test_client_factory):
     client = test_client_factory(app)
     response = client.get("/")
     assert response.json() == {"json": "Send channel not available"}
+
+
+def test_request_body_then_request_body(test_client_factory):
+    # If the request body is read, then ensure that instantiating a
+    # request a second time can return the content again.
+    async def app(scope, receive, send):
+        request = Request(scope, receive)
+        body = await request.body()
+        request2 = Request(scope, receive)
+        body2 = await request2.body()
+        response = JSONResponse({"body": body.decode(), "body2": body2.decode()})
+        await response(scope, receive, send)
+
+    client = test_client_factory(app)
+
+    response = client.post("/", data="abc")
+    assert response.json() == {"body": "abc", "body2": "abc"}
+
+
+def test_request_stream_then_request_body(test_client_factory):
+    # If the request has been streamed, then ensure that instantiating a
+    # request a second time raises an exception when attempting to read content.
+    async def app(scope, receive, send):
+        request = Request(scope, receive)
+        chunks = b""
+        async for chunk in request.stream():
+            chunks += chunk
+
+        request2 = Request(scope, receive)
+        try:
+            body = await request2.body()
+        except RuntimeError:
+            body = b"<stream consumed>"
+
+        response = JSONResponse({"body": body.decode(), "stream": chunks.decode()})
+        await response(scope, receive, send)
+
+    client = test_client_factory(app)
+
+    response = client.post("/", data="abc")
+    assert response.json() == {"body": "<stream consumed>", "stream": "abc"}
+
+
+def test_request_body_then_request_stream(test_client_factory):
+    # If the request body is read, then ensure that instantiating a
+    # request a second time can stream the content.
+    async def app(scope, receive, send):
+        request = Request(scope, receive)
+        body = await request.body()
+
+        request2 = Request(scope, receive)
+        chunks = b""
+        async for chunk in request2.stream():
+            chunks += chunk
+
+        response = JSONResponse({"body": body.decode(), "stream": chunks.decode()})
+        await response(scope, receive, send)
+
+    client = test_client_factory(app)
+
+    response = client.post("/", data="abc")
+    assert response.json() == {"body": "abc", "stream": "abc"}
