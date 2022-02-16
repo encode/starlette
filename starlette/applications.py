@@ -172,7 +172,7 @@ class Starlette:
         self,
         exc_class_or_status_code: _ExcKey,
         handler: _ExcHandler,
-    ) -> None:
+    ) -> None:  # pragma: no cover
         self.exception_handlers[exc_class_or_status_code] = handler
         self.middleware_stack = self.build_middleware_stack()
 
