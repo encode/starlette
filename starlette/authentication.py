@@ -25,24 +25,25 @@ def requires(
     scopes_list = [scopes] if isinstance(scopes, str) else list(scopes)
 
     def decorator(func: typing.Callable) -> typing.Callable:
-        type = None
         sig = inspect.signature(func)
         for idx, parameter in enumerate(sig.parameters.values()):
             if parameter.name == "request" or parameter.name == "websocket":
-                type = parameter.name
+                type_ = parameter.name
                 break
         else:
             raise Exception(
                 f'No "request" or "websocket" argument on function "{func}"'
             )
 
-        if type == "websocket":
+        if type_ == "websocket":
             # Handle websocket functions. (Always async)
             @functools.wraps(func)
             async def websocket_wrapper(
                 *args: typing.Any, **kwargs: typing.Any
             ) -> None:
-                websocket = kwargs.get("websocket", args[idx])
+                websocket = kwargs.get(
+                    "websocket", args[idx] if idx < len(args) else None
+                )
                 assert isinstance(websocket, WebSocket)
 
                 if not has_required_scope(websocket, scopes_list):
@@ -58,7 +59,7 @@ def requires(
             async def async_wrapper(
                 *args: typing.Any, **kwargs: typing.Any
             ) -> Response:
-                request = kwargs.get("request", args[idx])
+                request = kwargs.get("request", args[idx] if idx < len(args) else None)
                 assert isinstance(request, Request)
 
                 if not has_required_scope(request, scopes_list):
@@ -68,7 +69,7 @@ def requires(
                             redirect_path=request.url_for(redirect),
                             orig_request=orig_request_qparam,
                         )
-                        return RedirectResponse(url=next_url)
+                        return RedirectResponse(url=next_url, status_code=303)
                     raise HTTPException(status_code=status_code)
                 return await func(*args, **kwargs)
 
@@ -78,7 +79,7 @@ def requires(
             # Handle sync request/response functions.
             @functools.wraps(func)
             def sync_wrapper(*args: typing.Any, **kwargs: typing.Any) -> Response:
-                request = kwargs.get("request", args[idx])
+                request = kwargs.get("request", args[idx] if idx < len(args) else None)
                 assert isinstance(request, Request)
 
                 if not has_required_scope(request, scopes_list):
@@ -88,7 +89,7 @@ def requires(
                             redirect_path=request.url_for(redirect),
                             orig_request=orig_request_qparam,
                         )
-                        return RedirectResponse(url=next_url)
+                        return RedirectResponse(url=next_url, status_code=303)
                     raise HTTPException(status_code=status_code)
                 return func(*args, **kwargs)
 

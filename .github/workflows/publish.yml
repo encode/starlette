@@ -1,4 +1,3 @@
----
 name: Publish
 
 on:
@@ -11,12 +10,19 @@ jobs:
     name: "Publish release"
     runs-on: "ubuntu-latest"
 
+    environment:
+      name: deploy
+
     steps:
       - uses: "actions/checkout@v2"
-      - uses: "actions/setup-python@v1"
+      - uses: "actions/setup-python@v2"
         with:
           python-version: 3.7
-      - name: "Publish"
+      - name: "Install dependencies"
+        run: "scripts/install"
+      - name: "Build package & docs"
+        run: "scripts/build"
+      - name: "Publish to PyPI & deploy docs"
         run: "scripts/publish"
         env:
           TWINE_USERNAME: __token__

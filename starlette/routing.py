@@ -1,8 +1,13 @@
 import asyncio
+import contextlib
+import functools
 import inspect
 import re
+import sys
 import traceback
+import types
 import typing
+import warnings
 from enum import Enum
 
 from starlette.concurrency import run_in_threadpool
@@ -14,12 +19,21 @@ from starlette.responses import PlainTextResponse, RedirectResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketClose
 
+if sys.version_info >= (3, 7):
+    from contextlib import asynccontextmanager  # pragma: no cover
+else:
+    from contextlib2 import asynccontextmanager  # pragma: no cover
+
 
 class NoMatchFound(Exception):
     """
     Raised by `.url_for(name, **path_params)` and `.url_path_for(name, **path_params)`
     if no matching route exists.
     """
+
+    def __init__(self, name: str, path_params: typing.Dict[str, typing.Any]) -> None:
+        params = ", ".join(list(path_params.keys()))
+        super().__init__(f'No route exists for name "{name}" and params "{params}".')
 
 
 class Match(Enum):
@@ -28,12 +42,22 @@ class Match(Enum):
     FULL = 2
 
 
+def iscoroutinefunction_or_partial(obj: typing.Any) -> bool:
+    """
+    Correctly determines if an object is a coroutine function,
+    including those wrapped in functools.partial objects.
+    """
+    while isinstance(obj, functools.partial):
+        obj = obj.func
+    return inspect.iscoroutinefunction(obj)
+
+
 def request_response(func: typing.Callable) -> ASGIApp:
     """
     Takes a function or coroutine `func(request) -> response`,
     and returns an ASGI application.
     """
-    is_coroutine = asyncio.iscoroutinefunction(func)
+    is_coroutine = iscoroutinefunction_or_partial(func)
 
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive=receive, send=send)
@@ -96,6 +120,7 @@ def compile_path(
     """
     path_regex = "^"
     path_format = ""
+    duplicated_params = set()
 
     idx = 0
     param_convertors = {}
@@ -107,17 +132,25 @@ def compile_path(
         ), f"Unknown path convertor '{convertor_type}'"
         convertor = CONVERTOR_TYPES[convertor_type]
 
-        path_regex += path[idx : match.start()]
+        path_regex += re.escape(path[idx : match.start()])
         path_regex += f"(?P<{param_name}>{convertor.regex})"
 
         path_format += path[idx : match.start()]
         path_format += "{%s}" % param_name
 
+        if param_name in param_convertors:
+            duplicated_params.add(param_name)
+
         param_convertors[param_name] = convertor
 
         idx = match.end()
 
-    path_regex += path[idx:] + "$"
+    if duplicated_params:
+        names = ", ".join(sorted(duplicated_params))
+        ending = "s" if len(duplicated_params) > 1 else ""
+        raise ValueError(f"Duplicated param name{ending} {names} at path {path}")
+
+    path_regex += re.escape(path[idx:].split(":")[0]) + "$"
     path_format += path[idx:]
 
     return re.compile(path_regex), path_format, param_convertors
@@ -127,7 +160,7 @@ class BaseRoute:
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         raise NotImplementedError()  # pragma: no cover
 
-    def url_path_for(self, name: str, **path_params: str) -> URLPath:
+    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         raise NotImplementedError()  # pragma: no cover
 
     async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -169,7 +202,10 @@ class Route(BaseRoute):
         self.name = get_name(endpoint) if name is None else name
         self.include_in_schema = include_in_schema
 
-        if inspect.isfunction(endpoint) or inspect.ismethod(endpoint):
+        endpoint_handler = endpoint
+        while isinstance(endpoint_handler, functools.partial):
+            endpoint_handler = endpoint_handler.func
+        if inspect.isfunction(endpoint_handler) or inspect.ismethod(endpoint_handler):
             # Endpoint is function or method. Treat it as `func(request) -> response`.
             self.app = request_response(endpoint)
             if methods is None:
@@ -181,7 +217,7 @@ class Route(BaseRoute):
         if methods is None:
             self.methods = None
         else:
-            self.methods = set(method.upper() for method in methods)
+            self.methods = {method.upper() for method in methods}
             if "GET" in self.methods:
                 self.methods.add("HEAD")
 
@@ -203,12 +239,12 @@ class Route(BaseRoute):
                     return Match.FULL, child_scope
         return Match.NONE, {}
 
-    def url_path_for(self, name: str, **path_params: str) -> URLPath:
+    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         seen_params = set(path_params.keys())
         expected_params = set(self.param_convertors.keys())
 
         if name != self.name or seen_params != expected_params:
-            raise NoMatchFound()
+            raise NoMatchFound(name, path_params)
 
         path, remaining_params = replace_params(
             self.path_format, self.param_convertors, path_params
@@ -218,10 +254,13 @@ class Route(BaseRoute):
 
     async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
         if self.methods and scope["method"] not in self.methods:
+            headers = {"Allow": ", ".join(self.methods)}
             if "app" in scope:
-                raise HTTPException(status_code=405)
+                raise HTTPException(status_code=405, headers=headers)
             else:
-                response = PlainTextResponse("Method Not Allowed", status_code=405)
+                response = PlainTextResponse(
+                    "Method Not Allowed", status_code=405, headers=headers
+                )
             await response(scope, receive, send)
         else:
             await self.app(scope, receive, send)
@@ -244,7 +283,10 @@ class WebSocketRoute(BaseRoute):
         self.endpoint = endpoint
         self.name = get_name(endpoint) if name is None else name
 
-        if inspect.isfunction(endpoint) or inspect.ismethod(endpoint):
+        endpoint_handler = endpoint
+        while isinstance(endpoint_handler, functools.partial):
+            endpoint_handler = endpoint_handler.func
+        if inspect.isfunction(endpoint_handler) or inspect.ismethod(endpoint_handler):
             # Endpoint is function or method. Treat it as `func(websocket)`.
             self.app = websocket_session(endpoint)
         else:
@@ -266,12 +308,12 @@ class WebSocketRoute(BaseRoute):
                 return Match.FULL, child_scope
         return Match.NONE, {}
 
-    def url_path_for(self, name: str, **path_params: str) -> URLPath:
+    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         seen_params = set(path_params.keys())
         expected_params = set(self.param_convertors.keys())
 
         if name != self.name or seen_params != expected_params:
-            raise NoMatchFound()
+            raise NoMatchFound(name, path_params)
 
         path, remaining_params = replace_params(
             self.path_format, self.param_convertors, path_params
@@ -304,7 +346,7 @@ class Mount(BaseRoute):
         ), "Either 'app=...', or 'routes=' must be specified"
         self.path = path.rstrip("/")
         if app is not None:
-            self.app = app  # type: ASGIApp
+            self.app: ASGIApp = app
         else:
             self.app = Router(routes=routes)
         self.name = name
@@ -314,7 +356,7 @@ class Mount(BaseRoute):
 
     @property
     def routes(self) -> typing.List[BaseRoute]:
-        return getattr(self.app, "routes", None)
+        return getattr(self.app, "routes", [])
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] in ("http", "websocket"):
@@ -339,7 +381,7 @@ class Mount(BaseRoute):
                 return Match.FULL, child_scope
         return Match.NONE, {}
 
-    def url_path_for(self, name: str, **path_params: str) -> URLPath:
+    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         if self.name is not None and name == self.name and "path" in path_params:
             # 'name' matches "<mount_name>".
             path_params["path"] = path_params["path"].lstrip("/")
@@ -370,7 +412,7 @@ class Mount(BaseRoute):
                     )
                 except NoMatchFound:
                     pass
-        raise NoMatchFound()
+        raise NoMatchFound(name, path_params)
 
     async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
         await self.app(scope, receive, send)
@@ -392,7 +434,7 @@ class Host(BaseRoute):
 
     @property
     def routes(self) -> typing.List[BaseRoute]:
-        return getattr(self.app, "routes", None)
+        return getattr(self.app, "routes", [])
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] in ("http", "websocket"):
@@ -409,7 +451,7 @@ class Host(BaseRoute):
                 return Match.FULL, child_scope
         return Match.NONE, {}
 
-    def url_path_for(self, name: str, **path_params: str) -> URLPath:
+    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         if self.name is not None and name == self.name and "path" in path_params:
             # 'name' matches "<mount_name>".
             path = path_params.pop("path")
@@ -434,7 +476,7 @@ class Host(BaseRoute):
                     return URLPath(path=str(url), protocol=url.protocol, host=host)
                 except NoMatchFound:
                     pass
-        raise NoMatchFound()
+        raise NoMatchFound(name, path_params)
 
     async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
         await self.app(scope, receive, send)
@@ -447,6 +489,51 @@ class Host(BaseRoute):
         )
 
 
+_T = typing.TypeVar("_T")
+
+
+class _AsyncLiftContextManager(typing.AsyncContextManager[_T]):
+    def __init__(self, cm: typing.ContextManager[_T]):
+        self._cm = cm
+
+    async def __aenter__(self) -> _T:
+        return self._cm.__enter__()
+
+    async def __aexit__(
+        self,
+        exc_type: typing.Optional[typing.Type[BaseException]],
+        exc_value: typing.Optional[BaseException],
+        traceback: typing.Optional[types.TracebackType],
+    ) -> typing.Optional[bool]:
+        return self._cm.__exit__(exc_type, exc_value, traceback)
+
+
+def _wrap_gen_lifespan_context(
+    lifespan_context: typing.Callable[[typing.Any], typing.Generator]
+) -> typing.Callable[[typing.Any], typing.AsyncContextManager]:
+    cmgr = contextlib.contextmanager(lifespan_context)
+
+    @functools.wraps(cmgr)
+    def wrapper(app: typing.Any) -> _AsyncLiftContextManager:
+        return _AsyncLiftContextManager(cmgr(app))
+
+    return wrapper
+
+
+class _DefaultLifespan:
+    def __init__(self, router: "Router"):
+        self._router = router
+
+    async def __aenter__(self) -> None:
+        await self._router.startup()
+
+    async def __aexit__(self, *exc_info: object) -> None:
+        await self._router.shutdown()
+
+    def __call__(self: _T, app: object) -> _T:
+        return self
+
+
 class Router:
     def __init__(
         self,
@@ -455,12 +542,39 @@ class Router:
         default: ASGIApp = None,
         on_startup: typing.Sequence[typing.Callable] = None,
         on_shutdown: typing.Sequence[typing.Callable] = None,
+        lifespan: typing.Callable[[typing.Any], typing.AsyncContextManager] = None,
     ) -> None:
         self.routes = [] if routes is None else list(routes)
         self.redirect_slashes = redirect_slashes
         self.default = self.not_found if default is None else default
         self.on_startup = [] if on_startup is None else list(on_startup)
         self.on_shutdown = [] if on_shutdown is None else list(on_shutdown)
+
+        if lifespan is None:
+            self.lifespan_context: typing.Callable[
+                [typing.Any], typing.AsyncContextManager
+            ] = _DefaultLifespan(self)
+
+        elif inspect.isasyncgenfunction(lifespan):
+            warnings.warn(
+                "async generator function lifespans are deprecated, "
+                "use an @contextlib.asynccontextmanager function instead",
+                DeprecationWarning,
+            )
+            self.lifespan_context = asynccontextmanager(
+                lifespan,  # type: ignore[arg-type]
+            )
+        elif inspect.isgeneratorfunction(lifespan):
+            warnings.warn(
+                "generator function lifespans are deprecated, "
+                "use an @contextlib.asynccontextmanager function instead",
+                DeprecationWarning,
+            )
+            self.lifespan_context = _wrap_gen_lifespan_context(
+                lifespan,  # type: ignore[arg-type]
+            )
+        else:
+            self.lifespan_context = lifespan
 
     async def not_found(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "websocket":
@@ -477,13 +591,13 @@ class Router:
             response = PlainTextResponse("Not Found", status_code=404)
         await response(scope, receive, send)
 
-    def url_path_for(self, name: str, **path_params: str) -> URLPath:
+    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         for route in self.routes:
             try:
                 return route.url_path_for(name, **path_params)
             except NoMatchFound:
                 pass
-        raise NoMatchFound()
+        raise NoMatchFound(name, path_params)
 
     async def startup(self) -> None:
         """
@@ -510,21 +624,23 @@ class Router:
         Handle ASGI lifespan messages, which allows us to manage application
         startup and shutdown events.
         """
-        message = await receive()
-        assert message["type"] == "lifespan.startup"
-
+        started = False
+        app = scope.get("app")
+        await receive()
         try:
-            await self.startup()
+            async with self.lifespan_context(app):
+                await send({"type": "lifespan.startup.complete"})
+                started = True
+                await receive()
         except BaseException:
-            msg = traceback.format_exc()
-            await send({"type": "lifespan.startup.failed", "message": msg})
+            exc_text = traceback.format_exc()
+            if started:
+                await send({"type": "lifespan.shutdown.failed", "message": exc_text})
+            else:
+                await send({"type": "lifespan.startup.failed", "message": exc_text})
             raise
-
-        await send({"type": "lifespan.startup.complete"})
-        message = await receive()
-        assert message["type"] == "lifespan.shutdown"
-        await self.shutdown()
-        await send({"type": "lifespan.shutdown.complete"})
+        else:
+            await send({"type": "lifespan.shutdown.complete"})
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         """
@@ -556,7 +672,7 @@ class Router:
         if partial is not None:
             #  Handle partial matches. These are cases where an endpoint is
             # able to handle the request, but is not a preferred option.
-            # We use this in particular to deal with "406 Method Not Found".
+            # We use this in particular to deal with "405 Method Not Allowed".
             scope.update(partial_scope)
             await partial.handle(scope, receive, send)
             return
@@ -583,11 +699,39 @@ class Router:
 
     # The following usages are now discouraged in favour of configuration
     #  during Router.__init__(...)
-    def mount(self, path: str, app: ASGIApp, name: str = None) -> None:
+    def mount(
+        self, path: str, app: ASGIApp, name: str = None
+    ) -> None:  # pragma: nocover
+        """
+        We no longer document this API, and its usage is discouraged.
+        Instead you should use the following approach:
+
+        routes = [
+            Mount(path, ...),
+            ...
+        ]
+
+        app = Starlette(routes=routes)
+        """
+
         route = Mount(path, app=app, name=name)
         self.routes.append(route)
 
-    def host(self, host: str, app: ASGIApp, name: str = None) -> None:
+    def host(
+        self, host: str, app: ASGIApp, name: str = None
+    ) -> None:  # pragma: no cover
+        """
+        We no longer document this API, and its usage is discouraged.
+        Instead you should use the following approach:
+
+        routes = [
+            Host(path, ...),
+            ...
+        ]
+
+        app = Starlette(routes=routes)
+        """
+
         route = Host(host, app=app, name=name)
         self.routes.append(route)
 
@@ -598,7 +742,7 @@ class Router:
         methods: typing.List[str] = None,
         name: str = None,
         include_in_schema: bool = True,
-    ) -> None:
+    ) -> None:  # pragma: nocover
         route = Route(
             path,
             endpoint=endpoint,
@@ -610,7 +754,7 @@ class Router:
 
     def add_websocket_route(
         self, path: str, endpoint: typing.Callable, name: str = None
-    ) -> None:
+    ) -> None:  # pragma: no cover
         route = WebSocketRoute(path, endpoint=endpoint, name=name)
         self.routes.append(route)
 
@@ -620,7 +764,19 @@ class Router:
         methods: typing.List[str] = None,
         name: str = None,
         include_in_schema: bool = True,
-    ) -> typing.Callable:
+    ) -> typing.Callable:  # pragma: nocover
+        """
+        We no longer document this decorator style API, and its usage is discouraged.
+        Instead you should use the following approach:
+
+        routes = [
+            Route(path, endpoint=..., ...),
+            ...
+        ]
+
+        app = Starlette(routes=routes)
+        """
+
         def decorator(func: typing.Callable) -> typing.Callable:
             self.add_route(
                 path,
@@ -633,14 +789,30 @@ class Router:
 
         return decorator
 
-    def websocket_route(self, path: str, name: str = None) -> typing.Callable:
+    def websocket_route(
+        self, path: str, name: str = None
+    ) -> typing.Callable:  # pragma: nocover
+        """
+        We no longer document this decorator style API, and its usage is discouraged.
+        Instead you should use the following approach:
+
+        routes = [
+            WebSocketRoute(path, endpoint=..., ...),
+            ...
+        ]
+
+        app = Starlette(routes=routes)
+        """
+
         def decorator(func: typing.Callable) -> typing.Callable:
             self.add_websocket_route(path, func, name=name)
             return func
 
         return decorator
 
-    def add_event_handler(self, event_type: str, func: typing.Callable) -> None:
+    def add_event_handler(
+        self, event_type: str, func: typing.Callable
+    ) -> None:  # pragma: no cover
         assert event_type in ("startup", "shutdown")
 
         if event_type == "startup":
@@ -648,7 +820,7 @@ class Router:
         else:
             self.on_shutdown.append(func)
 
-    def on_event(self, event_type: str) -> typing.Callable:
+    def on_event(self, event_type: str) -> typing.Callable:  # pragma: nocover
         def decorator(func: typing.Callable) -> typing.Callable:
             self.add_event_handler(event_type, func)
             return func

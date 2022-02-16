@@ -17,20 +17,17 @@
 
 **Documentation**: [https://www.starlette.io/](https://www.starlette.io/)
 
-**Community**: [https://discuss.encode.io/c/starlette](https://discuss.encode.io/c/starlette)
-
 ---
 
 # Starlette
 
-Starlette is a lightweight [ASGI](https://asgi.readthedocs.io/en/latest/) framework/toolkit,
-which is ideal for building high performance asyncio services.
+Starlette is a lightweight [ASGI][asgi] framework/toolkit,
+which is ideal for building async web services in Python.
 
 It is production-ready, and gives you the following:
 
-* Seriously impressive performance.
+* A lightweight, low-complexity HTTP web framework.
 * WebSocket support.
-* GraphQL support.
 * In-process background tasks.
 * Startup and shutdown events.
 * Test client built on `requests`.
@@ -38,7 +35,9 @@ It is production-ready, and gives you the following:
 * Session and Cookie support.
 * 100% test coverage.
 * 100% type annotated codebase.
-* Zero hard dependencies.
+* Few hard dependencies.
+* Compatible with `asyncio` and `trio` backends.
+* Great overall performance [against independant benchmarks][techempower].
 
 ## Requirements
 
@@ -86,16 +85,13 @@ For a more complete example, see [encode/starlette-example](https://github.com/e
 
 ## Dependencies
 
-Starlette does not have any hard dependencies, but the following are optional:
+Starlette only requires `anyio`, and the following are optional:
 
 * [`requests`][requests] - Required if you want to use the `TestClient`.
-* [`aiofiles`][aiofiles] - Required if you want to use `FileResponse` or `StaticFiles`.
 * [`jinja2`][jinja2] - Required if you want to use `Jinja2Templates`.
 * [`python-multipart`][python-multipart] - Required if you want to support form parsing, with `request.form()`.
 * [`itsdangerous`][itsdangerous] - Required for `SessionMiddleware` support.
 * [`pyyaml`][pyyaml] - Required for `SchemaGenerator` support.
-* [`graphene`][graphene] - Required for `GraphQLApp` support.
-* [`ujson`][ujson] - Required if you want to use `UJSONResponse`.
 
 You can install all of these with `pip3 install starlette[full]`.
 
@@ -133,49 +129,15 @@ an ecosystem of shared middleware and mountable applications.
 The clean API separation also means it's easier to understand each component
 in isolation.
 
-## Performance
+---
 
-Independent TechEmpower benchmarks show Starlette applications running under Uvicorn
-as [one of the fastest Python frameworks available](https://www.techempower.com/benchmarks/#section=data-r17&hw=ph&test=fortune&l=zijzen-1). *(\*)*
+<p align="center"><i>Starlette is <a href="https://github.com/encode/starlette/blob/master/LICENSE.md">BSD licensed</a> code.<br/>Designed & crafted with care.</i></br>&mdash; ⭐️ &mdash;</p>
 
-For high throughput loads you should:
-
-* Make sure to install `ujson` and use `UJSONResponse`.
-* Run using gunicorn using the `uvicorn` worker class.
-* Use one or two workers per-CPU core. (You might need to experiment with this.)
-* Disable access logging.
-
-Eg.
-
-```shell
-gunicorn -w 4 -k uvicorn.workers.UvicornWorker --log-level warning example:app
-```
-
-Several of the ASGI servers also have pure Python implementations available,
-so you can also run under `PyPy` if your application code has parts that are
-CPU constrained.
-
-Either programatically:
-
-```python
-uvicorn.run(..., http='h11', loop='asyncio')
-```
-
-Or using Gunicorn:
-
-```shell
-gunicorn -k uvicorn.workers.UvicornH11Worker ...
-```
-
-<p align="center">&mdash; ⭐️ &mdash;</p>
-<p align="center"><i>Starlette is <a href="https://github.com/encode/starlette/blob/master/LICENSE.md">BSD licensed</a> code. Designed & built in Brighton, England.</i></p>
-
+[asgi]: https://asgi.readthedocs.io/en/latest/
 [requests]: http://docs.python-requests.org/en/master/
-[aiofiles]: https://github.com/Tinche/aiofiles
 [jinja2]: http://jinja.pocoo.org/
 [python-multipart]: https://andrew-d.github.io/python-multipart/
-[graphene]: https://graphene-python.org/
 [itsdangerous]: https://pythonhosted.org/itsdangerous/
 [sqlalchemy]: https://www.sqlalchemy.org
 [pyyaml]: https://pyyaml.org/wiki/PyYAMLDocumentation
-[ujson]: https://github.com/esnme/ultrajson
+[techempower]: https://www.techempower.com/benchmarks/#hw=ph&test=fortune&l=zijzen-sf

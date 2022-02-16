@@ -1,33 +1,33 @@
-import hashlib
 import http.cookies
-import inspect
 import json
 import os
 import stat
+import sys
 import typing
 from email.utils import formatdate
-from mimetypes import guess_type
-from urllib.parse import quote, quote_plus
+from functools import partial
+from mimetypes import guess_type as mimetypes_guess_type
+from urllib.parse import quote
 
+import anyio
+
+from starlette._compat import md5_hexdigest
 from starlette.background import BackgroundTask
-from starlette.concurrency import iterate_in_threadpool, run_until_first_complete
+from starlette.concurrency import iterate_in_threadpool
 from starlette.datastructures import URL, MutableHeaders
 from starlette.types import Receive, Scope, Send
 
 # Workaround for adding samesite support to pre 3.8 python
 http.cookies.Morsel._reserved["samesite"] = "SameSite"  # type: ignore
 
-try:
-    import aiofiles
-    from aiofiles.os import stat as aio_stat
-except ImportError:  # pragma: nocover
-    aiofiles = None
-    aio_stat = None
 
-try:
-    import ujson
-except ImportError:  # pragma: nocover
-    ujson = None  # type: ignore
+# Compatibility wrapper for `mimetypes.guess_type` to support `os.PathLike` on <py3.8
+def guess_type(
+    url: typing.Union[str, "os.PathLike[str]"], strict: bool = True
+) -> typing.Tuple[typing.Optional[str], typing.Optional[str]]:
+    if sys.version_info < (3, 8):  # pragma: no cover
+        url = os.fspath(url)
+    return mimetypes_guess_type(url, strict)
 
 
 class Response:
@@ -38,15 +38,15 @@ class Response:
         self,
         content: typing.Any = None,
         status_code: int = 200,
-        headers: dict = None,
+        headers: typing.Mapping[str, str] = None,
         media_type: str = None,
         background: BackgroundTask = None,
     ) -> None:
-        self.body = self.render(content)
         self.status_code = status_code
         if media_type is not None:
             self.media_type = media_type
         self.background = background
+        self.body = self.render(content)
         self.init_headers(headers)
 
     def render(self, content: typing.Any) -> bytes:
@@ -58,7 +58,7 @@ class Response:
 
     def init_headers(self, headers: typing.Mapping[str, str] = None) -> None:
         if headers is None:
-            raw_headers = []  # type: typing.List[typing.Tuple[bytes, bytes]]
+            raw_headers: typing.List[typing.Tuple[bytes, bytes]] = []
             populate_content_length = True
             populate_content_type = True
         else:
@@ -70,8 +70,12 @@ class Response:
             populate_content_length = b"content-length" not in keys
             populate_content_type = b"content-type" not in keys
 
-        body = getattr(self, "body", b"")
-        if body and populate_content_length:
+        body = getattr(self, "body", None)
+        if (
+            body is not None
+            and populate_content_length
+            and not (self.status_code < 200 or self.status_code in (204, 304))
+        ):
             content_length = str(len(body))
             raw_headers.append((b"content-length", content_length.encode("latin-1")))
 
@@ -101,7 +105,7 @@ class Response:
         httponly: bool = False,
         samesite: str = "lax",
     ) -> None:
-        cookie = http.cookies.SimpleCookie()  # type: http.cookies.BaseCookie
+        cookie: http.cookies.BaseCookie = http.cookies.SimpleCookie()
         cookie[key] = value
         if max_age is not None:
             cookie[key]["max-age"] = max_age
@@ -125,8 +129,25 @@ class Response:
         cookie_val = cookie.output(header="").strip()
         self.raw_headers.append((b"set-cookie", cookie_val.encode("latin-1")))
 
-    def delete_cookie(self, key: str, path: str = "/", domain: str = None) -> None:
-        self.set_cookie(key, expires=0, max_age=0, path=path, domain=domain)
+    def delete_cookie(
+        self,
+        key: str,
+        path: str = "/",
+        domain: str = None,
+        secure: bool = False,
+        httponly: bool = False,
+        samesite: str = "lax",
+    ) -> None:
+        self.set_cookie(
+            key,
+            max_age=0,
+            expires=0,
+            path=path,
+            domain=domain,
+            secure=secure,
+            httponly=httponly,
+            samesite=samesite,
+        )
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         await send(
@@ -153,6 +174,16 @@ class PlainTextResponse(Response):
 class JSONResponse(Response):
     media_type = "application/json"
 
+    def __init__(
+        self,
+        content: typing.Any,
+        status_code: int = 200,
+        headers: dict = None,
+        media_type: str = None,
+        background: BackgroundTask = None,
+    ) -> None:
+        super().__init__(content, status_code, headers, media_type, background)
+
     def render(self, content: typing.Any) -> bytes:
         return json.dumps(
             content,
@@ -163,20 +194,18 @@ class JSONResponse(Response):
         ).encode("utf-8")
 
 
-class UJSONResponse(JSONResponse):
-    media_type = "application/json"
-
-    def render(self, content: typing.Any) -> bytes:
-        assert ujson is not None, "ujson must be installed to use UJSONResponse"
-        return ujson.dumps(content, ensure_ascii=False).encode("utf-8")
-
-
 class RedirectResponse(Response):
     def __init__(
-        self, url: typing.Union[str, URL], status_code: int = 307, headers: dict = None
+        self,
+        url: typing.Union[str, URL],
+        status_code: int = 307,
+        headers: typing.Mapping[str, str] = None,
+        background: BackgroundTask = None,
     ) -> None:
-        super().__init__(content=b"", status_code=status_code, headers=headers)
-        self.headers["location"] = quote_plus(str(url), safe=":/%#?&=@[]!$&'()*+,;")
+        super().__init__(
+            content=b"", status_code=status_code, headers=headers, background=background
+        )
+        self.headers["location"] = quote(str(url), safe=":/%#?=@[]!$&'()*+,;")
 
 
 class StreamingResponse(Response):
@@ -184,11 +213,11 @@ class StreamingResponse(Response):
         self,
         content: typing.Any,
         status_code: int = 200,
-        headers: dict = None,
+        headers: typing.Mapping[str, str] = None,
         media_type: str = None,
         background: BackgroundTask = None,
     ) -> None:
-        if inspect.isasyncgen(content):
+        if isinstance(content, typing.AsyncIterable):
             self.body_iterator = content
         else:
             self.body_iterator = iterate_in_threadpool(content)
@@ -219,30 +248,34 @@ class StreamingResponse(Response):
         await send({"type": "http.response.body", "body": b"", "more_body": False})
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        await run_until_first_complete(
-            (self.stream_response, {"send": send}),
-            (self.listen_for_disconnect, {"receive": receive}),
-        )
+        async with anyio.create_task_group() as task_group:
+
+            async def wrap(func: typing.Callable[[], typing.Coroutine]) -> None:
+                await func()
+                task_group.cancel_scope.cancel()
+
+            task_group.start_soon(wrap, partial(self.stream_response, send))
+            await wrap(partial(self.listen_for_disconnect, receive))
 
         if self.background is not None:
             await self.background()
 
 
 class FileResponse(Response):
-    chunk_size = 4096
+    chunk_size = 64 * 1024
 
     def __init__(
         self,
-        path: str,
+        path: typing.Union[str, "os.PathLike[str]"],
         status_code: int = 200,
-        headers: dict = None,
+        headers: typing.Mapping[str, str] = None,
         media_type: str = None,
         background: BackgroundTask = None,
         filename: str = None,
         stat_result: os.stat_result = None,
         method: str = None,
+        content_disposition_type: str = "attachment",
     ) -> None:
-        assert aiofiles is not None, "'aiofiles' must be installed to use FileResponse"
         self.path = path
         self.status_code = status_code
         self.filename = filename
@@ -255,11 +288,13 @@ class FileResponse(Response):
         if self.filename is not None:
             content_disposition_filename = quote(self.filename)
             if content_disposition_filename != self.filename:
-                content_disposition = "attachment; filename*=utf-8''{}".format(
-                    content_disposition_filename
+                content_disposition = "{}; filename*=utf-8''{}".format(
+                    content_disposition_type, content_disposition_filename
                 )
             else:
-                content_disposition = 'attachment; filename="{}"'.format(self.filename)
+                content_disposition = '{}; filename="{}"'.format(
+                    content_disposition_type, self.filename
+                )
             self.headers.setdefault("content-disposition", content_disposition)
         self.stat_result = stat_result
         if stat_result is not None:
@@ -269,7 +304,7 @@ class FileResponse(Response):
         content_length = str(stat_result.st_size)
         last_modified = formatdate(stat_result.st_mtime, usegmt=True)
         etag_base = str(stat_result.st_mtime) + "-" + str(stat_result.st_size)
-        etag = hashlib.md5(etag_base.encode()).hexdigest()
+        etag = md5_hexdigest(etag_base.encode(), usedforsecurity=False)
 
         self.headers.setdefault("content-length", content_length)
         self.headers.setdefault("last-modified", last_modified)
@@ -278,7 +313,7 @@ class FileResponse(Response):
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if self.stat_result is None:
             try:
-                stat_result = await aio_stat(self.path)
+                stat_result = await anyio.to_thread.run_sync(os.stat, self.path)
                 self.set_stat_headers(stat_result)
             except FileNotFoundError:
                 raise RuntimeError(f"File at path {self.path} does not exist.")
@@ -294,9 +329,9 @@ class FileResponse(Response):
             }
         )
         if self.send_header_only:
-            await send({"type": "http.response.body"})
+            await send({"type": "http.response.body", "body": b"", "more_body": False})
         else:
-            async with aiofiles.open(self.path, mode="rb") as file:
+            async with await anyio.open_file(self.path, mode="rb") as file:
                 more_body = True
                 while more_body:
                     chunk = await file.read(self.chunk_size)

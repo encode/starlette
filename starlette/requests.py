@@ -1,8 +1,9 @@
-import asyncio
 import json
 import typing
 from collections.abc import Mapping
 from http import cookies as http_cookies
+
+import anyio
 
 from starlette.datastructures import URL, Address, FormData, Headers, QueryParams, State
 from starlette.formparsers import FormParser, MultiPartParser
@@ -12,6 +13,10 @@ try:
     from multipart.multipart import parse_options_header
 except ImportError:  # pragma: nocover
     parse_options_header = None
+
+
+if typing.TYPE_CHECKING:
+    from starlette.routing import Router
 
 
 SERVER_PUSH_HEADERS_TO_COPY = {
@@ -46,7 +51,7 @@ def cookie_parser(cookie_string: str) -> typing.Dict[str, str]:
         key, val = key.strip(), val.strip()
         if key or val:
             # unquote using Python's algorithm.
-            cookie_dict[key] = http_cookies._unquote(val)  # type: ignore
+            cookie_dict[key] = http_cookies._unquote(val)
     return cookie_dict
 
 
@@ -64,7 +69,7 @@ class HTTPConnection(Mapping):
         assert scope["type"] in ("http", "websocket")
         self.scope = scope
 
-    def __getitem__(self, key: str) -> str:
+    def __getitem__(self, key: str) -> typing.Any:
         return self.scope[key]
 
     def __iter__(self) -> typing.Iterator[str]:
@@ -72,6 +77,12 @@ class HTTPConnection(Mapping):
 
     def __len__(self) -> int:
         return len(self.scope)
+
+    # Don't use the `abc.Mapping.__eq__` implementation.
+    # Connection instances should never be considered equal
+    # unless `self is other`.
+    __eq__ = object.__eq__
+    __hash__ = object.__hash__
 
     @property
     def app(self) -> typing.Any:
@@ -108,7 +119,7 @@ class HTTPConnection(Mapping):
         return self._query_params
 
     @property
-    def path_params(self) -> dict:
+    def path_params(self) -> typing.Dict[str, typing.Any]:
         return self.scope.get("path_params", {})
 
     @property
@@ -123,9 +134,12 @@ class HTTPConnection(Mapping):
         return self._cookies
 
     @property
-    def client(self) -> Address:
-        host, port = self.scope.get("client") or (None, None)
-        return Address(host=host, port=port)
+    def client(self) -> typing.Optional[Address]:
+        # client is a 2 item tuple of (host, port), None or missing
+        host_port = self.scope.get("client")
+        if host_port is not None:
+            return Address(*host_port)
+        return None
 
     @property
     def session(self) -> dict:
@@ -153,21 +167,22 @@ class HTTPConnection(Mapping):
         if not hasattr(self, "_state"):
             # Ensure 'state' has an empty dict if it's not already populated.
             self.scope.setdefault("state", {})
-            # Create a state instance with a reference to the dict in which it should store info
+            # Create a state instance with a reference to the dict in which it should
+            # store info
             self._state = State(self.scope["state"])
         return self._state
 
     def url_for(self, name: str, **path_params: typing.Any) -> str:
-        router = self.scope["router"]
+        router: Router = self.scope["router"]
         url_path = router.url_path_for(name, **path_params)
         return url_path.make_absolute_url(base_url=self.base_url)
 
 
-async def empty_receive() -> Message:
+async def empty_receive() -> typing.NoReturn:
     raise RuntimeError("Receive channel has not been made available")
 
 
-async def empty_send(message: Message) -> None:
+async def empty_send(message: Message) -> typing.NoReturn:
     raise RuntimeError("Send channel has not been made available")
 
 
@@ -250,10 +265,12 @@ class Request(HTTPConnection):
 
     async def is_disconnected(self) -> bool:
         if not self._is_disconnected:
-            try:
-                message = await asyncio.wait_for(self._receive(), timeout=0.0000001)
-            except asyncio.TimeoutError:
-                message = {}
+            message: Message = {}
+
+            # If message isn't immediately available, move on
+            with anyio.CancelScope() as cs:
+                cs.cancel()
+                message = await self._receive()
 
             if message.get("type") == "http.disconnect":
                 self._is_disconnected = True

@@ -3,8 +3,9 @@ import pytest
 import sqlalchemy
 
 from starlette.applications import Starlette
+from starlette.requests import Request
 from starlette.responses import JSONResponse
-from starlette.testclient import TestClient
+from starlette.routing import Route
 
 DATABASE_URL = "sqlite:///test.db"
 
@@ -19,6 +20,9 @@ notes = sqlalchemy.Table(
 )
 
 
+pytestmark = pytest.mark.usefixtures("no_trio_support")
+
+
 @pytest.fixture(autouse=True, scope="module")
 def create_test_database():
     engine = sqlalchemy.create_engine(DATABASE_URL)
@@ -27,22 +31,18 @@ def create_test_database():
     metadata.drop_all(engine)
 
 
-app = Starlette()
 database = databases.Database(DATABASE_URL, force_rollback=True)
 
 
-@app.on_event("startup")
 async def startup():
     await database.connect()
 
 
-@app.on_event("shutdown")
 async def shutdown():
     await database.disconnect()
 
 
-@app.route("/notes", methods=["GET"])
-async def list_notes(request):
+async def list_notes(request: Request):
     query = notes.select()
     results = await database.fetch_all(query)
     content = [
@@ -51,9 +51,8 @@ async def list_notes(request):
     return JSONResponse(content)
 
 
-@app.route("/notes", methods=["POST"])
 @database.transaction()
-async def add_note(request):
+async def add_note(request: Request):
     data = await request.json()
     query = notes.insert().values(text=data["text"], completed=data["completed"])
     await database.execute(query)
@@ -62,33 +61,45 @@ async def add_note(request):
     return JSONResponse({"text": data["text"], "completed": data["completed"]})
 
 
-@app.route("/notes/bulk_create", methods=["POST"])
-async def bulk_create_notes(request):
+async def bulk_create_notes(request: Request):
     data = await request.json()
     query = notes.insert()
     await database.execute_many(query, data)
     return JSONResponse({"notes": data})
 
 
-@app.route("/notes/{note_id:int}", methods=["GET"])
-async def read_note(request):
+async def read_note(request: Request):
     note_id = request.path_params["note_id"]
     query = notes.select().where(notes.c.id == note_id)
     result = await database.fetch_one(query)
+    assert result is not None
     content = {"text": result["text"], "completed": result["completed"]}
     return JSONResponse(content)
 
 
-@app.route("/notes/{note_id:int}/text", methods=["GET"])
-async def read_note_text(request):
+async def read_note_text(request: Request):
     note_id = request.path_params["note_id"]
     query = sqlalchemy.select([notes.c.text]).where(notes.c.id == note_id)
     result = await database.fetch_one(query)
+    assert result is not None
     return JSONResponse(result[0])
 
 
-def test_database():
-    with TestClient(app) as client:
+app = Starlette(
+    routes=[
+        Route("/notes", endpoint=list_notes, methods=["GET"]),
+        Route("/notes", endpoint=add_note, methods=["POST"]),
+        Route("/notes/bulk_create", endpoint=bulk_create_notes, methods=["POST"]),
+        Route("/notes/{note_id:int}", endpoint=read_note, methods=["GET"]),
+        Route("/notes/{note_id:int}/text", endpoint=read_note_text, methods=["GET"]),
+    ],
+    on_startup=[startup],
+    on_shutdown=[shutdown],
+)
+
+
+def test_database(test_client_factory):
+    with test_client_factory(app) as client:
         response = client.post(
             "/notes", json={"text": "buy the milk", "completed": True}
         )
@@ -122,10 +133,8 @@ def test_database():
         assert response.json() == "buy the milk"
 
 
-def test_database_execute_many():
-    with TestClient(app) as client:
-        response = client.get("/notes")
-
+def test_database_execute_many(test_client_factory):
+    with test_client_factory(app) as client:
         data = [
             {"text": "buy the milk", "completed": True},
             {"text": "walk the dog", "completed": False},
@@ -141,11 +150,11 @@ def test_database_execute_many():
         ]
 
 
-def test_database_isolated_during_test_cases():
+def test_database_isolated_during_test_cases(test_client_factory):
     """
     Using `TestClient` as a context manager
     """
-    with TestClient(app) as client:
+    with test_client_factory(app) as client:
         response = client.post(
             "/notes", json={"text": "just one note", "completed": True}
         )
@@ -155,7 +164,7 @@ def test_database_isolated_during_test_cases():
         assert response.status_code == 200
         assert response.json() == [{"text": "just one note", "completed": True}]
 
-    with TestClient(app) as client:
+    with test_client_factory(app) as client:
         response = client.post(
             "/notes", json={"text": "just one note", "completed": True}
         )

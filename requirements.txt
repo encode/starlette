@@ -1,23 +1,26 @@
 # Optionals
-aiofiles
-graphene
-itsdangerous
-jinja2
-python-multipart
-pyyaml
-requests
-ujson
+-e .[full]
 
 # Testing
-autoflake
-black
-databases[sqlite]
-isort
-mypy
-pytest
-pytest-cov
+autoflake==1.4
+black==22.1.0
+coverage==6.2
+databases[sqlite]==0.5.3
+flake8==4.0.1
+isort==5.10.1
+mypy==0.931
+types-requests==2.26.3
+types-contextvars==2.4.2
+types-PyYAML==6.0.4
+types-dataclasses==0.6.2
+pytest==6.2.5
+trio==0.19.0
 
 # Documentation
-mkdocs
-mkdocs-material
-mkautodoc
+mkdocs==1.2.3
+mkdocs-material==8.1.3
+mkautodoc==0.1.0
+
+# Packaging
+twine==3.7.1
+wheel==0.37.1

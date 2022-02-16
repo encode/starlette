@@ -109,7 +109,7 @@ FRAME_TEMPLATE = """
     </p>
     <div id="{frame_filename}-{frame_lineno}" class="source-code {collapsed}">{code_context}</div>
 </div>
-"""
+"""  # noqa: E501
 
 LINE = """
 <p><span class="frame-line">
@@ -158,27 +158,27 @@ class ServerErrorMiddleware:
         try:
             await self.app(scope, receive, _send)
         except Exception as exc:
-            if not response_started:
-                request = Request(scope)
-                if self.debug:
-                    # In debug mode, return traceback responses.
-                    response = self.debug_response(request, exc)
-                elif self.handler is None:
-                    # Use our default 500 error handler.
-                    response = self.error_response(request, exc)
+            request = Request(scope)
+            if self.debug:
+                # In debug mode, return traceback responses.
+                response = self.debug_response(request, exc)
+            elif self.handler is None:
+                # Use our default 500 error handler.
+                response = self.error_response(request, exc)
+            else:
+                # Use an installed 500 error handler.
+                if asyncio.iscoroutinefunction(self.handler):
+                    response = await self.handler(request, exc)
                 else:
-                    # Use an installed 500 error handler.
-                    if asyncio.iscoroutinefunction(self.handler):
-                        response = await self.handler(request, exc)
-                    else:
-                        response = await run_in_threadpool(self.handler, request, exc)
+                    response = await run_in_threadpool(self.handler, request, exc)
 
+            if not response_started:
                 await response(scope, receive, send)
 
             # We always continue to raise the exception.
             # This allows servers to log the error, or allows test clients
             # to optionally raise the error within the test case.
-            raise exc from None
+            raise exc
 
     def format_line(
         self, index: int, line: str, frame_lineno: int, frame_index: int
@@ -200,10 +200,12 @@ class ServerErrorMiddleware:
         )
 
         values = {
-            # HTML escape - filename could contain < or >, especially if it's a virtual file e.g. <stdin> in the REPL
+            # HTML escape - filename could contain < or >, especially if it's a virtual
+            # file e.g. <stdin> in the REPL
             "frame_filename": html.escape(frame.filename),
             "frame_lineno": frame.lineno,
-            # HTML escape - if you try very hard it's possible to name a function with < or >
+            # HTML escape - if you try very hard it's possible to name a function with <
+            # or >
             "frame_name": html.escape(frame.function),
             "code_context": code_context,
             "collapsed": "collapsed" if is_collapsed else "",
@@ -215,23 +217,26 @@ class ServerErrorMiddleware:
         traceback_obj = traceback.TracebackException.from_exception(
             exc, capture_locals=True
         )
-        frames = inspect.getinnerframes(
-            traceback_obj.exc_traceback, limit  # type: ignore
-        )
 
         exc_html = ""
         is_collapsed = False
-        for frame in reversed(frames):
-            exc_html += self.generate_frame_html(frame, is_collapsed)
-            is_collapsed = True
+        exc_traceback = exc.__traceback__
+        if exc_traceback is not None:
+            frames = inspect.getinnerframes(exc_traceback, limit)
+            for frame in reversed(frames):
+                exc_html += self.generate_frame_html(frame, is_collapsed)
+                is_collapsed = True
 
         # escape error class and text
-        error = f"{html.escape(traceback_obj.exc_type.__name__)}: {html.escape(str(traceback_obj))}"
+        error = (
+            f"{html.escape(traceback_obj.exc_type.__name__)}: "
+            f"{html.escape(str(traceback_obj))}"
+        )
 
         return TEMPLATE.format(styles=STYLES, js=JS, error=error, exc_html=exc_html)
 
     def generate_plain_text(self, exc: Exception) -> str:
-        return "".join(traceback.format_tb(exc.__traceback__))
+        return "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
 
     def debug_response(self, request: Request, exc: Exception) -> Response:
         accept = request.headers.get("accept", "")
