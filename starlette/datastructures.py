@@ -617,13 +617,13 @@ class MutableHeaders(Headers):
 
     def __ior__(self, other: typing.Mapping) -> "MutableHeaders":
         if not isinstance(other, typing.Mapping):
-            raise TypeError(f"Expected a mapping but got {other.__class__.__name__})
+            raise TypeError(f"Expected a mapping but got {other.__class__.__name__}")
         self.update(other)
         return self
 
     def __or__(self, other: typing.Mapping) -> "MutableHeaders":
         if not isinstance(other, typing.Mapping):
-            raise TypeError(f"Expected a mapping but got {other.__class__.__name__})
+            raise TypeError(f"Expected a mapping but got {other.__class__.__name__}")
         new = self.mutablecopy()
         new.update(other)
         return new
