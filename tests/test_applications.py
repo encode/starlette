@@ -89,7 +89,7 @@ middleware = [
     Middleware(TrustedHostMiddleware, allowed_hosts=["testserver", "*.example.org"])
 ]
 
-app = Starlette(
+app = Starlette(  # type: ignore[type-var]
     routes=[
         Route("/func", endpoint=func_homepage),
         Route("/async", endpoint=async_homepage),
