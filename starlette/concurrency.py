@@ -1,6 +1,7 @@
 import functools
 import sys
 import typing
+import warnings
 
 import anyio
 
@@ -33,6 +34,12 @@ def _restore_context(context: Context) -> None:
 
 
 async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -> None:
+    warnings.warn(
+        "run_until_first_complete is deprecated "
+        "and will be removed in a future version.",
+        DeprecationWarning,
+    )
+
     async with anyio.create_task_group() as task_group:
 
         async def run(func: typing.Callable[[], typing.Coroutine]) -> None:
