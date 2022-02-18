@@ -7,7 +7,7 @@ from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import PlainTextResponse, StreamingResponse
 from starlette.routing import Mount, Route, WebSocketRoute
-from starlette.types import ASGIApp, Scope, Send, Receive
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 
 class CustomMiddleware(BaseHTTPMiddleware):
@@ -196,13 +196,19 @@ class CustomMiddlewareUsingBaseHTTPMiddleware(BaseHTTPMiddleware):
         pytest.param(
             CustomMiddlewareUsingBaseHTTPMiddleware,
             marks=pytest.mark.xfail(
-                reason="BaseHTTPMiddleware creates a TaskGroup which copies the context and erases any changes to it made within the TaskGroup"
+                reason=(
+                    "BaseHTTPMiddleware creates a TaskGroup which copies the context"
+                    "and erases any changes to it made within the TaskGroup"
+                )
             ),
         ),
     ],
 )
 def test_contextvars(test_client_factory, middleware_cls: type):
-    def homepage(request):
+    # this has to be an async endpoint because Starlette calls run_in_thredpool
+    # on sync endpoints which suffers from the same problem of erasing changes
+    # to the context
+    async def homepage(request):
         assert ctxvar.get() == "set by middleware"
         ctxvar.set("set by endpoint")
         return PlainTextResponse("Homepage")
