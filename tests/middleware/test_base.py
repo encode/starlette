@@ -186,7 +186,7 @@ class CustomMiddlewareUsingBaseHTTPMiddleware(BaseHTTPMiddleware):
         ctxvar.set("set by middleware")
         resp = await call_next(request)
         assert ctxvar.get() == "set by endpoint"
-        return resp
+        return resp  # pragma: no cover
 
 
 @pytest.mark.parametrize(
