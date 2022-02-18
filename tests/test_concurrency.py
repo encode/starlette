@@ -81,3 +81,32 @@ async def test_restore_context_from_thread_new_cvar():
     await run_in_threadpool(sync_task)
     assert len(ctxvars) == 1
     assert next(iter(ctxvars)).get() == "ham"
+
+
+@pytest.mark.anyio
+async def test_restore_context_from_thread_reset_token_in_child_context():
+    ctxvar: contextvars.ContextVar[str] = contextvars.ContextVar("ctxvar")
+    ctxvar.set("spam")
+
+    def sync_task():
+        token = ctxvar.set("ham")
+        ctxvar.reset(token)
+
+    await run_in_threadpool(sync_task)
+    assert ctxvar.get() == "spam"
+
+
+@pytest.mark.anyio
+async def test_restore_context_from_thread_reset_token_in_parent_context():
+    ctxvar: contextvars.ContextVar[str] = contextvars.ContextVar("ctxvar")
+    tokens: List[contextvars.Token[str]] = []
+
+    def sync_task():
+        # this token gets created in the child context
+        # and hence can't be restored in the parent context
+        tokens.append(ctxvar.set("ham"))
+
+    await run_in_threadpool(sync_task)
+    assert ctxvar.get() == "ham"
+    with pytest.raises(ValueError, match="was created in a different Context"):
+        ctxvar.reset(tokens.pop())
