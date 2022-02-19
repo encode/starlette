@@ -171,6 +171,6 @@ A flexible and extendable web framework built on top of Starlette, Pydantic and 
 
 ### Apiman
 
-A extension to integrate Swagger/OpenAPI document easily for starlette project and provide [SwaggerUI](http://swagger.io/swagger-ui/) and [RedocUI](https://rebilly.github.io/ReDoc/).
+An extension to integrate Swagger/OpenAPI document easily for Starlette project and provide [SwaggerUI](http://swagger.io/swagger-ui/) and [RedocUI](https://rebilly.github.io/ReDoc/).
 
 <a href="https://github.com/strongbugman/apiman" target="_blank">GitHub</a>
