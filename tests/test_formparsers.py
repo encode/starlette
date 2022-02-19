@@ -1,4 +1,7 @@
 import os
+import typing
+
+import pytest
 
 from starlette.formparsers import UploadFile, _user_safe_decode
 from starlette.requests import Request
@@ -36,7 +39,7 @@ async def app(scope, receive, send):
 async def multi_items_app(scope, receive, send):
     request = Request(scope, receive)
     data = await request.form()
-    output = {}
+    output: typing.Dict[str, list] = {}
     for key, value in data.multi_items():
         if key not in output:
             output[key] = []
@@ -385,3 +388,18 @@ def test_user_safe_decode_helper():
 def test_user_safe_decode_ignores_wrong_charset():
     result = _user_safe_decode(b"abc", "latin-8")
     assert result == "abc"
+
+
+def test_missing_boundary_parameter(test_client_factory):
+    client = test_client_factory(app)
+    with pytest.raises(KeyError, match="boundary"):
+        client.post(
+            "/",
+            data=(
+                # file
+                b'Content-Disposition: form-data; name="file"; filename="\xe6\x96\x87\xe6\x9b\xb8.txt"\r\n'  # noqa: E501
+                b"Content-Type: text/plain\r\n\r\n"
+                b"<file content>\r\n"
+            ),
+            headers={"Content-Type": "multipart/form-data; charset=utf-8"},
+        )

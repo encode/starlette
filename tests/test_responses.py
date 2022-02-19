@@ -44,6 +44,7 @@ def test_json_none_response(test_client_factory):
     client = test_client_factory(app)
     response = client.get("/")
     assert response.json() is None
+    assert response.content == b"null"
 
 
 def test_redirect_response(test_client_factory):
@@ -272,6 +273,21 @@ def test_file_response_with_chinese_filename(tmpdir, test_client_factory):
     assert response.headers["content-disposition"] == expected_disposition
 
 
+def test_file_response_with_inline_disposition(tmpdir, test_client_factory):
+    content = b"file content"
+    filename = "hello.txt"
+    path = os.path.join(tmpdir, filename)
+    with open(path, "wb") as f:
+        f.write(content)
+    app = FileResponse(path=path, filename=filename, content_disposition_type="inline")
+    client = test_client_factory(app)
+    response = client.get("/")
+    expected_disposition = 'inline; filename="hello.txt"'
+    assert response.status_code == status.HTTP_200_OK
+    assert response.content == content
+    assert response.headers["content-disposition"] == expected_disposition
+
+
 def test_set_cookie(test_client_factory):
     async def app(scope, receive, send):
         response = Response("Hello, world!", media_type="text/plain")
@@ -330,7 +346,16 @@ def test_empty_response(test_client_factory):
     app = Response()
     client: TestClient = test_client_factory(app)
     response = client.get("/")
+    assert response.content == b""
     assert response.headers["content-length"] == "0"
+    assert "content-type" not in response.headers
+
+
+def test_empty_204_response(test_client_factory):
+    app = Response(status_code=204)
+    client: TestClient = test_client_factory(app)
+    response = client.get("/")
+    assert "content-length" not in response.headers
 
 
 def test_non_empty_response(test_client_factory):

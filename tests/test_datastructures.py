@@ -162,6 +162,50 @@ def test_mutable_headers():
     assert h.raw == [(b"b", b"4")]
 
 
+def test_mutable_headers_merge():
+    h = MutableHeaders()
+    h = h | MutableHeaders({"a": "1"})
+    assert isinstance(h, MutableHeaders)
+    assert dict(h) == {"a": "1"}
+    assert h.items() == [("a", "1")]
+    assert h.raw == [(b"a", b"1")]
+
+
+def test_mutable_headers_merge_dict():
+    h = MutableHeaders()
+    h = h | {"a": "1"}
+    assert isinstance(h, MutableHeaders)
+    assert dict(h) == {"a": "1"}
+    assert h.items() == [("a", "1")]
+    assert h.raw == [(b"a", b"1")]
+
+
+def test_mutable_headers_update():
+    h = MutableHeaders()
+    h |= MutableHeaders({"a": "1"})
+    assert isinstance(h, MutableHeaders)
+    assert dict(h) == {"a": "1"}
+    assert h.items() == [("a", "1")]
+    assert h.raw == [(b"a", b"1")]
+
+
+def test_mutable_headers_update_dict():
+    h = MutableHeaders()
+    h |= {"a": "1"}
+    assert isinstance(h, MutableHeaders)
+    assert dict(h) == {"a": "1"}
+    assert h.items() == [("a", "1")]
+    assert h.raw == [(b"a", b"1")]
+
+
+def test_mutable_headers_merge_not_mapping():
+    h = MutableHeaders()
+    with pytest.raises(TypeError):
+        h |= {"not_mapping"}  # type: ignore
+    with pytest.raises(TypeError):
+        h | {"not_mapping"}  # type: ignore
+
+
 def test_headers_mutablecopy():
     h = Headers(raw=[(b"a", b"123"), (b"a", b"456"), (b"b", b"789")])
     c = h.mutablecopy()
@@ -227,8 +271,21 @@ async def test_upload_file():
     await big_file.close()
 
 
+@pytest.mark.anyio
+async def test_upload_file_file_input():
+    """Test passing file/stream into the UploadFile constructor"""
+    stream = io.BytesIO(b"data")
+    file = UploadFile(filename="file", file=stream)
+    assert await file.read() == b"data"
+    await file.write(b" and more data!")
+    assert await file.read() == b""
+    await file.seek(0)
+    assert await file.read() == b"data and more data!"
+
+
 def test_formdata():
-    upload = io.BytesIO(b"test")
+    stream = io.BytesIO(b"data")
+    upload = UploadFile(filename="file", file=stream)
     form = FormData([("a", "123"), ("a", "456"), ("b", upload)])
     assert "a" in form
     assert "A" not in form
@@ -336,10 +393,6 @@ def test_multidict():
 
     q = MultiDict([("a", "123"), ("b", "456")])
     q.update(q)
-    assert repr(q) == "MultiDict([('a', '123'), ('b', '456')])"
-
-    q = MultiDict([("a", "123"), ("b", "456")])
-    q.update(None)
     assert repr(q) == "MultiDict([('a', '123'), ('b', '456')])"
 
     q = MultiDict([("a", "123"), ("a", "456")])

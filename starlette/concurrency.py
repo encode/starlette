@@ -2,6 +2,7 @@ import contextvars
 import functools
 import sys
 import typing
+import warnings
 
 import anyio
 
@@ -16,6 +17,12 @@ P = ParamSpec("P")
 
 
 async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -> None:
+    warnings.warn(
+        "run_until_first_complete is deprecated "
+        "and will be removed in a future version.",
+        DeprecationWarning,
+    )
+
     async with anyio.create_task_group() as task_group:
 
         async def run(func: typing.Callable[[], typing.Coroutine]) -> None:
@@ -29,13 +36,7 @@ async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -
 async def run_in_threadpool(
     func: typing.Callable[P, T], *args: P.args, **kwargs: P.kwargs
 ) -> T:
-    if contextvars is not None:  # pragma: no cover
-        # Ensure we run in the same context
-        child = functools.partial(func, *args, **kwargs)
-        context = contextvars.copy_context()
-        func = context.run  # type: ignore[assignment]
-        args = (child,)  # type: ignore[assignment]
-    elif kwargs:  # pragma: no cover
+    if kwargs:  # pragma: no cover
         # run_sync doesn't accept 'kwargs', so bind them in here
         func = functools.partial(func, **kwargs)
     return await anyio.to_thread.run_sync(func, *args)
