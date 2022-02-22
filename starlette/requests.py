@@ -196,6 +196,19 @@ class Request(HTTPConnection):
         self._send = send
         self._is_disconnected = False
 
+    # Not particularly graceful, but we store state around reading the request
+    # body in the ASGI scope, under the following...
+    #
+    # ['extensions']['starlette']['body']
+    # ['extensions']['starlette']['stream_consumed']
+    #
+    # This allows usages such as ASGI middleware to call the recieve and
+    # access the request body, and have that state persisted.
+    #
+    # Bit of an abuse of ASGI to take this approach. An alternate take would be
+    # that if you're going to use ASGI middleware it might be better to just
+    # accept the constraint that you *don't* get access to the request body in
+    # that context.
     def _get_request_state(self, name: str, default: typing.Any = None) -> typing.Any:
         return self.scope.get("extensions", {}).get("starlette", {}).get(name, default)
 
