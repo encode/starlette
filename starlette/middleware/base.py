@@ -4,7 +4,7 @@ import anyio
 
 from starlette.requests import Request
 from starlette.responses import Response, StreamingResponse
-from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 RequestResponseEndpoint = typing.Callable[[Request], typing.Awaitable[Response]]
 DispatchFunction = typing.Callable[
@@ -29,9 +29,23 @@ class BaseHTTPMiddleware:
             async def coro() -> None:
                 nonlocal app_exc
 
+                if request.receive is tracked_receive:
+                    # middleware didn't replace receive
+                    app_receive = receive
+                else:
+                    # middleware replaced receive
+                    app_receive = request.receive
+
+                if receive_called:
+                    # middleware consumed the request body
+                    async def error_receive() -> Message:
+                        raise RuntimeError("Receive stream already consumed")
+
+                    app_receive = error_receive
+
                 async with send_stream:
                     try:
-                        await self.app(scope, request.receive, send_stream.send)
+                        await self.app(scope, app_receive, send_stream.send)
                     except Exception as exc:
                         app_exc = exc
 
@@ -61,8 +75,15 @@ class BaseHTTPMiddleware:
             response.raw_headers = message["headers"]
             return response
 
+        receive_called = False
+
+        async def tracked_receive() -> Message:
+            nonlocal receive_called
+            receive_called = True
+            return await receive()
+
         async with anyio.create_task_group() as task_group:
-            request = Request(scope, receive=receive)
+            request = Request(scope, receive=tracked_receive)
             response = await self.dispatch_func(request, call_next)
             await response(scope, receive, send)
             task_group.cancel_scope.cancel()

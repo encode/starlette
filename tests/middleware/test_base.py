@@ -3,7 +3,8 @@ import pytest
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import PlainTextResponse, StreamingResponse
+from starlette.requests import Request
+from starlette.responses import PlainTextResponse, Response, StreamingResponse
 from starlette.routing import Mount, Route, WebSocketRoute
 
 
@@ -163,3 +164,23 @@ def test_exception_on_mounted_apps(test_client_factory):
     with pytest.raises(Exception) as ctx:
         client.get("/sub/")
     assert str(ctx.value) == "Exc"
+
+
+def test_stream_consumed_in_middleware(test_client_factory) -> None:
+    class CustomMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request, call_next):
+            await request.body()
+            response = await call_next(request)
+            return response
+
+    async def endpoint(request: Request) -> Response:
+        await request.body()
+        return Response()
+
+    app = Starlette(
+        middleware=[Middleware(CustomMiddleware)], routes=[Route("/", endpoint)]
+    )
+
+    client = test_client_factory(app)
+    with pytest.raises(RuntimeError, match="Receive stream already consumed"):
+        client.get("/")
