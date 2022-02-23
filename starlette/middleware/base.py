@@ -29,6 +29,8 @@ class BaseHTTPMiddleware:
             async def coro() -> None:
                 nonlocal app_exc
 
+                app_receive = request.receive
+
                 if receive_called:
                     # middleware consumed the request body
                     async def error_receive() -> Message:
