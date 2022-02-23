@@ -29,13 +29,6 @@ class BaseHTTPMiddleware:
             async def coro() -> None:
                 nonlocal app_exc
 
-                if request.receive is tracked_receive:
-                    # middleware didn't replace receive
-                    app_receive = receive
-                else:
-                    # middleware replaced receive
-                    app_receive = request.receive
-
                 if receive_called:
                     # middleware consumed the request body
                     async def error_receive() -> Message:

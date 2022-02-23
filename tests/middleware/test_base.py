@@ -171,11 +171,11 @@ def test_stream_consumed_in_middleware(test_client_factory) -> None:
         async def dispatch(self, request, call_next):
             await request.body()
             response = await call_next(request)
-            return response
+            return response  # pragma: no cover
 
     async def endpoint(request: Request) -> Response:
         await request.body()
-        return Response()
+        return Response()  # pragma: no cover
 
     app = Starlette(
         middleware=[Middleware(CustomMiddleware)], routes=[Route("/", endpoint)]
