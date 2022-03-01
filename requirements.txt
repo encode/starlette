@@ -14,7 +14,7 @@ types-contextvars==2.4.2
 types-PyYAML==6.0.4
 types-dataclasses==0.6.2
 pytest==6.2.5
-trio==0.19.0
+trio==0.20.0
 
 # Documentation
 mkdocs==1.2.3
