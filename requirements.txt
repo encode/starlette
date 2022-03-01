@@ -4,7 +4,7 @@
 # Testing
 autoflake==1.4
 black==22.1.0
-coverage==6.2
+coverage==6.3.2
 databases[sqlite]==0.5.3
 flake8==4.0.1
 isort==5.10.1
