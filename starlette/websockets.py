@@ -210,10 +210,8 @@ class WebsocketDenialResponse:
         # between http/websocket ASGI protocols
 
         async def xsend(msg: Message) -> None:
-            if msg["type"] == "http.response.start":
-                msg["type"] = "websocket.http.response.start"
-            elif msg["type"] == "http.response.body":
-                msg["type"] = "websocket.http.response.body"
+            if msg["type"].startswith("http.response."):
+                msg["type"] = "websocket." + msg["type"]
             else:
                 raise ValueError(f"Unsupported message type: {msg['type']}")
             await send(msg)

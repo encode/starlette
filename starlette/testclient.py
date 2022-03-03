@@ -14,8 +14,12 @@ from urllib.parse import unquote, urljoin, urlsplit
 
 import anyio.abc
 import requests
+from anyio.abc import BlockingPortal
 from anyio.streams.stapled import StapledObjectStream
+from requests.adapters import Response
+from urllib3 import HTTPResponse
 
+from starlette import status
 from starlette.types import Message, Receive, Scope, Send
 from starlette.websockets import WebSocketDisconnect
 
@@ -25,9 +29,7 @@ else:  # pragma: no cover
     from typing_extensions import TypedDict
 
 
-_PortalFactoryType = typing.Callable[
-    [], typing.ContextManager[anyio.abc.BlockingPortal]
-]
+_PortalFactoryType = typing.Callable[[], typing.ContextManager[BlockingPortal]]
 
 
 # Annotations for `Session.request()`
@@ -145,6 +147,10 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
         else:
             headers = [(b"host", (f"{host}:{port}").encode())]
 
+        asgi_websocket_denial_response: bool = json.loads(
+            request.headers.pop("x-asgi-websocket-denial-response", "false")
+        )
+
         # Include other request headers.
         headers += [
             (key.lower().encode(), value.encode())
@@ -170,8 +176,12 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 "client": ["testclient", 50000],
                 "server": [host, port],
                 "subprotocols": subprotocols,
+                "extensions": {"http.response.template": {}},
             }
-            session = WebSocketTestSession(self.app, scope, self.portal_factory)
+            if asgi_websocket_denial_response:
+                scope["extensions"]["websocket.http.response"] = {}
+
+            session = WebSocketTestSession(self, request, scope, self.portal_factory)
             raise _Upgrade(session)
 
         scope = {
@@ -189,89 +199,89 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             "extensions": {"http.response.template": {}},
         }
 
-        request_complete = False
-        response_started = False
-        response_complete: anyio.Event
-        raw_kwargs: typing.Dict[str, typing.Any] = {"body": io.BytesIO()}
-        template = None
-        context = None
-
-        async def receive() -> Message:
-            nonlocal request_complete
-
-            if request_complete:
-                if not response_complete.is_set():
-                    await response_complete.wait()
-                return {"type": "http.disconnect"}
-
-            body = request.body
-            if isinstance(body, str):
-                body_bytes: bytes = body.encode("utf-8")
-            elif body is None:
-                body_bytes = b""
-            elif isinstance(body, types.GeneratorType):
-                try:
-                    chunk = body.send(None)
-                    if isinstance(chunk, str):
-                        chunk = chunk.encode("utf-8")
-                    return {"type": "http.request", "body": chunk, "more_body": True}
-                except StopIteration:
-                    request_complete = True
-                    return {"type": "http.request", "body": b""}
-            else:
-                body_bytes = body
-
-            request_complete = True
-            return {"type": "http.request", "body": body_bytes}
-
-        async def send(message: Message) -> None:
-            nonlocal raw_kwargs, response_started, template, context
-
-            if message["type"] == "http.response.start":
-                assert (
-                    not response_started
-                ), 'Received multiple "http.response.start" messages.'
-                raw_kwargs["version"] = 11
-                raw_kwargs["status"] = message["status"]
-                raw_kwargs["reason"] = _get_reason_phrase(message["status"])
-                raw_kwargs["headers"] = [
-                    (key.decode(), value.decode())
-                    for key, value in message.get("headers", [])
-                ]
-                raw_kwargs["preload_content"] = False
-                raw_kwargs["original_response"] = _MockOriginalResponse(
-                    raw_kwargs["headers"]
+        with self.portal_factory() as portal:
+            response_receiver = HTTPResponseReceiver(self, request, portal)
+            request_sender = HTTPRequestSender(request.body, response_receiver)
+            try:
+                portal.call(
+                    self.app, scope, request_sender, response_receiver
                 )
-                response_started = True
-            elif message["type"] == "http.response.body":
-                assert (
-                    response_started
-                ), 'Received "http.response.body" without "http.response.start".'
-                assert (
-                    not response_complete.is_set()
-                ), 'Received "http.response.body" after response completed.'
-                body = message.get("body", b"")
-                more_body = message.get("more_body", False)
-                if request.method != "HEAD":
-                    raw_kwargs["body"].write(body)
-                if not more_body:
-                    raw_kwargs["body"].seek(0)
-                    response_complete.set()
-            elif message["type"] == "http.response.template":
-                template = message["template"]
-                context = message["context"]
+            except BaseException as exc:
+                if self.raise_server_exceptions:
+                    raise exc
+            return response_receiver.get()
 
-        try:
-            with self.portal_factory() as portal:
-                response_complete = portal.call(anyio.Event)
-                portal.call(self.app, scope, receive, send)
-        except BaseException as exc:
-            if self.raise_server_exceptions:
-                raise exc
 
-        if self.raise_server_exceptions:
-            assert response_started, "TestClient did not receive any response."
-        elif not response_started:
+class HTTPResponseReceiver:
+    def __init__(
+        self,
+        asgi_adapter: _ASGIAdapter,
+        request: requests.PreparedRequest,
+        portal: BlockingPortal,
+    ) -> None:
+        self.asgi_adapter = asgi_adapter
+        self.request = request
+        self.started = False
+        self.completed = portal.call(anyio.Event)
+        self.raw_kwargs: typing.Dict[str, typing.Any] = {"body": io.BytesIO()}
+        self.template = None
+        self.context = None
+
+    async def __call__(self, message: Message) -> None:
+        if message["type"] == "http.response.start":
+            assert not self.started, 'Received multiple "http.response.start" messages.'
+            self.raw_kwargs["version"] = 11
+            self.raw_kwargs["status"] = message["status"]
+            self.raw_kwargs["reason"] = _get_reason_phrase(message["status"])
+            self.raw_kwargs["headers"] = [
+                (key.decode(), value.decode())
+                for key, value in message.get("headers", [])
+            ]
+            self.raw_kwargs["preload_content"] = False
+            self.raw_kwargs["original_response"] = _MockOriginalResponse(
+                self.raw_kwargs["headers"]
+            )
+            self.started = True
+        elif message["type"] == "http.response.body":
+            assert (
+                self.started
+            ), 'Received "http.response.body" without "http.response.start".'
+            assert (
+                not self.completed.is_set()
+            ), 'Received "http.response.body" after response completed.'
+            body = message.get("body", b"")
+            more_body = message.get("more_body", False)
+            if self.request.method != "HEAD":
+                self.raw_kwargs["body"].write(body)
+            if not more_body:
+                self.raw_kwargs["body"].seek(0)
+                self.completed.set()
+        elif message["type"] == "http.response.template":
+            self.template = message["template"]
+            self.context = message["context"]
+
+    @property
+    def is_complete(self) -> bool:
+        return self.completed.is_set()
+
+    async def wait(self):
+        """Blocks until the response is complete"""
+
+        if not self.is_complete:
+            await self.completed.wait()
+
+    def get(self) -> Response:
+        """
+        Get the response
+
+        If there is no response data and raise_exceptions is True,
+        raises an AssertionError.
+        Otherwise a generic HTTP 500 response is returned
+        """
+        raw_kwargs = self.raw_kwargs
+        if self.asgi_adapter.raise_server_exceptions:
+            assert self.started, "TestClient did not receive any response."
+        elif not self.started:
             raw_kwargs = {
                 "version": 11,
                 "status": 500,
@@ -282,22 +292,63 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 "body": io.BytesIO(),
             }
 
-        raw = requests.packages.urllib3.HTTPResponse(**raw_kwargs)
-        response = self.build_response(request, raw)
-        if template is not None:
-            response.template = template
-            response.context = context
+        response = self.asgi_adapter.build_response(
+            self.request, HTTPResponse(**raw_kwargs)
+        )
+        if self.template is not None:
+            response.template = self.template
+            response.context = self.context
         return response
+
+
+class HTTPRequestSender:
+    def __init__(
+        self, body: typing.Any, response_receiver: HTTPResponseReceiver
+    ) -> None:
+        self.body = body
+        self.response_receiver = response_receiver
+        self.complete = False
+
+    async def __call__(self) -> Message:
+        if self.complete:
+            await self.response_receiver.wait()
+            return {"type": "http.disconnect"}
+
+        body = self.body
+        self.complete = True
+        if isinstance(body, types.GeneratorType):
+            try:
+                body = self.body.send(None)
+                self.complete = False
+            except StopIteration:
+                body = None
+
+        if body is None:
+            body_bytes = b""
+        elif isinstance(body, bytes):
+            body_bytes = body
+        elif isinstance(body, str):
+            body_bytes = body.encode("utf-8")
+        else:
+            raise ValueError(f"Unsupported body type: {type(body)}")
+
+        return {
+            "type": "http.request",
+            "body": body_bytes,
+            "more_body": not self.complete,
+        }
 
 
 class WebSocketTestSession:
     def __init__(
         self,
-        app: ASGI3App,
+        asgi_adapter: _ASGIAdapter,
+        request: requests.PreparedRequest,
         scope: Scope,
         portal_factory: _PortalFactoryType,
     ) -> None:
-        self.app = app
+        self.asgi_adapter = asgi_adapter
+        self.request = request
         self.scope = scope
         self.accepted_subprotocol = None
         self.extra_headers = None
@@ -314,6 +365,7 @@ class WebSocketTestSession:
             self.send({"type": "websocket.connect"})
             message = self.receive()
             self._raise_on_close(message)
+            self._raise_on_denial(message)
         except Exception:
             self.exit_stack.close()
             raise
@@ -327,9 +379,7 @@ class WebSocketTestSession:
         finally:
             self.exit_stack.close()
         while not self._send_queue.empty():
-            message = self._send_queue.get()
-            if isinstance(message, BaseException):
-                raise message
+            self.receive()
 
     async def _run(self) -> None:
         """
@@ -339,10 +389,14 @@ class WebSocketTestSession:
         receive = self._asgi_receive
         send = self._asgi_send
         try:
-            await self.app(scope, receive, send)
+            await self.asgi_adapter.app(scope, receive, send)
         except BaseException as exc:
             self._send_queue.put(exc)
             raise
+        else:
+            self._send_queue.put(
+                {"type": "websocket.close", "code": status.WS_1001_GOING_AWAY}
+            )
 
     async def _asgi_receive(self) -> Message:
         while self._receive_queue.empty():
@@ -357,6 +411,30 @@ class WebSocketTestSession:
             raise WebSocketDisconnect(
                 message.get("code", 1000), message.get("reason", "")
             )
+
+    def _raise_on_denial(self, message: Message) -> typing.Any:
+        if message["type"] != "websocket.http.response.start":
+            return
+
+        def translate_type(message):
+            assert message["type"].startswith(
+                "websocket.http.response."
+            ), f"Unexpected message type: {message['type']}"
+            message["type"] = message["type"][len("websocket.") :]
+
+        self.denial_response = True
+        response_receiver = HTTPResponseReceiver(
+            self.asgi_adapter, self.request, self.portal
+        )
+
+        while True:
+            translate_type(message)
+            self.portal.call(response_receiver, message)
+
+            if response_receiver.is_complete:
+                raise WebSocketDenied(response_receiver.get())
+            else:
+                message = self.receive()
 
     def send(self, message: Message) -> None:
         self._receive_queue.put(message)
@@ -403,6 +481,11 @@ class WebSocketTestSession:
         else:
             text = message["bytes"].decode("utf-8")
         return json.loads(text)
+
+
+class WebSocketDenied(Exception):
+    def __init__(self, response: Response) -> None:
+        self.response = response
 
 
 class TestClient(requests.Session):
@@ -493,13 +576,20 @@ class TestClient(requests.Session):
         )
 
     def websocket_connect(
-        self, url: str, subprotocols: typing.Sequence[str] = None, **kwargs: typing.Any
-    ) -> typing.Any:
+        self,
+        url: str,
+        subprotocols: typing.Sequence[str] = None,
+        denial_response: bool = False,
+        **kwargs: typing.Any,
+    ) -> WebSocketTestSession:
         url = urljoin("ws://testserver", url)
         headers = kwargs.get("headers", {})
         headers.setdefault("connection", "upgrade")
         headers.setdefault("sec-websocket-key", "testserver==")
         headers.setdefault("sec-websocket-version", "13")
+        headers.setdefault(
+            "x-asgi-websocket-denial-response", json.dumps(denial_response)
+        )
         if subprotocols is not None:
             headers.setdefault("sec-websocket-protocol", ", ".join(subprotocols))
         kwargs["headers"] = headers
