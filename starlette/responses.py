@@ -30,13 +30,16 @@ def guess_type(
     return mimetypes_guess_type(url, strict)
 
 
-class Response:
+T = typing.TypeVar("T")
+
+
+class Response(typing.Generic[T]):
     media_type = None
     charset = "utf-8"
 
     def __init__(
         self,
-        content: typing.Any = None,
+        content: T = None,
         status_code: int = 200,
         headers: typing.Mapping[str, str] = None,
         media_type: str = None,
@@ -49,7 +52,7 @@ class Response:
         self.body = self.render(content)
         self.init_headers(headers)
 
-    def render(self, content: typing.Any) -> bytes:
+    def render(self, content: T) -> bytes:
         if content is None:
             return b""
         if isinstance(content, bytes):
@@ -171,12 +174,12 @@ class PlainTextResponse(Response):
     media_type = "text/plain"
 
 
-class JSONResponse(Response):
+class JSONResponse(Response[T]):
     media_type = "application/json"
 
     def __init__(
         self,
-        content: typing.Any,
+        content: T,
         status_code: int = 200,
         headers: dict = None,
         media_type: str = None,
@@ -184,7 +187,7 @@ class JSONResponse(Response):
     ) -> None:
         super().__init__(content, status_code, headers, media_type, background)
 
-    def render(self, content: typing.Any) -> bytes:
+    def render(self, content: T) -> bytes:
         return json.dumps(
             content,
             ensure_ascii=False,
@@ -208,10 +211,10 @@ class RedirectResponse(Response):
         self.headers["location"] = quote(str(url), safe=":/%#?=@[]!$&'()*+,;")
 
 
-class StreamingResponse(Response):
+class StreamingResponse(Response[T]):
     def __init__(
         self,
-        content: typing.Any,
+        content: T,
         status_code: int = 200,
         headers: typing.Mapping[str, str] = None,
         media_type: str = None,
