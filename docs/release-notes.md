@@ -1,6 +1,6 @@
 ## 0.19.0
 
-February, 1, 2022
+March, 9, 2022
 
 ### Added
 * Error handler will always run, even if the error happens on a background task [#761](https://github.com/encode/starlette/pull/761).
@@ -8,12 +8,24 @@ February, 1, 2022
 * Internal responses with `405` status code insert an `Allow` header, as described by [RFC 7231](https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.5) [#1436](https://github.com/encode/starlette/pull/1436).
 * The `content` argument in `JSONResponse` is now required [#1431](https://github.com/encode/starlette/pull/1431).
 * Add custom URL convertor register [#1437](https://github.com/encode/starlette/pull/1437).
+* Add content disposition type parameter to `FileResponse` [#1266](https://github.com/encode/starlette/pull/1266).
+* Add next query param with original request URL in requires decorator [#920](https://github.com/encode/starlette/pull/920).
 * Add `raw_path` to `TestClient` scope [#1445](https://github.com/encode/starlette/pull/1445).
-* Bump `anyio` minimal version to `3.4.0` [#1421](https://github.com/encode/starlette/pull/1421).
+* Add union operators to `MutableHeaders` [#1240](https://github.com/encode/starlette/pull/1240).
+* Display missing route details on debug page [#1363](https://github.com/encode/starlette/pull/1363).
+* Change `anyio` required version range to `>=3.4.0,<5.0` [#1421](https://github.com/encode/starlette/pull/1421) and [#1460](https://github.com/encode/starlette/pull/1460).
+* Add `typing-extensions>=3.10` requirement - used only on lower versions than Python 3.10 [#1475](https://github.com/encode/starlette/pull/1475).
 
 ### Fixed
 * Prevent `BaseHTTPMiddleware` from hiding errors of `StreamingResponse` and mounted applications [#1459](https://github.com/encode/starlette/pull/1459).
+* `SessionMiddleware` uses an explicit `path=...`, instead of defaulting to the ASGI 'root_path' [#1512](https://github.com/encode/starlette/pull/1512).
 * `Request.client` is now compliant with the ASGI specifications [#1462](https://github.com/encode/starlette/pull/1462).
+* Raise `KeyError` at early stage for missing boundary [#1349](https://github.com/encode/starlette/pull/1349).
+
+### Deprecated
+* Deprecate WSGIMiddleware in favor of a2wsgi [#1504](https://github.com/encode/starlette/pull/1504).
+* Deprecate `run_until_first_complete` [#1443](https://github.com/encode/starlette/pull/1443).
+
 
 ## 0.18.0
 
