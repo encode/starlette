@@ -1,6 +1,6 @@
 ## 0.19.0
 
-March, 9, 2022
+March 9, 2022
 
 ### Added
 * Error handler will always run, even if the error happens on a background task [#761](https://github.com/encode/starlette/pull/761).
