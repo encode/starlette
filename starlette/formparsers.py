@@ -154,12 +154,17 @@ class MultiPartParser:
         self.messages.append(message)
 
     async def parse(self) -> FormData:
+        from starlette.exceptions import MissingBoundaryException
+
         # Parse the Content-Type header to get the multipart boundary.
         content_type, params = parse_options_header(self.headers["Content-Type"])
         charset = params.get(b"charset", "utf-8")
         if type(charset) == bytes:
             charset = charset.decode("latin-1")
-        boundary = params[b"boundary"]
+        try:
+            boundary = params[b"boundary"]
+        except KeyError:
+            raise MissingBoundaryException
 
         # Callbacks dictionary.
         callbacks = {

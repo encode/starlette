@@ -3,6 +3,7 @@ import typing
 
 import pytest
 
+from starlette.exceptions import MissingBoundaryException
 from starlette.formparsers import UploadFile, _user_safe_decode
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -392,7 +393,7 @@ def test_user_safe_decode_ignores_wrong_charset():
 
 def test_missing_boundary_parameter(test_client_factory):
     client = test_client_factory(app)
-    with pytest.raises(KeyError, match="boundary"):
+    with pytest.raises(MissingBoundaryException):
         client.post(
             "/",
             data=(

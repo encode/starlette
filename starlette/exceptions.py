@@ -8,6 +8,11 @@ from starlette.responses import PlainTextResponse, Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
+class MissingBoundaryException(Exception):
+    def __init__(self):
+        super().__init__("Form data is missing boundary parameter")
+
+
 class HTTPException(Exception):
     def __init__(
         self, status_code: int, detail: str = None, headers: dict = None
