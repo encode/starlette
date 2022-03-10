@@ -113,6 +113,14 @@ of [webargs](https://github.com/marshmallow-code/webargs).
 Allows you to parse querystring, JSON, form, headers, and cookies using
 type annotations.
 
+### DecoRouter
+
+<a href="https://github.com/MrPigss/DecoRouter" target="_blank">GitHub</a>
+
+FastAPI style routing for Starlette.
+
+Allows you to use decorators to generate routing tables.
+
 ## Frameworks
 
 ### FastAPI
@@ -168,3 +176,9 @@ A flexible and extendable web framework built on top of Starlette, Pydantic and 
 
 <a href="https://github.com/adriangb/xpresso" target="_blank">GitHub</a> |
 <a href=https://xpresso-api.dev/" target="_blank">Documentation</a>
+
+### Apiman
+
+An extension to integrate Swagger/OpenAPI document easily for Starlette project and provide [SwaggerUI](http://swagger.io/swagger-ui/) and [RedocUI](https://rebilly.github.io/ReDoc/).
+
+<a href="https://github.com/strongbugman/apiman" target="_blank">GitHub</a>
