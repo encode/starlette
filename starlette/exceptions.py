@@ -9,7 +9,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
 class MissingBoundaryException(Exception):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("Form data is missing boundary parameter")
 
 
