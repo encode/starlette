@@ -1,5 +1,6 @@
 import base64
 import binascii
+from urllib.parse import urlencode
 
 import pytest
 
@@ -305,7 +306,10 @@ def test_authentication_redirect(test_client_factory):
     with test_client_factory(app) as client:
         response = client.get("/admin")
         assert response.status_code == 200
-        assert response.url == "http://testserver/"
+        url = "{}?{}".format(
+            "http://testserver/", urlencode({"next": "http://testserver/admin"})
+        )
+        assert response.url == url
 
         response = client.get("/admin", auth=("tomchristie", "example"))
         assert response.status_code == 200
@@ -313,7 +317,10 @@ def test_authentication_redirect(test_client_factory):
 
         response = client.get("/admin/sync")
         assert response.status_code == 200
-        assert response.url == "http://testserver/"
+        url = "{}?{}".format(
+            "http://testserver/", urlencode({"next": "http://testserver/admin/sync"})
+        )
+        assert response.url == url
 
         response = client.get("/admin/sync", auth=("tomchristie", "example"))
         assert response.status_code == 200
@@ -324,13 +331,6 @@ def on_auth_error(request: Request, exc: Exception):
     return JSONResponse({"error": str(exc)}, status_code=401)
 
 
-other_app = Starlette()
-other_app.add_middleware(
-    AuthenticationMiddleware, backend=BasicAuth(), on_error=on_auth_error
-)
-
-
-@other_app.route("/control-panel")
 @requires("authenticated")
 def control_panel(request):
     return JSONResponse(
@@ -339,6 +339,16 @@ def control_panel(request):
             "user": request.user.display_name,
         }
     )
+
+
+other_app = Starlette(
+    routes=[Route("/control-panel", control_panel)],
+    middleware=[
+        Middleware(
+            AuthenticationMiddleware, backend=BasicAuth(), on_error=on_auth_error
+        )
+    ],
+)
 
 
 def test_custom_on_error(test_client_factory):
