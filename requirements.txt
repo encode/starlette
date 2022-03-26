@@ -1,6 +1,9 @@
 # Optionals
 -e .[full]
 
+# temporary pin until mkdocs release
+jinja2==3.0.3
+
 # Testing
 autoflake==1.4
 black==22.1.0
