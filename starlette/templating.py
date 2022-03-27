@@ -12,6 +12,8 @@ try:
     if hasattr(jinja2, "pass_context"):
         pass_context = jinja2.pass_context
     else:  # pragma: nocover
+        # mypy will complain about a missing attribute if Jinja >= 3.1 is installed
+        # but that will never happen because the branch above will be true
         pass_context = jinja2.contextfunction  # type: ignore[attr-defined]
 except ImportError:  # pragma: nocover
     jinja2 = None  # type: ignore
