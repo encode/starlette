@@ -1,4 +1,3 @@
-import contextvars
 import functools
 import sys
 import typing
