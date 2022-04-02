@@ -48,8 +48,7 @@ setup(
             "jinja2",
             "python-multipart",
             "pyyaml",
-            # "httpx>=0.20.0"
-            "httpx @ git+https://github.com/encode/httpx.git@master",
+            "httpx>=0.22.0",
         ]
     },
     classifiers=[
