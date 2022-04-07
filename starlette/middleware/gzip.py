@@ -77,8 +77,9 @@ class GZipResponder:
                 headers.add_vary_header("Accept-Encoding")
                 del headers["Content-Length"]
 
-                self.gzip_file.write(body)
-                message["body"] = self.gzip_buffer.getvalue()
+                if body and body != b"":
+                    self.gzip_file.write(body)
+                message["body"] = self._set_response_body(body, more_body)
                 self.gzip_buffer.seek(0)
                 self.gzip_buffer.truncate()
 
@@ -90,15 +91,32 @@ class GZipResponder:
             body = message.get("body", b"")
             more_body = message.get("more_body", False)
 
-            self.gzip_file.write(body)
+            if body and body != b"":
+                self.gzip_file.write(body)
             if not more_body:
                 self.gzip_file.close()
 
-            message["body"] = self.gzip_buffer.getvalue()
+            message["body"] = self._set_response_body(body, more_body)
             self.gzip_buffer.seek(0)
             self.gzip_buffer.truncate()
 
             await self.send(message)
+
+    def _set_response_body(self, body, more_body: bool = True) -> bytes:
+        """Null byte fix
+
+        If the response body is null and we try to get the buffervalue, a null byte is produced.
+        This causes a content length mismatch.
+
+        This issues exists in the upstream Gzip middleware in starlette.
+        - https://github.com/tiangolo/fastapi/issues/4050
+        - https://github.com/tiangolo/fastapi/issues/2818
+
+        """
+        # Check # [b"", 0x1f, 0x8b, 0xff] is the header for a gzip file.
+        if body == b"" and more_body:
+            return body
+        return self.gzip_buffer.getvalue()
 
 
 async def unattached_send(message: Message) -> typing.NoReturn:
