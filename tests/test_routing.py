@@ -1,6 +1,6 @@
 import functools
-import uuid
 import typing
+import uuid
 
 import pytest
 
