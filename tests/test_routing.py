@@ -734,11 +734,11 @@ class Endpoint:
     [
         pytest.param(func_homepage, "func_homepage", id="function"),
         pytest.param(Endpoint().my_method, "my_method", id="method"),
+        pytest.param(Endpoint.my_classmethod, "my_classmethod", id="classmethod"),
         pytest.param(
-            Endpoint.my_classmethod, "my_classmethod", id="classmethod"
-        ),
-        pytest.param(
-            Endpoint.my_staticmethod, "my_staticmethod", id="staticmethod",
+            Endpoint.my_staticmethod,
+            "my_staticmethod",
+            id="staticmethod",
         ),
         pytest.param(Endpoint(), "Endpoint", id="object"),
         pytest.param(lambda request: ..., "<lambda>", id="lambda"),
