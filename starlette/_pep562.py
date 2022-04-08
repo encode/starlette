@@ -27,7 +27,7 @@ class Pep562:
     The given module will be searched for overrides of `__dir__` and `__getattr__` and use them when needed.
     """
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str) -> None:  # pragma: no cover
         """Acquire `__getattr__` and `__dir__`, but only replace module for versions less than Python 3.7."""
 
         self._module = sys.modules[name]
@@ -37,12 +37,12 @@ class Pep562:
         )
         sys.modules[name] = self  # type: ignore[assignment]
 
-    def __dir__(self) -> List[str]:
+    def __dir__(self) -> List[str]:  # pragma: no cover
         """Return the overridden `dir` if one was provided, else apply `dir` to the module."""
 
         return self._get_dir() if self._get_dir else dir(self._module)
 
-    def __getattr__(self, name: str) -> Any:
+    def __getattr__(self, name: str) -> Any:  # pragma: no cover
         """
         Attempt to retrieve the attribute from the module, and if missing, use the overridden function if present.
         """
@@ -55,7 +55,7 @@ class Pep562:
             raise
 
 
-def pep562(module_name: str) -> None:
+def pep562(module_name: str) -> None:  # pragma: no cover
     """Helper function to apply PEP 562."""
 
     if sys.version_info < (3, 7):

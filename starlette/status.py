@@ -200,7 +200,7 @@ def __getattr__(name: str) -> int:
 
 
 def __dir__() -> List[str]:
-    return sorted(list(__all__) + list(__deprecated__.keys()))
+    return sorted(list(__all__) + list(__deprecated__.keys()))  # pragma: no cover
 
 
 pep562(__name__)
