@@ -7,7 +7,6 @@ import pytest
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse, PlainTextResponse, Response
 from starlette.routing import Host, Mount, NoMatchFound, Route, Router, WebSocketRoute
-
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 
@@ -723,7 +722,7 @@ class Endpoint:
         ...
 
     @staticmethod
-    async def my_staticmethod(self, request):
+    async def my_staticmethod(request):
         ...
 
     def __call__(self, request):
@@ -746,5 +745,4 @@ class Endpoint:
     ],
 )
 def test_route_name(endpoint: typing.Callable, expected_name: str):
-
     assert Route(path="/", endpoint=endpoint).name == expected_name
