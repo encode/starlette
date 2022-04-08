@@ -715,18 +715,18 @@ def test_duplicated_param_names():
 
 class Endpoint:
     async def my_method(self, request):
-        ...
+        ...  # pragma: no cover
 
     @classmethod
     async def my_classmethod(cls, request):
-        ...
+        ...  # pragma: no cover
 
     @staticmethod
     async def my_staticmethod(request):
-        ...
+        ...  # pragma: no cover
 
     def __call__(self, request):
-        ...
+        ...  # pragma: no cover
 
 
 @pytest.mark.parametrize(
