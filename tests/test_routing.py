@@ -6,15 +6,8 @@ import pytest
 
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse, PlainTextResponse, Response
-from starlette.routing import (
-    get_name,
-    Host,
-    Mount,
-    NoMatchFound,
-    Route,
-    Router,
-    WebSocketRoute,
-)
+from starlette.routing import Host, Mount, NoMatchFound, Route, Router, WebSocketRoute
+
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 
@@ -721,52 +714,37 @@ def test_duplicated_param_names():
         Route("/{id}/{name}/{id}/{name}", user)
 
 
-class EndpointCollectionObject:
+class Endpoint:
     async def my_method(self, request):
-        return JSONResponse({"endpoint_type": "method"})
+        ...
 
     @classmethod
-    async def my_classmethod(self, request):
-        return JSONResponse({"endpoint_type": "classmethod"})
+    async def my_classmethod(cls, request):
+        ...
 
     @staticmethod
     async def my_staticmethod(self, request):
-        return JSONResponse({"endpoint_type": "staticmethod"})
+        ...
 
-
-class EndpointObject:
     def __call__(self, request):
-        return JSONResponse({"endpoint_type": "class"})
+        ...
 
 
 @pytest.mark.parametrize(
     "endpoint, expected_name",
     [
         pytest.param(func_homepage, "func_homepage", id="function"),
-        pytest.param(EndpointCollectionObject().my_method, "my_method", id="method"),
+        pytest.param(Endpoint().my_method, "my_method", id="method"),
         pytest.param(
-            EndpointCollectionObject.my_classmethod, "my_classmethod", id="classmethod"
+            Endpoint.my_classmethod, "my_classmethod", id="classmethod"
         ),
         pytest.param(
-            EndpointCollectionObject.my_staticmethod,
-            "my_staticmethod",
-            id="staticmethod",
+            Endpoint.my_staticmethod, "my_staticmethod", id="staticmethod",
         ),
-        pytest.param(EndpointObject, "EndpointObject", id="object"),
-        pytest.param(
-            lambda request: JSONResponse({"endpoint_type": "lambda"}),
-            "<lambda>",
-            id="lambda",
-        ),
+        pytest.param(Endpoint(), "Endpoint", id="object"),
+        pytest.param(lambda request: ..., "<lambda>", id="lambda"),
     ],
 )
-def test_route_name_automatic(endpoint: typing.Callable, expected_name: str):
+def test_route_name(endpoint: typing.Callable, expected_name: str):
 
-    # Path does not matter here, as we only care about how the route name is created.
     assert Route(path="/", endpoint=endpoint).name == expected_name
-
-
-def test_route_name_manual():
-
-    name = "my_custom_endpoint"
-    assert Route(path="/", endpoint=func_homepage, name=name).name == name
