@@ -1,3 +1,4 @@
+# flake8: noqa
 """
 Backport of PEP 562.
 https://pypi.org/search/?q=pep562

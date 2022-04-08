@@ -7,6 +7,7 @@ And RFC 2324 - https://tools.ietf.org/html/rfc2324
 """
 import sys
 import warnings
+from typing import List
 
 from starlette._pep562 import pep562
 
@@ -198,8 +199,8 @@ def __getattr__(name: str) -> int:
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 
-def __dir__():
-    return sorted(__all__ + __deprecated__)
+def __dir__() -> List[str]:
+    return sorted(list(__all__) + list(__deprecated__.keys()))
 
 
 pep562(__name__)
