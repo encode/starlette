@@ -26,7 +26,7 @@ class GZipMiddleware:
         await self.app(scope, receive, send)
 
 
-class GZipResponder:
+class GZipResponder:  # noqa: WPS230
     def __init__(self, app: ASGIApp, minimum_size: int, compresslevel: int = 9) -> None:
         self.app = app
         self.minimum_size = minimum_size
@@ -35,8 +35,7 @@ class GZipResponder:
         self.started = False
         self.gzip_buffer = io.BytesIO()
         self.gzip_file = gzip.GzipFile(
-            mode="wb", fileobj=self.gzip_buffer, compresslevel=compresslevel
-        )
+            mode="wb", fileobj=self.gzip_buffer, compresslevel=compresslevel)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         self.send = send
@@ -56,11 +55,9 @@ class GZipResponder:
                 # Don't apply GZip to small outgoing responses.
                 await self.send(self.initial_message)
                 await self.send(message)
-            elif not more_body:
+            elif not more_body:  # noqa: WPS504
                 # Standard GZip response.
-                self.gzip_file.write(body)
-                self.gzip_file.close()
-                body = self.gzip_buffer.getvalue()
+                body = self._set_response_body(body, more_body)
 
                 headers = MutableHeaders(raw=self.initial_message["headers"])
                 headers["Content-Encoding"] = "gzip"
@@ -75,14 +72,9 @@ class GZipResponder:
                 headers = MutableHeaders(raw=self.initial_message["headers"])
                 headers["Content-Encoding"] = "gzip"
                 headers.add_vary_header("Accept-Encoding")
-                del headers["Content-Length"]
+                del headers["Content-Length"]  # noqa: WPS420
 
-                if body and body != b"":
-                    self.gzip_file.write(body)
                 message["body"] = self._set_response_body(body, more_body)
-                self.gzip_buffer.seek(0)
-                self.gzip_buffer.truncate()
-
                 await self.send(self.initial_message)
                 await self.send(message)
 
@@ -91,14 +83,7 @@ class GZipResponder:
             body = message.get("body", b"")
             more_body = message.get("more_body", False)
 
-            if body and body != b"":
-                self.gzip_file.write(body)
-            if not more_body:
-                self.gzip_file.close()
-
             message["body"] = self._set_response_body(body, more_body)
-            self.gzip_buffer.seek(0)
-            self.gzip_buffer.truncate()
 
             await self.send(message)
 
@@ -113,10 +98,14 @@ class GZipResponder:
         - https://github.com/tiangolo/fastapi/issues/2818
 
         """
-        # Check # [b"", 0x1f, 0x8b, 0xff] is the header for a gzip file.
-        if body == b"" and more_body:
-            return body
-        return self.gzip_buffer.getvalue()
+        if body and body not in {b"", b"null"}:
+            self.gzip_file.write(body)
+        if not more_body:
+            self.gzip_file.close()
+        value = self.gzip_buffer.getvalue()
+        self.gzip_buffer.seek(0)
+        self.gzip_buffer.truncate()
+        return value
 
 
 async def unattached_send(message: Message) -> typing.NoReturn:
