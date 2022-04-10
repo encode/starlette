@@ -11,10 +11,7 @@ from starlette.websockets import WebSocket
 
 
 def has_required_scope(conn: HTTPConnection, scopes: typing.Sequence[str]) -> bool:
-    for scope in scopes:
-        if scope not in conn.auth.scopes:
-            return False
-    return True
+    return all(scope in conn.auth.scopes for scope in scopes)
 
 
 def requires(
