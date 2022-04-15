@@ -1,3 +1,12 @@
+## 0.19.1
+
+April 15, 2022
+
+### Fixed
+* Apply right name to `Route` when created from methods [#1553](https://github.com/encode/starlette/pull/1553)
+* Avoid `TypeError` on `websocket.disconnect` when code is `None` [#1574](https://github.com/encode/starlette/pull/1574)
+
+
 ## 0.19.0
 
 March 9, 2022
