@@ -103,7 +103,7 @@ class Response:
         domain: str = None,
         secure: bool = False,
         httponly: bool = False,
-        samesite: str = "lax",
+        samesite: typing.Optional[typing.Literal["lax", "strict", "none"]] = "lax",
     ) -> None:
         cookie: http.cookies.BaseCookie = http.cookies.SimpleCookie()
         cookie[key] = value
@@ -136,7 +136,7 @@ class Response:
         domain: str = None,
         secure: bool = False,
         httponly: bool = False,
-        samesite: str = "lax",
+        samesite: typing.Optional[typing.Literal["lax", "strict", "none"]] = "lax",
     ) -> None:
         self.set_cookie(
             key,

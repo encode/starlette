@@ -18,7 +18,7 @@ class SessionMiddleware:
         session_cookie: str = "session",
         max_age: typing.Optional[int] = 14 * 24 * 60 * 60,  # 14 days, in seconds
         path: str = "/",
-        same_site: str = "lax",
+        same_site: typing.Literal["lax", "strict", "none"] = "lax",
         https_only: bool = False,
     ) -> None:
         self.app = app
