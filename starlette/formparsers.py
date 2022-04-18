@@ -38,6 +38,12 @@ def _user_safe_decode(src: bytes, codec: str) -> str:
         return src.decode("latin-1")
 
 
+class ParserException(Exception):
+    def __init__(self, message: str, *args: typing.Any) -> None:
+        self.message = message
+        super().__init__(message, *args)
+
+
 class FormParser:
     def __init__(
         self, headers: Headers, stream: typing.AsyncGenerator[bytes, None]
@@ -159,7 +165,10 @@ class MultiPartParser:
         charset = params.get(b"charset", "utf-8")
         if type(charset) == bytes:
             charset = charset.decode("latin-1")
-        boundary = params[b"boundary"]
+        try:
+            boundary = params[b"boundary"]
+        except KeyError:
+            raise ParserException("Missing boundary in multipart")
 
         # Callbacks dictionary.
         callbacks = {
@@ -212,7 +221,10 @@ class MultiPartParser:
                     header_value = b""
                 elif message_type == MultiPartMessage.HEADERS_FINISHED:
                     disposition, options = parse_options_header(content_disposition)
-                    field_name = _user_safe_decode(options[b"name"], charset)
+                    try:
+                        field_name = _user_safe_decode(options[b"name"], charset)
+                    except KeyError:
+                        raise ParserException("Missing name in multipart")
                     if b"filename" in options:
                         filename = _user_safe_decode(options[b"filename"], charset)
                         file = UploadFile(

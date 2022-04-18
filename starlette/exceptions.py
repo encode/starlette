@@ -3,6 +3,7 @@ import http
 import typing
 
 from starlette.concurrency import run_in_threadpool
+from starlette.formparsers import ParserException
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
@@ -37,7 +38,10 @@ class ExceptionMiddleware:
         self._status_handlers: typing.Dict[int, typing.Callable] = {}
         self._exception_handlers: typing.Dict[
             typing.Type[Exception], typing.Callable
-        ] = {HTTPException: self.http_exception}
+        ] = {
+            HTTPException: self.http_exception,
+            ParserException: self._parser_exception,
+        }
         if handlers is not None:
             for key, value in handlers.items():
                 self.add_exception_handler(key, value)
@@ -106,3 +110,6 @@ class ExceptionMiddleware:
         return PlainTextResponse(
             exc.detail, status_code=exc.status_code, headers=exc.headers
         )
+
+    def _parser_exception(self, request: Request, exc: ParserException) -> Response:
+        return PlainTextResponse(exc.message, 400)
