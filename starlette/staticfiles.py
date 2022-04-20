@@ -159,7 +159,11 @@ class StaticFiles:
             original_path = Path(directory).joinpath(path)
             full_path = original_path.resolve()
             directory = Path(directory).resolve()
-            is_internal = full_path.is_relative_to(directory)
+            try:
+                full_path.relative_to(directory)
+                is_internal = True
+            except ValueError:
+                is_internal = False
             if not is_internal and not original_path.is_symlink():
                 # Don't allow misbehaving clients to break out of the static files
                 # directory if not following symlinks.
