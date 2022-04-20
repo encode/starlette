@@ -166,8 +166,8 @@ def test_staticfiles_prevents_breaking_out_of_directory(tmpdir):
     directory = os.path.join(tmpdir, "foo")
     os.mkdir(directory)
 
-    path = os.path.join(tmpdir, "example.txt")
-    with open(path, "w") as file:
+    file_path = os.path.join(tmpdir, "example.txt")
+    with open(file_path, "w") as file:
         file.write("outside root dir")
 
     app = StaticFiles(directory=directory)
@@ -443,19 +443,21 @@ def test_staticfiles_unhandled_os_error_returns_500(
     assert response.text == "Internal Server Error"
 
 
-def test_staticfiles_follows_symlinks_to_break_out_of_dir(tmpdir, test_client_factory):
-    statics_path = os.path.join(tmpdir, "statics")
-    os.mkdir(statics_path)
+def test_staticfiles_follows_symlinks_to_break_out_of_dir(
+    tmp_path: pathlib.Path, test_client_factory
+):
+    statics_path = tmp_path.joinpath("statics")
+    statics_path.mkdir()
 
-    symlink_path = os.path.join(tmpdir, "symlink")
-    os.mkdir(symlink_path)
+    symlink_path = tmp_path.joinpath("symlink")
+    symlink_path.mkdir()
 
-    symlink_file_path = os.path.join(symlink_path, "index.html")
-    with open(symlink_file_path, "w") as file:
+    statics_file_path = statics_path.joinpath("index.html")
+    with open(statics_file_path, "w") as file:
         file.write("<h1>Hello</h1>")
 
-    statics_file_path = os.path.join(statics_path, "index.html")
-    os.symlink(symlink_file_path, statics_file_path)
+    symlink_file_path = symlink_path.joinpath("index.html")
+    symlink_file_path.symlink_to(statics_file_path)
 
     app = StaticFiles(directory=statics_path)
     client = test_client_factory(app)

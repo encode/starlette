@@ -3,6 +3,7 @@ import os
 import stat
 import typing
 from email.utils import parsedate
+from pathlib import Path
 
 import anyio
 
@@ -49,7 +50,7 @@ class StaticFiles:
         self.all_directories = self.get_directories(directory, packages)
         self.html = html
         self.config_checked = False
-        if check_dir and directory is not None and not os.path.isdir(directory):
+        if check_dir and directory is not None and not Path(directory).is_dir():
             raise RuntimeError(f"Directory '{directory}' does not exist")
 
     def get_directories(
@@ -73,11 +74,9 @@ class StaticFiles:
             spec = importlib.util.find_spec(package)
             assert spec is not None, f"Package {package!r} could not be found."
             assert spec.origin is not None, f"Package {package!r} could not be found."
-            package_directory = os.path.normpath(
-                os.path.join(spec.origin, "..", statics_dir)
-            )
-            assert os.path.isdir(
-                package_directory
+            package_directory = Path(spec.origin).joinpath("..", statics_dir).resolve()
+            assert (
+                package_directory.is_dir()
             ), f"Directory '{statics_dir!r}' in package {package!r} could not be found."
             directories.append(package_directory)
 
@@ -97,14 +96,14 @@ class StaticFiles:
         response = await self.get_response(path, scope)
         await response(scope, receive, send)
 
-    def get_path(self, scope: Scope) -> str:
+    def get_path(self, scope: Scope) -> Path:
         """
         Given the ASGI scope, return the `path` string to serve up,
         with OS specific path separators, and any '..', '.' components removed.
         """
-        return os.path.normpath(os.path.join(*scope["path"].split("/")))
+        return Path(*scope["path"].split("/"))
 
-    async def get_response(self, path: str, scope: Scope) -> Response:
+    async def get_response(self, path: Path, scope: Scope) -> Response:
         """
         Returns an HTTP response, given the incoming path, method and request headers.
         """
@@ -127,7 +126,7 @@ class StaticFiles:
         elif stat_result and stat.S_ISDIR(stat_result.st_mode) and self.html:
             # We're in HTML mode, and have got a directory URL.
             # Check if we have 'index.html' file to serve.
-            index_path = os.path.join(path, "index.html")
+            index_path = path.joinpath("index.html")
             full_path, stat_result = await anyio.to_thread.run_sync(
                 self.lookup_path, index_path
             )
@@ -154,14 +153,14 @@ class StaticFiles:
         raise HTTPException(status_code=404)
 
     def lookup_path(
-        self, path: str
-    ) -> typing.Tuple[str, typing.Optional[os.stat_result]]:
+        self, path: Path
+    ) -> typing.Tuple[Path, typing.Optional[os.stat_result]]:
         for directory in self.all_directories:
-            original_path = os.path.join(directory, path)
-            full_path = os.path.realpath(original_path)
-            directory = os.path.realpath(directory)
-            is_external = os.path.commonprefix([full_path, directory]) != directory
-            if is_external and not os.path.islink(original_path):
+            original_path = Path(directory).joinpath(path)
+            full_path = original_path.resolve()
+            directory = Path(directory).resolve()
+            is_internal = full_path.is_relative_to(directory)
+            if not is_internal and not original_path.is_symlink():
                 # Don't allow misbehaving clients to break out of the static files
                 # directory if not following symlinks.
                 continue
@@ -169,7 +168,7 @@ class StaticFiles:
                 return full_path, os.stat(full_path)
             except (FileNotFoundError, NotADirectoryError):
                 continue
-        return "", None
+        return Path(), None
 
     def file_response(
         self,
