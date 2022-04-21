@@ -56,7 +56,9 @@ class Response:
             return content
         return content.encode(self.charset)
 
-    def init_headers(self, headers: typing.Mapping[str, str] = None) -> None:
+    def init_headers(
+        self, headers: typing.Optional[typing.Mapping[str, str]] = None
+    ) -> None:
         if headers is None:
             raw_headers: typing.List[typing.Tuple[bytes, bytes]] = []
             populate_content_length = True
