@@ -488,6 +488,65 @@ class Host(BaseRoute):
             and self.app == other.app
         )
 
+class HeaderRoute(BaseRoute):
+    def __init__(self, header_key: str, header_value: str, app: ASGIApp, name: str = None) -> None:
+        self.header_key = header_key
+        self.header_value = header_value
+        self.app = app
+        self.name = name
+        self.header_regex, self.host_format, self.param_convertors = compile_path(header_value)
+
+    @property
+    def routes(self) -> typing.List[BaseRoute]:
+        return getattr(self.app, "routes", None)
+
+    def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
+        if scope["type"] in ("http", "websocket"):
+            headers = Headers(scope=scope)
+            target_header = headers.get(self.header_key, "")
+            match = self.header_regex.match(target_header)
+            if match:
+                matched_params = match.groupdict()
+                for key, value in matched_params.items():
+                    matched_params[key] = self.param_convertors[key].convert(value)
+                path_params = dict(scope.get("path_params", {}))
+                path_params.update(matched_params)
+                child_scope = {"path_params": path_params, "endpoint": self.app}
+                return Match.FULL, child_scope
+        return Match.NONE, {}
+
+    def url_path_for(self, name: str, **path_params: str) -> URLPath:
+        if self.name is not None and name == self.name and "path" in path_params:
+            # 'name' matches "<mount_name>".
+            path = path_params.pop("path")
+            host, remaining_params = replace_params(self.host_format, self.param_convertors, path_params)
+            if not remaining_params:
+                return URLPath(path=path, host=host)
+        elif self.name is None or name.startswith(self.name + ":"):
+            if self.name is None:
+                # No mount name.
+                remaining_name = name
+            else:
+                # 'name' matches "<mount_name>:<child_name>".
+                remaining_name = name[len(self.name) + 1 :]  # noqa: E203
+            host, remaining_params = replace_params(self.host_format, self.param_convertors, path_params)
+            for route in self.routes or []:
+                try:
+                    url = route.url_path_for(remaining_name, **remaining_params)
+                    return URLPath(path=str(url), protocol=url.protocol, host=host)
+                except NoMatchFound:
+                    pass
+        raise NoMatchFound()
+
+    async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
+        await self.app(scope, receive, send)
+
+    def __eq__(self, other: typing.Any) -> bool:
+        is_correct_value = self.header_value == other.header_value
+        is_right_app = self.app == other.app
+        is_header_route = isinstance(other, HeaderRoute)
+        return any([is_header_route, is_right_app, is_correct_value])
+    
 
 _T = typing.TypeVar("_T")
 
