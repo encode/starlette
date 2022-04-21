@@ -156,6 +156,10 @@ class Starlette:
         """
 
         self.router.host(host, app=app, name=name)
+        
+    def headers(self, header_key: str, header_value: str, app: ASGIApp, name: str = None) -> None:
+        route = HeaderRoute(header_key, header_value, app=app, name=name)
+        self.routes.append(route)
 
     def add_middleware(
         self, middleware_class: type, **options: typing.Any
