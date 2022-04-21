@@ -10,6 +10,7 @@ import trio.lowlevel
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.responses import JSONResponse
+from starlette.routing import Route
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 if sys.version_info >= (3, 7):  # pragma: no cover
@@ -19,12 +20,16 @@ else:  # pragma: no cover
     asyncio_current_task = asyncio.Task.current_task
     from contextlib2 import asynccontextmanager
 
-mock_service = Starlette()
 
-
-@mock_service.route("/")
 def mock_service_endpoint(request):
     return JSONResponse({"mock": "example"})
+
+
+mock_service = Starlette(
+    routes=[
+        Route("/", endpoint=mock_service_endpoint),
+    ]
+)
 
 
 def current_task():
@@ -42,12 +47,11 @@ def current_task():
     raise RuntimeError(f"unsupported asynclib={asynclib_name}")  # pragma: no cover
 
 
-startup_error_app = Starlette()
-
-
-@startup_error_app.on_event("startup")
 def startup():
     raise RuntimeError()
+
+
+startup_error_app = Starlette(on_startup=[startup])
 
 
 def test_use_testclient_in_endpoint(test_client_factory):
@@ -58,13 +62,12 @@ def test_use_testclient_in_endpoint(test_client_factory):
     during tests or in development.
     """
 
-    app = Starlette()
-
-    @app.route("/")
     def homepage(request):
         client = test_client_factory(mock_service)
         response = client.get("/")
         return JSONResponse(response.json())
+
+    app = Starlette(routes=[Route("/", endpoint=homepage)])
 
     client = test_client_factory(app)
     response = client.get("/")
@@ -103,11 +106,13 @@ def test_use_testclient_as_contextmanager(test_client_factory, anyio_backend_nam
         shutdown_task = current_task()
         shutdown_loop = get_identity()
 
-    app = Starlette(lifespan=lifespan_context)
-
-    @app.route("/loop_id")
     async def loop_id(request):
         return JSONResponse(get_identity())
+
+    app = Starlette(
+        lifespan=lifespan_context,
+        routes=[Route("/loop_id", endpoint=loop_id)],
+    )
 
     client = test_client_factory(app)
 
@@ -229,3 +234,16 @@ def test_websocket_blocking_receive(test_client_factory):
     with client.websocket_connect("/") as websocket:
         data = websocket.receive_json()
         assert data == {"message": "test"}
+
+
+def test_client(test_client_factory):
+    async def app(scope, receive, send):
+        client = scope.get("client")
+        assert client is not None
+        host, port = client
+        response = JSONResponse({"host": host, "port": port})
+        await response(scope, receive, send)
+
+    client = test_client_factory(app)
+    response = client.get("/")
+    assert response.json() == {"host": "testclient", "port": 50000}
