@@ -3,8 +3,11 @@
 April 15, 2022
 
 ### Fixed
-* Apply right name to `Route` when created from methods [#1553](https://github.com/encode/starlette/pull/1553)
-* Avoid `TypeError` on `websocket.disconnect` when code is `None` [#1574](https://github.com/encode/starlette/pull/1574)
+* Apply right name to `Route` when created from methods [#1553](https://github.com/encode/starlette/pull/1553).
+* Avoid `TypeError` on `websocket.disconnect` when code is `None` [#1574](https://github.com/encode/starlette/pull/1574).
+
+### Deprecated
+* Deprecate `WS_1004_NO_STATUS_RCVD` and `WS_1005_ABNORMAL_CLOSURE` in favor of `WS_1005_NO_STATUS_RCVD` and `WS_1006_ABNORMAL_CLOSURE`, as the previous constants didn't match the [WebSockets specs](https://www.iana.org/assignments/websocket/websocket.xhtml) [#1580](https://github.com/encode/starlette/pull/1580).
 
 
 ## 0.19.0
