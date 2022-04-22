@@ -1,6 +1,6 @@
 ## 0.19.1
 
-April 15, 2022
+April 22, 2022
 
 ### Fixed
 * Apply right name to `Route` when created from methods [#1553](https://github.com/encode/starlette/pull/1553).
