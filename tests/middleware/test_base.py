@@ -199,7 +199,8 @@ class CustomMiddlewareUsingBaseHTTPMiddleware(BaseHTTPMiddleware):
                 reason=(
                     "BaseHTTPMiddleware creates a TaskGroup which copies the context"
                     "and erases any changes to it made within the TaskGroup"
-                )
+                ),
+                raises=AssertionError,
             ),
         ),
     ],
