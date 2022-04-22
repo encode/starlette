@@ -3,7 +3,7 @@
 April 22, 2022
 
 ### Fixed
-* Apply right name to `Route` when created from methods [#1553](https://github.com/encode/starlette/pull/1553).
+* Fix inference of `Route.name` when created from methods [#1553](https://github.com/encode/starlette/pull/1553).
 * Avoid `TypeError` on `websocket.disconnect` when code is `None` [#1574](https://github.com/encode/starlette/pull/1574).
 
 ### Deprecated
