@@ -38,7 +38,7 @@ def _user_safe_decode(src: bytes, codec: str) -> str:
         return src.decode("latin-1")
 
 
-class ParserException(Exception):
+class MultiPartException(Exception):
     def __init__(self, message: str, *args: typing.Any) -> None:
         self.message = message
         super().__init__(message, *args)
@@ -168,7 +168,7 @@ class MultiPartParser:
         try:
             boundary = params[b"boundary"]
         except KeyError:
-            raise ParserException("Missing boundary in multipart")
+            raise MultiPartException("Missing boundary in multipart.")
 
         # Callbacks dictionary.
         callbacks = {
@@ -224,7 +224,7 @@ class MultiPartParser:
                     try:
                         field_name = _user_safe_decode(options[b"name"], charset)
                     except KeyError:
-                        raise ParserException("Missing name in multipart")
+                        raise MultiPartException("Missing name in multipart.")
                     if b"filename" in options:
                         filename = _user_safe_decode(options[b"filename"], charset)
                         file = UploadFile(

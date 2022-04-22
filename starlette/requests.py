@@ -6,7 +6,9 @@ from http import cookies as http_cookies
 import anyio
 
 from starlette.datastructures import URL, Address, FormData, Headers, QueryParams, State
-from starlette.formparsers import FormParser, MultiPartParser
+from starlette.exceptions import HTTPException
+from starlette.formparsers import FormParser, MultiPartException, MultiPartParser
+from starlette.responses import PlainTextResponse
 from starlette.types import Message, Receive, Scope, Send
 
 try:
@@ -250,8 +252,15 @@ class Request(HTTPConnection):
             content_type_header = self.headers.get("Content-Type")
             content_type, options = parse_options_header(content_type_header)
             if content_type == b"multipart/form-data":
-                multipart_parser = MultiPartParser(self.headers, self.stream())
-                self._form = await multipart_parser.parse()
+                try:
+                    multipart_parser = MultiPartParser(self.headers, self.stream())
+                    self._form = await multipart_parser.parse()
+                except MultiPartException as exc:
+                    if "app" in self.scope:
+                        raise HTTPException(status_code=400, detail=exc.message)
+                    else:
+                        response = PlainTextResponse("Not Found", status_code=404)
+                        return await response(self.scope, self._receive, self._send)
             elif content_type == b"application/x-www-form-urlencoded":
                 form_parser = FormParser(self.headers, self.stream())
                 self._form = await form_parser.parse()
