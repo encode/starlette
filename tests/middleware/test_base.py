@@ -207,8 +207,8 @@ class CustomMiddlewareUsingBaseHTTPMiddleware(BaseHTTPMiddleware):
 )
 def test_contextvars(test_client_factory, middleware_cls: type):
     # this has to be an async endpoint because Starlette calls run_in_threadpool
-    # on sync endpoints which suffers from the same problem of erasing changes
-    # to the context
+    # on sync endpoints which has it's own set of peculiarities w.r.t propagating
+    # contextvars (it propagates them forwards but not backwards)
     async def homepage(request):
         assert ctxvar.get() == "set by middleware"
         ctxvar.set("set by endpoint")
