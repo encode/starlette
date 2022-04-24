@@ -43,9 +43,9 @@ class Response:
         self,
         content: typing.Any = None,
         status_code: int = 200,
-        headers: typing.Mapping[str, str] = None,
-        media_type: str = None,
-        background: BackgroundTask = None,
+        headers: typing.Optional[typing.Mapping[str, str]] = None,
+        media_type: typing.Optional[str] = None,
+        background: typing.Optional[BackgroundTask] = None,
     ) -> None:
         self.status_code = status_code
         if media_type is not None:
@@ -61,7 +61,9 @@ class Response:
             return content
         return content.encode(self.charset)
 
-    def init_headers(self, headers: typing.Mapping[str, str] = None) -> None:
+    def init_headers(
+        self, headers: typing.Optional[typing.Mapping[str, str]] = None
+    ) -> None:
         if headers is None:
             raw_headers: typing.List[typing.Tuple[bytes, bytes]] = []
             populate_content_length = True
@@ -102,10 +104,10 @@ class Response:
         self,
         key: str,
         value: str = "",
-        max_age: int = None,
-        expires: int = None,
+        max_age: typing.Optional[int] = None,
+        expires: typing.Optional[int] = None,
         path: str = "/",
-        domain: str = None,
+        domain: typing.Optional[str] = None,
         secure: bool = False,
         httponly: bool = False,
         samesite: typing.Optional[Literal["lax", "strict", "none"]] = "lax",
@@ -138,7 +140,7 @@ class Response:
         self,
         key: str,
         path: str = "/",
-        domain: str = None,
+        domain: typing.Optional[str] = None,
         secure: bool = False,
         httponly: bool = False,
         samesite: typing.Optional[Literal["lax", "strict", "none"]] = "lax",
@@ -183,9 +185,9 @@ class JSONResponse(Response):
         self,
         content: typing.Any,
         status_code: int = 200,
-        headers: dict = None,
-        media_type: str = None,
-        background: BackgroundTask = None,
+        headers: typing.Optional[dict] = None,
+        media_type: typing.Optional[str] = None,
+        background: typing.Optional[BackgroundTask] = None,
     ) -> None:
         super().__init__(content, status_code, headers, media_type, background)
 
@@ -204,8 +206,8 @@ class RedirectResponse(Response):
         self,
         url: typing.Union[str, URL],
         status_code: int = 307,
-        headers: typing.Mapping[str, str] = None,
-        background: BackgroundTask = None,
+        headers: typing.Optional[typing.Mapping[str, str]] = None,
+        background: typing.Optional[BackgroundTask] = None,
     ) -> None:
         super().__init__(
             content=b"", status_code=status_code, headers=headers, background=background
@@ -218,9 +220,9 @@ class StreamingResponse(Response):
         self,
         content: typing.Any,
         status_code: int = 200,
-        headers: typing.Mapping[str, str] = None,
-        media_type: str = None,
-        background: BackgroundTask = None,
+        headers: typing.Optional[typing.Mapping[str, str]] = None,
+        media_type: typing.Optional[str] = None,
+        background: typing.Optional[BackgroundTask] = None,
     ) -> None:
         if isinstance(content, typing.AsyncIterable):
             self.body_iterator = content
@@ -273,12 +275,12 @@ class FileResponse(Response):
         self,
         path: typing.Union[str, "os.PathLike[str]"],
         status_code: int = 200,
-        headers: typing.Mapping[str, str] = None,
-        media_type: str = None,
-        background: BackgroundTask = None,
-        filename: str = None,
-        stat_result: os.stat_result = None,
-        method: str = None,
+        headers: typing.Optional[typing.Mapping[str, str]] = None,
+        media_type: typing.Optional[str] = None,
+        background: typing.Optional[BackgroundTask] = None,
+        filename: typing.Optional[str] = None,
+        stat_result: typing.Optional[os.stat_result] = None,
+        method: typing.Optional[str] = None,
         content_disposition_type: str = "attachment",
     ) -> None:
         self.path = path
