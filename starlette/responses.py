@@ -19,7 +19,7 @@ from starlette.types import Receive, Scope, Send
 
 if sys.version_info >= (3, 8):  # pragma: no cover
     from typing import Literal
-else:
+else:  # pragma: no cover
     from typing_extensions import Literal
 
 # Workaround for adding samesite support to pre 3.8 python
