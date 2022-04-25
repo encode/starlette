@@ -26,7 +26,7 @@ class GZipMiddleware:
         await self.app(scope, receive, send)
 
 
-class GZipResponder:  # noqa: WPS230
+class GZipResponder:
     def __init__(self, app: ASGIApp, minimum_size: int, compresslevel: int = 9) -> None:
         self.app = app
         self.minimum_size = minimum_size
@@ -35,7 +35,8 @@ class GZipResponder:  # noqa: WPS230
         self.started = False
         self.gzip_buffer = io.BytesIO()
         self.gzip_file = gzip.GzipFile(
-            mode="wb", fileobj=self.gzip_buffer, compresslevel=compresslevel)
+            mode="wb", fileobj=self.gzip_buffer, compresslevel=compresslevel
+        )
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         self.send = send
@@ -55,7 +56,7 @@ class GZipResponder:  # noqa: WPS230
                 # Don't apply GZip to small outgoing responses.
                 await self.send(self.initial_message)
                 await self.send(message)
-            elif not more_body:  # noqa: WPS504
+            elif not more_body:
                 # Standard GZip response.
                 body = self._set_response_body(body, more_body)
 
@@ -72,7 +73,7 @@ class GZipResponder:  # noqa: WPS230
                 headers = MutableHeaders(raw=self.initial_message["headers"])
                 headers["Content-Encoding"] = "gzip"
                 headers.add_vary_header("Accept-Encoding")
-                del headers["Content-Length"]  # noqa: WPS420
+                del headers["Content-Length"]
 
                 message["body"] = self._set_response_body(body, more_body)
                 await self.send(self.initial_message)
