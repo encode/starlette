@@ -748,7 +748,7 @@ def test_router_middleware(test_client_factory) -> None:
     resp = client.get("/baz")
     assert resp.status_code == 404, resp.content
 
-    
+
 class Endpoint:
     async def my_method(self, request):
         ...  # pragma: no cover
