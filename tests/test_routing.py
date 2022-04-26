@@ -1,4 +1,5 @@
 import functools
+import typing
 import uuid
 
 import pytest
@@ -746,3 +747,38 @@ def test_router_middleware(test_client_factory) -> None:
     # but any other path works as expected
     resp = client.get("/baz")
     assert resp.status_code == 404, resp.content
+
+    
+class Endpoint:
+    async def my_method(self, request):
+        ...  # pragma: no cover
+
+    @classmethod
+    async def my_classmethod(cls, request):
+        ...  # pragma: no cover
+
+    @staticmethod
+    async def my_staticmethod(request):
+        ...  # pragma: no cover
+
+    def __call__(self, request):
+        ...  # pragma: no cover
+
+
+@pytest.mark.parametrize(
+    "endpoint, expected_name",
+    [
+        pytest.param(func_homepage, "func_homepage", id="function"),
+        pytest.param(Endpoint().my_method, "my_method", id="method"),
+        pytest.param(Endpoint.my_classmethod, "my_classmethod", id="classmethod"),
+        pytest.param(
+            Endpoint.my_staticmethod,
+            "my_staticmethod",
+            id="staticmethod",
+        ),
+        pytest.param(Endpoint(), "Endpoint", id="object"),
+        pytest.param(lambda request: ..., "<lambda>", id="lambda"),
+    ],
+)
+def test_route_name(endpoint: typing.Callable, expected_name: str):
+    assert Route(path="/", endpoint=endpoint).name == expected_name
