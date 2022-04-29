@@ -250,7 +250,10 @@ class StreamingResponse(Response):
         async for chunk in self.body_iterator:
             if not isinstance(chunk, bytes):
                 chunk = chunk.encode(self.charset)
-            await send({"type": "http.response.body", "body": chunk, "more_body": True})
+            if chunk:
+                await send(
+                    {"type": "http.response.body", "body": chunk, "more_body": True}
+                )
 
         await send({"type": "http.response.body", "body": b"", "more_body": False})
 
