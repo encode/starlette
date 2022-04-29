@@ -192,8 +192,8 @@ class Route(BaseRoute):
         path: str,
         endpoint: typing.Callable,
         *,
-        methods: typing.List[str] = None,
-        name: str = None,
+        methods: typing.Optional[typing.List[str]] = None,
+        name: typing.Optional[str] = None,
         include_in_schema: bool = True,
     ) -> None:
         assert path.startswith("/"), "Routed paths must start with '/'"
@@ -279,7 +279,7 @@ class Route(BaseRoute):
 
 class WebSocketRoute(BaseRoute):
     def __init__(
-        self, path: str, endpoint: typing.Callable, *, name: str = None
+        self, path: str, endpoint: typing.Callable, *, name: typing.Optional[str] = None
     ) -> None:
         assert path.startswith("/"), "Routed paths must start with '/'"
         self.path = path
@@ -342,9 +342,9 @@ class Mount(BaseRoute):
     def __init__(
         self,
         path: str,
-        app: ASGIApp = None,
-        routes: typing.Sequence[BaseRoute] = None,
-        name: str = None,
+        app: typing.Optional[ASGIApp] = None,
+        routes: typing.Optional[typing.Sequence[BaseRoute]] = None,
+        name: typing.Optional[str] = None,
     ) -> None:
         assert path == "" or path.startswith("/"), "Routed paths must start with '/'"
         assert (
@@ -435,7 +435,9 @@ class Mount(BaseRoute):
 
 
 class Host(BaseRoute):
-    def __init__(self, host: str, app: ASGIApp, name: str = None) -> None:
+    def __init__(
+        self, host: str, app: ASGIApp, name: typing.Optional[str] = None
+    ) -> None:
         self.host = host
         self.app = app
         self.name = name
@@ -549,12 +551,14 @@ class _DefaultLifespan:
 class Router:
     def __init__(
         self,
-        routes: typing.Sequence[BaseRoute] = None,
+        routes: typing.Optional[typing.Sequence[BaseRoute]] = None,
         redirect_slashes: bool = True,
-        default: ASGIApp = None,
-        on_startup: typing.Sequence[typing.Callable] = None,
-        on_shutdown: typing.Sequence[typing.Callable] = None,
-        lifespan: typing.Callable[[typing.Any], typing.AsyncContextManager] = None,
+        default: typing.Optional[ASGIApp] = None,
+        on_startup: typing.Optional[typing.Sequence[typing.Callable]] = None,
+        on_shutdown: typing.Optional[typing.Sequence[typing.Callable]] = None,
+        lifespan: typing.Optional[
+            typing.Callable[[typing.Any], typing.AsyncContextManager]
+        ] = None,
     ) -> None:
         self.routes = [] if routes is None else list(routes)
         self.redirect_slashes = redirect_slashes
@@ -712,7 +716,7 @@ class Router:
     # The following usages are now discouraged in favour of configuration
     # during Router.__init__(...)
     def mount(
-        self, path: str, app: ASGIApp, name: str = None
+        self, path: str, app: ASGIApp, name: typing.Optional[str] = None
     ) -> None:  # pragma: nocover
         """
         We no longer document this API, and its usage is discouraged.
@@ -730,7 +734,7 @@ class Router:
         self.routes.append(route)
 
     def host(
-        self, host: str, app: ASGIApp, name: str = None
+        self, host: str, app: ASGIApp, name: typing.Optional[str] = None
     ) -> None:  # pragma: no cover
         """
         We no longer document this API, and its usage is discouraged.
@@ -751,8 +755,8 @@ class Router:
         self,
         path: str,
         endpoint: typing.Callable,
-        methods: typing.List[str] = None,
-        name: str = None,
+        methods: typing.Optional[typing.List[str]] = None,
+        name: typing.Optional[str] = None,
         include_in_schema: bool = True,
     ) -> None:  # pragma: nocover
         route = Route(
@@ -765,7 +769,7 @@ class Router:
         self.routes.append(route)
 
     def add_websocket_route(
-        self, path: str, endpoint: typing.Callable, name: str = None
+        self, path: str, endpoint: typing.Callable, name: typing.Optional[str] = None
     ) -> None:  # pragma: no cover
         route = WebSocketRoute(path, endpoint=endpoint, name=name)
         self.routes.append(route)
@@ -773,8 +777,8 @@ class Router:
     def route(
         self,
         path: str,
-        methods: typing.List[str] = None,
-        name: str = None,
+        methods: typing.Optional[typing.List[str]] = None,
+        name: typing.Optional[str] = None,
         include_in_schema: bool = True,
     ) -> typing.Callable:  # pragma: nocover
         """
@@ -802,7 +806,7 @@ class Router:
         return decorator
 
     def websocket_route(
-        self, path: str, name: str = None
+        self, path: str, name: typing.Optional[str] = None
     ) -> typing.Callable:  # pragma: nocover
         """
         We no longer document this decorator style API, and its usage is discouraged.
