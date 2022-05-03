@@ -1,6 +1,6 @@
 ## 0.20.0
 
-April 28, 2022
+May 3, 2022
 
 ### Removed
 * Drop Python 3.6 support [#1357](https://github.com/encode/starlette/pull/1357) and [#1616](https://github.com/encode/starlette/pull/1616).
