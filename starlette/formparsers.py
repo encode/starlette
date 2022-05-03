@@ -221,10 +221,7 @@ class MultiPartParser:
                     header_value = b""
                 elif message_type == MultiPartMessage.HEADERS_FINISHED:
                     disposition, options = parse_options_header(content_disposition)
-                    try:
-                        field_name = _user_safe_decode(options[b"name"], charset)
-                    except KeyError:
-                        raise MultiPartException("Missing name in multipart.")
+                    field_name = _user_safe_decode(options[b"name"], charset)
                     if b"filename" in options:
                         filename = _user_safe_decode(options[b"filename"], charset)
                         file = UploadFile(

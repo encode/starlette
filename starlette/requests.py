@@ -6,9 +6,8 @@ from http import cookies as http_cookies
 import anyio
 
 from starlette.datastructures import URL, Address, FormData, Headers, QueryParams, State
-from starlette.exceptions import HTTPException
 from starlette.formparsers import FormParser, MultiPartException, MultiPartParser
-from starlette.responses import PlainTextResponse
+from starlette.http_exception import HTTPException
 from starlette.types import Message, Receive, Scope, Send
 
 try:
@@ -258,9 +257,7 @@ class Request(HTTPConnection):
                 except MultiPartException as exc:
                     if "app" in self.scope:
                         raise HTTPException(status_code=400, detail=exc.message)
-                    else:
-                        response = PlainTextResponse("Not Found", status_code=404)
-                        return await response(self.scope, self._receive, self._send)
+                    raise exc
             elif content_type == b"application/x-www-form-urlencoded":
                 form_parser = FormParser(self.headers, self.stream())
                 self._form = await form_parser.parse()
