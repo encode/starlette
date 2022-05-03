@@ -1,6 +1,6 @@
 import json
 import typing
-from collections import Mapping
+from collections.abc import Mapping
 from http import cookies as http_cookies
 
 import anyio

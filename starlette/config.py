@@ -1,6 +1,6 @@
 import os
 import typing
-from collections import MutableMapping
+from collections.abc import MutableMapping
 from pathlib import Path
 
 
