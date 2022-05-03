@@ -52,7 +52,7 @@ def test_websocket_query_params(test_client_factory):
 
 @pytest.mark.skipif(
     any(module in sys.modules for module in ("brotli", "brotlicffi")),
-    reason="When brotli is installed urllib3 includes it to the headers.",
+    reason='urllib3 includes "br" to the "accept-encoding" headers.',
 )
 def test_websocket_headers(test_client_factory):
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
