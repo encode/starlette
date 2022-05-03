@@ -1,3 +1,5 @@
+import sys
+
 import anyio
 import pytest
 
@@ -48,6 +50,10 @@ def test_websocket_query_params(test_client_factory):
         assert data == {"params": {"a": "abc", "b": "456"}}
 
 
+@pytest.mark.skipif(
+    any(module in sys.modules for module in ("brotli", "brotlicffi")),
+    reason="When brotli is installed urllib3 includes it to the headers.",
+)
 def test_websocket_headers(test_client_factory):
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
