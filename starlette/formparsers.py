@@ -39,9 +39,8 @@ def _user_safe_decode(src: bytes, codec: str) -> str:
 
 
 class MultiPartException(Exception):
-    def __init__(self, message: str, *args: typing.Any) -> None:
+    def __init__(self, message: str) -> None:
         self.message = message
-        super().__init__(message, *args)
 
 
 class FormParser:
