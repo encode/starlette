@@ -13,7 +13,6 @@ else:  # pragma: no cover
 import contextvars
 from contextvars import Context
 
-
 T = typing.TypeVar("T")
 P = ParamSpec("P")
 
