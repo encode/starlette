@@ -9,6 +9,7 @@ if sys.version_info >= (3, 10):  # pragma: no cover
     from typing import ParamSpec
 else:  # pragma: no cover
     from typing_extensions import ParamSpec
+
 import contextvars
 from contextvars import Context
 
