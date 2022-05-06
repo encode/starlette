@@ -9,12 +9,8 @@ if sys.version_info >= (3, 10):  # pragma: no cover
     from typing import ParamSpec
 else:  # pragma: no cover
     from typing_extensions import ParamSpec
-try:
-    import contextvars  # Python 3.7+ only or via contextvars backport.
-    from contextvars import Context
-except ImportError:  # pragma: no cover
-    contextvars = None  # type: ignore
-    Context = None  # type: ignore
+import contextvars  # Python 3.7+ only or via contextvars backport.
+from contextvars import Context
 
 
 T = typing.TypeVar("T")
