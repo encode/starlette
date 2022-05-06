@@ -56,11 +56,8 @@ async def run_in_threadpool(
     if kwargs:  # pragma: no cover
         # run_sync doesn't accept 'kwargs', so bind them in here
         func = functools.partial(func, **kwargs)
-    if contextvars is not None:
-        context = contextvars.copy_context()
-        func = functools.partial(context.run, func)  # type: ignore[assignment]
-    else:  # pragma: no cover
-        context = None
+    context = contextvars.copy_context()
+    func = functools.partial(context.run, func)  # type: ignore[assignment]
     res = await anyio.to_thread.run_sync(func, *args)
     if context is not None:
         _restore_context(context)
