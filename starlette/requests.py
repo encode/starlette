@@ -6,8 +6,8 @@ from http import cookies as http_cookies
 import anyio
 
 from starlette.datastructures import URL, Address, FormData, Headers, QueryParams, State
+from starlette.exceptions import HTTPException
 from starlette.formparsers import FormParser, MultiPartException, MultiPartParser
-from starlette.http_exception import HTTPException
 from starlette.types import Message, Receive, Scope, Send
 
 try:
