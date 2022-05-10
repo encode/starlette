@@ -133,9 +133,14 @@ def test_http_repr():
 
 
 def test_websocket_repr():
-    assert repr(WebSocketException(1008)) == ("WebSocketException(code=1008)")
+    assert repr(WebSocketException(1008, reason="Policy Violation")) == (
+        "WebSocketException(code=1008, reason='Policy Violation')"
+    )
 
     class CustomWebSocketException(WebSocketException):
         pass
 
-    assert repr(CustomWebSocketException(1013)) == "CustomWebSocketException(code=1013)"
+    assert (
+        repr(CustomWebSocketException(1013, reason="Something custom"))
+        == "CustomWebSocketException(code=1013, reason='Something custom')"
+    )

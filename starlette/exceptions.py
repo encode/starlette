@@ -28,12 +28,13 @@ class HTTPException(Exception):
 
 
 class WebSocketException(Exception):
-    def __init__(self, code: int) -> None:
+    def __init__(self, code: int, reason: typing.Optional[str] = None) -> None:
         self.code = code
+        self.reason = reason or ""
 
     def __repr__(self) -> str:
         class_name = self.__class__.__name__
-        return f"{class_name}(code={self.code!r})"
+        return f"{class_name}(code={self.code!r}, reason={self.reason!r})"
 
 
 class ExceptionMiddleware:
@@ -133,4 +134,4 @@ class ExceptionMiddleware:
     async def websocket_exception(
         self, websocket: WebSocket, exc: WebSocketException
     ) -> None:
-        await websocket.close(code=exc.code)
+        await websocket.close(code=exc.code, reason=exc.reason)
