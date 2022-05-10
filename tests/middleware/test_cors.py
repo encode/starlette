@@ -543,6 +543,6 @@ def test_cors_allowed_by_path_regex(test_client_factory):
     assert response.text == "Document"
 
     # Test pre-flight response
-    headers = {"Origin": "https://another.com"}
+    headers = {"Origin": "https://another.com", "Access-Control-Request-Method": "GET"}
     response = client.options(path, headers=headers)
     assert response.status_code == 200
