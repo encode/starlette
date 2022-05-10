@@ -1,5 +1,5 @@
 import os
-import sys
+from contextlib import asynccontextmanager
 
 import anyio
 import pytest
@@ -8,96 +8,63 @@ from starlette import status
 from starlette.applications import Starlette
 from starlette.endpoints import HTTPEndpoint
 from starlette.exceptions import HTTPException, WebSocketException
+from starlette.middleware import Middleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.responses import JSONResponse, PlainTextResponse
 from starlette.routing import Host, Mount, Route, Router, WebSocketRoute
 from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocket
 
-if sys.version_info >= (3, 7):
-    from contextlib import asynccontextmanager  # pragma: no cover
-else:
-    from contextlib2 import asynccontextmanager  # pragma: no cover
 
-app = Starlette()
-
-
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=["testserver", "*.example.org"])
-
-
-@app.exception_handler(500)
 async def error_500(request, exc):
     return JSONResponse({"detail": "Server Error"}, status_code=500)
 
 
-@app.exception_handler(405)
 async def method_not_allowed(request, exc):
     return JSONResponse({"detail": "Custom message"}, status_code=405)
 
 
-@app.exception_handler(HTTPException)
 async def http_exception(request, exc):
     return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
 
 
-@app.route("/func")
 def func_homepage(request):
     return PlainTextResponse("Hello, world!")
 
 
-@app.route("/async")
 async def async_homepage(request):
     return PlainTextResponse("Hello, world!")
 
 
-@app.route("/class")
 class Homepage(HTTPEndpoint):
     def get(self, request):
         return PlainTextResponse("Hello, world!")
 
 
-users = Router()
-
-
-@users.route("/")
 def all_users_page(request):
     return PlainTextResponse("Hello, everyone!")
 
 
-@users.route("/{username}")
 def user_page(request):
     username = request.path_params["username"]
     return PlainTextResponse(f"Hello, {username}!")
 
 
-app.mount("/users", users)
-
-
-subdomain = Router()
-
-
-@subdomain.route("/")
 def custom_subdomain(request):
     return PlainTextResponse("Subdomain: " + request.path_params["subdomain"])
 
 
-app.host("{subdomain}.example.org", subdomain)
-
-
-@app.route("/500")
 def runtime_error(request):
     raise RuntimeError()
 
 
-@app.websocket_route("/ws")
 async def websocket_endpoint(session):
     await session.accept()
     await session.send_text("Hello, world!")
     await session.close()
 
 
-@app.websocket_route("/ws-raise-websocket")
-async def websocket_raise_websocket_exception(websocket: WebSocket):
+async def websocket_raise_websocket(websocket: WebSocket):
     await websocket.accept()
     raise WebSocketException(code=status.WS_1003_UNSUPPORTED_DATA)
 
@@ -106,15 +73,54 @@ class CustomWSException(Exception):
     pass
 
 
-@app.websocket_route("/ws-raise-custom")
 async def websocket_raise_custom(websocket: WebSocket):
     await websocket.accept()
     raise CustomWSException()
 
 
-@app.exception_handler(CustomWSException)
 def custom_ws_exception_handler(websocket: WebSocket, exc: CustomWSException):
     anyio.from_thread.run(websocket.close, status.WS_1013_TRY_AGAIN_LATER)
+
+
+users = Router(
+    routes=[
+        Route("/", endpoint=all_users_page),
+        Route("/{username}", endpoint=user_page),
+    ]
+)
+
+subdomain = Router(
+    routes=[
+        Route("/", custom_subdomain),
+    ]
+)
+
+exception_handlers = {
+    500: error_500,
+    405: method_not_allowed,
+    HTTPException: http_exception,
+    CustomWSException: custom_ws_exception_handler,
+}
+
+middleware = [
+    Middleware(TrustedHostMiddleware, allowed_hosts=["testserver", "*.example.org"])
+]
+
+app = Starlette(
+    routes=[
+        Route("/func", endpoint=func_homepage),
+        Route("/async", endpoint=async_homepage),
+        Route("/class", endpoint=Homepage),
+        Route("/500", endpoint=runtime_error),
+        WebSocketRoute("/ws", endpoint=websocket_endpoint),
+        WebSocketRoute("/ws-raise-websocket", endpoint=websocket_raise_websocket),
+        WebSocketRoute("/ws-raise-custom", endpoint=websocket_raise_custom),
+        Mount("/users", app=users),
+        Host("{subdomain}.example.org", app=subdomain),
+    ],
+    exception_handlers=exception_handlers,
+    middleware=middleware,
+)
 
 
 @pytest.fixture
@@ -230,6 +236,10 @@ def test_routes():
         Route("/func", endpoint=func_homepage, methods=["GET"]),
         Route("/async", endpoint=async_homepage, methods=["GET"]),
         Route("/class", endpoint=Homepage),
+        Route("/500", endpoint=runtime_error, methods=["GET"]),
+        WebSocketRoute("/ws", endpoint=websocket_endpoint),
+        WebSocketRoute("/ws-raise-websocket", endpoint=websocket_raise_websocket),
+        WebSocketRoute("/ws-raise-custom", endpoint=websocket_raise_custom),
         Mount(
             "/users",
             app=Router(
@@ -243,12 +253,6 @@ def test_routes():
             "{subdomain}.example.org",
             app=Router(routes=[Route("/", endpoint=custom_subdomain)]),
         ),
-        Route("/500", endpoint=runtime_error, methods=["GET"]),
-        WebSocketRoute("/ws", endpoint=websocket_endpoint),
-        WebSocketRoute(
-            "/ws-raise-websocket", endpoint=websocket_raise_websocket_exception
-        ),
-        WebSocketRoute("/ws-raise-custom", endpoint=websocket_raise_custom),
     ]
 
 
@@ -257,8 +261,11 @@ def test_app_mount(tmpdir, test_client_factory):
     with open(path, "w") as file:
         file.write("<file content>")
 
-    app = Starlette()
-    app.mount("/static", StaticFiles(directory=tmpdir))
+    app = Starlette(
+        routes=[
+            Mount("/static", StaticFiles(directory=tmpdir)),
+        ]
+    )
 
     client = test_client_factory(app)
 
@@ -272,12 +279,15 @@ def test_app_mount(tmpdir, test_client_factory):
 
 
 def test_app_debug(test_client_factory):
-    app = Starlette()
-    app.debug = True
-
-    @app.route("/")
     async def homepage(request):
         raise RuntimeError()
+
+    app = Starlette(
+        routes=[
+            Route("/", homepage),
+        ],
+    )
+    app.debug = True
 
     client = test_client_factory(app, raise_server_exceptions=False)
     response = client.get("/")
@@ -287,12 +297,15 @@ def test_app_debug(test_client_factory):
 
 
 def test_app_add_route(test_client_factory):
-    app = Starlette()
-
     async def homepage(request):
         return PlainTextResponse("Hello, World!")
 
-    app.add_route("/", homepage)
+    app = Starlette(
+        routes=[
+            Route("/", endpoint=homepage),
+        ]
+    )
+
     client = test_client_factory(app)
     response = client.get("/")
     assert response.status_code == 200
@@ -300,14 +313,16 @@ def test_app_add_route(test_client_factory):
 
 
 def test_app_add_websocket_route(test_client_factory):
-    app = Starlette()
-
     async def websocket_endpoint(session):
         await session.accept()
         await session.send_text("Hello, world!")
         await session.close()
 
-    app.add_websocket_route("/ws", websocket_endpoint)
+    app = Starlette(
+        routes=[
+            WebSocketRoute("/ws", endpoint=websocket_endpoint),
+        ]
+    )
     client = test_client_factory(app)
 
     with client.websocket_connect("/ws") as session:
@@ -318,7 +333,6 @@ def test_app_add_websocket_route(test_client_factory):
 def test_app_add_event_handler(test_client_factory):
     startup_complete = False
     cleanup_complete = False
-    app = Starlette()
 
     def run_startup():
         nonlocal startup_complete
@@ -328,8 +342,10 @@ def test_app_add_event_handler(test_client_factory):
         nonlocal cleanup_complete
         cleanup_complete = True
 
-    app.add_event_handler("startup", run_startup)
-    app.add_event_handler("shutdown", run_cleanup)
+    app = Starlette(
+        on_startup=[run_startup],
+        on_shutdown=[run_cleanup],
+    )
 
     assert not startup_complete
     assert not cleanup_complete

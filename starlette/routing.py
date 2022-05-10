@@ -3,11 +3,11 @@ import contextlib
 import functools
 import inspect
 import re
-import sys
 import traceback
 import types
 import typing
 import warnings
+from contextlib import asynccontextmanager
 from enum import Enum
 
 from starlette.concurrency import run_in_threadpool
@@ -19,17 +19,16 @@ from starlette.responses import PlainTextResponse, RedirectResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketClose
 
-if sys.version_info >= (3, 7):
-    from contextlib import asynccontextmanager  # pragma: no cover
-else:
-    from contextlib2 import asynccontextmanager  # pragma: no cover
-
 
 class NoMatchFound(Exception):
     """
     Raised by `.url_for(name, **path_params)` and `.url_path_for(name, **path_params)`
     if no matching route exists.
     """
+
+    def __init__(self, name: str, path_params: typing.Dict[str, typing.Any]) -> None:
+        params = ", ".join(list(path_params.keys()))
+        super().__init__(f'No route exists for name "{name}" and params "{params}".')
 
 
 class Match(Enum):
@@ -80,7 +79,7 @@ def websocket_session(func: typing.Callable) -> ASGIApp:
 
 
 def get_name(endpoint: typing.Callable) -> str:
-    if inspect.isfunction(endpoint) or inspect.isclass(endpoint):
+    if inspect.isroutine(endpoint) or inspect.isclass(endpoint):
         return endpoint.__name__
     return endpoint.__class__.__name__
 
@@ -188,8 +187,8 @@ class Route(BaseRoute):
         path: str,
         endpoint: typing.Callable,
         *,
-        methods: typing.List[str] = None,
-        name: str = None,
+        methods: typing.Optional[typing.List[str]] = None,
+        name: typing.Optional[str] = None,
         include_in_schema: bool = True,
     ) -> None:
         assert path.startswith("/"), "Routed paths must start with '/'"
@@ -240,7 +239,7 @@ class Route(BaseRoute):
         expected_params = set(self.param_convertors.keys())
 
         if name != self.name or seen_params != expected_params:
-            raise NoMatchFound()
+            raise NoMatchFound(name, path_params)
 
         path, remaining_params = replace_params(
             self.path_format, self.param_convertors, path_params
@@ -272,7 +271,7 @@ class Route(BaseRoute):
 
 class WebSocketRoute(BaseRoute):
     def __init__(
-        self, path: str, endpoint: typing.Callable, *, name: str = None
+        self, path: str, endpoint: typing.Callable, *, name: typing.Optional[str] = None
     ) -> None:
         assert path.startswith("/"), "Routed paths must start with '/'"
         self.path = path
@@ -309,7 +308,7 @@ class WebSocketRoute(BaseRoute):
         expected_params = set(self.param_convertors.keys())
 
         if name != self.name or seen_params != expected_params:
-            raise NoMatchFound()
+            raise NoMatchFound(name, path_params)
 
         path, remaining_params = replace_params(
             self.path_format, self.param_convertors, path_params
@@ -332,9 +331,9 @@ class Mount(BaseRoute):
     def __init__(
         self,
         path: str,
-        app: ASGIApp = None,
-        routes: typing.Sequence[BaseRoute] = None,
-        name: str = None,
+        app: typing.Optional[ASGIApp] = None,
+        routes: typing.Optional[typing.Sequence[BaseRoute]] = None,
+        name: typing.Optional[str] = None,
     ) -> None:
         assert path == "" or path.startswith("/"), "Routed paths must start with '/'"
         assert (
@@ -408,7 +407,7 @@ class Mount(BaseRoute):
                     )
                 except NoMatchFound:
                     pass
-        raise NoMatchFound()
+        raise NoMatchFound(name, path_params)
 
     async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
         await self.app(scope, receive, send)
@@ -422,7 +421,9 @@ class Mount(BaseRoute):
 
 
 class Host(BaseRoute):
-    def __init__(self, host: str, app: ASGIApp, name: str = None) -> None:
+    def __init__(
+        self, host: str, app: ASGIApp, name: typing.Optional[str] = None
+    ) -> None:
         self.host = host
         self.app = app
         self.name = name
@@ -472,7 +473,7 @@ class Host(BaseRoute):
                     return URLPath(path=str(url), protocol=url.protocol, host=host)
                 except NoMatchFound:
                     pass
-        raise NoMatchFound()
+        raise NoMatchFound(name, path_params)
 
     async def handle(self, scope: Scope, receive: Receive, send: Send) -> None:
         await self.app(scope, receive, send)
@@ -533,12 +534,14 @@ class _DefaultLifespan:
 class Router:
     def __init__(
         self,
-        routes: typing.Sequence[BaseRoute] = None,
+        routes: typing.Optional[typing.Sequence[BaseRoute]] = None,
         redirect_slashes: bool = True,
-        default: ASGIApp = None,
-        on_startup: typing.Sequence[typing.Callable] = None,
-        on_shutdown: typing.Sequence[typing.Callable] = None,
-        lifespan: typing.Callable[[typing.Any], typing.AsyncContextManager] = None,
+        default: typing.Optional[ASGIApp] = None,
+        on_startup: typing.Optional[typing.Sequence[typing.Callable]] = None,
+        on_shutdown: typing.Optional[typing.Sequence[typing.Callable]] = None,
+        lifespan: typing.Optional[
+            typing.Callable[[typing.Any], typing.AsyncContextManager]
+        ] = None,
     ) -> None:
         self.routes = [] if routes is None else list(routes)
         self.redirect_slashes = redirect_slashes
@@ -593,7 +596,7 @@ class Router:
                 return route.url_path_for(name, **path_params)
             except NoMatchFound:
                 pass
-        raise NoMatchFound()
+        raise NoMatchFound(name, path_params)
 
     async def startup(self) -> None:
         """
@@ -695,11 +698,39 @@ class Router:
 
     # The following usages are now discouraged in favour of configuration
     #  during Router.__init__(...)
-    def mount(self, path: str, app: ASGIApp, name: str = None) -> None:
+    def mount(
+        self, path: str, app: ASGIApp, name: typing.Optional[str] = None
+    ) -> None:  # pragma: nocover
+        """
+        We no longer document this API, and its usage is discouraged.
+        Instead you should use the following approach:
+
+        routes = [
+            Mount(path, ...),
+            ...
+        ]
+
+        app = Starlette(routes=routes)
+        """
+
         route = Mount(path, app=app, name=name)
         self.routes.append(route)
 
-    def host(self, host: str, app: ASGIApp, name: str = None) -> None:
+    def host(
+        self, host: str, app: ASGIApp, name: typing.Optional[str] = None
+    ) -> None:  # pragma: no cover
+        """
+        We no longer document this API, and its usage is discouraged.
+        Instead you should use the following approach:
+
+        routes = [
+            Host(path, ...),
+            ...
+        ]
+
+        app = Starlette(routes=routes)
+        """
+
         route = Host(host, app=app, name=name)
         self.routes.append(route)
 
@@ -707,10 +738,10 @@ class Router:
         self,
         path: str,
         endpoint: typing.Callable,
-        methods: typing.List[str] = None,
-        name: str = None,
+        methods: typing.Optional[typing.List[str]] = None,
+        name: typing.Optional[str] = None,
         include_in_schema: bool = True,
-    ) -> None:
+    ) -> None:  # pragma: nocover
         route = Route(
             path,
             endpoint=endpoint,
@@ -721,18 +752,30 @@ class Router:
         self.routes.append(route)
 
     def add_websocket_route(
-        self, path: str, endpoint: typing.Callable, name: str = None
-    ) -> None:
+        self, path: str, endpoint: typing.Callable, name: typing.Optional[str] = None
+    ) -> None:  # pragma: no cover
         route = WebSocketRoute(path, endpoint=endpoint, name=name)
         self.routes.append(route)
 
     def route(
         self,
         path: str,
-        methods: typing.List[str] = None,
-        name: str = None,
+        methods: typing.Optional[typing.List[str]] = None,
+        name: typing.Optional[str] = None,
         include_in_schema: bool = True,
-    ) -> typing.Callable:
+    ) -> typing.Callable:  # pragma: nocover
+        """
+        We no longer document this decorator style API, and its usage is discouraged.
+        Instead you should use the following approach:
+
+        routes = [
+            Route(path, endpoint=..., ...),
+            ...
+        ]
+
+        app = Starlette(routes=routes)
+        """
+
         def decorator(func: typing.Callable) -> typing.Callable:
             self.add_route(
                 path,
@@ -745,14 +788,30 @@ class Router:
 
         return decorator
 
-    def websocket_route(self, path: str, name: str = None) -> typing.Callable:
+    def websocket_route(
+        self, path: str, name: typing.Optional[str] = None
+    ) -> typing.Callable:  # pragma: nocover
+        """
+        We no longer document this decorator style API, and its usage is discouraged.
+        Instead you should use the following approach:
+
+        routes = [
+            WebSocketRoute(path, endpoint=..., ...),
+            ...
+        ]
+
+        app = Starlette(routes=routes)
+        """
+
         def decorator(func: typing.Callable) -> typing.Callable:
             self.add_websocket_route(path, func, name=name)
             return func
 
         return decorator
 
-    def add_event_handler(self, event_type: str, func: typing.Callable) -> None:
+    def add_event_handler(
+        self, event_type: str, func: typing.Callable
+    ) -> None:  # pragma: no cover
         assert event_type in ("startup", "shutdown")
 
         if event_type == "startup":
@@ -760,7 +819,7 @@ class Router:
         else:
             self.on_shutdown.append(func)
 
-    def on_event(self, event_type: str) -> typing.Callable:
+    def on_event(self, event_type: str) -> typing.Callable:  # pragma: nocover
         def decorator(func: typing.Callable) -> typing.Callable:
             self.add_event_handler(event_type, func)
             return func

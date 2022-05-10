@@ -137,7 +137,10 @@ class ServerErrorMiddleware:
     """
 
     def __init__(
-        self, app: ASGIApp, handler: typing.Callable = None, debug: bool = False
+        self,
+        app: ASGIApp,
+        handler: typing.Optional[typing.Callable] = None,
+        debug: bool = False,
     ) -> None:
         self.app = app
         self.handler = handler
@@ -160,7 +163,7 @@ class ServerErrorMiddleware:
         try:
             await self.app(scope, receive, _send)
         except Exception as exc:
-            if scope["type"] == "http" and not response_started:
+            if scope["type"] == "http":
                 request = Request(scope)
                 if self.debug:
                     # In debug mode, return traceback responses.
@@ -175,7 +178,8 @@ class ServerErrorMiddleware:
                     else:
                         response = await run_in_threadpool(self.handler, request, exc)
 
-                await response(scope, receive, send)
+                if not response_started:
+                    await response(scope, receive, send)
             elif scope["type"] == "websocket":
                 websocket = WebSocket(scope, receive, send)
                 # https://tools.ietf.org/html/rfc6455#section-7.4.1

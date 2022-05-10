@@ -1,7 +1,10 @@
 import pytest
 
+from starlette.applications import Starlette
+from starlette.background import BackgroundTask
 from starlette.middleware.errors import ServerErrorMiddleware
 from starlette.responses import JSONResponse, Response
+from starlette.routing import Route
 from starlette.websockets import WebSocketDisconnect
 
 
@@ -65,3 +68,28 @@ def test_debug_websocket(test_client_factory):
         client = test_client_factory(app)
         with client.websocket_connect("/"):
             pass  # pragma: nocover
+
+
+def test_background_task(test_client_factory):
+    accessed_error_handler = False
+
+    def error_handler(request, exc):
+        nonlocal accessed_error_handler
+        accessed_error_handler = True
+
+    def raise_exception():
+        raise Exception("Something went wrong")
+
+    async def endpoint(request):
+        task = BackgroundTask(raise_exception)
+        return Response(status_code=204, background=task)
+
+    app = Starlette(
+        routes=[Route("/", endpoint=endpoint)],
+        exception_handlers={Exception: error_handler},
+    )
+
+    client = test_client_factory(app, raise_server_exceptions=False)
+    response = client.get("/")
+    assert response.status_code == 204
+    assert accessed_error_handler
