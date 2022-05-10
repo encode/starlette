@@ -518,3 +518,31 @@ def test_cors_allowed_origin_does_not_leak_between_credentialed_requests(
     response = client.get("/", headers={"Origin": "https://someplace.org"})
     assert response.headers["access-control-allow-origin"] == "*"
     assert "access-control-allow-credentials" not in response.headers
+
+
+def test_cors_allowed_by_path_regex(test_client_factory):
+    def document(request):
+        return PlainTextResponse("Document", status_code=200)
+
+    path = "/docs/123"
+
+    app = Starlette(
+        routes=[
+            Route(path, endpoint=document),
+        ],
+        middleware=[
+            Middleware(
+                CORSMiddleware,
+                allow_path_regex=r"/docs/\d+$",
+            )
+        ],
+    )
+    client = test_client_factory(app)
+    response = client.get(path)
+    assert response.status_code == 200
+    assert response.text == "Document"
+
+    # Test pre-flight response
+    headers = {"Origin": "https://another.com"}
+    response = client.options(path, headers=headers)
+    assert response.status_code == 200

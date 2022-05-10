@@ -19,6 +19,7 @@ class CORSMiddleware:
         allow_headers: typing.Sequence[str] = (),
         allow_credentials: bool = False,
         allow_origin_regex: typing.Optional[str] = None,
+        allow_path_regex: typing.Optional[str] = None,
         expose_headers: typing.Sequence[str] = (),
         max_age: int = 600,
     ) -> None:
@@ -60,6 +61,10 @@ class CORSMiddleware:
         if allow_credentials:
             preflight_headers["Access-Control-Allow-Credentials"] = "true"
 
+        compiled_allow_path_regex = None
+        if allow_path_regex:
+            compiled_allow_path_regex = re.compile(allow_path_regex)
+
         self.app = app
         self.allow_origins = allow_origins
         self.allow_methods = allow_methods
@@ -68,6 +73,7 @@ class CORSMiddleware:
         self.allow_all_headers = allow_all_headers
         self.preflight_explicit_allow_origin = preflight_explicit_allow_origin
         self.allow_origin_regex = compiled_allow_origin_regex
+        self.allow_path_regex = compiled_allow_path_regex
         self.simple_headers = simple_headers
         self.preflight_headers = preflight_headers
 
@@ -79,17 +85,20 @@ class CORSMiddleware:
         method = scope["method"]
         headers = Headers(scope=scope)
         origin = headers.get("origin")
+        path = scope["path"]
 
         if origin is None:
             await self.app(scope, receive, send)
             return
 
         if method == "OPTIONS" and "access-control-request-method" in headers:
-            response = self.preflight_response(request_headers=headers)
+            response = self.preflight_response(request_headers=headers, path=path)
             await response(scope, receive, send)
             return
 
-        await self.simple_response(scope, receive, send, request_headers=headers)
+        await self.simple_response(
+            scope, receive, send, request_headers=headers, path=path
+        )
 
     def is_allowed_origin(self, origin: str) -> bool:
         if self.allow_all_origins:
@@ -102,7 +111,12 @@ class CORSMiddleware:
 
         return origin in self.allow_origins
 
-    def preflight_response(self, request_headers: Headers) -> Response:
+    def is_allowed_path(self, path: str) -> bool:
+        if self.allow_path_regex is not None and self.allow_path_regex.fullmatch(path):
+            return True
+        return False
+
+    def preflight_response(self, request_headers: Headers, path: str) -> Response:
         requested_origin = request_headers["origin"]
         requested_method = request_headers["access-control-request-method"]
         requested_headers = request_headers.get("access-control-request-headers")
@@ -110,7 +124,9 @@ class CORSMiddleware:
         headers = dict(self.preflight_headers)
         failures = []
 
-        if self.is_allowed_origin(origin=requested_origin):
+        if self.is_allowed_path(path) or self.is_allowed_origin(
+            origin=requested_origin
+        ):
             if self.preflight_explicit_allow_origin:
                 # The "else" case is already accounted for in self.preflight_headers
                 # and the value would be "*".
@@ -141,13 +157,20 @@ class CORSMiddleware:
         return PlainTextResponse("OK", status_code=200, headers=headers)
 
     async def simple_response(
-        self, scope: Scope, receive: Receive, send: Send, request_headers: Headers
+        self,
+        scope: Scope,
+        receive: Receive,
+        send: Send,
+        request_headers: Headers,
+        path: str,
     ) -> None:
-        send = functools.partial(self.send, send=send, request_headers=request_headers)
+        send = functools.partial(
+            self.send, send=send, request_headers=request_headers, path=path
+        )
         await self.app(scope, receive, send)
 
     async def send(
-        self, message: Message, send: Send, request_headers: Headers
+        self, message: Message, send: Send, request_headers: Headers, path: str
     ) -> None:
         if message["type"] != "http.response.start":
             await send(message)
@@ -166,9 +189,10 @@ class CORSMiddleware:
 
         # If we only allow specific origins, then we have to mirror back
         # the Origin header in the response.
-        elif not self.allow_all_origins and self.is_allowed_origin(origin=origin):
+        elif not self.allow_all_origins and (
+            self.is_allowed_path(path) or self.is_allowed_origin(origin=origin)
+        ):
             self.allow_explicit_origin(headers, origin)
-
         await send(message)
 
     @staticmethod
