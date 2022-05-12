@@ -1,3 +1,5 @@
+import warnings
+
 import pytest
 
 from starlette.exceptions import HTTPException
@@ -131,3 +133,16 @@ def test_repr():
     assert repr(CustomHTTPException(500, detail="Something custom")) == (
         "CustomHTTPException(status_code=500, detail='Something custom')"
     )
+
+
+def test_exception_middleware_deprecation() -> None:
+    # this test should be removed once the deprecation shim is removed
+    with pytest.warns(DeprecationWarning):
+        from starlette.exceptions import ExceptionMiddleware  # noqa: F401
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        import starlette.exceptions
+
+    with pytest.warns(DeprecationWarning):
+        starlette.exceptions.ExceptionMiddleware
