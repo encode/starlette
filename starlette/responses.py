@@ -81,6 +81,7 @@ class Response:
         if (
             body is not None
             and populate_content_length
+            and self.status_code is not None
             and not (self.status_code < 200 or self.status_code in (204, 304))
         ):
             content_length = str(len(body))
