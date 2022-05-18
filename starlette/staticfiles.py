@@ -40,8 +40,10 @@ class StaticFiles:
     def __init__(
         self,
         *,
-        directory: PathLike = None,
-        packages: typing.List[typing.Union[str, typing.Tuple[str, str]]] = None,
+        directory: typing.Optional[PathLike] = None,
+        packages: typing.Optional[
+            typing.List[typing.Union[str, typing.Tuple[str, str]]]
+        ] = None,
         html: bool = False,
         check_dir: bool = True,
     ) -> None:
@@ -55,8 +57,10 @@ class StaticFiles:
 
     def get_directories(
         self,
-        directory: PathLike = None,
-        packages: typing.List[typing.Union[str, typing.Tuple[str, str]]] = None,
+        directory: typing.Optional[PathLike] = None,
+        packages: typing.Optional[
+            typing.List[typing.Union[str, typing.Tuple[str, str]]]
+        ] = None,
     ) -> typing.List[PathLike]:
         """
         Given `directory` and `packages` arguments, return a list of all the
