@@ -160,16 +160,14 @@ class StaticFiles:
             full_path = original_path.resolve()
             directory = Path(directory).resolve()
             try:
+                stat_result = os.lstat(original_path)
                 full_path.relative_to(directory)
-                is_internal = True
+                return full_path, stat_result
             except ValueError:
-                is_internal = False
-            if not is_internal and not original_path.is_symlink():
                 # Don't allow misbehaving clients to break out of the static files
                 # directory if not following symlinks.
-                continue
-            try:
-                return full_path, os.stat(full_path)
+                if not stat.S_ISLNK(stat_result.st_mode):
+                    continue
             except (FileNotFoundError, NotADirectoryError):
                 continue
         return Path(), None
