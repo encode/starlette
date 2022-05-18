@@ -215,7 +215,6 @@ class CustomHeaderMiddleware(BaseHTTPMiddleware):
         return response
 
 
-
 middleware = [
     Middleware(CustomHeaderMiddleware, header_value='Customized')
 ]
@@ -226,6 +225,12 @@ app = Starlette(routes=routes, middleware=middleware)
 Middleware classes should not modify their state outside of the `__init__` method.
 Instead you should keep any state local to the `dispatch` method, or pass it
 around explicitly, rather than mutating the middleware instance.
+
+!!! bug
+    Currently, the `BaseHTTPMiddleware` has two known issues:
+
+    - It's not possible to use multiple `BaseHTTPMiddleware` based middlewares.
+    - It's not possible to use `BackgroundTasks` with `BaseHTTPMiddleware`.
 
 ## Using middleware in other frameworks
 
