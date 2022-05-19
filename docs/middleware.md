@@ -227,10 +227,11 @@ Instead you should keep any state local to the `dispatch` method, or pass it
 around explicitly, rather than mutating the middleware instance.
 
 !!! bug
-    Currently, the `BaseHTTPMiddleware` has two known issues:
+    Currently, the `BaseHTTPMiddleware` has some known issues:
 
     - It's not possible to use multiple `BaseHTTPMiddleware` based middlewares.
     - It's not possible to use `BackgroundTasks` with `BaseHTTPMiddleware`.
+    - Using `BaseHTTPMiddleware` will prevent changes to `contextlib.ContextVar`s from propagating upwards. That is, if you set a value for a `ContextVar` in your endpoint and try to read it from a middleware you will find that the value is not the same value you set in your endpoint (see [this test](https://github.com/encode/starlette/blob/621abc747a6604825190b93467918a0ec6456a24/tests/middleware/test_base.py#L192-L223) for an example of this behavior).
 
 ## Using middleware in other frameworks
 
