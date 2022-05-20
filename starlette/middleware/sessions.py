@@ -61,7 +61,7 @@ class SessionMiddleware:
                 if scope["session"]:
                     # We have session data to persist.
                     data = b64encode(json.dumps(scope["session"]).encode("utf-8"))
-                    data = data.split("=")[0]  # Ref. RFC 7515 Appendix C
+                    data = data.split(b"=")[0]  # Ref. RFC 7515 Appendix C
                     data = self.signer.sign(data)
                     headers = MutableHeaders(scope=message)
                     header_value = "{session_cookie}={data}; path={path}; {max_age}{security_flags}".format(  # noqa E501
