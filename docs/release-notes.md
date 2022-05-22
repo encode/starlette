@@ -3,7 +3,7 @@
 <PING ME TO UPDATE THE DATE>
 
 ### Fixed
-* Add 400 response when `boundary` is missing [#1617](https://github.com/encode/starlette/pull/1617).
+* Send 400 (Bad Request) response when `boundary` is missing [#1617](https://github.com/encode/starlette/pull/1617).
 * Do not send empty data to `StreamingResponse` on `BaseHTTPMiddleware` [#1609](https://github.com/encode/starlette/pull/1609).
 * Add `__bool__` dunder for `Secret` [#1625](https://github.com/encode/starlette/pull/1625).
 
