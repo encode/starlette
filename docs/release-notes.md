@@ -1,3 +1,12 @@
+## 0.20.1
+
+<PING ME TO UPDATE THE DATE>
+
+### Fixed
+* Add 400 response when `boundary` is missing [#1617](https://github.com/encode/starlette/pull/1617).
+* Do not send empty data to `StreamingResponse` on `BaseHTTPMiddleware` [#1609](https://github.com/encode/starlette/pull/1609).
+* Add `__bool__` dunder for `Secret` [#1625](https://github.com/encode/starlette/pull/1625).
+
 ## 0.20.0
 
 May 3, 2022
