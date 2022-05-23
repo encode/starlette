@@ -13,9 +13,10 @@ class Address(typing.NamedTuple):
     port: int
 
 
-_T = typing.TypeVar("_T")
-_KT = typing.TypeVar("_KT")  # key type
-_VT_co = typing.TypeVar("_VT_co", covariant=True)  # value type for covariant containers
+_DefaultType = typing.TypeVar("_DefaultType")
+# Mapping values are covariant, keys are invariant
+_KeyType = typing.TypeVar("_KeyType")  # key type
+_ValueType = typing.TypeVar("_ValueType", covariant=True)  # value type for covariant containers
 
 
 class URL:
@@ -243,21 +244,21 @@ class CommaSeparatedStrings(Sequence):
         return ", ".join(repr(item) for item in self)
 
 
-class ImmutableMultiDict(typing.Mapping[_KT, _VT_co]):
-    _dict: typing.Dict[_KT, _VT_co]
+class ImmutableMultiDict(typing.Mapping[_KeyType, _ValueType]):
+    _dict: typing.Dict[_KeyType, _ValueType]
 
     def __init__(
         self,
         *args: typing.Union[
-            "ImmutableMultiDict[_KT, _VT_co]",
-            typing.Mapping[_KT, _VT_co],
-            typing.Sequence[typing.Tuple[_KT, _VT_co]],
+            "ImmutableMultiDict[_KeyType, _ValueType]",
+            typing.Mapping[_KeyType, _ValueType],
+            typing.Sequence[typing.Tuple[_KeyType, _ValueType]],
         ],
         **kwargs: typing.Any,
     ) -> None:
         assert len(args) < 2, "Too many arguments."
 
-        value = args[0] if args else []
+        value: typing.Any = args[0] if args else []
         if kwargs:
             value = (
                 ImmutableMultiDict(value).multi_items()
@@ -267,10 +268,10 @@ class ImmutableMultiDict(typing.Mapping[_KT, _VT_co]):
         if not value:
             _items: typing.List[typing.Tuple[typing.Any, typing.Any]] = []
         elif hasattr(value, "multi_items"):
-            value = typing.cast(ImmutableMultiDict, value)
+            value = typing.cast(ImmutableMultiDict[_KeyType, _ValueType], value)
             _items = list(value.multi_items())
         elif hasattr(value, "items"):
-            value = typing.cast(typing.Mapping, value)
+            value = typing.cast(typing.Mapping[_KeyType, _ValueType], value)
             _items = list(value.items())
         else:
             value = typing.cast(
@@ -281,43 +282,43 @@ class ImmutableMultiDict(typing.Mapping[_KT, _VT_co]):
         self._dict = {k: v for k, v in _items}
         self._list = _items
 
-    def getlist(self, key: typing.Any) -> typing.List[_VT_co]:
+    def getlist(self, key: typing.Any) -> typing.List[_ValueType]:
         return [item_value for item_key, item_value in self._list if item_key == key]
 
-    def keys(self) -> typing.KeysView[_KT]:
+    def keys(self) -> typing.KeysView[_KeyType]:
         return self._dict.keys()
 
-    def values(self) -> typing.ValuesView[_VT_co]:
+    def values(self) -> typing.ValuesView[_ValueType]:
         return self._dict.values()
 
-    def items(self) -> typing.ItemsView[_KT, _VT_co]:
+    def items(self) -> typing.ItemsView[_KeyType, _ValueType]:
         return self._dict.items()
 
-    def multi_items(self) -> typing.List[typing.Tuple[_KT, _VT_co]]:
+    def multi_items(self) -> typing.List[typing.Tuple[_KeyType, _ValueType]]:
         return list(self._list)
 
     @typing.overload
-    def get(self, key: _KT) -> _VT_co:
+    def get(self, key: _KeyType) -> _ValueType:
         ...  # pragma: no cover
 
     @typing.overload
     def get(
-        self, key: _KT, default: typing.Optional[typing.Union[_VT_co, _T]] = ...
-    ) -> typing.Union[_VT_co, _T]:
+        self, key: _KeyType, default: typing.Optional[typing.Union[_ValueType, _DefaultType]] = ...
+    ) -> typing.Union[_ValueType, _DefaultType]:
         ...  # pragma: no cover
 
-    def get(self, key: _KT, default: typing.Any = None) -> typing.Any:
+    def get(self, key: _KeyType, default: typing.Any = None) -> typing.Any:
         if key in self._dict:
             return self._dict[key]
         return default
 
-    def __getitem__(self, key: _KT) -> _VT_co:
+    def __getitem__(self, key: _KeyType) -> _ValueType:
         return self._dict[key]
 
     def __contains__(self, key: typing.Any) -> bool:
         return key in self._dict
 
-    def __iter__(self) -> typing.Iterator[_KT]:
+    def __iter__(self) -> typing.Iterator[_KeyType]:
         return iter(self.keys())
 
     def __len__(self) -> int:
