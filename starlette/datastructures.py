@@ -16,7 +16,9 @@ class Address(typing.NamedTuple):
 _DefaultType = typing.TypeVar("_DefaultType")
 # Mapping values are covariant, keys are invariant
 _KeyType = typing.TypeVar("_KeyType")  # key type
-_ValueType = typing.TypeVar("_ValueType", covariant=True)  # value type for covariant containers
+_ValueType = typing.TypeVar(
+    "_ValueType", covariant=True
+)  # value type for covariant containers
 
 
 class URL:
@@ -303,7 +305,9 @@ class ImmutableMultiDict(typing.Mapping[_KeyType, _ValueType]):
 
     @typing.overload
     def get(
-        self, key: _KeyType, default: typing.Optional[typing.Union[_ValueType, _DefaultType]] = ...
+        self,
+        key: _KeyType,
+        default: typing.Optional[typing.Union[_ValueType, _DefaultType]] = ...,
     ) -> typing.Union[_ValueType, _DefaultType]:
         ...  # pragma: no cover
 
