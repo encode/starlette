@@ -15,7 +15,8 @@ class Address(typing.NamedTuple):
 
 _KeyType = typing.TypeVar("_KeyType")
 # Mapping keys are invariant but their values are covariant since
-# you can only read them (i.e. you can't do `Mapping[str, Animal]["fido"] = Dog()`)
+# you can only read them
+# that is, you can't do `Mapping[str, Animal]()["fido"] = Dog()`
 _CovariantValueType = typing.TypeVar("_CovariantValueType", covariant=True)
 
 
@@ -268,7 +269,9 @@ class ImmutableMultiDict(typing.Mapping[_KeyType, _CovariantValueType]):
         if not value:
             _items: typing.List[typing.Tuple[typing.Any, typing.Any]] = []
         elif hasattr(value, "multi_items"):
-            value = typing.cast(ImmutableMultiDict[_KeyType, _CovariantValueType], value)
+            value = typing.cast(
+                ImmutableMultiDict[_KeyType, _CovariantValueType], value
+            )
             _items = list(value.multi_items())
         elif hasattr(value, "items"):
             value = typing.cast(typing.Mapping[_KeyType, _CovariantValueType], value)
