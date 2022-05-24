@@ -412,7 +412,7 @@ class MultiDict(
 
     @typing.overload
     def update(
-        self, __m: typing.Iterable[tuple[_KeyType, _ValueType]], **kwargs: _ValueType
+        self, __m: typing.Iterable[typing.Tuple[_KeyType, _ValueType]], **kwargs: _ValueType
     ) -> None:
         ...
 
