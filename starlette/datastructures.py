@@ -19,7 +19,8 @@ _KeyType = typing.TypeVar("_KeyType")  # key type
 _ValueType = typing.TypeVar(
     "_ValueType", covariant=True
 )  # value type for covariant containers
-
+_KeyType = typing.TypeVar("_KeyType")
+_ValueType = typing.TypeVar("_ValueType", covariant=True)
 
 class URL:
     def __init__(
