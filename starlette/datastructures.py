@@ -382,7 +382,7 @@ class MultiDict(ImmutableMultiDict[typing.Any, typing.Any]):
         self._dict.update(value)
 
 
-class QueryParams(ImmutableMultiDict):
+class QueryParams(ImmutableMultiDict[str, str]):
     """
     An immutable multidict.
     """
