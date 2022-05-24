@@ -254,7 +254,7 @@ class ImmutableMultiDict(typing.Mapping[_KeyType, _ValueType]):
         *args: typing.Union[
             "ImmutableMultiDict[_KeyType, _ValueType]",
             typing.Mapping[_KeyType, _ValueType],
-            typing.Sequence[typing.Tuple[_KeyType, _ValueType]],
+            typing.Iterable[typing.Tuple[_KeyType, _ValueType]],
         ],
         **kwargs: typing.Any,
     ) -> None:
