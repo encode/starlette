@@ -10,14 +10,14 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from starlette.requests import Request
 from starlette.responses import JSONResponse, PlainTextResponse, Response
 from starlette.routing import (
-     BaseRoute,
-     Host,
-     Mount,
-     NoMatchFound,
-     Route,
-     Router,
-     WebSocketRoute,
- )
+    BaseRoute,
+    Host,
+    Mount,
+    NoMatchFound,
+    Route,
+    Router,
+    WebSocketRoute,
+)
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
@@ -775,31 +775,30 @@ class AddHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
-
 mounted_routes_with_middleware = Mount(
-     "/http",
-     routes=[
-         Route(
-             "/",
-             endpoint=assert_middleware_header_route,
-             methods=["GET"],
-             name="route",
-         ),
-     ],
-     middleware=[Middleware(AddHeadersMiddleware)],
- )
+    "/http",
+    routes=[
+        Route(
+            "/",
+            endpoint=assert_middleware_header_route,
+            methods=["GET"],
+            name="route",
+        ),
+    ],
+    middleware=[Middleware(AddHeadersMiddleware)],
+)
 
 
 mounted_app_with_middleware = Mount(
-     "/http",
-     app=Route(
-         "/",
-         endpoint=assert_middleware_header_route,
-         methods=["GET"],
-         name="route",
-     ),
-     middleware=[Middleware(AddHeadersMiddleware)],
- )
+    "/http",
+    app=Route(
+        "/",
+        endpoint=assert_middleware_header_route,
+        methods=["GET"],
+        name="route",
+    ),
+    middleware=[Middleware(AddHeadersMiddleware)],
+)
 
 
 @pytest.mark.parametrize(
