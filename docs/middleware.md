@@ -41,37 +41,6 @@ application would look like this:
 * Routing
 * Endpoint
 
-Middleware can also be added to `Mount`, which allows you to apply middleware to a single route, a group of routes or any mounted ASGI application:
-
-```python
-from starlette.applications import Starlette
-from starlette.middleware.gzip import GzipMiddleware
-
-
-routes = [
-    Mount(
-        "/",
-        routes=[
-            Route(
-                "/example",
-                endpoint=...,
-            )
-        ],
-        middleware=[GzipMiddleware]
-    )
-]
-
-app = Starlette(
-    routes=routes,
-    middleware=[
-        Middleware(HTTPSRedirectMiddleware),
-    ],
-)
-```
-
-Note that since this is run after routing, modifying the path in the middleware will have no effect.
-There is also no built-in error handling for route middleware, so your middleware will need to handle exceptions and resource cleanup itself.
-
 The following middleware implementations are available in the Starlette package:
 
 ## CORSMiddleware
@@ -263,6 +232,31 @@ around explicitly, rather than mutating the middleware instance.
     - It's not possible to use multiple `BaseHTTPMiddleware` based middlewares.
     - It's not possible to use `BackgroundTasks` with `BaseHTTPMiddleware`.
     - Using `BaseHTTPMiddleware` will prevent changes to `contextlib.ContextVar`s from propagating upwards. That is, if you set a value for a `ContextVar` in your endpoint and try to read it from a middleware you will find that the value is not the same value you set in your endpoint (see [this test](https://github.com/encode/starlette/blob/621abc747a6604825190b93467918a0ec6456a24/tests/middleware/test_base.py#L192-L223) for an example of this behavior).
+
+## Applying middleware on mounts
+
+Middleware can also be added to `Mount`, which allows you to apply middleware to a single route, a group of routes or any mounted ASGI application:
+
+```python
+from starlette.applications import Starlette
+from starlette.middleware.gzip import GzipMiddleware
+
+
+routes = [
+    Mount(
+        "/",
+        routes=[
+            Route(
+                "/example",
+                endpoint=...,
+            )
+        ],
+        middleware=[GzipMiddleware]
+    )
+]
+
+app = Starlette(routes=routes)
+```
 
 ## Using middleware in other frameworks
 
