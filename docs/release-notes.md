@@ -4,6 +4,7 @@
 
 ### Fixed
 * Send 400 (Bad Request) response when `boundary` is missing [#1617](https://github.com/encode/starlette/pull/1617).
+* Send 400 (Bad Request) when missing "name" field on `Content-Disposition` header [#1643](https://github.com/encode/starlette/pull/1643).
 * Do not send empty data to `StreamingResponse` on `BaseHTTPMiddleware` [#1609](https://github.com/encode/starlette/pull/1609).
 * Add `__bool__` dunder for `Secret` [#1625](https://github.com/encode/starlette/pull/1625).
 
