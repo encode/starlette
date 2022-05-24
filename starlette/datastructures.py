@@ -299,23 +299,6 @@ class ImmutableMultiDict(typing.Mapping[_KeyType, _ValueType]):
     def multi_items(self) -> typing.List[typing.Tuple[_KeyType, _ValueType]]:
         return list(self._list)
 
-    @typing.overload
-    def get(self, key: _KeyType) -> _ValueType:
-        ...  # pragma: no cover
-
-    @typing.overload
-    def get(
-        self,
-        key: _KeyType,
-        default: typing.Optional[typing.Union[_ValueType, _DefaultType]] = ...,
-    ) -> typing.Union[_ValueType, _DefaultType]:
-        ...  # pragma: no cover
-
-    def get(self, key: _KeyType, default: typing.Any = None) -> typing.Any:
-        if key in self._dict:
-            return self._dict[key]
-        return default
-
     def __getitem__(self, key: _KeyType) -> _ValueType:
         return self._dict[key]
 
