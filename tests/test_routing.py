@@ -812,7 +812,7 @@ mounted_app_with_middleware = Mount(
 def test_mount_middleware(
     test_client_factory: typing.Callable[..., TestClient],
     route: BaseRoute,
- ) -> None:
+) -> None:
     test_client = test_client_factory(Router([route]))
     response = test_client.get("/http")
     assert response.status_code == 200
