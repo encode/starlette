@@ -13,7 +13,6 @@ class Address(typing.NamedTuple):
     port: int
 
 
-_DefaultType = typing.TypeVar("_DefaultType")
 # Mapping values are covariant, keys are invariant
 _KeyType = typing.TypeVar("_KeyType")  # key type
 _ValueType = typing.TypeVar(
