@@ -13,13 +13,11 @@ class Address(typing.NamedTuple):
     port: int
 
 
-# Mapping values are covariant, keys are invariant
-_KeyType = typing.TypeVar("_KeyType")  # key type
-_ValueType = typing.TypeVar(
-    "_ValueType", covariant=True
-)  # value type for covariant containers
 _KeyType = typing.TypeVar("_KeyType")
-_ValueType = typing.TypeVar("_ValueType", covariant=True)
+# Mapping keys are invariant but their values are covariant since
+# you can only read them (i.e. you can't do `Mapping[str, Animal]["fido"] = Dog()`)
+_CovariantValueType = typing.TypeVar("_CovariantValueType", covariant=True)
+
 
 class URL:
     def __init__(
@@ -246,15 +244,15 @@ class CommaSeparatedStrings(Sequence):
         return ", ".join(repr(item) for item in self)
 
 
-class ImmutableMultiDict(typing.Mapping[_KeyType, _ValueType]):
-    _dict: typing.Dict[_KeyType, _ValueType]
+class ImmutableMultiDict(typing.Mapping[_KeyType, _CovariantValueType]):
+    _dict: typing.Dict[_KeyType, _CovariantValueType]
 
     def __init__(
         self,
         *args: typing.Union[
-            "ImmutableMultiDict[_KeyType, _ValueType]",
-            typing.Mapping[_KeyType, _ValueType],
-            typing.Iterable[typing.Tuple[_KeyType, _ValueType]],
+            "ImmutableMultiDict[_KeyType, _CovariantValueType]",
+            typing.Mapping[_KeyType, _CovariantValueType],
+            typing.Iterable[typing.Tuple[_KeyType, _CovariantValueType]],
         ],
         **kwargs: typing.Any,
     ) -> None:
@@ -270,10 +268,10 @@ class ImmutableMultiDict(typing.Mapping[_KeyType, _ValueType]):
         if not value:
             _items: typing.List[typing.Tuple[typing.Any, typing.Any]] = []
         elif hasattr(value, "multi_items"):
-            value = typing.cast(ImmutableMultiDict[_KeyType, _ValueType], value)
+            value = typing.cast(ImmutableMultiDict[_KeyType, _CovariantValueType], value)
             _items = list(value.multi_items())
         elif hasattr(value, "items"):
-            value = typing.cast(typing.Mapping[_KeyType, _ValueType], value)
+            value = typing.cast(typing.Mapping[_KeyType, _CovariantValueType], value)
             _items = list(value.items())
         else:
             value = typing.cast(
@@ -284,22 +282,22 @@ class ImmutableMultiDict(typing.Mapping[_KeyType, _ValueType]):
         self._dict = {k: v for k, v in _items}
         self._list = _items
 
-    def getlist(self, key: typing.Any) -> typing.List[_ValueType]:
+    def getlist(self, key: typing.Any) -> typing.List[_CovariantValueType]:
         return [item_value for item_key, item_value in self._list if item_key == key]
 
     def keys(self) -> typing.KeysView[_KeyType]:
         return self._dict.keys()
 
-    def values(self) -> typing.ValuesView[_ValueType]:
+    def values(self) -> typing.ValuesView[_CovariantValueType]:
         return self._dict.values()
 
-    def items(self) -> typing.ItemsView[_KeyType, _ValueType]:
+    def items(self) -> typing.ItemsView[_KeyType, _CovariantValueType]:
         return self._dict.items()
 
-    def multi_items(self) -> typing.List[typing.Tuple[_KeyType, _ValueType]]:
+    def multi_items(self) -> typing.List[typing.Tuple[_KeyType, _CovariantValueType]]:
         return list(self._list)
 
-    def __getitem__(self, key: _KeyType) -> _ValueType:
+    def __getitem__(self, key: _KeyType) -> _CovariantValueType:
         return self._dict[key]
 
     def __contains__(self, key: typing.Any) -> bool:
