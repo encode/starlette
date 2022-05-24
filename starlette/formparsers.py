@@ -39,6 +39,11 @@ def _user_safe_decode(src: bytes, codec: str) -> str:
         return src.decode("latin-1")
 
 
+class MultiPartException(Exception):
+    def __init__(self, message: str) -> None:
+        self.message = message
+
+
 class FormParser:
     def __init__(
         self, headers: Headers, stream: typing.AsyncGenerator[bytes, None]
@@ -162,7 +167,10 @@ class MultiPartParser:
         charset = params.get(b"charset", "utf-8")
         if type(charset) == bytes:
             charset = charset.decode("latin-1")
-        boundary = params[b"boundary"]
+        try:
+            boundary = params[b"boundary"]
+        except KeyError:
+            raise MultiPartException("Missing boundary in multipart.")
 
         # Callbacks dictionary.
         callbacks = {
@@ -210,8 +218,14 @@ class MultiPartParser:
                     header_field = b""
                     header_value = b""
                 elif message_type == MultiPartMessage.HEADERS_FINISHED:
-                    _, options = parse_options_header(content_disposition)
-                    field_name = _user_safe_decode(options[b"name"], charset)
+                    disposition, options = parse_options_header(content_disposition)
+                    try:
+                        field_name = _user_safe_decode(options[b"name"], charset)
+                    except KeyError:
+                        raise MultiPartException(
+                            'The Content-Disposition header field "name" must be '
+                            "provided."
+                        )
                     if b"filename" in options:
                         filename = _user_safe_decode(options[b"filename"], charset)
                         tempfile = SpooledTemporaryFile(max_size=self.max_file_size)
