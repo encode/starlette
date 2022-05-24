@@ -806,6 +806,24 @@ mounted_app_with_middleware = Mount(
     [
         mounted_routes_with_middleware,
         mounted_routes_with_middleware,
+        mounted_app_with_middleware,
+    ],
+)
+def test_mount_middleware(
+    test_client_factory: typing.Callable[..., TestClient],
+    route: BaseRoute,
+ ) -> None:
+    test_client = test_client_factory(Router([route]))
+    response = test_client.get("/http")
+    assert response.status_code == 200
+    assert response.headers["X-Test"] == "Set by middleware"
+
+
+@pytest.mark.parametrize(
+    "route",
+    [
+        mounted_routes_with_middleware,
+        mounted_routes_with_middleware,
     ],
 )
 def test_mount_middleware_url_path_for(route: BaseRoute) -> None:
