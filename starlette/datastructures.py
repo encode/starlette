@@ -408,7 +408,7 @@ class MultiDict(
     def update(
         self, __m: "SupportsKeysAndGetItem[_KeyType, _ValueType]", **kwargs: _ValueType
     ) -> None:
-        ...
+        ...  # pragma: no cover
 
     @typing.overload
     def update(
@@ -416,11 +416,11 @@ class MultiDict(
         __m: typing.Iterable[typing.Tuple[_KeyType, _ValueType]],
         **kwargs: _ValueType,
     ) -> None:
-        ...
+        ...  # pragma: no cover
 
     @typing.overload
     def update(self, **kwargs: _ValueType) -> None:
-        ...
+        ...  # pragma: no cover
 
     def update(
         self,
