@@ -4,6 +4,9 @@ from collections.abc import Sequence
 from shlex import shlex
 from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit
 
+if typing.TYPE_CHECKING:
+    from _typeshed import SupportsKeysAndGetItem
+
 from starlette.concurrency import run_in_threadpool
 from starlette.types import Scope
 
@@ -18,6 +21,9 @@ _KeyType = typing.TypeVar("_KeyType")
 # you can only read them
 # that is, you can't do `Mapping[str, Animal]()["fido"] = Dog()`
 _CovariantValueType = typing.TypeVar("_CovariantValueType", covariant=True)
+_ValueType = typing.TypeVar("_ValueType")
+
+_DefaultType = typing.TypeVar("_DefaultType")
 
 
 class URL:
@@ -247,12 +253,13 @@ class CommaSeparatedStrings(Sequence):
 
 class ImmutableMultiDict(typing.Mapping[_KeyType, _CovariantValueType]):
     _dict: typing.Dict[_KeyType, _CovariantValueType]
+    _list: typing.List[typing.Tuple[_KeyType, _CovariantValueType]]
 
     def __init__(
         self,
         *args: typing.Union[
             "ImmutableMultiDict[_KeyType, _CovariantValueType]",
-            typing.Mapping[_KeyType, _CovariantValueType],
+            "SupportsKeysAndGetItem[_KeyType, _CovariantValueType]",
             typing.Iterable[typing.Tuple[_KeyType, _CovariantValueType]],
         ],
         **kwargs: typing.Any,
@@ -323,24 +330,39 @@ class ImmutableMultiDict(typing.Mapping[_KeyType, _CovariantValueType]):
         return f"{class_name}({items!r})"
 
 
-class MultiDict(ImmutableMultiDict[typing.Any, typing.Any]):
-    def __setitem__(self, key: typing.Any, value: typing.Any) -> None:
+class MultiDict(
+    ImmutableMultiDict[_KeyType, _ValueType],
+    typing.MutableMapping[_KeyType, _ValueType],
+):
+    def __setitem__(self, key: _KeyType, value: _ValueType) -> None:
         self.setlist(key, [value])
 
-    def __delitem__(self, key: typing.Any) -> None:
+    def __delitem__(self, key: _KeyType) -> None:
         self._list = [(k, v) for k, v in self._list if k != key]
         del self._dict[key]
 
-    def pop(self, key: typing.Any, default: typing.Any = None) -> typing.Any:
+    @typing.overload
+    def pop(self, __key: _KeyType) -> _ValueType:
+        ...  # pragma: no cover
+
+    @typing.overload
+    def pop(
+        self,
+        __key: _KeyType,
+        __default: typing.Union[_ValueType, _DefaultType],
+    ) -> typing.Union[_ValueType, _DefaultType]:
+        ...  # pragma: no cover
+
+    def pop(self, key: _KeyType, default: typing.Any = None) -> typing.Any:
         self._list = [(k, v) for k, v in self._list if k != key]
         return self._dict.pop(key, default)
 
-    def popitem(self) -> typing.Tuple:
+    def popitem(self) -> typing.Tuple[_KeyType, _ValueType]:
         key, value = self._dict.popitem()
         self._list = [(k, v) for k, v in self._list if k != key]
         return key, value
 
-    def poplist(self, key: typing.Any) -> typing.List:
+    def poplist(self, key: _KeyType) -> typing.Iterable[_ValueType]:
         values = [v for k, v in self._list if k == key]
         self.pop(key)
         return values
@@ -349,33 +371,63 @@ class MultiDict(ImmutableMultiDict[typing.Any, typing.Any]):
         self._dict.clear()
         self._list.clear()
 
-    def setdefault(self, key: typing.Any, default: typing.Any = None) -> typing.Any:
+    @typing.overload
+    def setdefault(
+        self: "MultiDict[_KeyType, typing.Union[_DefaultType, None]]", __key: _KeyType
+    ) -> typing.Union[_DefaultType, None]:
+        ...  # pragma: no cover
+
+    @typing.overload
+    def setdefault(
+        self,
+        __key: _KeyType,
+        __default: typing.Union[_ValueType, _DefaultType],
+    ) -> typing.Union[_ValueType, _DefaultType]:
+        ...  # pragma: no cover
+
+    def setdefault(self, key: _KeyType, default: typing.Any = None) -> typing.Any:
         if key not in self:
             self._dict[key] = default
             self._list.append((key, default))
 
         return self[key]
 
-    def setlist(self, key: typing.Any, values: typing.List) -> None:
+    def setlist(self, key: typing.Any, values: typing.Sequence[_ValueType]) -> None:
         if not values:
-            self.pop(key, None)
+            self.pop(key)
         else:
             existing_items = [(k, v) for (k, v) in self._list if k != key]
             self._list = existing_items + [(key, value) for value in values]
             self._dict[key] = values[-1]
 
-    def append(self, key: typing.Any, value: typing.Any) -> None:
+    def append(self, key: _KeyType, value: _ValueType) -> None:
         self._list.append((key, value))
         self._dict[key] = value
+
+    @typing.overload
+    def update(
+        self, __m: "SupportsKeysAndGetItem[_KeyType, _ValueType]", **kwargs: _ValueType
+    ) -> None:
+        ...
+
+    @typing.overload
+    def update(
+        self, __m: typing.Iterable[tuple[_KeyType, _ValueType]], **kwargs: _ValueType
+    ) -> None:
+        ...
+
+    @typing.overload
+    def update(self, **kwargs: _ValueType) -> None:
+        ...
 
     def update(
         self,
         *args: typing.Union[
-            "MultiDict",
-            typing.Mapping,
-            typing.List[typing.Tuple[typing.Any, typing.Any]],
+            "MultiDict[_KeyType, _ValueType]",
+            "SupportsKeysAndGetItem[_KeyType, _ValueType]",
+            typing.Iterable[typing.Tuple[typing.Any, typing.Any]],
         ],
-        **kwargs: typing.Any,
+        **kwargs: _ValueType,
     ) -> None:
         value = MultiDict(*args, **kwargs)
         existing_items = [(k, v) for (k, v) in self._list if k not in value.keys()]

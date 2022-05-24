@@ -128,7 +128,7 @@ def test_headers():
     assert "c" not in h
     assert h["a"] == "123"
     assert h.get("a") == "123"
-    assert h.get("nope", default=None) is None
+    assert h.get("nope", None) is None
     assert h.getlist("a") == ["123", "456"]
     assert h.keys() == ["a", "a", "b"]
     assert h.values() == ["123", "456", "789"]
@@ -234,7 +234,7 @@ def test_queryparams():
     assert "c" not in q
     assert q["a"] == "456"
     assert q.get("a") == "456"
-    assert q.get("nope", default=None) is None
+    assert q.get("nope", None) is None
     assert q.getlist("a") == ["123", "456"]
     assert list(q.keys()) == ["a", "b"]
     assert list(q.values()) == ["456", "789"]
@@ -318,7 +318,7 @@ def test_multidict():
     assert "c" not in q
     assert q["a"] == "456"
     assert q.get("a") == "456"
-    assert q.get("nope", default=None) is None
+    assert q.get("nope", None) is None
     assert q.getlist("a") == ["123", "456"]
     assert list(q.keys()) == ["a", "b"]
     assert list(q.values()) == ["456", "789"]
