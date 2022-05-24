@@ -41,6 +41,37 @@ application would look like this:
 * Routing
 * Endpoint
 
+Middleware can also be added to `Mount`, which allows you to apply middleware to a single route, a group of routes or any mounted ASGI application:
+
+```python
+from starlette.applications import Starlette
+from starlette.middleware.gzip import GzipMiddleware
+
+
+routes = [
+    Mount(
+        "/",
+        routes=[
+            Route(
+                "/example",
+                endpoint=...,
+            )
+        ],
+        middleware=[GzipMiddleware]
+    )
+]
+
+app = Starlette(
+    routes=routes,
+    middleware=[
+        Middleware(HTTPSRedirectMiddleware),
+    ],
+)
+```
+
+Note that since this is run after routing, modifying the path in the middleware will have no effect.
+There is also no built-in error handling for route middleware, so your middleware will need to handle exceptions and resource cleanup itself.
+
 The following middleware implementations are available in the Starlette package:
 
 ## CORSMiddleware

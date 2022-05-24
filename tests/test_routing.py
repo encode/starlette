@@ -5,8 +5,20 @@ import uuid
 import pytest
 
 from starlette.applications import Starlette
+from starlette.middleware import Middleware
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.requests import Request
 from starlette.responses import JSONResponse, PlainTextResponse, Response
-from starlette.routing import Host, Mount, NoMatchFound, Route, Router, WebSocketRoute
+from starlette.routing import (
+     BaseRoute,
+     Host,
+     Mount,
+     NoMatchFound,
+     Route,
+     Router,
+     WebSocketRoute,
+ )
+from starlette.testclient import TestClient
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 
@@ -746,3 +758,76 @@ class Endpoint:
 )
 def test_route_name(endpoint: typing.Callable, expected_name: str):
     assert Route(path="/", endpoint=endpoint).name == expected_name
+
+
+def assert_middleware_header_route(request: Request):
+    assert getattr(request.state, "middleware_touched") == "Set by middleware"
+    return Response()
+
+
+class AddHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
+        setattr(request.state, "middleware_touched", "Set by middleware")
+        response: Response = await call_next(request)
+        response.headers["X-Test"] = "Set by middleware"
+        return response
+
+
+
+mounted_routes_with_middleware = Mount(
+     "/http",
+     routes=[
+         Route(
+             "/",
+             endpoint=assert_middleware_header_route,
+             methods=["GET"],
+             name="route",
+         ),
+     ],
+     middleware=[Middleware(AddHeadersMiddleware)],
+ )
+
+
+mounted_app_with_middleware = Mount(
+     "/http",
+     app=Route(
+         "/",
+         endpoint=assert_middleware_header_route,
+         methods=["GET"],
+         name="route",
+     ),
+     middleware=[Middleware(AddHeadersMiddleware)],
+ )
+
+
+@pytest.mark.parametrize(
+    "route",
+    [
+        mounted_routes_with_middleware,
+        mounted_routes_with_middleware,
+    ],
+)
+def test_mount_middleware_url_path_for(route: BaseRoute) -> None:
+    """Checks that url_path_for still works with middleware on Mounts"""
+    router = Router([route])
+    assert router.url_path_for("route") == "/http/"
+
+
+def test_add_route_to_app_after_mount(
+    test_client_factory: typing.Callable[..., TestClient],
+) -> None:
+    """Checks that Mount will pick up routes
+    added to the underlying app after it is mounted
+    """
+    inner_app = Router()
+    app = Mount("/http", app=inner_app)
+    inner_app.add_route(
+        "/inner",
+        endpoint=lambda request: Response(),
+        methods=["GET"],
+    )
+    client = test_client_factory(app)
+    response = client.get("/http/inner")
+    assert response.status_code == 200
