@@ -3,7 +3,7 @@ import functools
 import typing
 
 
-def iscoroutinefunction(obj: typing.Any) -> bool:
+def is_async_callable(obj: typing.Any) -> bool:
     while isinstance(obj, functools.partial):
         obj = obj.func
 

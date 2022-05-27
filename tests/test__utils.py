@@ -1,6 +1,6 @@
 import functools
 
-from starlette._utils import iscoroutinefunction
+from starlette._utils import is_async_callable
 
 
 def test_async_func():
@@ -10,8 +10,8 @@ def test_async_func():
     def func():
         ...  # pragma: no cover
 
-    assert iscoroutinefunction(async_func)
-    assert not iscoroutinefunction(func)
+    assert is_async_callable(async_func)
+    assert not is_async_callable(func)
 
 
 def test_async_partial():
@@ -22,10 +22,10 @@ def test_async_partial():
         ...  # pragma: no cover
 
     partial = functools.partial(async_func, 1)
-    assert iscoroutinefunction(partial)
+    assert is_async_callable(partial)
 
     partial = functools.partial(func, 1)
-    assert not iscoroutinefunction(partial)
+    assert not is_async_callable(partial)
 
 
 def test_async_method():
@@ -37,8 +37,8 @@ def test_async_method():
         def method(self):
             ...  # pragma: no cover
 
-    assert iscoroutinefunction(Async().method)
-    assert not iscoroutinefunction(Sync().method)
+    assert is_async_callable(Async().method)
+    assert not is_async_callable(Sync().method)
 
 
 def test_async_object_call():
@@ -50,8 +50,8 @@ def test_async_object_call():
         def __call__(self):
             ...  # pragma: no cover
 
-    assert iscoroutinefunction(Async())
-    assert not iscoroutinefunction(Sync())
+    assert is_async_callable(Async())
+    assert not is_async_callable(Sync())
 
 
 def test_async_partial_object_call():
@@ -64,10 +64,10 @@ def test_async_partial_object_call():
             ...  # pragma: no cover
 
     partial = functools.partial(Async(), 1)
-    assert iscoroutinefunction(partial)
+    assert is_async_callable(partial)
 
     partial = functools.partial(Sync(), 1)
-    assert not iscoroutinefunction(partial)
+    assert not is_async_callable(partial)
 
 
 def test_async_nested_partial():
@@ -76,4 +76,4 @@ def test_async_nested_partial():
 
     partial = functools.partial(async_func, b=2)
     nested_partial = functools.partial(partial, a=1)
-    assert iscoroutinefunction(nested_partial)
+    assert is_async_callable(nested_partial)

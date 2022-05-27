@@ -9,7 +9,7 @@ import warnings
 from contextlib import asynccontextmanager
 from enum import Enum
 
-from starlette._utils import iscoroutinefunction
+from starlette._utils import is_async_callable
 from starlette.concurrency import run_in_threadpool
 from starlette.convertors import CONVERTOR_TYPES, Convertor
 from starlette.datastructures import URL, Headers, URLPath
@@ -57,7 +57,7 @@ def request_response(func: typing.Callable) -> ASGIApp:
     Takes a function or coroutine `func(request) -> response`,
     and returns an ASGI application.
     """
-    is_coroutine = iscoroutinefunction(func)
+    is_coroutine = is_async_callable(func)
 
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive=receive, send=send)
@@ -608,7 +608,7 @@ class Router:
         Run any `.on_startup` event handlers.
         """
         for handler in self.on_startup:
-            if iscoroutinefunction(handler):
+            if is_async_callable(handler):
                 await handler()
             else:
                 handler()
@@ -618,7 +618,7 @@ class Router:
         Run any `.on_shutdown` event handlers.
         """
         for handler in self.on_shutdown:
-            if iscoroutinefunction(handler):
+            if is_async_callable(handler):
                 await handler()
             else:
                 handler()
