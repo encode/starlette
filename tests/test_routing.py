@@ -6,7 +6,6 @@ import pytest
 
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import JSONResponse, PlainTextResponse, Response
 from starlette.routing import (
@@ -19,6 +18,7 @@ from starlette.routing import (
     WebSocketRoute,
 )
 from starlette.testclient import TestClient
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 
@@ -760,19 +760,24 @@ def test_route_name(endpoint: typing.Callable, expected_name: str):
     assert Route(path="/", endpoint=endpoint).name == expected_name
 
 
-def assert_middleware_header_route(request: Request):
-    assert getattr(request.state, "middleware_touched") == "Set by middleware"
+class AddHeadersMiddleware:
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        scope["add_headers_middleware"] = True
+
+        async def modified_send(msg: Message) -> None:
+            if msg["type"] == "http.response.start":
+                msg["headers"].append((b"X-Test", b"Set by middleware"))
+            await send(msg)
+
+        await self.app(scope, receive, modified_send)
+
+
+def assert_middleware_header_route(request: Request) -> Response:
+    assert request.scope["add_headers_middleware"] is True
     return Response()
-
-
-class AddHeadersMiddleware(BaseHTTPMiddleware):
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
-        setattr(request.state, "middleware_touched", "Set by middleware")
-        response: Response = await call_next(request)
-        response.headers["X-Test"] = "Set by middleware"
-        return response
 
 
 mounted_routes_with_middleware = Mount(
