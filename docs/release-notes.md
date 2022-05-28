@@ -1,8 +1,9 @@
 ## 0.20.1
 
-<PING ME TO UPDATE THE DATE>
+May 28, 2022
 
 ### Fixed
+* Improve detection of async callables [#1444](https://github.com/encode/starlette/pull/1444).
 * Send 400 (Bad Request) when `boundary` is missing [#1617](https://github.com/encode/starlette/pull/1617).
 * Send 400 (Bad Request) when missing "name" field on `Content-Disposition` header [#1643](https://github.com/encode/starlette/pull/1643).
 * Do not send empty data to `StreamingResponse` on `BaseHTTPMiddleware` [#1609](https://github.com/encode/starlette/pull/1609).
