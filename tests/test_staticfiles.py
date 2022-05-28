@@ -452,12 +452,12 @@ def test_staticfiles_follows_symlinks_to_break_out_of_dir(
     symlink_path = tmp_path.joinpath("symlink")
     symlink_path.mkdir()
 
-    statics_file_path = statics_path.joinpath("index.html")
-    with open(statics_file_path, "w") as file:
+    symlink_file_path = symlink_path.joinpath("index.html")
+    with open(symlink_file_path, "w") as file:
         file.write("<h1>Hello</h1>")
 
-    symlink_file_path = symlink_path.joinpath("index.html")
-    symlink_file_path.symlink_to(statics_file_path)
+    statics_file_path = statics_path.joinpath("index.html")
+    statics_file_path.symlink_to(symlink_file_path)
 
     app = StaticFiles(directory=statics_path)
     client = test_client_factory(app)

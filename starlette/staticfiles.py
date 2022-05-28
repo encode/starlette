@@ -168,10 +168,11 @@ class StaticFiles:
                 full_path.relative_to(directory)
                 return full_path, stat_result
             except ValueError:
-                # Don't allow misbehaving clients to break out of the static files
-                # directory if not following symlinks.
-                if not stat.S_ISLNK(stat_result.st_mode):
-                    continue
+                # Allow clients to break out of the static files directory
+                # if following symlinks.
+                if stat.S_ISLNK(stat_result.st_mode):
+                    stat_result = os.lstat(full_path)
+                    return full_path, stat_result
             except (FileNotFoundError, NotADirectoryError):
                 continue
         return Path(), None
