@@ -237,8 +237,9 @@ around explicitly, rather than mutating the middleware instance.
 
 Due to `BaseHTTPMiddleware` limitations, you might need to create a pure [`ASGI`](https://asgi.readthedocs.io/en/latest/) middleware.
 
-```info
+!!! info
     You can read more about it on:
+
     - [Introduction to ASGI: Emergence of an Async Python Web Ecosystem](https://florimond.dev/en/posts/2019/08/introduction-to-asgi-async-python-web/)
     - [How to write ASGI middleware](https://pgjones.dev/blog/how-to-write-asgi-middleware-2021/)
 
