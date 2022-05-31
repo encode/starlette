@@ -108,7 +108,7 @@ PARAM_REGEX = re.compile("{([a-zA-Z_][a-zA-Z0-9_]*)(:[a-zA-Z_][a-zA-Z0-9_]*)?}")
 
 
 def compile_path(
-    path: str,
+    path: str, strip_port: bool = False
 ) -> typing.Tuple[typing.Pattern, str, typing.Dict[str, Convertor]]:
     """
     Given a path string, like: "/{username:str}", return a three-tuple
@@ -150,7 +150,8 @@ def compile_path(
         ending = "s" if len(duplicated_params) > 1 else ""
         raise ValueError(f"Duplicated param name{ending} {names} at path {path}")
 
-    path_regex += re.escape(path[idx:].split(":")[0]) + "$"
+    tail: str = path[idx:].split(":")[0] if strip_port else path[idx:]
+    path_regex += re.escape(tail) + "$"
     path_format += path[idx:]
 
     return re.compile(path_regex), path_format, param_convertors
@@ -432,7 +433,9 @@ class Host(BaseRoute):
         self.host = host
         self.app = app
         self.name = name
-        self.host_regex, self.host_format, self.param_convertors = compile_path(host)
+        self.host_regex, self.host_format, self.param_convertors = compile_path(
+            host, strip_port=True
+        )
 
     @property
     def routes(self) -> typing.List[BaseRoute]:

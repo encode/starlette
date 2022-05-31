@@ -18,6 +18,11 @@ def users(request):
     return Response("All users", media_type="text/plain")
 
 
+def disable_user(request):
+    content = "User " + request.path_params["username"] + " disabled"
+    return Response(content, media_type="text/plain")
+
+
 def user(request):
     content = "User " + request.path_params["username"]
     return Response(content, media_type="text/plain")
@@ -108,6 +113,7 @@ app = Router(
             routes=[
                 Route("/", endpoint=users),
                 Route("/me", endpoint=user_me),
+                Route("/{username}:disable", endpoint=disable_user, methods=["PUT"]),
                 Route("/{username}", endpoint=user),
                 Route("/nomatch", endpoint=user_no_match),
             ],
@@ -188,6 +194,11 @@ def test_router(client):
     assert response.status_code == 200
     assert response.url == "http://testserver/users/tomchristie"
     assert response.text == "User tomchristie"
+
+    response = client.put("/users/tomchristie:disable")
+    assert response.status_code == 200
+    assert response.url == "http://testserver/users/tomchristie:disable"
+    assert response.text == "User tomchristie disabled"
 
     response = client.get("/users/nomatch")
     assert response.status_code == 200
