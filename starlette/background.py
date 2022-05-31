@@ -1,5 +1,6 @@
 import sys
 import typing
+
 import anyio
 
 if sys.version_info >= (3, 10):  # pragma: no cover
