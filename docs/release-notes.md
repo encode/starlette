@@ -4,6 +4,7 @@ May 31, 2022
 
 ### Fixed
 * Allow colons when compiling Route and Mount [#1657](https://github.com/encode/starlette/pull/1657).
+* Allow staticfiles to follow symlinks [#1337](https://github.com/encode/starlette/pull/1377).
 
 ## 0.20.1
 
