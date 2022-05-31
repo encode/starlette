@@ -233,6 +233,15 @@ around explicitly, rather than mutating the middleware instance.
     - It's not possible to use `BackgroundTasks` with `BaseHTTPMiddleware`.
     - Using `BaseHTTPMiddleware` will prevent changes to `contextlib.ContextVar`s from propagating upwards. That is, if you set a value for a `ContextVar` in your endpoint and try to read it from a middleware you will find that the value is not the same value you set in your endpoint (see [this test](https://github.com/encode/starlette/blob/621abc747a6604825190b93467918a0ec6456a24/tests/middleware/test_base.py#L192-L223) for an example of this behavior).
 
+## Pure ASGI Middleware
+
+Due to `BaseHTTPMiddleware` limitations, you might need to create a pure [`ASGI`](https://asgi.readthedocs.io/en/latest/) middleware.
+
+```info
+    You can read more about it on:
+    - [Introduction to ASGI: Emergence of an Async Python Web Ecosystem](https://florimond.dev/en/posts/2019/08/introduction-to-asgi-async-python-web/)
+    - [How to write ASGI middleware](https://pgjones.dev/blog/how-to-write-asgi-middleware-2021/)
+
 ## Using middleware in other frameworks
 
 To wrap ASGI middleware around other ASGI applications, you should use the
