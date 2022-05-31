@@ -1,5 +1,8 @@
 import sys
 import typing
+from asyncio import shield
+
+import anyio
 
 if sys.version_info >= (3, 10):  # pragma: no cover
     from typing import ParamSpec
@@ -39,5 +42,7 @@ class BackgroundTasks(BackgroundTask):
         self.tasks.append(task)
 
     async def __call__(self) -> None:
-        for task in self.tasks:
-            await task()
+        async with anyio.create_task_group():
+            with anyio.CancelScope(shield=True):
+                for task in self.tasks:
+                    await task()
