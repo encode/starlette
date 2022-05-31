@@ -1,3 +1,10 @@
+## 0.20.2
+
+May 31, 2022
+
+### Fixed
+* Allow colons when compiling Route and Mount [#1657](https://github.com/encode/starlette/pull/1657).
+
 ## 0.20.1
 
 May 28, 2022
