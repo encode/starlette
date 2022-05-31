@@ -1,7 +1,5 @@
 import sys
 import typing
-from asyncio import shield
-
 import anyio
 
 if sys.version_info >= (3, 10):  # pragma: no cover
