@@ -108,34 +108,47 @@ PARAM_REGEX = re.compile("{([a-zA-Z_][a-zA-Z0-9_]*)(:[a-zA-Z_][a-zA-Z0-9_]*)?}")
 
 
 def compile_path(
-    path: str, strip_port: bool = False
+    pattern: str,
 ) -> typing.Tuple[typing.Pattern, str, typing.Dict[str, Convertor]]:
     """
-    Given a path string, like: "/{username:str}", return a three-tuple
+    Can compile hostname patterns as well as path patterns. When the patterns
+    starts with a slash it is regarded as a path, otherwise as a hostname.
+
+    When given a path pattern, like: "/{username:str}", return a three-tuple
     of (regex, format, {param_name:convertor}).
 
     regex:      "/(?P<username>[^/]+)"
     format:     "/{username}"
     convertors: {"username": StringConvertor()}
+
+    When given a hostname pattern, like: "{subdomain:str}.mydomain.tld:8080",
+    return a three-tuple of (regex, format, {param_name:convertor}).
+
+    regex:      "(?P<subdomain>[^/]+).mydomain.tld"
+    format:     "{subdomain}.mydomain.tld:8080"
+    convertors: {"subdomain": StringConvertor()}
+
+    The regex is used for parsing URIs, while the format is used to generate URIs.
     """
+    is_host: bool = not pattern.startswith("/")
     path_regex = "^"
     path_format = ""
     duplicated_params = set()
 
     idx = 0
     param_convertors = {}
-    for match in PARAM_REGEX.finditer(path):
+    for match in PARAM_REGEX.finditer(pattern):
         param_name, convertor_type = match.groups("str")
         convertor_type = convertor_type.lstrip(":")
         assert (
             convertor_type in CONVERTOR_TYPES
-        ), f"Unknown path convertor '{convertor_type}'"
+        ), f"Unknown param convertor '{convertor_type}'"
         convertor = CONVERTOR_TYPES[convertor_type]
 
-        path_regex += re.escape(path[idx : match.start()])
+        path_regex += re.escape(pattern[idx : match.start()])
         path_regex += f"(?P<{param_name}>{convertor.regex})"
 
-        path_format += path[idx : match.start()]
+        path_format += pattern[idx : match.start()]
         path_format += "{%s}" % param_name
 
         if param_name in param_convertors:
@@ -148,11 +161,14 @@ def compile_path(
     if duplicated_params:
         names = ", ".join(sorted(duplicated_params))
         ending = "s" if len(duplicated_params) > 1 else ""
-        raise ValueError(f"Duplicated param name{ending} {names} at path {path}")
+        input_type = "host" if is_host else "path"
+        raise ValueError(
+            f"Duplicated param name{ending} {names} at {input_type} pattern {pattern}"
+        )
 
-    tail: str = path[idx:].split(":")[0] if strip_port else path[idx:]
+    tail: str = pattern[idx:].split(":")[0] if is_host else pattern[idx:]
     path_regex += re.escape(tail) + "$"
-    path_format += path[idx:]
+    path_format += pattern[idx:]
 
     return re.compile(path_regex), path_format, param_convertors
 
@@ -430,12 +446,11 @@ class Host(BaseRoute):
     def __init__(
         self, host: str, app: ASGIApp, name: typing.Optional[str] = None
     ) -> None:
+        assert not host.startswith("/"), "Routed hosts must not start with '/'"
         self.host = host
         self.app = app
         self.name = name
-        self.host_regex, self.host_format, self.param_convertors = compile_path(
-            host, strip_port=True
-        )
+        self.host_regex, self.host_format, self.param_convertors = compile_path(host)
 
     @property
     def routes(self) -> typing.List[BaseRoute]:

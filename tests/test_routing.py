@@ -713,13 +713,14 @@ def test_partial_async_ws_endpoint(test_client_factory):
 def test_duplicated_param_names():
     with pytest.raises(
         ValueError,
-        match="Duplicated param name id at path /{id}/{id}",
+        match="Duplicated param name id at path pattern /{id}/{id}",
     ):
         Route("/{id}/{id}", user)
 
     with pytest.raises(
         ValueError,
-        match="Duplicated param names id, name at path /{id}/{name}/{id}/{name}",
+        match="Duplicated param names id, name"
+        " at path pattern /{id}/{name}/{id}/{name}",
     ):
         Route("/{id}/{name}/{id}/{name}", user)
 
