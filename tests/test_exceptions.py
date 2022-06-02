@@ -1,7 +1,7 @@
+import pickle
 import warnings
 
 import pytest
-import pickle
 
 from starlette.exceptions import HTTPException
 from starlette.middleware.exceptions import ExceptionMiddleware
