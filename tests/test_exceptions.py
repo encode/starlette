@@ -1,6 +1,7 @@
 import warnings
 
 import pytest
+import pickle
 
 from starlette.exceptions import HTTPException
 from starlette.middleware.exceptions import ExceptionMiddleware
@@ -146,3 +147,8 @@ def test_exception_middleware_deprecation() -> None:
 
     with pytest.warns(DeprecationWarning):
         starlette.exceptions.ExceptionMiddleware
+
+
+def test_exception_pickle() -> None:
+    assert pickle.loads(pickle.dumps(HTTPException(404))).status_code == 404
+    assert pickle.loads(pickle.dumps(HTTPException(status_code=404))).status_code == 404
