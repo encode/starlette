@@ -252,12 +252,7 @@ class ASGIMiddleware:
         await self.app(scope, receive, send)
 ```
 
-The middleware above is the most basic ASGI middleware. It just receives an ASGI application as an argument for its constructor, and implements the `__call__` method, with the parameters that the ASGI protocol defines: `scope`, `receive`, and `send`.
-
-The `scope` parameter is a dictionary that contains the information about the connection.
-You can see more about it [here](https://asgi.readthedocs.io/en/latest/specs/index.html).
-
-Both `receive` and `send` parameters are async callables that work in opposite ways. The `send` callable allows the application to send event messages to the client, and the `receive` allows the application to receive event messages from the client.
+The middleware above is the most basic ASGI middleware. It receives an ASGI application as an argument for its constructor, and implements the `async __call__` method. This method should accept `scope`, which contains information about the current connection, and `receive` and `send` which allow to exchange ASGI event messages with the ASGI server (learn more in the [ASGI specification](https://asgi.readthedocs.io/en/latest/specs/index.html)).
 
 As an alternative for the class approach, you can also use a function:
 
@@ -278,9 +273,9 @@ def asgi_middleware():
 #### `Scope` types
 
 As we mention, the scope holds the information about the connection. There are three types of `scope`s:
-- `lifespan` is a special type of scope that is used for the lifespan of the ASGI application.
-- `http` is a type of scope that is used for HTTP requests.
-- `websocket` is a type of scope that is used for WebSocket connections.
+- [`lifespan`](https://asgi.readthedocs.io/en/latest/specs/lifespan.html#scope) is a special type of scope that is used for the lifespan of the ASGI application.
+- [`http`](https://asgi.readthedocs.io/en/latest/specs/www.html#http-connection-scope) is a type of scope that is used for HTTP requests.
+- [`websocket`](https://asgi.readthedocs.io/en/latest/specs/www.html#websocket-connection-scope) is a type of scope that is used for WebSocket connections.
 
 If you want to create a middleware that only runs on HTTP requests, you'd write something like:
 
@@ -290,15 +285,16 @@ class ASGIMiddleware:
         self.app = app
 
     async def __call__(self, scope, receive, send):
-        if scope["type"] == "http":
-            # Do something here!
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+            
+        # Do something here!
         await self.app(scope, receive, send)
 ```
 In the example above, if the `scope` type is `lifespan` or `websocket`, we'll directly call the `self.app`.
 
 The same applies for the other scopes.
 
-You can read more about those scopes on the [ASGI documentation]().
 
 !!! note
     Middleware classes should be stateless -- see [Per-request state](#per-request-state) if you do need to store per-request state.
@@ -308,19 +304,23 @@ You can read more about those scopes on the [ASGI documentation]().
 A common pattern, that you'll probably need to use is to wrap the `send` or `receive` callables.
 
 ```python
-class ASGIMiddleware:
+class LogStatusCodeMiddleware:
     def __init__(self, app):
         self.app = app
 
     async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+    
         status_code = 500
-        if scope["type"] == "http":
-                async def send_wrapper(message):
-                    if message["type"] == "http.response.start":
-                        status_code = message["status"]
-                    await send(message)
-            return await self.app(scope, receive, send_wrapper)
-        await self.app(scope, receive, send)
+
+        async def send_wrapper(message):
+            if message["type"] == "http.response.start":
+                status_code = message["status"]
+            await send(message)
+
+        await self.app(scope, receive, send_wrapper)
+
         print("This is a primitive access log")
         print(f"status = {status_code}")
 ```
@@ -329,7 +329,7 @@ On the example above, we are wrapping the `send` function with the `send_wrapper
 !!! info
     You can check a more advanced implementation of the same rationale on [asgi-logger](https://github.com/Kludex/asgi-logger/blob/main/asgi_logger/middleware.py).
 
-#### Annotation
+#### Type annotations
 
 There are two ways of annotating a middleware: using Starlette itself or `asgiref`.
 
@@ -374,9 +374,9 @@ class ASGIMiddleware:
 The `ASGI3Application` is meant to represent an ASGI application that follows the third version of the standard.
 Starlette itself is an ASGI 3 application.
 
-### Wrapping the request
+### Reusing Starlette components
 
-On Starlette, we have data structures that make it more convenient to organize your ASGI middleware.
+If you need to work with request or response data, you may find it more convenient to reuse Starlette datastructures (`Request`, `Headers`, `QueryParams`, `URL`, etc) rather than work with raw ASGI data. All these components can be built from the ASGI `scope`, `receive` and `send`, allowing you to work on pure ASGI middleware at a higher level of abstraction.
 
 For example, we can create a `Request` object, and work with it.
 ```python
@@ -393,28 +393,31 @@ class ASGIMiddleware:
         await self.app(scope, receive, send)
 ```
 
-Also, it's possible to make use of `MutableHeaders` to change the headers:
+Or we might use `MutableHeaders` to change the response headers:
 
 ```python
-class ASGIMiddleware:
+class ExtraResponseHeadersMiddleware:
     def __init__(self, app, headers):
         self.app = app
         self.headers = headers
 
     async def __call__(self, scope, receive, send):
-        if scope["type"] == "http":
-            async def send_wrapper(message):
-                if message["type"] == "http.response.start":
-                    headers = MutableHeaders(scope=message)
-                    for key, value for self.headers:
-                        headers.append(key, value)
-                await send(message)
-        await self.app(scope, receive, send_wrapper)
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+
+        async def wrapped_send(message):
+            if message["type"] == "http.response.start":
+                headers = MutableHeaders(scope=message)
+                for key, value for self.headers:
+                    headers.append(key, value)
+            await send(message)
+
+        await self.app(scope, receive, wrapped_send)
 ```
 
 ### Per-request state
 
-The ASGI middleware class is meant to be stateless, as we don't want to spread the state from one request to another.
+ASGI middleware classes should be stateless, as we typically don't want to spread the state from one request to another.
 The responder pattern is a way to deal with per-request state. The idea is to have an object that will hold that information.
 
 ```python
@@ -435,7 +438,7 @@ class Responder:
         self.app = app
         self.started = False
 
-    def __call__(self, scope, receive, send):
+    async def __call__(self, scope, receive, send):
         async def send_wrapper(message):
             if message["type"] == "http.response.body" and not self.started:
                 self.started = True
