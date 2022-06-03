@@ -125,7 +125,9 @@ class Starlette:
 
     # The following usages are now discouraged in favour of configuration
     # during Starlette.__init__(...)
-    def on_event(self, event_type: typing.Literal["startup", "shutdown"]) -> typing.Callable:  # pragma: nocover
+    def on_event(
+        self, event_type: typing.Literal["startup", "shutdown"]
+    ) -> typing.Callable:  # pragma: nocover
         return self.router.on_event(event_type)
 
     def mount(
