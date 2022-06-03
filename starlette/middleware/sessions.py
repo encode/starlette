@@ -6,6 +6,7 @@ from base64 import b64decode, b64encode
 import itsdangerous
 from itsdangerous.exc import BadSignature
 
+from starlette._utils import get_or_create_extension
 from starlette.datastructures import MutableHeaders, Secret
 from starlette.requests import HTTPConnection
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
@@ -54,6 +55,7 @@ class SessionMiddleware:
                 scope["session"] = {}
         else:
             scope["session"] = {}
+        get_or_create_extension(scope)["session"] = scope["session"]
 
         async def send_wrapper(message: Message) -> None:
             if message["type"] == "http.response.start":

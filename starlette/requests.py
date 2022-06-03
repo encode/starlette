@@ -5,6 +5,7 @@ from http import cookies as http_cookies
 
 import anyio
 
+from starlette._utils import get_or_create_extension
 from starlette.datastructures import URL, Address, FormData, Headers, QueryParams, State
 from starlette.exceptions import HTTPException
 from starlette.formparsers import FormParser, MultiPartException, MultiPartParser
@@ -167,10 +168,11 @@ class HTTPConnection(Mapping):
     def state(self) -> State:
         if not hasattr(self, "_state"):
             # Ensure 'state' has an empty dict if it's not already populated.
-            self.scope.setdefault("state", {})
+            extension = get_or_create_extension(self.scope)
+            extension["state"] = state = extension.get("state", None) or {}
             # Create a state instance with a reference to the dict in which it should
             # store info
-            self._state = State(self.scope["state"])
+            self._state = State(state)
         return self._state
 
     def url_for(self, name: str, **path_params: typing.Any) -> str:

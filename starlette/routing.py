@@ -9,7 +9,7 @@ import warnings
 from contextlib import asynccontextmanager
 from enum import Enum
 
-from starlette._utils import is_async_callable
+from starlette._utils import get_or_create_extension, is_async_callable
 from starlette.concurrency import run_in_threadpool
 from starlette.convertors import CONVERTOR_TYPES, Convertor
 from starlette.datastructures import URL, Headers, URLPath
@@ -183,6 +183,7 @@ class BaseRoute:
             return
 
         scope.update(child_scope)
+        get_or_create_extension(scope).update(get_or_create_extension(child_scope))
         await self.handle(scope, receive, send)
 
 
@@ -653,7 +654,7 @@ class Router:
         assert scope["type"] in ("http", "websocket", "lifespan")
 
         if "router" not in scope:
-            scope["router"] = self
+            scope["router"] = get_or_create_extension(scope)["router"] = self
 
         if scope["type"] == "lifespan":
             await self.lifespan(scope, receive, send)
@@ -667,6 +668,9 @@ class Router:
             match, child_scope = route.matches(scope)
             if match == Match.FULL:
                 scope.update(child_scope)
+                get_or_create_extension(scope).update(
+                    get_or_create_extension(child_scope)
+                )
                 await route.handle(scope, receive, send)
                 return
             elif match == Match.PARTIAL and partial is None:
@@ -678,6 +682,9 @@ class Router:
             # able to handle the request, but is not a preferred option.
             # We use this in particular to deal with "405 Method Not Allowed".
             scope.update(partial_scope)
+            get_or_create_extension(scope).update(
+                get_or_create_extension(partial_scope)
+            )
             await partial.handle(scope, receive, send)
             return
 

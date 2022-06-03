@@ -1,5 +1,6 @@
 import typing
 
+from starlette._utils import get_or_create_extension
 from starlette.authentication import (
     AuthCredentials,
     AuthenticationBackend,
@@ -45,6 +46,8 @@ class AuthenticationMiddleware:
         if auth_result is None:
             auth_result = AuthCredentials(), UnauthenticatedUser()
         scope["auth"], scope["user"] = auth_result
+        extension = get_or_create_extension(scope)
+        extension["auth"], extension["user"] = auth_result
         await self.app(scope, receive, send)
 
     @staticmethod

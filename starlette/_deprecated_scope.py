@@ -17,10 +17,6 @@ class DeprecatedScope(Dict[str, Any]):
 
     def __init__(self, scope: Mapping[str, Any]) -> None:
         super().__init__(scope)
-        self["extensions"] = extensions = self.get("extensions", None) or {}
-        extensions["starlette"] = self.extension = (
-            extensions.get("starlette", None) or {}
-        )
 
     def __getitem__(self, __k: str) -> Any:
         if __k in self._deprecated_scope_keys:
@@ -29,10 +25,4 @@ class DeprecatedScope(Dict[str, Any]):
                 f'scope["extensions"]["starlette"]["{__k}"] instead'
             )
             warn(msg, DeprecationWarning)
-            return self.extension[__k]
         return super().__getitem__(__k)
-
-    def __setitem__(self, __k: str, __v: Any) -> None:
-        if __k in self._deprecated_scope_keys:
-            self.extension[__k] = __v
-        return super().__setitem__(__k, __v)

@@ -1,6 +1,7 @@
 import typing
 
 from starlette._deprecated_scope import DeprecatedScope
+from starlette._utils import get_or_create_extension
 from starlette.datastructures import State, URLPath
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -122,7 +123,7 @@ class Starlette:
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         scope = DeprecatedScope(scope)
-        scope["app"] = self
+        scope["app"] = get_or_create_extension(scope)["app"] = self
         await self.middleware_stack(scope, receive, send)
 
     # The following usages are now discouraged in favour of configuration
