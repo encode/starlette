@@ -1,5 +1,6 @@
 import typing
 
+from starlette._deprecated_scope import DeprecatedScope
 from starlette.datastructures import State, URLPath
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -120,6 +121,7 @@ class Starlette:
         return self.router.url_path_for(name, **path_params)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        scope = DeprecatedScope(scope)
         scope["app"] = self
         await self.middleware_stack(scope, receive, send)
 
