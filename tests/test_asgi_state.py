@@ -4,9 +4,9 @@ from typing import Callable
 import pytest
 
 from starlette.applications import Starlette
-from starlette.routing import Route
 from starlette.requests import Request
 from starlette.responses import Response
+from starlette.routing import Route
 from starlette.testclient import TestClient
 
 
