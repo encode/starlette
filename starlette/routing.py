@@ -815,7 +815,7 @@ class Router:
         return decorator
 
     def add_event_handler(
-        self, event_type: str, func: typing.Callable
+        self, event_type: typing.Literal["startup", "shutdown"], func: typing.Callable
     ) -> None:  # pragma: no cover
         assert event_type in ("startup", "shutdown")
 
@@ -824,7 +824,7 @@ class Router:
         else:
             self.on_shutdown.append(func)
 
-    def on_event(self, event_type: str) -> typing.Callable:  # pragma: nocover
+    def on_event(self, event_type: typing.Literal["startup", "shutdown"]) -> typing.Callable:  # pragma: nocover
         def decorator(func: typing.Callable) -> typing.Callable:
             self.add_event_handler(event_type, func)
             return func
