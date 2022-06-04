@@ -3,7 +3,7 @@
 June 4, 2022
 
 ### Fixed
-* Allow colons when compiling Route and Mount [#1657](https://github.com/encode/starlette/pull/1657).
+* Fix regression on route paths with colons [#1675](https://github.com/encode/starlette/pull/1675).
 * Allow staticfiles to follow symlinks [#1337](https://github.com/encode/starlette/pull/1377).
 
 ## 0.20.1
