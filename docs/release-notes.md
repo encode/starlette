@@ -4,7 +4,7 @@ June 7, 2022
 
 ### Fixed
 * Fix regression on route paths with colons [#1675](https://github.com/encode/starlette/pull/1675).
-* Allow staticfiles to follow symlinks [#1337](https://github.com/encode/starlette/pull/1377).
+* Allow `StaticFiles` to follow symlinks [#1337](https://github.com/encode/starlette/pull/1377).
 
 ## 0.20.1
 
