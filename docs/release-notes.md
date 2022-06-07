@@ -1,6 +1,6 @@
 ## 0.20.2
 
-June 4, 2022
+June 7, 2022
 
 ### Fixed
 * Fix regression on route paths with colons [#1675](https://github.com/encode/starlette/pull/1675).
