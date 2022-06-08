@@ -378,9 +378,12 @@ class ASGIMiddleware:
 The `ASGI3Application` is meant to represent an ASGI application that follows the third version of the standard.
 Starlette itself is an ASGI 3 application.
 
+!!! note
+    You can read more about ASGI versions on the [Legacy Applications section on the ASGI documentation](https://asgi.readthedocs.io/en/latest/specs/main.html#legacy-applications).
+
 ### Reusing Starlette components
 
-If you need to work with request or response data, you may find it more convenient to reuse Starlette datastructures (`Request`, `Headers`, `QueryParams`, `URL`, etc) rather than work with raw ASGI data. All these components can be built from the ASGI `scope`, `receive` and `send`, allowing you to work on pure ASGI middleware at a higher level of abstraction.
+If you need to work with request or response data, you may find it more convenient to reuse Starlette data structures (`Request`, `Headers`, `QueryParams`, `URL`, etc) rather than work with raw ASGI data. All these components can be built from the ASGI `scope`, `receive` and `send`, allowing you to work on pure ASGI middleware at a higher level of abstraction.
 
 For example, we can create a `Request` object, and work with it.
 ```python
@@ -421,39 +424,53 @@ class ExtraResponseHeadersMiddleware:
 
 ### Per-request state
 
-ASGI middleware classes should be stateless, as we typically don't want to spread the state from one request to another.
-The responder pattern is a way to deal with per-request state. The idea is to have an object that will hold that information.
+ASGI middleware classes should be stateless, as we typically don't want to leak state across requests.
+
+The risk is low when defining wrappers inside `__call__`, as state would typically be defined as inline variables.
+
+But if the middleware grows larger and more complex, you might be tempted to refactor wrappers as methods. Still, state should not be stored in the middleware instance. Instead, if you need to manipulate per-request state, you may write a separate `Responder` class:
 
 ```python
-class ASGIMiddleware:
+from functools import partial
+
+class TweakMiddleware:
+    """
+    Make a change to the response body if 'X-Tweak' is
+    present in the reponse headers.
+    """
+
+    async def __call_(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+
+        responder = MaybeTweakResponder(self.app)
+        await responder(scope, receive, send)
+
+class TweakResponder:
     def __init__(self, app):
         self.app = app
+        self.should_tweak = False
 
     async def __call__(self, scope, receive, send):
-        if scope["type"] == "http":
-            responder = Responder(self.app)
-            return await responder(scope, receive, send)
-
+        send = partial(self.maybe_send_with_tweaks, send=send)
         await self.app(scope, receive, send)
 
-
-class Responder:
-    def __init__(self, app):
-        self.app = app
-        self.started = False
-
-    async def __call__(self, scope, receive, send):
-        async def send_wrapper(message):
-            if message["type"] == "http.response.body" and not self.started:
-                self.started = True
+    async def maybe_send_with_tweaks(self, message, send):
+        if message["type"] == "http.response.start":
+            headers = Headers(raw=message["headers"])
+            self.should_tweak = headers.get("X-Tweak") == "1"
             await send(message)
-        await self.app(scope, receive, send_wrapper)
+            return
+
+        if message["type"] == "http.response.body":
+            if not self.should_tweak:
+                await send(message)
+                return
+
+            # Actually tweak the response body...
 ```
 
-The `Responder` object, in this case, will save the information about when the response body has "started" to be sent.
-
-!!! info
-    You can see a more advanced implementation of this pattern on our [GZipMiddleware](), and also on the [msgpack-asgi](https://github.com/florimondmanca/msgpack-asgi/blob/6261b1e22b3689551f68038ee00adda5fbc04670/src/msgpack_asgi/_middleware.py).
+See also [`GZipMiddleware`](https://github.com/encode/starlette/blob/9ef1b91c9c043197da6c3f38aa153fd874b95527/starlette/middleware/gzip.py) for a full example of this pattern.
 
 ### Storing context in `scope`
 
