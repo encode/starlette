@@ -290,7 +290,7 @@ class ASGIMiddleware:
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
-            
+
         # Do something here!
         await self.app(scope, receive, send)
 ```
@@ -313,7 +313,7 @@ class LogStatusCodeMiddleware:
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
-    
+
         status_code = 500
 
         async def send_wrapper(message):
