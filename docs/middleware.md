@@ -474,8 +474,7 @@ See also [`GZipMiddleware`](https://github.com/encode/starlette/blob/9ef1b91c9c0
 
 ### Storing context in `scope`
 
-As we know by now, the `scope` holds the information about the application. To be precise, the `scope` holds
-the stateless information of the application. IS THIS CORRECT?
+As we know by now, the `scope` holds the information about the connection.
 
 As per the ASGI specifications, any application can store custom information on the `scope`.
 To be precise, it should be stored under the `extensions` key.
