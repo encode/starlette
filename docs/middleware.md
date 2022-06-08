@@ -305,6 +305,9 @@ The same applies for the other scopes.
 
 A common pattern, that you'll probably need to use is to wrap the `send` or `receive` callables.
 
+For example, here's how we could write a middleware that logs the response status code, which we'd obtain
+by wrapping the `send` with the `send_wrapper` callable:
+
 ```python
 class LogStatusCodeMiddleware:
     def __init__(self, app):
@@ -326,14 +329,13 @@ class LogStatusCodeMiddleware:
         print("This is a primitive access log")
         print(f"status = {status_code}")
 ```
-On the example above, we are wrapping the `send` function with the `send_wrapper` one.
 
 !!! info
     You can check a more advanced implementation of the same rationale on [asgi-logger](https://github.com/Kludex/asgi-logger/blob/main/asgi_logger/middleware.py).
 
 #### Type annotations
 
-There are two ways of annotating a middleware: using Starlette itself or `asgiref`.
+There are two ways of annotating a middleware: using Starlette itself or [`asgiref`](https://github.com/django/asgiref).
 
 Using Starlette, you can do as:
 
