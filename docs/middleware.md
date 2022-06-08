@@ -257,6 +257,8 @@ The middleware above is the most basic ASGI middleware. It receives an ASGI appl
 As an alternative for the class approach, you can also use a function:
 
 ```python
+import functools
+
 def asgi_middleware():
     def asgi_decorator(app):
         @functools.wraps(app)
@@ -272,7 +274,8 @@ def asgi_middleware():
 
 #### `Scope` types
 
-As we mention, the scope holds the information about the connection. There are three types of `scope`s:
+As we mentioned, the scope holds the information about the connection. There are three types of `scope`s:
+
 - [`lifespan`](https://asgi.readthedocs.io/en/latest/specs/lifespan.html#scope) is a special type of scope that is used for the lifespan of the ASGI application.
 - [`http`](https://asgi.readthedocs.io/en/latest/specs/www.html#http-connection-scope) is a type of scope that is used for HTTP requests.
 - [`websocket`](https://asgi.readthedocs.io/en/latest/specs/www.html#websocket-connection-scope) is a type of scope that is used for WebSocket connections.
@@ -294,7 +297,6 @@ class ASGIMiddleware:
 In the example above, if the `scope` type is `lifespan` or `websocket`, we'll directly call the `self.app`.
 
 The same applies for the other scopes.
-
 
 !!! note
     Middleware classes should be stateless -- see [Per-request state](#per-request-state) if you do need to store per-request state.
