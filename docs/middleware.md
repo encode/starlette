@@ -490,11 +490,7 @@ class ASGIMiddleware:
 ```
 On the example above, we stored an extension called "super.extension". That can be used by the application itself, as the scope is forwarded to it.
 
-### Examples
-
-I WANT TO WRITE SOME DIFFERENT EXAMPLES USING LIFESPAN, RECEIVE EVENTS, AND WEBSOCKETS.
-
-!!! note
+!!! important
     This documentation should be enough to have a good basis on how to create an ASGI middleware.
     Nonetheless, there are great articles about the subject:
 
