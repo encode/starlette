@@ -1,4 +1,5 @@
 import typing
+import warnings
 
 import anyio
 
@@ -11,6 +12,18 @@ DispatchFunction = typing.Callable[
     [Request, RequestResponseEndpoint], typing.Awaitable[Response]
 ]
 
+_WARNING = """\
+BaseHTTPMiddleware has multiple bugs/technical limitations\
+ (please see https://www.starlette.io/middleware/#basehttpmiddleware for more details)\
+ that we believe cannot be fixed under the current API.
+Because of this, we are deprecating this functionality and will remove it in the first\
+ minor version release made after January 2023.
+If you would like this functionality to be preserved in Starlette _and_ are\
+ able to contribute fixes to these bugs/limitations please comment on\
+ https://github.com/encode/starlette/issues/1678 or open a pull request to fix\
+ these bugs.
+"""
+
 
 class BaseHTTPMiddleware:
     def __init__(
@@ -18,6 +31,7 @@ class BaseHTTPMiddleware:
     ) -> None:
         self.app = app
         self.dispatch_func = self.dispatch if dispatch is None else dispatch
+        warnings.warn(_WARNING, DeprecationWarning)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":

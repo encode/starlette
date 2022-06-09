@@ -221,3 +221,14 @@ def test_contextvars(test_client_factory, middleware_cls: type):
     client = test_client_factory(app)
     response = client.get("/")
     assert response.status_code == 200, response.content
+
+
+def test_deprecation(test_client_factory):
+    async def app(scope, receive, send):
+        ...
+
+    async def dispatch(request, call_next):
+        ...
+
+    with pytest.warns(DeprecationWarning):
+        BaseHTTPMiddleware(app, dispatch=dispatch)
