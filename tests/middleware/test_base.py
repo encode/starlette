@@ -225,10 +225,10 @@ def test_contextvars(test_client_factory, middleware_cls: type):
 
 def test_deprecation(test_client_factory):
     async def app(scope, receive, send):
-        ...
+        assert False  # pragma: no cover
 
     async def dispatch(request, call_next):
-        ...
+        assert False  # pragma: no cover
 
     with pytest.warns(DeprecationWarning):
         BaseHTTPMiddleware(app, dispatch=dispatch)
