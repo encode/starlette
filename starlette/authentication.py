@@ -97,7 +97,7 @@ def requires(
 
             return sync_wrapper
 
-    return decorator  # type: ignore
+    return decorator
 
 
 class AuthenticationError(Exception):
