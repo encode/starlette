@@ -441,3 +441,52 @@ def test_staticfiles_unhandled_os_error_returns_500(
     response = client.get("/example.txt")
     assert response.status_code == 500
     assert response.text == "Internal Server Error"
+
+
+def test_staticfiles_follows_symlinks(tmpdir, test_client_factory):
+    statics_path = os.path.join(tmpdir, "statics")
+    os.mkdir(statics_path)
+
+    symlink_path = os.path.join(tmpdir, "symlink")
+    os.mkdir(symlink_path)
+
+    symlink_file_path = os.path.join(symlink_path, "index.html")
+    with open(symlink_file_path, "w") as file:
+        file.write("<h1>Hello</h1>")
+
+    statics_file_path = os.path.join(statics_path, "index.html")
+    os.symlink(symlink_file_path, statics_file_path)
+
+    app = StaticFiles(directory=statics_path)
+    client = test_client_factory(app)
+
+    response = client.get("/index.html")
+    assert response.url == "http://testserver/index.html"
+    assert response.status_code == 200
+    assert response.text == "<h1>Hello</h1>"
+
+
+def test_staticfiles_disallows_path_traversal_with_symlinks(tmpdir):
+    statics_path = os.path.join(tmpdir, "statics")
+    os.mkdir(statics_path)
+
+    symlink_path = os.path.join(tmpdir, "symlink")
+    os.mkdir(symlink_path)
+
+    symlink_file_path = os.path.join(symlink_path, "index.html")
+    with open(symlink_file_path, "w") as file:
+        file.write("<h1>Hello</h1>")
+
+    temp_path = os.path.join(tmpdir, "index.html")
+    os.symlink(symlink_file_path, temp_path)
+
+    app = StaticFiles(directory=statics_path)
+    # We can't test this with 'requests', so we test the app directly here.
+    path = app.get_path({"path": "/../index.html"})
+    scope = {"method": "GET"}
+
+    with pytest.raises(HTTPException) as exc_info:
+        anyio.run(app.get_response, path, scope)
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "Not Found"
