@@ -26,6 +26,30 @@ function calls, not awaitables.
 You can use any of `requests` standard API, such as authentication, session
 cookies handling, or file uploads.
 
+For example, to set headers on the client you can do:
+
+```python
+client = TestClient(app)
+
+# Set the headers on the client for future requests
+client.headers = {"Authorization": "..."}
+response = client.gete("/")
+
+# Set headers for each request separately
+response = client.get("/", headers={"Authorization": "..."})
+```
+
+Or to send files with the TestClient:
+
+```python
+client = TestClient(app)
+
+files = {"file": open("example.txt", "rb")}
+response = client.post("/form", files=files)
+```
+
+For more information you can view `requests.Session` [docs](https://requests.readthedocs.io/en/master/user/advanced/) and [API](https://requests.readthedocs.io/en/master/api/#requests.Session).
+
 By default the `TestClient` will raise any exceptions that occur in the
 application. Occasionally you might want to test the content of 500 error
 responses, rather than allowing client to raise the server exception. In this
