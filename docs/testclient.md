@@ -45,12 +45,14 @@ And for example to send files with the TestClient:
 client = TestClient(app)
 
 # Send a single file
-files = {"file": open("example.txt", "rb")}
-response = client.post("/form", files=files)
+with open("example.txt", "rb") as f:
+    response = client.post("/form", files={"file": f})
 
 # Send multiple files
-files = {"file1": open("example.txt", "rb"), "file2": open("example.png", "rb")}
-response = client.post("/form", files=files)
+with open("example.txt", "rb") as f1:
+    with open("example.png", "rb") as f2:
+        files = {"file1": f1, "file2": ("filename", f2, "image/png")}
+        response = client.post("/form", files=files)
 ```
 
 For more information you can view `requests.Session` [docs](https://requests.readthedocs.io/en/master/user/advanced/) and [API](https://requests.readthedocs.io/en/master/api/#requests.Session).
