@@ -44,7 +44,12 @@ And for example to send files with the TestClient:
 ```python
 client = TestClient(app)
 
+# Send a single file
 files = {"file": open("example.txt", "rb")}
+response = client.post("/form", files=files)
+
+# Send multiple files
+files = {"file1": open("example.txt", "rb"), "file2": open("example.png", "rb")}
 response = client.post("/form", files=files)
 ```
 
