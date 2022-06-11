@@ -33,7 +33,7 @@ client = TestClient(app)
 
 # Set the headers on the client for future requests
 client.headers = {"Authorization": "..."}
-response = client.gete("/")
+response = client.get("/")
 
 # Set headers for each request separately
 response = client.get("/", headers={"Authorization": "..."})
