@@ -23,7 +23,7 @@ def test_staticfiles(tmpdir, test_client_factory):
     app = StaticFiles(directory=tmpdir)
     client = test_client_factory(app)
     response = client.get("/example.txt")
-    assert response.status_code == 200
+    assert response.status_code == 400
     assert response.text == "<file content>"
 
 
