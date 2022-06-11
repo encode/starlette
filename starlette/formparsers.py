@@ -3,6 +3,7 @@ from enum import Enum
 from urllib.parse import unquote_plus
 
 from starlette.datastructures import FormData, Headers, UploadFile
+from starlette.requests import Request
 
 try:
     import multipart
