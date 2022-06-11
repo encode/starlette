@@ -26,12 +26,12 @@ function calls, not awaitables.
 You can use any of `requests` standard API, such as authentication, session
 cookies handling, or file uploads.
 
-For example, to set headers on the client you can do:
+For example, to set headers on the TestClient you can do:
 
 ```python
 client = TestClient(app)
 
-# Set the headers on the client for future requests
+# Set headers on the client for future requests
 client.headers = {"Authorization": "..."}
 response = client.get("/")
 
@@ -39,7 +39,7 @@ response = client.get("/")
 response = client.get("/", headers={"Authorization": "..."})
 ```
 
-Or to send files with the TestClient:
+And for example to send files with the TestClient:
 
 ```python
 client = TestClient(app)
