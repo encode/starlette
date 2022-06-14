@@ -1,4 +1,5 @@
 import hashlib
+from typing import Any
 
 __all__ = [
     "md5_hexdigest",
@@ -37,4 +38,13 @@ except TypeError:  # pragma: no cover
 try:
     from contextlib import aclosing  # type: ignore[attr-defined]
 except ImportError:  # Python < 3.10
-    from async_generator import aclosing  # type: ignore
+
+    class aclosing:  # type: ignore
+        def __init__(self, thing: Any) -> None:
+            self.thing = thing
+
+        async def __aenter__(self) -> Any:
+            return self.thing
+
+        async def __aexit__(self, *exc_info: Any) -> None:
+            await self.thing.aclose()

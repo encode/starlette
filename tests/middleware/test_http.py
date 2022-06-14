@@ -1,5 +1,5 @@
 import contextvars
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional
 
 import pytest
 
@@ -141,23 +141,83 @@ def test_middleware_repr():
     assert repr(middleware) == "Middleware(CustomMiddleware)"
 
 
-def test_fully_evaluated_response(test_client_factory):
-    # Test for https://github.com/encode/starlette/issues/1022
+def test_early_response(test_client_factory):
     class CustomMiddleware(HTTPMiddleware):
         async def dispatch(self, scope: Scope) -> AsyncGenerator[Response, Response]:
-            yield PlainTextResponse("Custom")
+            yield Response(status_code=401)
 
     app = Starlette(middleware=[Middleware(CustomMiddleware)])
 
     client = test_client_factory(app)
-    response = client.get("/does_not_exist")
-    assert response.text == "Custom"
+    response = client.get("/")
+    assert response.status_code == 401
+
+
+def test_too_many_yields(test_client_factory) -> None:
+    class BadMiddleware(HTTPMiddleware):
+        async def dispatch(self, scope: Scope) -> AsyncGenerator[None, Response]:
+            _ = yield
+            yield
+
+    app = Starlette(middleware=[Middleware(BadMiddleware)])
+
+    client = test_client_factory(app)
+    with pytest.raises(RuntimeError, match="should yield exactly once"):
+        client.get("/")
+
+
+def test_error_response(test_client_factory) -> None:
+    class Failed(Exception):
+        pass
+
+    async def failure(request):
+        raise Failed()
+
+    class ErrorMiddleware(HTTPMiddleware):
+        async def dispatch(
+            self, scope: Scope
+        ) -> AsyncGenerator[Optional[Response], Response]:
+            try:
+                yield None
+            except Failed:
+                yield Response("Failed", status_code=500)
+
+    app = Starlette(
+        routes=[Route("/fail", failure)],
+        middleware=[Middleware(ErrorMiddleware)],
+    )
+
+    client = test_client_factory(app)
+    response = client.get("/fail")
+    assert response.text == "Failed"
+    assert response.status_code == 500
+
+
+def test_no_error_response(test_client_factory) -> None:
+    class Failed(Exception):
+        pass
+
+    async def index(request):
+        raise Failed()
+
+    class BadMiddleware(HTTPMiddleware):
+        async def dispatch(self, scope: Scope) -> AsyncGenerator[None, Response]:
+            try:
+                yield
+            except Failed:
+                pass
+
+    app = Starlette(routes=[Route("/", index)], middleware=[Middleware(BadMiddleware)])
+
+    client = test_client_factory(app)
+    with pytest.raises(RuntimeError, match="no response was returned"):
+        client.get("/")
 
 
 ctxvar: contextvars.ContextVar[str] = contextvars.ContextVar("ctxvar")
 
 
-class CustomMiddlewareWithoutBaseHTTPMiddleware:
+class PureASGICustomMiddleware:
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
 
@@ -167,7 +227,7 @@ class CustomMiddlewareWithoutBaseHTTPMiddleware:
         assert ctxvar.get() == "set by endpoint"
 
 
-class CustomMiddlewareUsingHTTPMiddleware(HTTPMiddleware):
+class HTTPCustomMiddleware(HTTPMiddleware):
     async def dispatch(self, scope: Scope) -> AsyncGenerator[None, Response]:
         ctxvar.set("set by middleware")
         yield
@@ -177,8 +237,8 @@ class CustomMiddlewareUsingHTTPMiddleware(HTTPMiddleware):
 @pytest.mark.parametrize(
     "middleware_cls",
     [
-        CustomMiddlewareWithoutBaseHTTPMiddleware,
-        CustomMiddlewareUsingHTTPMiddleware,
+        PureASGICustomMiddleware,
+        HTTPCustomMiddleware,
     ],
 )
 def test_contextvars(test_client_factory, middleware_cls: type):

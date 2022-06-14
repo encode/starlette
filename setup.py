@@ -39,7 +39,6 @@ setup(
     install_requires=[
         "anyio>=3.4.0,<5",
         "typing_extensions>=3.10.0; python_version < '3.10'",
-        "async_generator; python_version < '3.10'",
     ],
     extras_require={
         "full": [
