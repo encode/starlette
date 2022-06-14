@@ -2,10 +2,11 @@ from typing import AsyncGenerator, Callable, Optional, Union
 
 from .._compat import aclosing
 from ..datastructures import MutableHeaders
+from ..requests import HTTPConnection
 from ..responses import Response
 from ..types import ASGIApp, Message, Receive, Scope, Send
 
-_HTTPDispatchFlow = Union[
+_DispatchFlow = Union[
     AsyncGenerator[None, Response],
     AsyncGenerator[Response, Response],
     AsyncGenerator[Optional[Response], Response],
@@ -16,12 +17,15 @@ class HTTPMiddleware:
     def __init__(
         self,
         app: ASGIApp,
-        dispatch: Optional[Callable[[Scope], _HTTPDispatchFlow]] = None,
+        dispatch: Optional[Callable[[HTTPConnection], _DispatchFlow]] = None,
     ) -> None:
-        self.app = app
-        self.dispatch_func = self.dispatch if dispatch is None else dispatch
+        if dispatch is None:
+            dispatch = self.dispatch
 
-    def dispatch(self, scope: Scope) -> _HTTPDispatchFlow:
+        self.app = app
+        self._dispatch_func = dispatch
+
+    def dispatch(self, conn: HTTPConnection) -> _DispatchFlow:
         raise NotImplementedError  # pragma: no cover
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -29,7 +33,9 @@ class HTTPMiddleware:
             await self.app(scope, receive, send)
             return
 
-        async with aclosing(self.dispatch(scope)) as flow:
+        conn = HTTPConnection(scope)
+
+        async with aclosing(self._dispatch_func(conn)) as flow:
             # Kick the flow until the first `yield`.
             # Might respond early before we call into the app.
             maybe_early_response = await flow.__anext__()
