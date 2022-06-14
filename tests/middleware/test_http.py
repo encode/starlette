@@ -4,14 +4,14 @@ import pytest
 
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
-from starlette.middleware.http import HTTPMiddleware
+from starlette.middleware.http import HTTPDispatchFlow, HTTPMiddleware
 from starlette.responses import PlainTextResponse, StreamingResponse
 from starlette.routing import Mount, Route, WebSocketRoute
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 
 class CustomMiddleware(HTTPMiddleware):
-    def dispatch(self, scope) -> HTTPMiddleware.DispatchFlow:
+    async def dispatch(self, scope: Scope) -> HTTPDispatchFlow:
         response = yield None
         response.headers["Custom-Header"] = "Example"
 
@@ -88,18 +88,18 @@ def test_state_data_across_multiple_middlewares(test_client_factory):
     expected_value2 = "bar"
 
     class aMiddleware(HTTPMiddleware):
-        def dispatch(self, scope) -> HTTPMiddleware.DispatchFlow:
+        async def dispatch(self, scope: Scope) -> HTTPDispatchFlow:
             scope["state_foo"] = expected_value1
             yield None
 
     class bMiddleware(HTTPMiddleware):
-        def dispatch(self, scope) -> HTTPMiddleware.DispatchFlow:
+        async def dispatch(self, scope: Scope) -> HTTPDispatchFlow:
             scope["state_bar"] = expected_value2
             response = yield None
             response.headers["X-State-Foo"] = scope["state_foo"]
 
     class cMiddleware(HTTPMiddleware):
-        def dispatch(self, scope) -> HTTPMiddleware.DispatchFlow:
+        async def dispatch(self, scope: Scope) -> HTTPDispatchFlow:
             response = yield None
             response.headers["X-State-Bar"] = scope["state_bar"]
 
@@ -143,7 +143,7 @@ def test_middleware_repr():
 def test_fully_evaluated_response(test_client_factory):
     # Test for https://github.com/encode/starlette/issues/1022
     class CustomMiddleware(HTTPMiddleware):
-        def dispatch(self, scope) -> HTTPMiddleware.DispatchFlow:
+        async def dispatch(self, scope: Scope) -> HTTPDispatchFlow:
             yield PlainTextResponse("Custom")
 
     app = Starlette(middleware=[Middleware(CustomMiddleware)])
@@ -177,7 +177,7 @@ class CustomMiddlewareWithoutBaseHTTPMiddleware:
 
 
 class CustomMiddlewareUsingHTTPMiddleware(HTTPMiddleware):
-    def dispatch(self, scope) -> HTTPMiddleware.DispatchFlow:
+    async def dispatch(self, scope: Scope) -> HTTPDispatchFlow:
         ctxvar.set("set by middleware")
         yield None
         assert ctxvar.get() == "set by endpoint"
