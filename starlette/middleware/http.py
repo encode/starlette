@@ -1,7 +1,7 @@
-from contextlib import aclosing
 from functools import partial
 from typing import AsyncGenerator, Callable, Optional
 
+from .._compat import aclosing
 from ..datastructures import MutableHeaders
 from ..responses import Response
 from ..types import ASGIApp, Message, Receive, Scope, Send

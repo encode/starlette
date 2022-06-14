@@ -1,5 +1,10 @@
 import hashlib
 
+__all__ = [
+    "md5_hexdigest",
+    "aclosing",
+]
+
 # Compat wrapper to always include the `usedforsecurity=...` parameter,
 # which is only added from Python 3.9 onwards.
 # We use this flag to indicate that we use `md5` hashes only for non-security
@@ -23,7 +28,14 @@ try:
             data, usedforsecurity=usedforsecurity
         ).hexdigest()
 
+
 except TypeError:  # pragma: no cover
 
     def md5_hexdigest(data: bytes, *, usedforsecurity: bool = True) -> str:
         return hashlib.md5(data).hexdigest()
+
+
+try:
+    from contextlib import aclosing
+except ImportError:  # Python < 3.10
+    from async_generator import aclosing  # type: ignore
