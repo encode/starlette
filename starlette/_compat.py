@@ -37,7 +37,7 @@ except TypeError:  # pragma: no cover
 
 try:
     from contextlib import aclosing  # type: ignore[attr-defined]
-except ImportError:  # Python < 3.10
+except ImportError:  # Python < 3.10  # pragma: no cover
 
     class aclosing:  # type: ignore
         def __init__(self, thing: Any) -> None:
