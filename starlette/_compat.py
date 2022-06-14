@@ -28,7 +28,6 @@ try:
             data, usedforsecurity=usedforsecurity
         ).hexdigest()
 
-
 except TypeError:  # pragma: no cover
 
     def md5_hexdigest(data: bytes, *, usedforsecurity: bool = True) -> str:
@@ -36,6 +35,6 @@ except TypeError:  # pragma: no cover
 
 
 try:
-    from contextlib import aclosing
+    from contextlib import aclosing  # type: ignore[attr-defined]
 except ImportError:  # Python < 3.10
     from async_generator import aclosing  # type: ignore
