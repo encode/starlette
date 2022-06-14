@@ -7,8 +7,19 @@ from ..responses import Response
 from ..types import ASGIApp, Message, Receive, Scope, Send
 
 _DispatchFlow = Union[
+    # Default case:
+    # response = yield
     AsyncGenerator[None, Response],
-    AsyncGenerator[Response, Response],
+    # Early response and/or error handling:
+    # if condition:
+    #     yield Response(...)
+    #     return
+    # try:
+    #     response = yield None
+    # except Exception:
+    #     yield Response(...)
+    # else:
+    #    ...
     AsyncGenerator[Optional[Response], Response],
 ]
 
