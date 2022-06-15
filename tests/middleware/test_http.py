@@ -126,6 +126,139 @@ def test_state_data_across_multiple_middlewares(
     assert response.headers["X-State-Bar"] == expected_value2
 
 
+def test_dispatch_argument(
+    test_client_factory: Callable[[ASGIApp], TestClient]
+) -> None:
+    def homepage(request: Request):
+        return PlainTextResponse("Homepage")
+
+    async def dispatch(conn: HTTPConnection) -> AsyncGenerator[None, Response]:
+        response = yield
+        response.headers["Custom-Header"] = "Example"
+
+    app = Starlette(
+        routes=[Route("/", homepage)],
+        middleware=[Middleware(HTTPMiddleware, dispatch=dispatch)],
+    )
+
+    client = test_client_factory(app)
+    response = client.get("/")
+    assert response.headers["Custom-Header"] == "Example"
+
+
+def test_early_response(test_client_factory: Callable[[ASGIApp], TestClient]) -> None:
+    async def index(request: Request):
+        return PlainTextResponse("Hello, world!")
+
+    class CustomMiddleware(HTTPMiddleware):
+        async def dispatch(
+            self, conn: HTTPConnection
+        ) -> AsyncGenerator[Optional[Response], Response]:
+            if conn.headers.get("X-Early") == "true":
+                yield Response(status_code=401)
+            else:
+                yield None
+
+    app = Starlette(
+        routes=[Route("/", index)],
+        middleware=[Middleware(CustomMiddleware)],
+    )
+
+    client = test_client_factory(app)
+    response = client.get("/")
+    assert response.status_code == 200
+    assert response.text == "Hello, world!"
+    response = client.get("/", headers={"X-Early": "true"})
+    assert response.status_code == 401
+
+
+def test_too_many_yields(test_client_factory: Callable[[ASGIApp], TestClient]) -> None:
+    class CustomMiddleware(HTTPMiddleware):
+        async def dispatch(
+            self, conn: HTTPConnection
+        ) -> AsyncGenerator[None, Response]:
+            yield
+            yield
+
+    app = Starlette(middleware=[Middleware(CustomMiddleware)])
+
+    client = test_client_factory(app)
+    with pytest.raises(RuntimeError, match="should yield exactly once"):
+        client.get("/")
+
+
+def test_too_many_yields_early_response(
+    test_client_factory: Callable[[ASGIApp], TestClient]
+) -> None:
+    class CustomMiddleware(HTTPMiddleware):
+        async def dispatch(
+            self, conn: HTTPConnection
+        ) -> AsyncGenerator[Optional[Response], Response]:
+            yield Response()
+            yield None
+
+    app = Starlette(middleware=[Middleware(CustomMiddleware)])
+
+    client = test_client_factory(app)
+    with pytest.raises(RuntimeError, match="should yield exactly once"):
+        client.get("/")
+
+
+def test_error_response(test_client_factory: Callable[[ASGIApp], TestClient]) -> None:
+    class Failed(Exception):
+        pass
+
+    async def failure(request: Request):
+        raise Failed()
+
+    class CustomMiddleware(HTTPMiddleware):
+        async def dispatch(
+            self, conn: HTTPConnection
+        ) -> AsyncGenerator[Optional[Response], Response]:
+            try:
+                yield None
+            except Failed:
+                yield Response("Failed", status_code=500)
+
+    app = Starlette(
+        routes=[Route("/fail", failure)],
+        middleware=[Middleware(CustomMiddleware)],
+    )
+
+    client = test_client_factory(app)
+    response = client.get("/fail")
+    assert response.text == "Failed"
+    assert response.status_code == 500
+
+
+def test_no_error_response(
+    test_client_factory: Callable[[ASGIApp], TestClient]
+) -> None:
+    class Failed(Exception):
+        pass
+
+    async def index(request: Request):
+        raise Failed()
+
+    class CustomMiddleware(HTTPMiddleware):
+        async def dispatch(
+            self, conn: HTTPConnection
+        ) -> AsyncGenerator[None, Response]:
+            try:
+                yield
+            except Failed:
+                pass
+
+    app = Starlette(
+        routes=[Route("/", index)],
+        middleware=[Middleware(CustomMiddleware)],
+    )
+
+    client = test_client_factory(app)
+    with pytest.raises(RuntimeError, match="no response was returned"):
+        client.get("/")
+
+
 def test_modify_content_type(
     test_client_factory: Callable[[ASGIApp], TestClient]
 ) -> None:
@@ -147,56 +280,3 @@ def test_modify_content_type(
     response = client.get("/")
     assert response.text == "OK"
     assert response.headers["Content-Type"] == "text/csv; charset=utf-8"
-
-
-def test_early_response(test_client_factory: Callable[[ASGIApp], TestClient]) -> None:
-    async def dispatch(request: HTTPConnection) -> AsyncGenerator[Response, None]:
-        yield Response(status_code=401)
-
-    app = Starlette(
-        middleware=[
-            Middleware(HTTPMiddleware, dispatch=dispatch),
-        ],
-    )
-
-    client = test_client_factory(app)
-    response = client.get("/")
-    assert response.status_code == 401
-
-
-def test_generator_does_not_stop_no_early_return(
-    test_client_factory: Callable[[ASGIApp], TestClient]
-) -> None:
-    async def bad_dispatch(request: HTTPConnection) -> AsyncGenerator[None, None]:
-        yield
-        yield
-
-    app = Starlette(
-        middleware=[
-            Middleware(HTTPMiddleware, dispatch=bad_dispatch),
-        ],
-    )
-
-    client = test_client_factory(app)
-    with pytest.raises(RuntimeError, match=r"dispatch\(\) should yield exactly once"):
-        client.get("/")
-
-
-def test_generator_does_not_stop_early_return(
-    test_client_factory: Callable[[ASGIApp], TestClient]
-) -> None:
-    async def bad_dispatch(
-        request: HTTPConnection,
-    ) -> AsyncGenerator[Optional[Response], None]:
-        yield Response(status_code=204)
-        yield None
-
-    app = Starlette(
-        middleware=[
-            Middleware(HTTPMiddleware, dispatch=bad_dispatch),
-        ],
-    )
-
-    client = test_client_factory(app)
-    with pytest.raises(RuntimeError, match=r"dispatch\(\) should yield exactly once"):
-        client.get("/")
