@@ -6,7 +6,7 @@ from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import PlainTextResponse, StreamingResponse
-from starlette.routing import Mount, Route, WebSocketRoute
+from starlette.routing import Route, WebSocketRoute
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 
@@ -137,11 +137,6 @@ def test_app_middleware_argument(test_client_factory):
     client = test_client_factory(app)
     response = client.get("/")
     assert response.headers["Custom-Header"] == "Example"
-
-
-def test_middleware_repr():
-    middleware = Middleware(CustomMiddleware)
-    assert repr(middleware) == "Middleware(CustomMiddleware)"
 
 
 def test_fully_evaluated_response(test_client_factory):
