@@ -6,20 +6,22 @@ from ..requests import HTTPConnection
 from ..responses import Response
 from ..types import ASGIApp, Message, Receive, Scope, Send
 
+# This type hint not exposed, as it exists mostly for our own documentation purposes.
+# End users should use one of these type hints explicitly when overriding '.dispatch()'.
 _DispatchFlow = Union[
     # Default case:
-    # response = yield
+    #   response = yield
     AsyncGenerator[None, Response],
     # Early response and/or error handling:
-    # if condition:
-    #     yield Response(...)
-    #     return
-    # try:
-    #     response = yield None
-    # except Exception:
-    #     yield Response(...)
-    # else:
-    #    ...
+    #   if condition:
+    #       yield Response(...)
+    #       return
+    #   try:
+    #       response = yield None
+    #   except Exception:
+    #       yield Response(...)
+    #   else:
+    #       ...
     AsyncGenerator[Optional[Response], Response],
 ]
 
@@ -30,14 +32,15 @@ class HTTPMiddleware:
         app: ASGIApp,
         dispatch: Optional[Callable[[HTTPConnection], _DispatchFlow]] = None,
     ) -> None:
-        if dispatch is None:
-            dispatch = self.dispatch
-
         self.app = app
-        self._dispatch_func = dispatch
+        self._dispatch_func = self.dispatch if dispatch is None else dispatch
 
-    def dispatch(self, conn: HTTPConnection) -> _DispatchFlow:
-        raise NotImplementedError  # pragma: no cover
+    def dispatch(self, __conn: HTTPConnection) -> _DispatchFlow:
+        raise NotImplementedError(
+            "No dispatch implementation was given. "
+            "Either pass 'dispatch=...' to HTTPMiddleware, "
+            "or subclass HTTPMiddleware and override the 'dispatch()' method."
+        )
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
@@ -52,14 +55,23 @@ class HTTPMiddleware:
             maybe_early_response = await flow.__anext__()
 
             if maybe_early_response is not None:
+                try:
+                    await flow.__anext__()
+                except StopAsyncIteration:
+                    pass
+                else:
+                    raise RuntimeError("dispatch() should yield exactly once")
+
                 await maybe_early_response(scope, receive, send)
                 return
 
-            response_started: set = set()
+            response_started = False
 
             async def wrapped_send(message: Message) -> None:
+                nonlocal response_started
+
                 if message["type"] == "http.response.start":
-                    response_started.add(True)
+                    response_started = True
 
                     response = Response(status_code=message["status"])
                     response.raw_headers.clear()
@@ -73,6 +85,7 @@ class HTTPMiddleware:
 
                     headers = MutableHeaders(raw=message["headers"])
                     headers.update(response.headers)
+                    message["headers"] = headers.raw
 
                 await send(message)
 
@@ -98,6 +111,3 @@ class HTTPMiddleware:
 
                 await response(scope, receive, send)
                 return
-
-            if not response_started:
-                raise RuntimeError("No response returned.")

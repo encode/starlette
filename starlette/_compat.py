@@ -1,5 +1,6 @@
 import hashlib
-from typing import Any
+import sys
+from typing import Any, AsyncContextManager
 
 __all__ = [
     "md5_hexdigest",
@@ -35,11 +36,11 @@ except TypeError:  # pragma: no cover
         return hashlib.md5(data).hexdigest()
 
 
-try:
-    from contextlib import aclosing  # type: ignore[attr-defined]
-except ImportError:  # Python < 3.10  # pragma: no cover
+if sys.version_info >= (3, 10):  # pragma: no cover
+    from contextlib import aclosing
+else:  # pragma: no cover
 
-    class aclosing:  # type: ignore
+    class aclosing(AsyncContextManager):
         def __init__(self, thing: Any) -> None:
             self.thing = thing
 
