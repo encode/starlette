@@ -1,9 +1,10 @@
-from typing import AsyncGenerator, Callable, Optional, Union
+from contextlib import AsyncExitStack
+from typing import AsyncGenerator, AsyncIterable, Callable, Optional, Union
 
 from .._compat import aclosing
 from ..datastructures import MutableHeaders
 from ..requests import HTTPConnection
-from ..responses import Response
+from ..responses import Response, StreamingResponse
 from ..types import ASGIApp, Message, Receive, Scope, Send
 
 # This type hint not exposed, as it exists mostly for our own documentation purposes.
@@ -49,7 +50,9 @@ class HTTPMiddleware:
 
         conn = HTTPConnection(scope)
 
-        async with aclosing(self._dispatch_func(conn)) as flow:
+        async with AsyncExitStack() as stack:
+            flow = await stack.enter_async_context(aclosing(self._dispatch_func(conn)))
+
             # Kick the flow until the first `yield`.
             # Might respond early before we call into the app.
             maybe_early_response = await flow.__anext__()
@@ -67,30 +70,64 @@ class HTTPMiddleware:
 
             response_started = False
 
-            async def wrapped_send(message: Message) -> None:
+            async def _wrapped_send() -> AsyncGenerator[None, Optional[Message]]:
                 nonlocal response_started
 
-                if message["type"] == "http.response.start":
-                    response_started = True
+                message = yield
+                assert message is not None
+                assert message["type"] == "http.response.start"
+                response_started = True
+                sent_start_response = False
+                start_message = message
 
-                    response = Response(status_code=message["status"])
-                    response.raw_headers.clear()
+                async def ensure_start_response() -> None:
+                    if not sent_start_response:
+                        await send(start_message)
+                
+                stack.push_async_callback(ensure_start_response)
 
-                    try:
-                        await flow.asend(response)
-                    except StopAsyncIteration:
-                        pass
-                    else:
-                        raise RuntimeError("dispatch() should yield exactly once")
+                message = yield
+                assert message is not None
+                assert message["type"] == "http.response.body"
+                headers = MutableHeaders(raw=start_message["headers"])
+                if message.get("more_body", False) is False:
+                    response = Response(
+                        status_code=start_message["status"],
+                        headers=headers,
+                        content=message.get("body", b""),
+                    )
+                else:
+                    async def _resp_stream() -> AsyncGenerator[bytes, None]:
+                        raise NotImplementedError
+                        yield
 
-                    headers = MutableHeaders(raw=message["headers"])
-                    headers.update(response.headers)
-                    message["headers"] = headers.raw
-
+                    resp_stream = await stack.enter_async_context(aclosing(_resp_stream()))
+                    response = StreamingResponse(
+                        content=resp_stream,
+                        status_code=start_message["status"],
+                        headers=headers,
+                    )
+                try:
+                    await flow.asend(response)
+                except StopAsyncIteration:
+                    pass
+                else:
+                    raise RuntimeError("dispatch() should yield exactly once")
+                start_message["headers"] = response.headers.raw
+                await send(start_message)
+                sent_start_response = True
                 await send(message)
 
+                while True:
+                    message = yield
+                    assert message is not None
+                    await send(message)
+
+            wrapped_send = await stack.enter_async_context(aclosing(_wrapped_send()))
+            await wrapped_send.asend(None)
+
             try:
-                await self.app(scope, receive, wrapped_send)
+                await self.app(scope, receive, wrapped_send.asend)
             except Exception as exc:
                 if response_started:
                     raise

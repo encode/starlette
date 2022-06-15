@@ -1,4 +1,4 @@
-from typing import AsyncGenerator, Callable, Iterator, Optional
+from typing import AsyncGenerator, AsyncIterable, Callable, Iterator, Optional
 
 import pytest
 
@@ -231,3 +231,27 @@ def test_no_dispatch_given(
     client = test_client_factory(app)
     with pytest.raises(NotImplementedError, match="No dispatch implementation"):
         client.get("/")
+
+
+def test_response_body_not_streaming(
+    test_client_factory: Callable[[ASGIApp], TestClient]
+) -> None:
+    async def index(request: Request) -> Response:
+        return Response(b"foo")
+
+    class CustomMiddleware(HTTPMiddleware):
+        async def dispatch(
+            self, conn: HTTPConnection
+        ) -> AsyncGenerator[None, Response]:
+            resp = yield
+            assert resp.body == b"foo"
+
+    app = Starlette(
+        routes=[Route("/", index)],
+        middleware=[Middleware(CustomMiddleware)],
+    )
+
+    client = test_client_factory(app)
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert resp.content == b"foo"
