@@ -158,16 +158,6 @@ def test_fully_evaluated_response(test_client_factory):
     assert response.text == "Custom"
 
 
-def test_exception_on_mounted_apps(test_client_factory):
-    sub_app = Starlette(routes=[Route("/", exc)])
-    app = Starlette(routes=[Mount("/sub", app=sub_app)])
-
-    client = test_client_factory(app)
-    with pytest.raises(Exception) as ctx:
-        client.get("/sub/")
-    assert str(ctx.value) == "Exc"
-
-
 ctxvar: contextvars.ContextVar[str] = contextvars.ContextVar("ctxvar")
 
 
