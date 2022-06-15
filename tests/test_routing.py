@@ -873,3 +873,15 @@ def test_add_route_to_app_after_mount(
     client = test_client_factory(app)
     response = client.get("/http/inner")
     assert response.status_code == 200
+
+def test_exception_on_mounted_apps(test_client_factory):
+    def exc(request):
+        raise Exception("Exc")
+
+    sub_app = Starlette(routes=[Route("/", exc)])
+    app = Starlette(routes=[Mount("/sub", app=sub_app)])
+
+    client = test_client_factory(app)
+    with pytest.raises(Exception) as ctx:
+        client.get("/sub/")
+    assert str(ctx.value) == "Exc"
