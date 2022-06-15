@@ -36,7 +36,7 @@ class HTTPMiddleware:
         self.app = app
         self._dispatch_func = dispatch
 
-    def dispatch(self, conn: HTTPConnection) -> _DispatchFlow:
+    def dispatch(self, __conn: HTTPConnection) -> _DispatchFlow:
         raise NotImplementedError  # pragma: no cover
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -52,6 +52,13 @@ class HTTPMiddleware:
             maybe_early_response = await flow.__anext__()
 
             if maybe_early_response is not None:
+                try:
+                    await flow.__anext__()
+                except StopAsyncIteration:
+                    pass
+                else:
+                    raise RuntimeError("dispatch() should yield exactly once")
+
                 await maybe_early_response(scope, receive, send)
                 return
 
@@ -98,6 +105,3 @@ class HTTPMiddleware:
 
                 await response(scope, receive, send)
                 return
-
-            if not response_started:
-                raise RuntimeError("No response returned.")
