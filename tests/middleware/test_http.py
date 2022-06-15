@@ -127,8 +127,8 @@ def test_too_many_yields(test_client_factory: Callable[[ASGIApp], TestClient]) -
 
 
 def test_early_response(test_client_factory: Callable[[ASGIApp], TestClient]) -> None:
-    async def index(request: Request) -> Response:
-        return PlainTextResponse("Hello, world!")
+    async def homepage(request: Request) -> Response:
+        return PlainTextResponse("OK")
 
     class CustomMiddleware(HTTPMiddleware):
         async def dispatch(
@@ -140,14 +140,14 @@ def test_early_response(test_client_factory: Callable[[ASGIApp], TestClient]) ->
                 yield None
 
     app = Starlette(
-        routes=[Route("/", index)],
+        routes=[Route("/", homepage)],
         middleware=[Middleware(CustomMiddleware)],
     )
 
     client = test_client_factory(app)
     response = client.get("/")
     assert response.status_code == 200
-    assert response.text == "Hello, world!"
+    assert response.text == "OK"
     response = client.get("/", headers={"X-Early": "true"})
     assert response.status_code == 401
 
@@ -202,7 +202,7 @@ def test_error_handling_must_send_response(
     class Failed(Exception):
         pass
 
-    async def index(request: Request) -> Response:
+    async def failure(request: Request) -> Response:
         raise Failed()
 
     class CustomMiddleware(HTTPMiddleware):
@@ -215,19 +215,74 @@ def test_error_handling_must_send_response(
                 pass  # `yield <response>` expected
 
     app = Starlette(
-        routes=[Route("/", index)],
+        routes=[Route("/fail", failure)],
         middleware=[Middleware(CustomMiddleware)],
     )
 
     client = test_client_factory(app)
     with pytest.raises(RuntimeError, match="no response was returned"):
-        client.get("/")
+        client.get("/fail")
 
 
 def test_no_dispatch_given(
     test_client_factory: Callable[[ASGIApp], TestClient]
 ) -> None:
     app = Starlette(middleware=[Middleware(HTTPMiddleware)])
+
     client = test_client_factory(app)
     with pytest.raises(NotImplementedError, match="No dispatch implementation"):
         client.get("/")
+
+
+def test_response_stub_attributes(
+    test_client_factory: Callable[[ASGIApp], TestClient]
+) -> None:
+    async def homepage(request: Request) -> Response:
+        return PlainTextResponse("OK")
+
+    async def dispatch(conn: HTTPConnection) -> AsyncGenerator[None, Response]:
+        response = yield
+        if conn.url.path == "/status_code":
+            assert response.status_code == 200
+            response.status_code = 401
+        if conn.url.path == "/media_type":
+            assert response.media_type == "text/plain; charset=utf-8"
+            response.media_type = "text/csv"
+        if conn.url.path == "/body-get":
+            response.body
+        if conn.url.path == "/body-set":
+            response.body = b"changed"
+
+    app = Starlette(
+        routes=[
+            Route("/status_code", homepage),
+            Route("/media_type", homepage),
+            Route("/body-get", homepage),
+            Route("/body-set", homepage),
+        ],
+        middleware=[Middleware(HTTPMiddleware, dispatch=dispatch)],
+    )
+
+    client = test_client_factory(app)
+
+    with pytest.raises(
+        RuntimeError, match="Setting .status_code in HTTPMiddleware is not supported."
+    ):
+        client.get("/status_code")
+
+    with pytest.raises(
+        RuntimeError, match="Setting .media_type in HTTPMiddleware is not supported"
+    ):
+        client.get("/media_type")
+
+    with pytest.raises(
+        RuntimeError,
+        match="Accessing the response body in HTTPMiddleware is not supported",
+    ):
+        client.get("/body-get")
+
+    with pytest.raises(
+        RuntimeError,
+        match="Setting the response body in HTTPMiddleware is not supported",
+    ):
+        client.get("/body-set")

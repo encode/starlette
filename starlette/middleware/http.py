@@ -1,7 +1,7 @@
-from typing import AsyncGenerator, Callable, Optional, Union
+from typing import Any, AsyncGenerator, Callable, Optional, Union
 
 from .._compat import aclosing
-from ..datastructures import MutableHeaders
+from ..datastructures import Headers
 from ..requests import HTTPConnection
 from ..responses import Response
 from ..types import ASGIApp, Message, Receive, Scope, Send
@@ -73,8 +73,12 @@ class HTTPMiddleware:
                 if message["type"] == "http.response.start":
                     response_started = True
 
-                    response = Response(status_code=message["status"])
-                    response.raw_headers.clear()
+                    headers = Headers(raw=message["headers"])
+                    response = _StubResponse(
+                        status_code=message["status"],
+                        media_type=headers.get("content-type"),
+                    )
+                    response.raw_headers = headers.raw
 
                     try:
                         await flow.asend(response)
@@ -83,9 +87,7 @@ class HTTPMiddleware:
                     else:
                         raise RuntimeError("dispatch() should yield exactly once")
 
-                    headers = MutableHeaders(raw=message["headers"])
-                    headers.update(response.headers)
-                    message["headers"] = headers.raw
+                    message["headers"] = response.raw_headers
 
                 await send(message)
 
@@ -111,3 +113,58 @@ class HTTPMiddleware:
 
                 await response(scope, receive, send)
                 return
+
+
+# This customized stub response helps prevent users from shooting themselves
+# in the foot, doing things that don't actually have any effect.
+
+
+class _StubResponse(Response):
+    def __init__(self, status_code: int, media_type: Optional[str] = None) -> None:
+        self._status_code = status_code
+        self._media_type = media_type
+        self.raw_headers = []
+
+    @property  # type: ignore
+    def status_code(self) -> int:  # type: ignore
+        return self._status_code
+
+    @status_code.setter
+    def status_code(self, value: Any) -> None:
+        raise RuntimeError(
+            "Setting .status_code in HTTPMiddleware is not supported. "
+            "If you're writing middleware that requires modifying the response "
+            "status code or sending another response altogether, please consider "
+            "writing pure ASGI middleware. "
+            "See: https://starlette.io/middleware/#pure-asgi-middleware"
+        )
+
+    @property  # type: ignore
+    def media_type(self) -> Optional[str]:  # type: ignore
+        return self._media_type
+
+    @media_type.setter
+    def media_type(self, value: Any) -> None:
+        raise RuntimeError(
+            "Setting .media_type in HTTPMiddleware is not supported, as it has "
+            "no effect. If you do need to tweak the response "
+            "content type, consider: response.headers['Content-Type'] = ..."
+        )
+
+    @property  # type: ignore
+    def body(self) -> bytes:  # type: ignore
+        raise RuntimeError(
+            "Accessing the response body in HTTPMiddleware is not supported. "
+            "If you're writing middleware that requires peeking into the response "
+            "body, please consider writing pure ASGI middleware and wrapping send(). "
+            "See: https://starlette.io/middleware/#pure-asgi-middleware"
+        )
+
+    @body.setter
+    def body(self, body: bytes) -> None:
+        raise RuntimeError(
+            "Setting the response body in HTTPMiddleware is not supported."
+            "If you're writing middleware that requires modifying the response "
+            "body, please consider writing pure ASGI middleware and wrapping send(). "
+            "See: https://starlette.io/middleware/#pure-asgi-middleware"
+        )
