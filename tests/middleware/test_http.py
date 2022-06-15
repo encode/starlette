@@ -165,7 +165,7 @@ def test_early_response(test_client_factory: Callable[[ASGIApp], TestClient]) ->
 
 
 def test_generator_does_not_stop_no_early_return(
-    test_client_factory: Callable[..., TestClient]
+    test_client_factory: Callable[[ASGIApp], TestClient]
 ) -> None:
     async def bad_dispatch(request: HTTPConnection) -> AsyncGenerator[None, None]:
         yield
@@ -183,7 +183,7 @@ def test_generator_does_not_stop_no_early_return(
 
 
 def test_generator_does_not_stop_early_return(
-    test_client_factory: Callable[..., TestClient]
+    test_client_factory: Callable[[ASGIApp], TestClient]
 ) -> None:
     async def bad_dispatch(
         request: HTTPConnection,
