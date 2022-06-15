@@ -874,6 +874,7 @@ def test_add_route_to_app_after_mount(
     response = client.get("/http/inner")
     assert response.status_code == 200
 
+
 def test_exception_on_mounted_apps(test_client_factory):
     def exc(request):
         raise Exception("Exc")
