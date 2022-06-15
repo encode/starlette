@@ -1,3 +1,18 @@
+## 0.20.3
+
+June 10, 2022
+
+### Fixed
+* Revert "Allow `StaticFiles` to follow symlinks" [#1681](https://github.com/encode/starlette/pull/1681).
+
+## 0.20.2
+
+June 7, 2022
+
+### Fixed
+* Fix regression on route paths with colons [#1675](https://github.com/encode/starlette/pull/1675).
+* Allow `StaticFiles` to follow symlinks [#1337](https://github.com/encode/starlette/pull/1377).
+
 ## 0.20.1
 
 May 28, 2022
