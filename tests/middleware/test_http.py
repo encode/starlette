@@ -169,6 +169,79 @@ def test_early_response_too_many_yields(
         client.get("/")
 
 
+def test_replace_response(test_client_factory: Callable[[ASGIApp], TestClient]) -> None:
+    async def index(request: Request) -> Response:
+        return PlainTextResponse("Hello, world!")
+
+    class CustomMiddleware(HTTPMiddleware):
+        async def dispatch(
+            self, conn: HTTPConnection
+        ) -> AsyncGenerator[Optional[Response], Response]:
+            yield None
+            yield PlainTextResponse("Custom")
+
+    app = Starlette(
+        routes=[Route("/", index)],
+        middleware=[Middleware(CustomMiddleware)],
+    )
+
+    client = test_client_factory(app)
+
+    resp = client.get("/")
+    assert resp.text == "Custom"
+
+
+def test_replace_response_too_many_yields(
+    test_client_factory: Callable[[ASGIApp], TestClient]
+) -> None:
+    async def index(request: Request) -> Response:
+        return PlainTextResponse("Hello, world!")
+
+    class CustomMiddleware(HTTPMiddleware):
+        async def dispatch(
+            self, conn: HTTPConnection
+        ) -> AsyncGenerator[Optional[Response], Response]:
+            yield None
+            yield PlainTextResponse("Custom")
+            yield None
+
+    app = Starlette(
+        routes=[Route("/", index)],
+        middleware=[Middleware(CustomMiddleware)],
+    )
+
+    client = test_client_factory(app)
+
+    client = test_client_factory(app)
+    with pytest.raises(RuntimeError, match="should yield exactly once"):
+        client.get("/")
+
+
+def test_replace_response_yield_None(
+    test_client_factory: Callable[[ASGIApp], TestClient]
+) -> None:
+    async def index(request: Request) -> Response:
+        return PlainTextResponse("Hello, world!")
+
+    class CustomMiddleware(HTTPMiddleware):
+        async def dispatch(
+            self, conn: HTTPConnection
+        ) -> AsyncGenerator[Optional[Response], Response]:
+            yield None
+            yield None
+
+    app = Starlette(
+        routes=[Route("/", index)],
+        middleware=[Middleware(CustomMiddleware)],
+    )
+
+    client = test_client_factory(app)
+
+    client = test_client_factory(app)
+    with pytest.raises(RuntimeError, match="should yield exactly once"):
+        client.get("/")
+
+
 def test_error_response(test_client_factory: Callable[[ASGIApp], TestClient]) -> None:
     class Failed(Exception):
         pass

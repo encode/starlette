@@ -66,9 +66,10 @@ class HTTPMiddleware:
                 return
 
             response_started = False
+            response_finished = False
 
             async def wrapped_send(message: Message) -> None:
-                nonlocal response_started
+                nonlocal response_started, response_finished
 
                 if message["type"] == "http.response.start":
                     response_started = True
@@ -77,17 +78,27 @@ class HTTPMiddleware:
                     response.raw_headers.clear()
 
                     try:
-                        await flow.asend(response)
+                        new_response = await flow.asend(response)
                     except StopAsyncIteration:
                         pass
                     else:
-                        raise RuntimeError("dispatch() should yield exactly once")
-
+                        if new_response is None:
+                            raise RuntimeError("dispatch() should yield exactly once")
+                        try:
+                            await flow.__anext__()
+                        except StopAsyncIteration:
+                            pass
+                        else:
+                            raise RuntimeError("dispatch() should yield exactly once")
+                        await new_response(scope, receive, send)
+                        response_finished = True
+                        return
                     headers = MutableHeaders(raw=message["headers"])
                     headers.update(response.headers)
                     message["headers"] = headers.raw
 
-                await send(message)
+                if not response_finished:
+                    await send(message)
 
             try:
                 await self.app(scope, receive, wrapped_send)
