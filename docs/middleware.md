@@ -296,7 +296,7 @@ class ASGIMiddleware:
 ```
 In the example above, if the `scope` type is `lifespan` or `websocket`, we'll directly call the `self.app`.
 
-The same applies for the other scopes.
+The same applies to other scopes.
 
 !!! note
     Middleware classes should be stateless -- see [Per-request state](#per-request-state) if you do need to store per-request state.
