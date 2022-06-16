@@ -234,7 +234,7 @@ around explicitly, rather than mutating the middleware instance.
 
 ## Pure ASGI Middleware
 
-Due to how ASGI was designed, we are able to build a chain of ASGI applications, on which each application calls the next one.
+Thanks to how ASGI was designed, it is possible to implement middleware as a chain of ASGI applications, where each application calls into the next one.
 Each element of the chain is an [`ASGI`](https://asgi.readthedocs.io/en/latest/) application by itself, which per definition, is also a middleware.
 
 This is also an alternative approach in case the limitations of `BaseHTTPMiddleware` are a problem.
