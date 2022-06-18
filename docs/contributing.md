@@ -33,7 +33,7 @@ that demonstrates the issue.
 
 ## Development
 
-To start developing Starlette create a **fork** of the
+To start developing Starlette, create a **fork** of the
 [Starlette repository](https://github.com/encode/starlette) on GitHub.
 
 Then clone your fork with the following command replacing `YOUR-USERNAME` with
