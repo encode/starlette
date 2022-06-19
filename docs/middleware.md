@@ -349,11 +349,14 @@ class ASGIMiddleware:
         self.app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] == "http":
-            async def send_wrapper(message: Message) -> None:
-                await send(message)
-            return await self.app(scope, receive, send_wrapper)
-        await self.app(scope, receive, send)
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+
+        async def send_wrapper(message: Message) -> None:
+            # ... Do something
+            await send(message)
+
+        await self.app(scope, receive, send_wrapper)
 ```
 
 Although this is easy, you may prefer to be more strict. In which case, you'd need to use `asgiref`:
@@ -369,7 +372,7 @@ class ASGIMiddleware:
 
     async def __call__(self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:
         if scope["type"] == "http":
-            async def send_wrapper(message: ASGISendCallable) -> None:
+            async def send_wrapper(message: ASGISendEvent) -> None:
                 await send(message)
             return await self.app(scope, receive, send_wrapper)
         await self.app(scope, receive, send)
