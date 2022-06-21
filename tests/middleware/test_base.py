@@ -1,11 +1,14 @@
 import contextvars
+import traceback
 
+import anyio
 import pytest
 
 from starlette.applications import Starlette
+from starlette.background import BackgroundTasks
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import PlainTextResponse, StreamingResponse
+from starlette.responses import PlainTextResponse, Response, StreamingResponse
 from starlette.routing import Route, WebSocketRoute
 from starlette.types import ASGIApp, Receive, Scope, Send
 
@@ -84,6 +87,31 @@ def test_custom_middleware(test_client_factory):
         assert text == "Hello, world!"
 
 
+def test_background_tasks(test_client_factory):
+    async def _sleep(identifier, delay):
+        print(identifier, "started")
+        try:
+            await anyio.sleep(delay)
+            print(identifier, "completed")
+        except BaseException:
+            print(identifier, "error")
+            traceback.print_exc()
+            raise
+
+    async def bg_task(request):
+        background_tasks = BackgroundTasks()
+        background_tasks.add_task(_sleep, "background task 1", 2)
+        background_tasks.add_task(_sleep, "background task 2", 2)
+        return Response(background=background_tasks)
+
+    app = Starlette(
+        routes=[Route("/bg-task", bg_task)], middleware=[Middleware(CustomMiddleware)]
+    )
+    client = test_client_factory(app)
+    response = client.get("/bg-task")
+    assert response.text == ""
+
+
 def test_state_data_across_multiple_middlewares(test_client_factory):
     expected_value1 = "foo"
     expected_value2 = "bar"
@@ -141,12 +169,25 @@ def test_app_middleware_argument(test_client_factory):
 
 def test_fully_evaluated_response(test_client_factory):
     # Test for https://github.com/encode/starlette/issues/1022
-    class CustomMiddleware(BaseHTTPMiddleware):
+    class ConsumeMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request, call_next):
+            resp = await call_next(request)
+
+            async def _send(m):
+                pass
+
+            await resp.stream_response(_send)  # type: ignore
+
+            return PlainTextResponse("Custom")
+
+    class DiscardMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request, call_next):
             await call_next(request)
             return PlainTextResponse("Custom")
 
-    app = Starlette(middleware=[Middleware(CustomMiddleware)])
+    app = Starlette(
+        middleware=[Middleware(ConsumeMiddleware), Middleware(DiscardMiddleware)]
+    )
 
     client = test_client_factory(app)
     response = client.get("/does_not_exist")
