@@ -1,5 +1,4 @@
 import contextvars
-import traceback
 
 import anyio
 import pytest
@@ -90,13 +89,8 @@ def test_custom_middleware(test_client_factory):
 def test_background_tasks(test_client_factory):
     async def _sleep(identifier, delay):
         print(identifier, "started")
-        try:
-            await anyio.sleep(delay)
-            print(identifier, "completed")
-        except BaseException:
-            print(identifier, "error")
-            traceback.print_exc()
-            raise
+        await anyio.sleep(delay)
+        print(identifier, "completed")
 
     async def bg_task(request):
         background_tasks = BackgroundTasks()
