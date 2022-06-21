@@ -1,6 +1,8 @@
 import sys
 import typing
 
+import anyio
+
 if sys.version_info >= (3, 10):  # pragma: no cover
     from typing import ParamSpec
 else:  # pragma: no cover
@@ -22,10 +24,11 @@ class BackgroundTask:
         self.is_async = is_async_callable(func)
 
     async def __call__(self) -> None:
-        if self.is_async:
-            await self.func(*self.args, **self.kwargs)
-        else:
-            await run_in_threadpool(self.func, *self.args, **self.kwargs)
+        with anyio.CancelScope(shield=True):
+            if self.is_async:
+                await self.func(*self.args, **self.kwargs)
+            else:
+                await run_in_threadpool(self.func, *self.args, **self.kwargs)
 
 
 class BackgroundTasks(BackgroundTask):
