@@ -33,12 +33,13 @@ class BaseHTTPMiddleware:
 
                 async with send_stream:
                     try:
-                        # may block in send
+                        # may block in send if body_stream not consumed
                         await self.app(scope, request.receive, send_stream.send)
                     except Exception as exc:
                         app_exc = exc
 
-            task_group.start_soon(coro, name="__call_next")
+            task_group.start_soon(coro)
+
             try:
                 message = await recv_stream.receive()
             except anyio.EndOfStream:
