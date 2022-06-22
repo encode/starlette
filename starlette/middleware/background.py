@@ -9,7 +9,7 @@ class BackgroundTaskMiddleware:
         self._app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        tasks: "List[BackgroundTask]" = []
+        tasks: "List[BackgroundTask]"
         scope["starlette.background"] = tasks = []
         try:
             await self._app(scope, receive, send)
