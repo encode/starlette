@@ -238,14 +238,13 @@ async def test_background_tasks_client_disconnect() -> None:
 
     async def recv_gen() -> AsyncGenerator[Message, None]:
         yield {"type": "http.request"}
-        await anyio.sleep(0)  # event loop checkpoint
         disconnected.set()
         yield {"type": "http.disconnect"}
 
     async def send_gen() -> AsyncGenerator[None, Message]:
         msg = yield
         assert msg["type"] == "http.response.start"
-        await anyio.sleep(1)  # give the client a chance to disconnect
+        await disconnected.wait()
         raise AssertionError("Should not be called")  # pragma: no cover
 
     scope = {"type": "http", "method": "GET", "path": "/"}
