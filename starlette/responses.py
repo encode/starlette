@@ -157,6 +157,10 @@ class Response:
         )
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if self.background is not None:
+            tasks: "typing.List[BackgroundTask]" = scope["starlette.background"]
+            tasks.append(self.background)
+
         await send(
             {
                 "type": "http.response.start",
@@ -165,9 +169,6 @@ class Response:
             }
         )
         await send({"type": "http.response.body", "body": self.body})
-
-        if self.background is not None:
-            await self.background()
 
 
 class HTMLResponse(Response):
@@ -255,6 +256,10 @@ class StreamingResponse(Response):
         await send({"type": "http.response.body", "body": b"", "more_body": False})
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if self.background is not None:
+            tasks: "typing.List[BackgroundTask]" = scope["starlette.background"]
+            tasks.append(self.background)
+
         async with anyio.create_task_group() as task_group:
 
             async def wrap(func: typing.Callable[[], typing.Coroutine]) -> None:
@@ -263,9 +268,6 @@ class StreamingResponse(Response):
 
             task_group.start_soon(wrap, partial(self.stream_response, send))
             await wrap(partial(self.listen_for_disconnect, receive))
-
-        if self.background is not None:
-            await self.background()
 
 
 class FileResponse(Response):
@@ -318,6 +320,10 @@ class FileResponse(Response):
         self.headers.setdefault("etag", etag)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if self.background is not None:
+            tasks: "typing.List[BackgroundTask]" = scope["starlette.background"]
+            tasks.append(self.background)
+
         if self.stat_result is None:
             try:
                 stat_result = await anyio.to_thread.run_sync(os.stat, self.path)
@@ -350,5 +356,3 @@ class FileResponse(Response):
                             "more_body": more_body,
                         }
                     )
-        if self.background is not None:
-            await self.background()

@@ -1,13 +1,19 @@
 import contextvars
+from contextlib import AsyncExitStack, aclosing
+from typing import AsyncGenerator, Awaitable, Callable, List
 
+import anyio
 import pytest
 
 from starlette.applications import Starlette
+from starlette.background import BackgroundTask
 from starlette.middleware import Middleware
+from starlette.middleware.background import BackgroundTaskMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import PlainTextResponse, StreamingResponse
+from starlette.requests import Request
+from starlette.responses import PlainTextResponse, Response, StreamingResponse
 from starlette.routing import Route, WebSocketRoute
-from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
 class CustomMiddleware(BaseHTTPMiddleware):
@@ -206,3 +212,48 @@ def test_contextvars(test_client_factory, middleware_cls: type):
     client = test_client_factory(app)
     response = client.get("/")
     assert response.status_code == 200, response.content
+
+
+@pytest.mark.anyio
+async def test_background_tasks_client_disconnect() -> None:
+    container: List[str] = []
+
+    disconnected = anyio.Event()
+
+    async def slow_background() -> None:
+        await disconnected.wait()
+        container.append("called")
+
+    app: ASGIApp
+    app = PlainTextResponse("hi!", background=BackgroundTask(slow_background))
+
+    async def dispatch(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        return await call_next(request)
+
+    app = BaseHTTPMiddleware(app, dispatch=dispatch)
+
+    app = BackgroundTaskMiddleware(app)
+
+    async def recv_gen() -> AsyncGenerator[Message, None]:
+        yield {"type": "http.request"}
+        await anyio.sleep(0)  # event loop checkpoint
+        disconnected.set()
+        yield {"type": "http.disconnect"}
+
+    async def send_gen() -> AsyncGenerator[None, Message]:
+        msg = yield
+        assert msg["type"] == "http.response.start"
+        await anyio.sleep(1)  # give the client a chance to disconnect
+        raise AssertionError("Should not be called")  # pragma: no cover
+
+    scope = {"type": "http", "method": "GET", "path": "/"}
+
+    async with AsyncExitStack() as stack:
+        recv = await stack.enter_async_context(aclosing(recv_gen()))
+        send = await stack.enter_async_context(aclosing(send_gen()))
+        await send.__anext__()
+        await app(scope, recv.__aiter__().__anext__, send.asend)
+
+    assert container == ["called"]

@@ -5,6 +5,7 @@ import pytest
 
 from starlette import status
 from starlette.background import BackgroundTask
+from starlette.middleware.background import BackgroundTaskMiddleware
 from starlette.requests import Request
 from starlette.responses import (
     FileResponse,
@@ -113,7 +114,7 @@ def test_streaming_response(test_client_factory):
         await response(scope, receive, send)
 
     assert filled_by_bg_task == ""
-    client = test_client_factory(app)
+    client = test_client_factory(BackgroundTaskMiddleware(app))
     response = client.get("/")
     assert response.text == "1, 2, 3, 4, 5"
     assert filled_by_bg_task == "6, 7, 8, 9"
@@ -137,7 +138,7 @@ def test_streaming_response_custom_iterator(test_client_factory):
         response = StreamingResponse(CustomAsyncIterator(), media_type="text/plain")
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = test_client_factory(BackgroundTaskMiddleware(app))
     response = client.get("/")
     assert response.text == "12345"
 
@@ -228,7 +229,7 @@ def test_file_response(tmpdir, test_client_factory):
         await response(scope, receive, send)
 
     assert filled_by_bg_task == ""
-    client = test_client_factory(app)
+    client = test_client_factory(BackgroundTaskMiddleware(app))
     response = client.get("/")
     expected_disposition = 'attachment; filename="example.png"'
     assert response.status_code == status.HTTP_200_OK

@@ -3,6 +3,7 @@ from typing import Callable
 import pytest
 
 from starlette.background import BackgroundTask, BackgroundTasks
+from starlette.middleware.background import BackgroundTaskMiddleware
 from starlette.responses import Response
 from starlette.testclient import TestClient
 
@@ -20,7 +21,7 @@ def test_async_task(test_client_factory):
         response = Response("task initiated", media_type="text/plain", background=task)
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = test_client_factory(BackgroundTaskMiddleware(app))
     response = client.get("/")
     assert response.text == "task initiated"
     assert TASK_COMPLETE
@@ -39,7 +40,7 @@ def test_sync_task(test_client_factory):
         response = Response("task initiated", media_type="text/plain", background=task)
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = test_client_factory(BackgroundTaskMiddleware(app))
     response = client.get("/")
     assert response.text == "task initiated"
     assert TASK_COMPLETE
@@ -62,7 +63,7 @@ def test_multiple_tasks(test_client_factory: Callable[..., TestClient]):
         )
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = test_client_factory(BackgroundTaskMiddleware(app))
     response = client.get("/")
     assert response.text == "tasks initiated"
     assert TASK_COUNTER == 1 + 2 + 3
@@ -88,7 +89,7 @@ def test_multi_tasks_failure_avoids_next_execution(
         )
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = test_client_factory(BackgroundTaskMiddleware(app))
     with pytest.raises(Exception):
         client.get("/")
     assert TASK_COUNTER == 1
