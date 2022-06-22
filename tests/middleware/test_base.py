@@ -1,5 +1,5 @@
 import contextvars
-from contextlib import AsyncExitStack, aclosing
+from contextlib import AsyncExitStack
 from typing import AsyncGenerator, Awaitable, Callable, List
 
 import anyio
@@ -250,8 +250,10 @@ async def test_background_tasks_client_disconnect() -> None:
     scope = {"type": "http", "method": "GET", "path": "/"}
 
     async with AsyncExitStack() as stack:
-        recv = await stack.enter_async_context(aclosing(recv_gen()))
-        send = await stack.enter_async_context(aclosing(send_gen()))
+        recv = recv_gen()
+        stack.push_async_callback(recv.aclose)
+        send = send_gen()
+        stack.push_async_callback(send.aclose)
         await send.__anext__()
         await app(scope, recv.__aiter__().__anext__, send.asend)
 
