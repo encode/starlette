@@ -92,10 +92,18 @@ def test_background_tasks(test_client_factory):
         await anyio.sleep(delay)
         print(identifier, "completed")
 
+    def _sleep_sync(identifier, delay):
+        import time
+
+        print(identifier, "started")
+        time.sleep(delay)
+        print(identifier, "completed")
+
     async def bg_task(request):
         background_tasks = BackgroundTasks()
         background_tasks.add_task(_sleep, "background task 1", 2)
         background_tasks.add_task(_sleep, "background task 2", 2)
+        background_tasks.add_task(_sleep_sync, "background task sync", 2)
         return Response(background=background_tasks)
 
     app = Starlette(

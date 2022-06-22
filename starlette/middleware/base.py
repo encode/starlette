@@ -33,7 +33,7 @@ class BaseHTTPMiddleware:
 
                 async with send_stream:
                     try:
-                        # may block in send if body_stream not consumed
+                        # `send_stream.send` blocks until `body_stream` is called
                         await self.app(scope, request.receive, send_stream.send)
                     except Exception as exc:
                         app_exc = exc
@@ -72,12 +72,7 @@ class BaseHTTPMiddleware:
             request = Request(scope, receive=receive)
             response = await self.dispatch_func(request, call_next)
             await response(scope, receive, send)
-
-            t = anyio.get_current_task()
-            if t.name == "anyio.from_thread.BlockingPortal._call_func":
-                # cancel stuck task due to discarded response
-                # see: https://github.com/encode/starlette/issues/1022
-                task_group.cancel_scope.cancel()
+            task_group.cancel_scope.cancel()
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint

@@ -166,8 +166,9 @@ class Response:
         )
         await send({"type": "http.response.body", "body": self.body})
 
-        if self.background is not None:
-            await self.background()
+        with anyio.CancelScope(shield=True):
+            if self.background is not None:
+                await self.background()
 
 
 class HTMLResponse(Response):
@@ -264,8 +265,9 @@ class StreamingResponse(Response):
             task_group.start_soon(wrap, partial(self.stream_response, send))
             await wrap(partial(self.listen_for_disconnect, receive))
 
-        if self.background is not None:
-            await self.background()
+        with anyio.CancelScope(shield=True):
+            if self.background is not None:
+                await self.background()
 
 
 class FileResponse(Response):
@@ -350,5 +352,7 @@ class FileResponse(Response):
                             "more_body": more_body,
                         }
                     )
-        if self.background is not None:
-            await self.background()
+
+        with anyio.CancelScope(shield=True):
+            if self.background is not None:
+                await self.background()
