@@ -217,6 +217,7 @@ def test_contextvars(test_client_factory, middleware_cls: type):
 
 @pytest.mark.anyio
 async def test_background_tasks_client_disconnect() -> None:
+    # test for https://github.com/encode/starlette/issues/1438
     container: List[str] = []
 
     disconnected = anyio.Event()
@@ -262,11 +263,15 @@ async def test_background_tasks_client_disconnect() -> None:
 
 
 def test_background_tasks(test_client_factory: Callable[[ASGIApp], TestClient]) -> None:
+    # test for https://github.com/encode/starlette/issues/919
     container: List[str] = []
 
     async def slow_task() -> None:
         container.append("started")
-        await anyio.sleep(2)
+        # small delay to give BaseHTTPMiddleware a chance to cancel us
+        # this is required to make the test fail prior to fixing the issue
+        # so do not be surprised if you remove it and the test still passes
+        await anyio.sleep(0.1)
         container.append("finished")
 
     async def dispatch(
