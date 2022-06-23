@@ -27,6 +27,7 @@ class _TemplateResponse(Response):
         self,
         template: typing.Any,
         context: dict,
+        content: typing.Optional[typing.Any] = None,
         status_code: int = 200,
         headers: typing.Optional[typing.Mapping[str, str]] = None,
         media_type: typing.Optional[str] = None,
@@ -34,7 +35,6 @@ class _TemplateResponse(Response):
     ):
         self.template = template
         self.context = context
-        content = template.render(context)
         super().__init__(content, status_code, headers, media_type, background)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -56,6 +56,12 @@ class Jinja2Templates:
     templates = Jinja2Templates("templates")
 
     return templates.TemplateResponse("index.html", {"request": request})
+
+    ..enable_async:
+
+    templates = Jinja2Templates("templates",enable_async=True)
+
+    return await templates.AsyncTemplateResponse("index.html", {"request": request})
     """
 
     def __init__(
@@ -95,9 +101,35 @@ class Jinja2Templates:
         if "request" not in context:
             raise ValueError('context must include a "request" key')
         template = self.get_template(name)
+        content = template.render(context)
         return _TemplateResponse(
             template,
             context,
+            content=content,
+            status_code=status_code,
+            headers=headers,
+            media_type=media_type,
+            background=background,
+        )
+
+    async def AsyncTemplateResponse(
+        self,
+        name: str,
+        context: dict,
+        status_code: int = 200,
+        headers: typing.Optional[typing.Mapping[str, str]] = None,
+        media_type: typing.Optional[str] = None,
+        background: typing.Optional[BackgroundTask] = None,
+    ) -> _TemplateResponse:
+        if "request" not in context:
+            raise ValueError('context must include a "request" key')
+        assert self.env.is_async, "please enable async rendering mode."
+        template = self.get_template(name)
+        content = await template.render_async(context)
+        return _TemplateResponse(
+            template,
+            context,
+            content=content,
             status_code=status_code,
             headers=headers,
             media_type=media_type,
