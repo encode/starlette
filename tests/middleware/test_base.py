@@ -13,6 +13,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, Response, StreamingResponse
 from starlette.routing import Route, WebSocketRoute
+from starlette.testclient import TestClient
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
@@ -258,3 +259,30 @@ async def test_background_tasks_client_disconnect() -> None:
         await app(scope, recv.__aiter__().__anext__, send.asend)
 
     assert container == ["called"]
+
+
+def test_background_tasks(test_client_factory: Callable[[ASGIApp], TestClient]) -> None:
+    container: List[str] = []
+
+    async def slow_task() -> None:
+        container.append("started")
+        await anyio.sleep(2)
+        container.append("finished")
+
+    async def dispatch(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        return await call_next(request)
+
+    async def endpoint(request: Request) -> Response:
+        return Response(background=BackgroundTask(slow_task))
+
+    app = Starlette(
+        routes=[Route("/", endpoint)],
+        middleware=[Middleware(BaseHTTPMiddleware, dispatch=dispatch)],
+    )
+
+    client = test_client_factory(app)
+    response = client.get("/")
+    assert response.status_code == 200, response.content
+    assert container == ["started", "finished"]
