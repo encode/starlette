@@ -240,13 +240,14 @@ class StreamingResponse(Response):
                 break
 
     async def stream_response(self, send: Send) -> None:
-        await send(
-            {
-                "type": "http.response.start",
-                "status": self.status_code,
-                "headers": self.raw_headers,
-            }
-        )
+        with anyio.CancelScope(shield=True):
+            await send(
+                {
+                    "type": "http.response.start",
+                    "status": self.status_code,
+                    "headers": self.raw_headers,
+                }
+            )
         async for chunk in self.body_iterator:
             if not isinstance(chunk, bytes):
                 chunk = chunk.encode(self.charset)
