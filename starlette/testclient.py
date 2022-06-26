@@ -164,8 +164,8 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 "scheme": scheme,
                 "query_string": query.encode(),
                 "headers": headers,
-                "client": ["testclient", 50000],
-                "server": [host, port],
+                "client": ("testclient", 50000),
+                "server": (host, port),
                 "subprotocols": subprotocols,
             }
             session = WebSocketTestSession(self.app, scope, self.portal_factory)
