@@ -236,7 +236,7 @@ async def test_client_disconnects_before_response_is_sent() -> None:
         msg = yield
         assert msg["type"] == "http.response.start"
         msg = yield
-        raise AssertionError("Should not be called")
+        raise AssertionError("Should not be called")  # pragma: no cover
 
     scope = {"type": "http", "method": "GET", "path": "/"}
 
