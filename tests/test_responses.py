@@ -414,6 +414,6 @@ async def test_streaming_response_disconnect_should_cancel_after_send_start_retu
 
     scope = {"type": "http", "method": "GET", "path": "/"}
 
-    response = StreamingResponse("")
+    response = StreamingResponse(iter(""))
     await response(scope, receive, send)
     assert send_to_receiver
