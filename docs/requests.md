@@ -112,7 +112,7 @@ state with `disconnected = await request.is_disconnected()`.
 
 #### Request Files
 
-Request files are normally sent as multipart form data (`multipart/form-data`). 
+Request files are normally sent as multipart form data (`multipart/form-data`).
 
 When you call `await request.form()` you receive a `starlette.datastructures.FormData` which is an immutable
 multidict, containing both file uploads and text input. File upload items are represented as instances of `starlette.datastructures.UploadFile`.
@@ -142,7 +142,7 @@ filename = form["upload_file"].filename
 contents = await form["upload_file"].read()
 ```
 
-!!! note
+!!! info
     As settled in [RFC-7578: 4.2](https://www.ietf.org/rfc/rfc7578.txt), form-data content part that contains file 
     assumed to have `name` and `filename` fields in `Content-Disposition` header: `Content-Disposition: form-
     data; name="user"; filename="somefile"`. Though `filename` field is optional according to RFC-7578, it helps 
