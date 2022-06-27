@@ -2,6 +2,7 @@ import os
 
 import anyio
 import pytest
+from anyio.lowlevel import checkpoint
 
 from starlette import status
 from starlette.background import BackgroundTask
@@ -14,6 +15,7 @@ from starlette.responses import (
     StreamingResponse,
 )
 from starlette.testclient import TestClient
+from starlette.types import Message
 
 
 def test_text_response(test_client_factory):
@@ -391,3 +393,26 @@ def test_streaming_response_known_size(test_client_factory):
     client: TestClient = test_client_factory(app)
     response = client.get("/")
     assert response.headers["content-length"] == "10"
+
+
+@pytest.mark.anyio
+async def test_streaming_response_disconnect_should_cancel_after_send_http_response_start_returns():
+    """
+    Test that StreamingResponse cancels after send "http.response.start" returns, even if there is a checkpoint in send.
+    """
+    send_to_receiver = False
+
+    async def receive() -> Message:
+        return {"type": "http.disconnect"}
+
+    async def send(msg: Message) -> None:
+        nonlocal send_to_receiver
+        assert msg["type"] == "http.response.start"
+        await checkpoint()  # await asyncio.sleep(0)
+        send_to_receiver = True
+
+    scope = {"type": "http", "method": "GET", "path": "/"}
+
+    response = StreamingResponse("")
+    await response(scope, receive, send)
+    assert send_to_receiver
