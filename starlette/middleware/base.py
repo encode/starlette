@@ -4,7 +4,7 @@ import anyio
 
 from starlette.requests import Request
 from starlette.responses import Response, StreamingResponse
-from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 RequestResponseEndpoint = typing.Callable[[Request], typing.Awaitable[Response]]
 DispatchFunction = typing.Callable[
@@ -28,12 +28,22 @@ class BaseHTTPMiddleware:
             app_exc: typing.Optional[Exception] = None
             send_stream, recv_stream = anyio.create_memory_object_stream()
 
+            async def send(msg: Message) -> None:
+                # Shield send "http.response.start" from cancellation.
+                # Otherwise, `await recv_stream.receive()` will raise `anyio.EndOfStream` if request is disconnected,
+                # due to `task_group.cancel_scope.cancel()` in `StreamingResponse.__call__.<locals>.wrap`
+                # and cancellation check in `await checkpoint()` of `MemoryObjectSendStream.send`,
+                # and then `RuntimeError: No response returned.` will be raised below.
+                shield = msg["type"] == "http.response.start"
+                with anyio.CancelScope(shield=shield):
+                    await send_stream.send(msg)
+
             async def coro() -> None:
                 nonlocal app_exc
 
                 async with send_stream:
                     try:
-                        await self.app(scope, request.receive, send_stream.send)
+                        await self.app(scope, request.receive, send)
                     except Exception as exc:
                         app_exc = exc
 
