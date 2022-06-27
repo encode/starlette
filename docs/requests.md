@@ -146,7 +146,7 @@ For example, you can get the file name and the contents with:
 
 ```python
 form = await request.form()
-filename = form["upload_file"].filename # or form.get("upload_file")
+filename = form["upload_file"].filename
 contents = await form["upload_file"].read()
 ```
 
