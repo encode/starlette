@@ -30,9 +30,11 @@ class BaseHTTPMiddleware:
 
             async def send(msg: Message) -> None:
                 # Shield send "http.response.start" from cancellation.
-                # Otherwise, `await recv_stream.receive()` will raise `anyio.EndOfStream` if request is disconnected,
-                # due to `task_group.cancel_scope.cancel()` in `StreamingResponse.__call__.<locals>.wrap`
-                # and cancellation check in `await checkpoint()` of `MemoryObjectSendStream.send`,
+                # Otherwise, `await recv_stream.receive()` will raise
+                # `anyio.EndOfStream` if request is disconnected,
+                # due to `task_group.cancel_scope.cancel()` in
+                # `StreamingResponse.__call__.<locals>.wrap` and cancellation check
+                # during `await checkpoint()` in `MemoryObjectSendStream.send`,
                 # and then `RuntimeError: No response returned.` will be raised below.
                 shield = msg["type"] == "http.response.start"
                 with anyio.CancelScope(shield=shield):
