@@ -396,9 +396,10 @@ def test_streaming_response_known_size(test_client_factory):
 
 
 @pytest.mark.anyio
-async def test_streaming_response_disconnect_should_cancel_after_send_http_response_start_returns():
+async def test_streaming_response_disconnect_should_cancel_after_send_start_returns():
     """
-    Test that StreamingResponse cancels after send "http.response.start" returns, even if there is a checkpoint in send.
+    Test that StreamingResponse cancels after send "http.response.start" returns,
+    even if there is a checkpoint in send.
     """
     send_to_receiver = False
 
