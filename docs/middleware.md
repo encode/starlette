@@ -415,7 +415,7 @@ class ExtraResponseHeadersMiddleware:
         async def wrapped_send(message):
             if message["type"] == "http.response.start":
                 headers = MutableHeaders(scope=message)
-                for key, value for self.headers:
+                for key, value in self.headers:
                     headers.append(key, value)
             await send(message)
 
