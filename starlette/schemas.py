@@ -86,6 +86,9 @@ class BaseSchemaGenerator:
     def _remove_converter(self, path: str) -> str:
         """
         Remove the converter from the path.
+        For example, a route like this:
+            Route("/users/{id:int}", endpoint=get_user, methods=["GET"])
+        Should be represented as `/users/{id}` in the OpenAPI schema.
         """
         return re.sub(r":\w+}", "}", path)
 
