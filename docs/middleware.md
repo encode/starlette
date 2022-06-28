@@ -294,7 +294,7 @@ class ASGIMiddleware:
         # Do something here!
         await self.app(scope, receive, send)
 ```
-In the example above, if the `scope` type is `lifespan` or `websocket`, we'll directly call the `self.app`.
+In the example above, if the `scope` type is **not** `http`, meaning that is either `lifespan` or `websocket`, we'll directly call the `self.app`.
 
 The same applies to other scopes.
 
@@ -377,11 +377,9 @@ class ASGIMiddleware:
         await self.app(scope, receive, send)
 ```
 
-The `ASGI3Application` is meant to represent an ASGI application that follows the third version of the standard.
-Starlette itself is an ASGI 3 application.
-
-!!! note
-    You can read more about ASGI versions on the [Legacy Applications section on the ASGI documentation](https://asgi.readthedocs.io/en/latest/specs/main.html#legacy-applications).
+!!! info
+    If you're curious about the `ASGI3Application` type on the snippet above, you can read more about ASGI versions on the [Legacy Applications section on the ASGI 
+    documentation](https://asgi.readthedocs.io/en/latest/specs/main.html#legacy-applications).
 
 ### Reusing Starlette components
 
