@@ -1,6 +1,6 @@
 ## 0.20.4
 
-June 27, 2022
+June 28, 2022
 
 ### Fixed
 * Remove converter from path when generating OpenAPI schema [#1648](https://github.com/encode/starlette/pull/1648).
