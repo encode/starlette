@@ -340,12 +340,11 @@ There are two ways of annotating a middleware: using Starlette itself or [`asgir
 Using Starlette, you can do as:
 
 ```python
-from starlette.types import Message, Scope, Receive, Send
-from starlette.applications import Starlette
+from starlette.types import ASGIApp, Message, Scope, Receive, Send
 
 
 class ASGIMiddleware:
-    def __init__(self, app: Starlette) -> None:
+    def __init__(self, app: ASGIApp) -> None:
         self.app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
