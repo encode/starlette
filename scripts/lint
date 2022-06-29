@@ -1,13 +1,14 @@
 #!/bin/sh -e
 
 export PREFIX=""
-if [ -d 'venv' ] ; then
+if [ -d 'venv' ]; then
     export PREFIX="venv/bin/"
 fi
 export SOURCE_FILES="starlette tests"
 
 set -x
 
+./scripts/sync-version
 ${PREFIX}autoflake --in-place --recursive $SOURCE_FILES
 ${PREFIX}isort --project=starlette $SOURCE_FILES
 ${PREFIX}black $SOURCE_FILES
