@@ -88,4 +88,33 @@ Instead we'd recommend that you ensure that your endpoints perform all I/O,
 for example, strictly evaluate any database queries within the view and
 include the final results in the context.
 
+### A simple example
+
+The first step must be to set the asynchronous rendering mode to enable.
+
+In asynchronous mode you can use 'AsyncTemplateResponse' to render asynchronous functions
+or coroutine objects in jinja2 templates.
+
+```python
+from starlette.templating import Jinja2Templates
+
+templates = Jinja2Templates(directory='templates', enable_async=True)
+
+async def get_name():
+    return "world"
+
+async def homepage(request):
+    return await templates.AsyncTemplateResponse(
+        "hello.html",
+        {"request": request, "get_name": get_name}
+    )
+```
+
+The asynchronous functions in 'templates/hello.html' are used in the same way as
+the synchronous functions.
+
+```html
+<html lang="en">Hello,{{ get_name() }}</html>
+```
+
 [jinja2]: https://jinja.palletsprojects.com/en/3.0.x/api/?highlight=environment#writing-filters
