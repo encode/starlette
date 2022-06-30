@@ -477,18 +477,23 @@ See also [`GZipMiddleware`](https://github.com/encode/starlette/blob/9ef1b91c9c0
 As we know by now, the `scope` holds the information about the connection.
 
 As per the ASGI specifications, any application can store custom information on the `scope`.
-To be precise, it should be stored under the `extensions` key.
+Have in mind that other components could also store data in the same `scope`, so it's important to use a key that has a low chance of being used by other things.
+
+For example, if you are building an application called `supper-app` you could have that as a prefix for any keys you put in the `scope`, and then you could have a key called `super-app-transaction-id`.
 
 ```python
+from uuid import uuid4
+
+
 class ASGIMiddleware:
     def __init__(self, app):
         self.app = app
 
     async def __call__(self, scope, receive, send):
-        scope["extensions"] = {"super.extension": True}
+        scope["super-app-transaction-id"] = uuid4()
         await self.app(scope, receive, send)
 ```
-On the example above, we stored an extension called "super.extension". That can be used by the application itself, as the scope is forwarded to it.
+On the example above, we stored a key called "super-app-transaction-id" in the scope. That can be used by the application itself, as the scope is forwarded to it.
 
 !!! important
     This documentation should be enough to have a good basis on how to create an ASGI middleware.
