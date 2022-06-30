@@ -298,7 +298,7 @@ In the example above, if the `scope` type is **not** `http`, meaning that is eit
 
 The same applies to other scopes.
 
-!!! note
+!!! tip
     Middleware classes should be stateless -- see [Per-request state](#per-request-state) if you do need to store per-request state.
 
 #### Wrapping `send` and `receive`
