@@ -403,6 +403,8 @@ class ASGIMiddleware:
 Or we might use `MutableHeaders` to change the response headers:
 
 ```python
+from starlette.datastructures import MutableHeaders
+
 class ExtraResponseHeadersMiddleware:
     def __init__(self, app, headers):
         self.app = app
