@@ -378,12 +378,12 @@ class ASGIMiddleware:
 ```
 
 !!! info
-    If you're curious about the `ASGI3Application` type on the snippet above, you can read more about ASGI versions on the [Legacy Applications section on the ASGI 
+    If you're curious about the `ASGI3Application` type on the snippet above, you can read more about ASGI versions on the [Legacy Applications section on the ASGI
     documentation](https://asgi.readthedocs.io/en/latest/specs/main.html#legacy-applications).
 
 ### Reusing Starlette components
 
-If you need to work with request or response data, you may find it more convenient to reuse Starlette data structures (`Request`, `Headers`, `QueryParams`, `URL`, etc) rather than work with raw ASGI data. All these components can be built from the ASGI `scope`, `receive` and `send`, allowing you to work on pure ASGI middleware at a higher level of abstraction.
+If you need to work with request or response data, you may find it more convenient to reuse Starlette data structures ([`Request`](requests.md#request), [`Headers`](requests.md#headers), [`QueryParams`](requests.md#query-parameters), [`URL`](requests.md#url), etc) rather than work with raw ASGI data. All these components can be built from the ASGI `scope`, `receive` and `send`, allowing you to work on pure ASGI middleware at a higher level of abstraction.
 
 For example, we can create a `Request` object, and work with it.
 ```python
