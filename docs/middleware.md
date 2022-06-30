@@ -428,7 +428,7 @@ ASGI middleware classes should be stateless, as we typically don't want to leak 
 
 The risk is low when defining wrappers inside `__call__`, as state would typically be defined as inline variables.
 
-But if the middleware grows larger and more complex, you might be tempted to refactor wrappers as methods. Still, state should not be stored in the middleware instance. Instead, if you need to manipulate per-request state, you may write a separate `Responder` class:
+But if the middleware grows larger and more complex, you might be tempted to refactor wrappers as methods. Still, state should not be stored in the middleware instance. This means that the middleware should not have attributes that would change across requests or connections. If the middleware has an attribute, for example set in the `__init__()` method, nothing else should change it afterewards. Instead, if you need to manipulate per-request state, you may write a separate `Responder` class:
 
 ```python
 from functools import partial
@@ -479,7 +479,7 @@ As we know by now, the `scope` holds the information about the connection.
 As per the ASGI specifications, any application can store custom information on the `scope`.
 Have in mind that other components could also store data in the same `scope`, so it's important to use a key that has a low chance of being used by other things.
 
-For example, if you are building an application called `supper-app` you could have that as a prefix for any keys you put in the `scope`, and then you could have a key called `super-app-transaction-id`.
+For example, if you are building an application called `super-app` you could have that as a prefix for any keys you put in the `scope`, and then you could have a key called `super-app-transaction-id`.
 
 ```python
 from uuid import uuid4
