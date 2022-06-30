@@ -101,6 +101,10 @@ from starlette.templating import Jinja2Templates
 templates = Jinja2Templates(directory='templates', enable_async=True)
 
 async def get_name():
+    """
+    Note that this actually only makes sense in the case of actual asynchronous operations. 
+    (Eg. Asynchronous database lookup.)
+    """
     return "world"
 
 async def homepage(request):
