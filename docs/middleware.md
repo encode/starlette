@@ -268,7 +268,7 @@ def asgi_middleware():
     return asgi_decorator
 ```
 
-!!! note
+!!! info
     The function pattern is not commonly spread, but you can check a more advanced implementation of it on
     [asgi-cors](https://github.com/simonw/asgi-cors/blob/10ef64bfcc6cd8d16f3014077f20a0fb8544ec39/asgi_cors.py).
 
