@@ -430,22 +430,24 @@ ASGI middleware classes should be stateless, as we typically don't want to leak 
 
 The risk is low when defining wrappers inside `__call__`, as state would typically be defined as inline variables.
 
-But if the middleware grows larger and more complex, you might be tempted to refactor wrappers as methods. Still, state should not be stored in the middleware instance. This means that the middleware should not have attributes that would change across requests or connections. If the middleware has an attribute, for example set in the `__init__()` method, nothing else should change it afterewards. Instead, if you need to manipulate per-request state, you may write a separate `Responder` class:
+But if the middleware grows larger and more complex, you might be tempted to refactor wrappers as methods. Still, state should not be stored in the middleware instance. This means that the middleware should not have attributes that would change across requests or connections. If the middleware has an attribute, for example set in the `__init__()` method, nothing else should change it afterwards. Instead, if you need to manipulate per-request state, you may write a separate `Responder` class:
 
 ```python
 from functools import partial
 
+from starlette.datastructures import Headers
+
 class TweakMiddleware:
     """
     Make a change to the response body if 'X-Tweak' is
-    present in the reponse headers.
+    present in the response headers.
     """
 
     async def __call_(self, scope, receive, send):
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
 
-        responder = MaybeTweakResponder(self.app)
+        responder = TweakResponder(self.app)
         await responder(scope, receive, send)
 
 class TweakResponder:
