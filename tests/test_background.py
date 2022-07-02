@@ -87,7 +87,7 @@ def test_async_task(
     assert TASK_COMPLETE
 
 
-def test_sync_task(test_client_factory_mw: TestClientFactory):
+def test_sync_task(test_client_factory: TestClientFactory):
     TASK_COMPLETE = False
 
     def sync_task():
@@ -100,13 +100,13 @@ def test_sync_task(test_client_factory_mw: TestClientFactory):
         response = Response("task initiated", media_type="text/plain", background=task)
         await response(scope, receive, send)
 
-    client = test_client_factory_mw(app)
+    client = test_client_factory(app)
     response = client.get("/")
     assert response.text == "task initiated"
     assert TASK_COMPLETE
 
 
-def test_multiple_tasks(test_client_factory_mw: TestClientFactory):
+def test_multiple_tasks(test_client_factory: TestClientFactory):
     TASK_COUNTER = 0
 
     def increment(amount):
@@ -123,14 +123,14 @@ def test_multiple_tasks(test_client_factory_mw: TestClientFactory):
         )
         await response(scope, receive, send)
 
-    client = test_client_factory_mw(app)
+    client = test_client_factory(app)
     response = client.get("/")
     assert response.text == "tasks initiated"
     assert TASK_COUNTER == 1 + 2 + 3
 
 
 def test_multi_tasks_failure_avoids_next_execution(
-    test_client_factory_mw: TestClientFactory,
+    test_client_factory: TestClientFactory,
 ) -> None:
     TASK_COUNTER = 0
 
@@ -149,7 +149,7 @@ def test_multi_tasks_failure_avoids_next_execution(
         )
         await response(scope, receive, send)
 
-    client = test_client_factory_mw(app)
+    client = test_client_factory(app)
     with pytest.raises(Exception):
         client.get("/")
     assert TASK_COUNTER == 1
