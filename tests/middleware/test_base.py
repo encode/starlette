@@ -266,32 +266,39 @@ async def test_background_tasks_client_disconnect() -> None:
     assert container == ["called"]
 
 
-def test_background_tasks(test_client_factory: Callable[[ASGIApp], TestClient]) -> None:
-    # test for https://github.com/encode/starlette/issues/919
+@pytest.mark.anyio
+async def test_background_tasks_outlive_response() -> None:
+    # Maybe a test for https://github.com/encode/starlette/issues/919
     container: List[str] = []
 
-    async def slow_task() -> None:
-        container.append("started")
+    async def slow_background() -> None:
         # small delay to give BaseHTTPMiddleware a chance to cancel us
         # this is required to make the test fail prior to fixing the issue
         # so do not be surprised if you remove it and the test still passes
         await anyio.sleep(0.1)
-        container.append("finished")
+        container.append("called")
+
+    app: ASGIApp
+    app = Response(b"ignored")
 
     async def dispatch(
         request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
-        return await call_next(request)
+        await call_next(request)
+        return Response(b"used", background=BackgroundTask(slow_background))
 
-    async def endpoint(request: Request) -> Response:
-        return Response(background=BackgroundTask(slow_task))
+    app = BaseHTTPMiddleware(app, dispatch=dispatch)
 
-    app = Starlette(
-        routes=[Route("/", endpoint)],
-        middleware=[Middleware(BaseHTTPMiddleware, dispatch=dispatch)],
-    )
+    app = BackgroundTaskMiddleware(app)
 
-    client = test_client_factory(app)
-    response = client.get("/")
-    assert response.status_code == 200, response.content
-    assert container == ["started", "finished"]
+    async def recv() -> Message:
+        raise AssertionError("Should not be called")
+
+    async def send(message: Message) -> None:
+        ...
+
+    scope = {"type": "http", "method": "GET", "path": "/"}
+
+    await app(scope, recv, send)
+
+    assert container == ["called"]
