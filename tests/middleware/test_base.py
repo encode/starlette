@@ -288,13 +288,18 @@ def test_app_receives_http_disconnect_while_sending_if_discarded(test_client_fac
 
             task_group.start_soon(cancel_on_disconnect)
 
-            await send(
-                {
-                    "type": "http.response.body",
-                    "body": b"chunk",
-                    "more_body": True,
-                }
-            )
+            # A timeout is set for 0.1 second in order to ensure that
+            # cancel_on_disconnect is scheduled by the event loop
+            with anyio.move_on_after(0.1):
+                while True:
+                    await send(
+                        {
+                            "type": "http.response.body",
+                            "body": b"chunk ",
+                            "more_body": True,
+                        }
+                    )
+
             pytest.fail(
                 "http.disconnect should have been received and canceled the scope"
             )  # pragma: no cover
