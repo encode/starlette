@@ -1,12 +1,13 @@
+from tempfile import NamedTemporaryFile
 from typing import Any, AsyncIterable, Callable, List
 
 import pytest
 
 from starlette.background import BackgroundTask, BackgroundTasks
 from starlette.middleware.background import BackgroundTaskMiddleware
-from starlette.responses import Response, StreamingResponse
+from starlette.responses import FileResponse, Response, StreamingResponse
 from starlette.testclient import TestClient
-from starlette.types import ASGIApp
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 TestClientFactory = Callable[[ASGIApp], TestClient]
 
@@ -28,25 +29,47 @@ def test_client_factory_mw(
     return client_factory
 
 
-async def stream() -> AsyncIterable[bytes]:
-    yield b"task initiated"
+def response_app_factory(task: BackgroundTask) -> ASGIApp:
+    async def app(scope: Scope, receive: Receive, send: Send):
+        response = Response(b"task initiated", media_type="text/plain", background=task)
+        await response(scope, receive, send)
+
+    return app
 
 
-response_factories: List[Callable[[BackgroundTask], Response]] = [
-    lambda background: StreamingResponse(
-        stream(), media_type="text/plain", background=background
-    ),
-    lambda background: Response(
-        "task initiated", media_type="text/plain", background=background
-    ),
-]
-response_ids = ["StreamingResponse", "Response"]
+def file_response_app_factory(task: BackgroundTask) -> ASGIApp:
+    async def app(scope: Scope, receive: Receive, send: Send):
+        with NamedTemporaryFile("wb+") as f:
+            f.write(b"task initiated")
+            f.seek(0)
+            response = FileResponse(f.name, media_type="text/plain", background=task)
+            await response(scope, receive, send)
+
+    return app
 
 
-@pytest.mark.parametrize("response_factory", response_factories, ids=response_ids)
+def streaming_response_app_factory(task: BackgroundTask) -> ASGIApp:
+    async def app(scope: Scope, receive: Receive, send: Send):
+        async def stream() -> AsyncIterable[bytes]:
+            yield b"task initiated"
+
+        response = StreamingResponse(stream(), media_type="text/plain", background=task)
+        await response(scope, receive, send)
+
+    return app
+
+
+@pytest.mark.parametrize(
+    "app_factory",
+    [
+        response_app_factory,
+        streaming_response_app_factory,
+        file_response_app_factory,
+    ],
+)
 def test_async_task(
     test_client_factory_mw: TestClientFactory,
-    response_factory: Callable[[BackgroundTask], Response],
+    app_factory: Callable[[BackgroundTask], ASGIApp],
 ):
     TASK_COMPLETE = False
 
@@ -56,9 +79,7 @@ def test_async_task(
 
     task = BackgroundTask(async_task)
 
-    async def app(scope, receive, send):
-        response = response_factory(task)
-        await response(scope, receive, send)
+    app = app_factory(task)
 
     client = test_client_factory_mw(app)
     response = client.get("/")
