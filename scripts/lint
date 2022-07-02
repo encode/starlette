@@ -8,7 +8,6 @@ export SOURCE_FILES="starlette tests"
 
 set -x
 
-./scripts/sync-version
 ${PREFIX}autoflake --in-place --recursive $SOURCE_FILES
 ${PREFIX}isort --project=starlette $SOURCE_FILES
 ${PREFIX}black $SOURCE_FILES
