@@ -243,14 +243,15 @@ async def test_background_tasks_client_disconnect() -> None:
 
     async def recv_gen() -> AsyncGenerator[Message, None]:
         yield {"type": "http.request"}
-        await disconnected.await()
+        await disconnected.wait()
         while True:
             yield {"type": "http.disconnect"}
 
     async def send_gen() -> AsyncGenerator[None, Message]:
-        msg = yield
-        if msg["type"] == "http.response.body" and not msg.get("more_body", False):
-            disconnected.set()
+        while True:
+            msg = yield
+            if msg["type"] == "http.response.body" and not msg.get("more_body", False):
+                disconnected.set()
 
     scope = {"type": "http", "method": "GET", "path": "/"}
 
