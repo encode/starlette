@@ -223,7 +223,10 @@ async def test_background_tasks_client_disconnect() -> None:
     disconnected = anyio.Event()
 
     async def slow_background() -> None:
-        await disconnected.wait()
+        # small delay to give BaseHTTPMiddleware a chance to cancel us
+        # this is required to make the test fail prior to fixing the issue
+        # so do not be surprised if you remove it and the test still passes
+        await anyio.sleep(0.1)
         container.append("called")
 
     app: ASGIApp
