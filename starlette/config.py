@@ -73,23 +73,51 @@ class Config:
         self,
         key: str,
         *,
-        default: V,
-    ) -> typing.Union[str, V]:  # pragma: no cover
-        ...
-
-    @typing.overload
-    def __call__(
-        self, key: str, cast: typing.Type[T], default: V = ...
-    ) -> typing.Union[T, V]:  # pragma: no cover
+        default: None,
+    ) -> typing.Optional[str]:  # pragma: no cover
         ...
 
     @typing.overload
     def __call__(
         self,
         key: str,
-        cast: typing.Callable[[object], T] = ...,
-        default: V = ...,
-    ) -> typing.Union[T, V]:  # pragma: no cover
+        *,
+        default: str,
+    ) -> str:  # pragma: no cover
+        ...
+
+    @typing.overload
+    def __call__(self, key: str, cast: typing.Type[T]) -> T:  # pragma: no cover
+        ...
+
+    @typing.overload
+    def __call__(
+        self, key: str, cast: typing.Type[T], default: None
+    ) -> typing.Optional[T]:  # pragma: no cover
+        ...
+
+    @typing.overload
+    def __call__(
+        self, key: str, cast: typing.Type[T], default: T
+    ) -> T:  # pragma: no cover
+        ...
+
+    @typing.overload
+    def __call__(
+        self, key: str, cast: typing.Callable[[object], T]
+    ) -> T:  # pragma: no cover
+        ...
+
+    @typing.overload
+    def __call__(
+        self, key: str, cast: typing.Callable[[object], T], default: None
+    ) -> typing.Optional[T]:  # pragma: no cover
+        ...
+
+    @typing.overload
+    def __call__(
+        self, key: str, cast: typing.Callable[[object], T], default: T
+    ) -> T:  # pragma: no cover
         ...
 
     def __call__(
