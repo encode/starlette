@@ -47,6 +47,7 @@ class Environ(MutableMapping):
 environ = Environ()
 
 T = typing.TypeVar("T")
+V = typing.TypeVar("V")
 
 
 class Config:
@@ -62,13 +63,8 @@ class Config:
 
     @typing.overload
     def __call__(
-        self, key: str, cast: typing.Type[T], default: T = ...
-    ) -> T:  # pragma: no cover
-        ...
-
-    @typing.overload
-    def __call__(
-        self, key: str, cast: typing.Type[str] = ..., default: str = ...
+        self,
+        key: str,
     ) -> str:  # pragma: no cover
         ...
 
@@ -76,15 +72,24 @@ class Config:
     def __call__(
         self,
         key: str,
-        cast: typing.Callable[[typing.Any], T] = ...,
-        default: typing.Any = ...,
-    ) -> T:  # pragma: no cover
+        *,
+        default: V,
+    ) -> typing.Union[str, V]:  # pragma: no cover
         ...
 
     @typing.overload
     def __call__(
-        self, key: str, cast: typing.Type[str] = ..., default: T = ...
-    ) -> typing.Union[T, str]:  # pragma: no cover
+        self, key: str, cast: typing.Type[T], default: V = ...
+    ) -> typing.Union[T, V]:  # pragma: no cover
+        ...
+
+    @typing.overload
+    def __call__(
+        self,
+        key: str,
+        cast: typing.Callable[[object], T] = ...,
+        default: V = ...,
+    ) -> typing.Union[T, V]:  # pragma: no cover
         ...
 
     def __call__(

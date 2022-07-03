@@ -27,6 +27,7 @@ def test_config(tmpdir, monkeypatch):
     DATABASE_URL = config("DATABASE_URL", cast=URL)
     REQUEST_TIMEOUT = config("REQUEST_TIMEOUT", cast=int, default=10)
     REQUEST_HOSTNAME = config("REQUEST_HOSTNAME")
+    MAIL_HOSTNAME = config("MAIL_HOSTNAME", default=None)
     SECRET_KEY = config("SECRET_KEY", cast=Secret)
     UNSET_SECRET = config("UNSET_SECRET", cast=Secret, default=None)
     EMPTY_SECRET = config("EMPTY_SECRET", cast=Secret, default="")
@@ -40,6 +41,7 @@ def test_config(tmpdir, monkeypatch):
     assert DATABASE_URL.username == "user"
     assert REQUEST_TIMEOUT == 10
     assert REQUEST_HOSTNAME == "example.com"
+    assert MAIL_HOSTNAME is None
     assert repr(SECRET_KEY) == "Secret('**********')"
     assert str(SECRET_KEY) == "12345"
     assert bool(SECRET_KEY)
