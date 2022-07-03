@@ -53,9 +53,12 @@ def test_config_types() -> None:
     def cast_to_int(v: Any) -> int:
         return int(v)
 
-    DEFAULTED_BOOL_TYPE = config("DEFAULTED_BOOL", cast=int, default=True)
+    DEFAULTED_BOOL_TYPE = config("DEFAULTED_BOOL_TYPE", cast=int, default=True)
     is_int([DEFAULTED_BOOL_TYPE])
-    DEFAULTED_BOOL_FUNC = config("DEFAULTED_BOOL", cast=cast_to_int, default=True)
+
+    # starlette Config will call the cast function on default and convert the bool to int.
+    # We don't support this in
+    DEFAULTED_BOOL_FUNC = config("DEFAULTED_BOOL_FUNC", cast=cast_to_int, default=True)  # type: ignore [arg-type]
     is_int([DEFAULTED_BOOL_FUNC])
 
     # We raise a ValueError when the string value can't be parsed into a bool

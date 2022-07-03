@@ -47,7 +47,6 @@ class Environ(MutableMapping):
 environ = Environ()
 
 T = typing.TypeVar("T")
-V = typing.TypeVar("V")
 
 
 class Config:
@@ -63,61 +62,35 @@ class Config:
 
     @typing.overload
     def __call__(
-        self,
-        key: str,
-    ) -> str:  # pragma: no cover
-        ...
-
-    @typing.overload
-    def __call__(
-        self,
-        key: str,
-        *,
-        default: None,
+        self, key: str, *, default: None
     ) -> typing.Optional[str]:  # pragma: no cover
         ...
 
     @typing.overload
     def __call__(
-        self,
-        key: str,
-        *,
-        default: str,
+        self, key: str, cast: typing.Type[T], default: T = ...
+    ) -> T:  # pragma: no cover
+        ...
+
+    @typing.overload
+    def __call__(
+        self, key: str, cast: typing.Type[str] = ..., default: str = ...
     ) -> str:  # pragma: no cover
         ...
 
     @typing.overload
-    def __call__(self, key: str, cast: typing.Type[T]) -> T:  # pragma: no cover
-        ...
-
-    @typing.overload
     def __call__(
-        self, key: str, cast: typing.Type[T], default: None
-    ) -> typing.Optional[T]:  # pragma: no cover
-        ...
-
-    @typing.overload
-    def __call__(
-        self, key: str, cast: typing.Type[T], default: T
+        self,
+        key: str,
+        cast: typing.Callable[[typing.Any], T] = ...,
+        default: typing.Any = ...,
     ) -> T:  # pragma: no cover
         ...
 
     @typing.overload
     def __call__(
-        self, key: str, cast: typing.Callable[[object], T]
-    ) -> T:  # pragma: no cover
-        ...
-
-    @typing.overload
-    def __call__(
-        self, key: str, cast: typing.Callable[[object], T], default: None
-    ) -> typing.Optional[T]:  # pragma: no cover
-        ...
-
-    @typing.overload
-    def __call__(
-        self, key: str, cast: typing.Callable[[object], T], default: T
-    ) -> T:  # pragma: no cover
+        self, key: str, cast: typing.Type[str] = ..., default: T = ...
+    ) -> typing.Union[T, str]:  # pragma: no cover
         ...
 
     def __call__(
