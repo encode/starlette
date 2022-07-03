@@ -59,11 +59,6 @@ def test_config_types() -> None:
     BOOL_NONE = [config("BOOL_NONE", cast=bool, default=None)]
     is_bool_or_none(BOOL_NONE)
 
-    # defaults with non-bool types are allowed by our type annotations.
-    INT_DEFAULT_STR = [config("INT_DEFAULT_STR", cast=int, default="true")]
-    # our type annotations break here with mypy.
-    is_int(INT_DEFAULT_STR)  # type: ignore [arg-type]
-
     # our type annotations allow these `cast` and `default` configurations, but
     # the code will error at runtime.
     with pytest.raises(ValueError):
