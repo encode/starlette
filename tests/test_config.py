@@ -9,61 +9,70 @@ from starlette.config import Config, Environ, EnvironError
 from starlette.datastructures import URL, Secret
 
 
-def is_str(x: list[str]) -> None:
-    ...
-
-
-def is_bool(x: list[bool]) -> None:
-    ...
-
-
-def is_int(x: list[int]) -> None:
-    ...
-
-
-def is_bool_or_none(x: list[bool | None]) -> None:
-    ...
-
-
-def is_str_or_none(x: list[str | None]) -> None:
-    ...
-
-
-def is_bool_or_str(x: list[bool | str]) -> None:
-    ...
-
-
 def test_config_types() -> None:
-    config = Config(environ={"SIMPLE_KEY": "some_str_value", "BOOL_KEY": "true"})
-    SIMPLE_KEY = config("SIMPLE_KEY")
-    is_str([SIMPLE_KEY])
-    BOOL_KEY = config("BOOL_KEY", cast=bool)
-    is_bool([BOOL_KEY])
-    BOOL_OR_NONE_KEY = config("BOOL_OR_NONE_KEY", cast=bool, default=None)
-    is_bool_or_none([BOOL_OR_NONE_KEY])
+    config = Config(
+        environ={"STR": "some_str_value", "STR_CAST": "some_str_value", "BOOL": "true"}
+    )
 
-    STR_OR_STR_KEY = config("STR_OR_STR_KEY", cast=str, default="hello")
-    is_str([STR_OR_STR_KEY])
-    STR_OR_NONE_KEY = config("STR_OR_NONE_KEY", default=None)
-    is_str_or_none([STR_OR_NONE_KEY])
+    # these functions allow us to check the return types via mypy. Using a
+    # `list` ensures that our exact types match.
+    #
+    # For example, mypy won't allow a list of type `str | None` to be passed to
+    # `is_str`. Additionally, a list of `str` can't be passed to
+    # `is_str_or_none`.
+    def is_str(x: list[str]) -> None:
+        ...
 
-    BOOL_DEFAULT = config("BOOL_DEFAULT", cast=bool, default=False)
-    is_bool([BOOL_DEFAULT])
+    def is_bool(x: list[bool]) -> None:
+        ...
+
+    def is_int(x: list[int]) -> None:
+        ...
+
+    def is_bool_or_none(x: list[bool | None]) -> None:
+        ...
+
+    def is_str_or_none(x: list[str | None]) -> None:
+        ...
 
     def cast_to_int(v: Any) -> int:
         return int(v)
 
-    DEFAULTED_BOOL_TYPE = config("DEFAULTED_BOOL_TYPE", cast=int, default=True)
-    is_int([DEFAULTED_BOOL_TYPE])
+    STR = [config("STR")]
+    is_str(STR)
+    STR_DEFAULT = [config("STR_DEFAULT", default="")]
+    is_str(STR_DEFAULT)
+    STR_CAST = [config("STR_CAST", cast=str)]
+    is_str(STR_CAST)
+    STR_NONE = [config("STR_NONE", default=None)]
+    is_str_or_none(STR_NONE)
+    STR_CAST_NONE = [config("STR_CAST_NONE", cast=str, default=None)]
+    is_str_or_none(STR_CAST_NONE)
+    STR_CAST_STR = [config("STR_CAST_STR", cast=str, default="")]
+    is_str(STR_CAST_STR)
 
-    # starlette Config will call the cast function on default and convert the bool to int.
-    # We don't support this in
-    DEFAULTED_BOOL_FUNC = config("DEFAULTED_BOOL_FUNC", cast=cast_to_int, default=True)  # type: ignore [arg-type]
-    is_int([DEFAULTED_BOOL_FUNC])
+    BOOL = [config("BOOL", cast=bool)]
+    is_bool(BOOL)
+    BOOL_DEFAULT = [config("BOOL_DEFAULT", cast=bool, default=False)]
+    is_bool(BOOL_DEFAULT)
+    BOOL_NONE = [config("BOOL_NONE", cast=bool, default=None)]
+    is_bool_or_none(BOOL_NONE)
 
-    # We raise a ValueError when the string value can't be parsed into a bool
+    # defaults with non-bool types are allowed by our type annotations.
+    INT_DEFAULT_STR = [config("INT_DEFAULT_STR", cast=int, default="true")]
+    # our type annotations break here with mypy.
+    is_int(INT_DEFAULT_STR)  # type: ignore [arg-type]
+
+    # our type annotations allow these `cast` and `default` configurations, but
+    # the code will error at runtime.
     with pytest.raises(ValueError):
-        _ = config("BOOL_OR_STR_KEY", cast=bool, default="hello")  # type: ignore [arg-type]
+        INT_CAST_DEFAULT_STR = [
+            config("INT_CAST_DEFAULT_STR", cast=cast_to_int, default="true")
+        ]
+        is_int(INT_CAST_DEFAULT_STR)
+    with pytest.raises(ValueError):
+        INT_DEFAULT_STR = [config("INT_DEFAULT_STR", cast=int, default="true")]
+        is_int(INT_DEFAULT_STR)  # type: ignore [arg-type]
 
 
 def test_config(tmpdir, monkeypatch):
