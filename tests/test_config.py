@@ -27,9 +27,6 @@ def test_config_types() -> None:
     def is_bool(x: list[bool]) -> None:
         ...
 
-    def is_int(x: list[int]) -> None:
-        ...
-
     def is_bool_or_none(x: list[bool | None]) -> None:
         ...
 
@@ -62,13 +59,9 @@ def test_config_types() -> None:
     # our type annotations allow these `cast` and `default` configurations, but
     # the code will error at runtime.
     with pytest.raises(ValueError):
-        INT_CAST_DEFAULT_STR = [
-            config("INT_CAST_DEFAULT_STR", cast=cast_to_int, default="true")
-        ]
-        is_int(INT_CAST_DEFAULT_STR)
+        config("INT_CAST_DEFAULT_STR", cast=cast_to_int, default="true")
     with pytest.raises(ValueError):
-        INT_DEFAULT_STR = [config("INT_DEFAULT_STR", cast=int, default="true")]
-        is_int(INT_DEFAULT_STR)  # type: ignore [arg-type]
+        config("INT_DEFAULT_STR", cast=int, default="true")
 
 
 def test_config(tmpdir, monkeypatch):
