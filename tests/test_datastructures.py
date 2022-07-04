@@ -46,6 +46,22 @@ def test_url_query_params():
     assert str(u) == "https://example.org/path/?page=4"
     u = u.include_query_params(search="testing")
     assert str(u) == "https://example.org/path/?page=4&search=testing"
+    same_parameters = MultiDict()
+    same_parameters.append("list", 1)
+    same_parameters.append("list", 2)
+    same_parameters.append("list", 3)
+    u = u.include_query_params(same_parameters)
+    assert (
+        str(u) == "https://example.org/path/?page=4&search=testing&list=1&list=2&list=3"
+    )
+    same_parameters = MultiDict()
+    same_parameters.append("list2", 1)
+    same_parameters.append("list2", 2)
+    u = u.include_query_params(same_parameters, list2="abc")
+    assert (
+        str(u) == "https://example.org/path/?page=4&search=testing&"
+        "list=1&list=2&list=3&list2=abc"
+    )
     u = u.replace_query_params(order="name")
     assert str(u) == "https://example.org/path/?order=name"
     u = u.remove_query_params("order")
