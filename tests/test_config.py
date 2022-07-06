@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any
+from typing import Optional, Any
+from typing_extensions import assert_type
 
 import pytest
 
@@ -15,46 +16,20 @@ def test_config_types() -> None:
         environ={"STR": "some_str_value", "STR_CAST": "some_str_value", "BOOL": "true"}
     )
 
-    # these functions allow us to check the return types via mypy. Using a
-    # `list` ensures that our exact types match.
-    #
-    # For example, mypy won't allow a list of type `str | None` to be passed to
-    # `is_str`. Additionally, a list of `str` can't be passed to
-    # `is_str_or_none`.
-    def is_str(x: list[str]) -> None:
-        ...
+    assert_type(config("STR"), str)
+    assert_type(config("STR_DEFAULT", default=""), str)
+    assert_type(config("STR_CAST", cast=str), str)
+    assert_type(config("STR_NONE", default=None), Optional[str])
+    assert_type(config("STR_CAST_NONE", cast=str, default=None), Optional[str])
+    assert_type(config("STR_CAST_STR", cast=str, default=""), str)
 
-    def is_bool(x: list[bool]) -> None:
-        ...
+    assert_type(config("BOOL", cast=bool), bool)
+    assert_type(config("BOOL_DEFAULT", cast=bool, default=False), bool)
+    assert_type(config("BOOL_NONE", cast=bool, default=None), Optional[bool])
 
-    def is_bool_or_none(x: list[bool | None]) -> None:
-        ...
-
-    def is_str_or_none(x: list[str | None]) -> None:
-        ...
 
     def cast_to_int(v: Any) -> int:
         return int(v)
-
-    STR = [config("STR")]
-    is_str(STR)
-    STR_DEFAULT = [config("STR_DEFAULT", default="")]
-    is_str(STR_DEFAULT)
-    STR_CAST = [config("STR_CAST", cast=str)]
-    is_str(STR_CAST)
-    STR_NONE = [config("STR_NONE", default=None)]
-    is_str_or_none(STR_NONE)
-    STR_CAST_NONE = [config("STR_CAST_NONE", cast=str, default=None)]
-    is_str_or_none(STR_CAST_NONE)
-    STR_CAST_STR = [config("STR_CAST_STR", cast=str, default="")]
-    is_str(STR_CAST_STR)
-
-    BOOL = [config("BOOL", cast=bool)]
-    is_bool(BOOL)
-    BOOL_DEFAULT = [config("BOOL_DEFAULT", cast=bool, default=False)]
-    is_bool(BOOL_DEFAULT)
-    BOOL_NONE = [config("BOOL_NONE", cast=bool, default=None)]
-    is_bool_or_none(BOOL_NONE)
 
     # our type annotations allow these `cast` and `default` configurations, but
     # the code will error at runtime.

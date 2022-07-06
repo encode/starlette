@@ -38,7 +38,7 @@ setup(
     include_package_data=True,
     install_requires=[
         "anyio>=3.4.0,<5",
-        "typing_extensions>=3.10.0; python_version < '3.10'",
+        "typing_extensions>=4.2.0; python_version < '3.10'",
     ],
     extras_require={
         "full": [
