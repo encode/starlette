@@ -182,7 +182,6 @@ app = Starlette(routes=[Route("/", hello)])
 
 # if you're using pytest, you'll need to to add an async marker like:
 # @pytest.mark.anyio  # using https://github.com/agronholm/anyio
-# @pytest.mark.asyncio  # using https://github.com/pytest-dev/pytest-asyncio
 async def test_app() -> None:
     async with AsyncClient(app=app, base_url="http://testserver") as client:
         r = await client.get("/")
