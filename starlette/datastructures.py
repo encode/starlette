@@ -135,13 +135,13 @@ class URL:
 
     def include_query_params(
         self,
-        items: typing.Optional["ImmutableMultiDict[str, str]"] = None,
+        __items: typing.Optional["ImmutableMultiDict[str, str]"] = None,
         **kwargs: typing.Any,
     ) -> "URL":
         params = MultiDict(parse_qsl(self.query, keep_blank_values=True))
 
-        if items:
-            for key, value in items.multi_items():
+        if __items:
+            for key, value in __items.multi_items():
                 params.append(str(key), str(value))
 
         params.update({str(key): str(value) for key, value in kwargs.items()})
