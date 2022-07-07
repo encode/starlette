@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Optional, Any
-from typing_extensions import assert_type
+from typing import Any, Optional
 
 import pytest
+from typing_extensions import assert_type
 
 from starlette.config import Config, Environ, EnvironError
 from starlette.datastructures import URL, Secret
@@ -26,7 +26,6 @@ def test_config_types() -> None:
     assert_type(config("BOOL", cast=bool), bool)
     assert_type(config("BOOL_DEFAULT", cast=bool, default=False), bool)
     assert_type(config("BOOL_NONE", cast=bool, default=None), Optional[bool])
-
 
     def cast_to_int(v: Any) -> int:
         return int(v)
