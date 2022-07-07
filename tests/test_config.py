@@ -12,6 +12,9 @@ from starlette.datastructures import URL, Secret
 
 
 def test_config_types() -> None:
+    """
+    We use `assert_type` to test the types returned by Config via mypy.
+    """
     config = Config(
         environ={"STR": "some_str_value", "STR_CAST": "some_str_value", "BOOL": "true"}
     )
