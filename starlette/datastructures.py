@@ -30,7 +30,10 @@ class URL:
         if scope is not None:
             assert not url, 'Cannot set both "url" and "scope".'
             assert not components, 'Cannot set both "scope" and "**components".'
-            scheme = scope.get("scheme", "http")
+            scheme = scope.get("scheme", "")
+
+            if scheme:
+                scheme += ":"
             server = scope.get("server", None)
             path = scope.get("root_path", "") + scope["path"]
             query_string = scope.get("query_string", b"")
@@ -42,16 +45,18 @@ class URL:
                     break
 
             if host_header is not None:
-                url = f"{scheme}://{host_header}{path}"
+                url = f"{scheme}//{host_header}{path}"
             elif server is None:
                 url = path
             else:
                 host, port = server
-                default_port = {"http": 80, "https": 443, "ws": 80, "wss": 443}[scheme]
+                default_port = {"http:": 80, "https:": 443, "ws:": 80, "wss:": 443}.get(
+                    scheme, -1
+                )
                 if port == default_port:
-                    url = f"{scheme}://{host}{path}"
+                    url = f"{scheme}//{host}{path}"
                 else:
-                    url = f"{scheme}://{host}:{port}{path}"
+                    url = f"{scheme}//{host}:{port}{path}"
 
             if query_string:
                 url += "?" + query_string.decode()
