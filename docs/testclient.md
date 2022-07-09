@@ -71,7 +71,6 @@ case you should use `client = TestClient(app, raise_server_exceptions=False)`.
     the `TestClient` is instantiated. You can learn more about it [here
     ](/events/#running-event-handlers-in-tests).
 
-
 ### Selecting the Async backend
 
 `TestClient` takes arguments `backend` (a string) and `backend_options` (a dictionary).
