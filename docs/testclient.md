@@ -62,7 +62,7 @@ application. Occasionally you might want to test the content of 500 error
 responses, rather than allowing client to raise the server exception. In this
 case you should use `client = TestClient(app, raise_server_exceptions=False)`.
 
-!!! notes
+!!! note
 
     The `TestClient` can also be used as a context manager which slightly
     changes its behavior. For example, if you want to use `on_startup`,
