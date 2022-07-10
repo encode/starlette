@@ -64,12 +64,10 @@ case you should use `client = TestClient(app, raise_server_exceptions=False)`.
 
 !!! note
 
-    The `TestClient` can also be used as a context manager which slightly
-    changes its behavior. For example, if you want to use `on_startup`,
-    `on_shutdown`, or `lifespan` events, you will need to use the `TestClient`
-    as a context manager. If not, then those events will not be triggered when
-    the `TestClient` is instantiated. You can learn more about it [here
-    ](/events/#running-event-handlers-in-tests).
+    If you want the `TestClient` to run `lifespan` events (`on_startup`, `on_shutdown`, or `lifespan`),
+    you will need to use the `TestClient` as a context manager. Otherwise, the events
+    will not be triggered when the `TestClient` is instantiated. You can learn more about it
+    [here](/events/#running-event-handlers-in-tests).
 
 ### Selecting the Async backend
 
