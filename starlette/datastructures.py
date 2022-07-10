@@ -677,6 +677,10 @@ class MutableHeaders(Headers):
         self["vary"] = vary
 
 
+class Dict(dict):
+    pass
+
+
 class State:
     """
     An object that can be used to store arbitrary state.
@@ -688,8 +692,8 @@ class State:
 
     def __init__(self, state: typing.Optional[typing.Dict[str, typing.Any]] = None):
         if state is None:
-            state = {}
-        super().__setattr__("_state", state)
+            state = Dict()
+        super().__setattr__("_state", Dict(**state))
 
     def __setattr__(self, key: typing.Any, value: typing.Any) -> None:
         self._state[key] = value
