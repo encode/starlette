@@ -35,6 +35,10 @@ def guess_type(
     return mimetypes_guess_type(url, strict)
 
 
+def _is_body_allowed_for_status_code(status_code: int) -> bool:
+    return not (status_code < 200 or status_code in {204, 304})
+
+
 class Response:
     media_type = None
     charset = "utf-8"
@@ -51,7 +55,11 @@ class Response:
         if media_type is not None:
             self.media_type = media_type
         self.background = background
-        self.body = self.render(content)
+        self.body = (
+            self.render(content)
+            if _is_body_allowed_for_status_code(self.status_code)
+            else b""
+        )
         self.init_headers(headers)
 
     def render(self, content: typing.Any) -> bytes:
@@ -81,7 +89,7 @@ class Response:
         if (
             body is not None
             and populate_content_length
-            and not (self.status_code < 200 or self.status_code in (204, 304))
+            and _is_body_allowed_for_status_code(self.status_code)
         ):
             content_length = str(len(body))
             raw_headers.append((b"content-length", content_length.encode("latin-1")))
