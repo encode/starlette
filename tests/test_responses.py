@@ -358,6 +358,22 @@ def test_empty_204_response(test_client_factory):
     assert "content-length" not in response.headers
 
 
+def test_empty_204_response_trims_content(test_client_factory):
+    app = Response(content="hi", status_code=204)
+    client: TestClient = test_client_factory(app)
+    response = client.get("/")
+    assert "content-length" not in response.headers
+    assert response.content == b""
+
+
+def test_empty_json_response_204_response_trims_content(test_client_factory):
+    app = JSONResponse(content="hi", status_code=204)
+    client: TestClient = test_client_factory(app)
+    response = client.get("/")
+    assert "content-length" not in response.headers
+    assert response.content == b""
+
+
 def test_non_empty_response(test_client_factory):
     app = Response(content="hi")
     client: TestClient = test_client_factory(app)
