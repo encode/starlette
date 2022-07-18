@@ -48,6 +48,7 @@ AuthType = typing.Union[
 ASGIInstance = typing.Callable[[Receive, Send], typing.Awaitable[None]]
 ASGI2App = typing.Callable[[Scope], ASGIInstance]
 ASGI3App = typing.Callable[[Scope, Receive, Send], typing.Awaitable[None]]
+T_ASGI3App = typing.TypeVar("T_ASGI3App", bound=ASGI3App)
 
 
 class _HeaderDict(requests.packages.urllib3._collections.HTTPHeaderDict):
@@ -402,14 +403,14 @@ class WebSocketTestSession:
         return json.loads(text)
 
 
-class TestClient(requests.Session):
+class TestClient(requests.Session, typing.Generic[T_ASGI3App]):
     __test__ = False  # For pytest to not discover this up.
     task: "Future[None]"
     portal: typing.Optional[anyio.abc.BlockingPortal] = None
 
     def __init__(
         self,
-        app: typing.Union[ASGI2App, ASGI3App],
+        app: typing.Union[ASGI2App, T_ASGI3App],
         base_url: str = "http://testserver",
         raise_server_exceptions: bool = True,
         root_path: str = "",
@@ -421,11 +422,11 @@ class TestClient(requests.Session):
             backend=backend, backend_options=backend_options or {}
         )
         if _is_asgi3(app):
-            app = typing.cast(ASGI3App, app)
+            app = typing.cast(T_ASGI3App, app)
             asgi_app = app
         else:
             app = typing.cast(ASGI2App, app)
-            asgi_app = _WrapASGI2(app)  #  type: ignore
+            asgi_app = _WrapASGI2(app)  # type: ignore
         adapter = _ASGIAdapter(
             asgi_app,
             portal_factory=self._portal_factory,
@@ -437,7 +438,7 @@ class TestClient(requests.Session):
         self.mount("ws://", adapter)
         self.mount("wss://", adapter)
         self.headers.update({"user-agent": "testclient"})
-        self.app = asgi_app
+        self.app = typing.cast(T_ASGI3App, asgi_app)
         self.base_url = base_url
 
     @contextlib.contextmanager
