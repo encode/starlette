@@ -242,11 +242,13 @@ Currently, the `BaseHTTPMiddleware` has some known limitations:
 - It's not possible to use `BackgroundTasks` with `BaseHTTPMiddleware`. Check [#1438](https://github.com/encode/starlette/issues/1438) for more details.
 - Using `BaseHTTPMiddleware` will prevent changes to [`contextlib.ContextVar`](https://docs.python.org/3/library/contextvars.html#contextvars.ContextVar)s from propagating upwards. That is, if you set a value for a `ContextVar` in your endpoint and try to read it from a middleware you will find that the value is not the same value you set in your endpoint (see [this test](https://github.com/encode/starlette/blob/621abc747a6604825190b93467918a0ec6456a24/tests/middleware/test_base.py#L192-L223) for an example of this behavior).
 
+To overcome these limitations, use [pure ASGI middleware](#pure-asgi-middleware), as shown below.
+
 ## Pure ASGI Middleware
 
-It is possible to implement ASGI middleware using the [`ASGI` interface](https://asgi.readthedocs.io/en/latest/) directly. In fact, this is how middleware classes shipped with Starlette are implemented.
+The [ASGI spec](https://asgi.readthedocs.io/en/latest/) makes it possible to implement ASGI middleware using the ASGI interface directly, as a chain of ASGI applications that call into the next one. In fact, this is how middleware classes shipped with Starlette are implemented.
 
-This provides greater control over behavior as well as an alternative approach in case the limitations of `BaseHTTPMiddleware` are a problem.
+This lower-level approach provides greater control over behavior and enhanced interoperability across frameworks and servers. It also overcomes the [limitations of `BaseHTTPMiddleware`](#limitations).
 
 ### Writing pure ASGI middleware
 
@@ -261,7 +263,7 @@ class ASGIMiddleware:
         await self.app(scope, receive, send)
 ```
 
-The middleware above is the most basic ASGI middleware. It receives an ASGI application as an argument for its constructor, and implements the `async __call__` method.
+The middleware above is the most basic ASGI middleware. It receives a parent ASGI application as an argument for its constructor, and implements an `async __call__` method which calls into that parent application.
 
 Some implementations such as [`asgi-cors`](https://github.com/simonw/asgi-cors/blob/10ef64bfcc6cd8d16f3014077f20a0fb8544ec39/asgi_cors.py) use an alternative style, using functions:
 
@@ -286,11 +288,11 @@ In any case, ASGI middleware must be callables that accept three arguments: `sco
     * [`"http"`](https://asgi.readthedocs.io/en/latest/specs/www.html#http-connection-scope): for HTTP requests.
     * [`"websocket"`](https://asgi.readthedocs.io/en/latest/specs/www.html#websocket-connection-scope): for WebSocket connections.
     * [`"lifespan"`](https://asgi.readthedocs.io/en/latest/specs/lifespan.html#scope): for ASGI lifespan messages.
-* `receive` and `send` can be used to exchange ASGI event messages with the ASGI server -- more on this below. The type and contents of these messages depend on the scope type. Learn more in the [ASGI specification](https://asgi.readthedocs.io/en/latest/specs/index.html).
+* `receive` and `send` can be used to exchange ASGI event messages with the ASGI server — more on this below. The type and contents of these messages depend on the scope type. Learn more in the [ASGI specification](https://asgi.readthedocs.io/en/latest/specs/index.html).
 
 ### Using pure ASGI middleware
 
-Pure ASGI middleware can be used just like any other middleware:
+Pure ASGI middleware can be used like any other middleware:
 
 ```python
 from starlette.applications import Starlette
@@ -337,7 +339,7 @@ class ASGIMiddleware:
 * Using [`asgiref`](https://github.com/django/asgiref): for more rigorous type hinting.
 
 ```python
-from asgiref.typing import ASGI3Application, Scope, ASGISendCallable
+from asgiref.typing import ASGI3Application, ASGIReceiveCallable, ASGISendCallable, Scope
 from asgiref.typing import ASGIReceiveEvent, ASGISendEvent
 
 
@@ -346,11 +348,15 @@ class ASGIMiddleware:
         self.app = app
 
     async def __call__(self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:
-        if scope["type"] == "http":
-            async def send_wrapper(message: ASGISendEvent) -> None:
-                await send(message)
-            return await self.app(scope, receive, send_wrapper)
-        await self.app(scope, receive, send)
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        async def send_wrapper(message: ASGISendEvent) -> None:
+            # ... Do something
+            await send(message)
+
+        return await self.app(scope, receive, send_wrapper)
 ```
 
 ### Common patterns
@@ -407,7 +413,7 @@ You can also reuse [responses](responses.md), which are ASGI applications as wel
 
 Inspecting the connection `scope` allows you to conditionally call into a different ASGI app. One use case might be sending a response without calling into the app.
 
-As an example, this middleware uses a dict to perform permanent redirects based on the requested path. This could be used to implement ongoing support of legacy URLs in case you need to refactor route URL patterns.
+As an example, this middleware uses a dictionary to perform permanent redirects based on the requested path. This could be used to implement ongoing support of legacy URLs in case you need to refactor route URL patterns.
 
 ```python
 from starlette.datastructures import URL
@@ -457,7 +463,7 @@ app = Starlette(routes=routes, middleware=middleware)
 
 #### Inspecting or modifying the request
 
-Request information can be accessed or changed by manipulating the `scope`. For a full example of this pattern, see Uvicorn's [`ProxyHeadersMiddleware`](https://github.com/encode/uvicorn/blob/master/uvicorn/middleware/proxy_headers.py) which inspects and tweaks the `scope` when serving behind a frontend proxy.
+Request information can be accessed or changed by manipulating the `scope`. For a full example of this pattern, see Uvicorn's [`ProxyHeadersMiddleware`](https://github.com/encode/uvicorn/blob/fd4386fefb8fe8a4568831a7d8b2930d5fb61455/uvicorn/middleware/proxy_headers.py) which inspects and tweaks the `scope` when serving behind a frontend proxy.
 
 Besides, wrapping the `receive` ASGI callable allows you to access or modify the HTTP request body by manipulating [`http.request`](https://asgi.readthedocs.io/en/latest/specs/www.html#request-receive-event) ASGI event messages.
 
