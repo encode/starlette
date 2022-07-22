@@ -234,7 +234,11 @@ class Route(BaseRoute):
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] == "http":
-            match = self.path_regex.match(scope["path"])
+            root_path = scope.get("current_root_path", scope.get("root_path", ""))
+            path = scope.get(
+                "current_path", re.sub(r"^" + root_path, "", scope["path"])
+            )
+            match = self.path_regex.match(path)
             if match:
                 matched_params = match.groupdict()
                 for key, value in matched_params.items():
@@ -370,21 +374,25 @@ class Mount(BaseRoute):
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] in ("http", "websocket"):
             path = scope["path"]
-            match = self.path_regex.match(path)
+            root_path = scope.get("current_root_path", scope.get("root_path", ""))
+            current_path = scope.get("current_path", re.sub(r"^" + root_path, "", path))
+            match = self.path_regex.match(current_path)
             if match:
                 matched_params = match.groupdict()
                 for key, value in matched_params.items():
                     matched_params[key] = self.param_convertors[key].convert(value)
                 remaining_path = "/" + matched_params.pop("path")
-                matched_path = path[: -len(remaining_path)]
+                matched_path = current_path[: -len(remaining_path)]
                 path_params = dict(scope.get("path_params", {}))
                 path_params.update(matched_params)
                 root_path = scope.get("root_path", "")
                 child_scope = {
                     "path_params": path_params,
                     "app_root_path": scope.get("app_root_path", root_path),
-                    "root_path": root_path + matched_path,
-                    "path": remaining_path,
+                    "current_root_path": root_path + matched_path,
+                    "current_path": remaining_path,
+                    "root_path": root_path,
+                    "path": path,
                     "endpoint": self.app,
                 }
                 return Match.FULL, child_scope
