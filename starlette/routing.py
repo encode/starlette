@@ -49,7 +49,7 @@ def iscoroutinefunction_or_partial(obj: typing.Any) -> bool:  # pragma: no cover
     )
     while isinstance(obj, functools.partial):
         obj = obj.func
-    return inspect.iscoroutinefunction(obj)
+    return asyncio.iscoroutinefunction(obj)
 
 
 def request_response(func: typing.Callable) -> ASGIApp:
