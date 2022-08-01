@@ -6,7 +6,7 @@ autoflake==1.4
 black==22.6.0
 coverage==6.4.2
 databases[sqlite]==0.5.5
-flake8==3.9.2
+flake8==5.0.2
 isort==5.10.1
 mypy==0.961
 typing_extensions==4.3.0
