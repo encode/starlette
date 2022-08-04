@@ -10,7 +10,6 @@ from contextlib import asynccontextmanager
 from enum import Enum
 
 from starlette._utils import is_async_callable
-from starlette.concurrency import run_in_threadpool
 from starlette.convertors import CONVERTOR_TYPES, Convertor
 from starlette.datastructures import URL, Headers, URLPath
 from starlette.exceptions import HTTPException
@@ -18,6 +17,7 @@ from starlette.requests import Request
 from starlette.responses import PlainTextResponse, RedirectResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketClose
+from starlette.handler import RouteHandler
 
 
 class NoMatchFound(Exception):
@@ -50,24 +50,6 @@ def iscoroutinefunction_or_partial(obj: typing.Any) -> bool:  # pragma: no cover
     while isinstance(obj, functools.partial):
         obj = obj.func
     return inspect.iscoroutinefunction(obj)
-
-
-def request_response(func: typing.Callable) -> ASGIApp:
-    """
-    Takes a function or coroutine `func(request) -> response`,
-    and returns an ASGI application.
-    """
-    is_coroutine = is_async_callable(func)
-
-    async def app(scope: Scope, receive: Receive, send: Send) -> None:
-        request = Request(scope, receive=receive, send=send)
-        if is_coroutine:
-            response = await func(request)
-        else:
-            response = await run_in_threadpool(func, request)
-        await response(scope, receive, send)
-
-    return app
 
 
 def websocket_session(func: typing.Callable) -> ASGIApp:
@@ -202,6 +184,10 @@ class Route(BaseRoute):
         endpoint: typing.Callable,
         *,
         methods: typing.Optional[typing.List[str]] = None,
+        middlewares: typing.Optional[typing.Union[
+            typing.Callable[[Request, typing.Callable[[], typing.Any]], typing.Any],
+            typing.Sequence[typing.Callable[[Request, typing.Callable[[], typing.Any]], typing.Any]]
+        ]] = None,
         name: typing.Optional[str] = None,
         include_in_schema: bool = True,
     ) -> None:
@@ -211,17 +197,22 @@ class Route(BaseRoute):
         self.name = get_name(endpoint) if name is None else name
         self.include_in_schema = include_in_schema
 
+        if callable(middlewares):
+            self.middlewares = [middlewares]
+        else:
+            self.middlewares = middlewares
+
         endpoint_handler = endpoint
         while isinstance(endpoint_handler, functools.partial):
             endpoint_handler = endpoint_handler.func
         if inspect.isfunction(endpoint_handler) or inspect.ismethod(endpoint_handler):
             # Endpoint is function or method. Treat it as `func(request) -> response`.
-            self.app = request_response(endpoint)
+            self.app = RouteHandler(endpoint, self.middlewares, is_coroutine=is_async_callable(endpoint))
             if methods is None:
                 methods = ["GET"]
         else:
             # Endpoint is a class. Treat it as ASGI.
-            self.app = endpoint
+            self.app = RouteHandler(endpoint, self.middlewares, is_class = True)
 
         if methods is None:
             self.methods = None

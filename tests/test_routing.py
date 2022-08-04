@@ -5,6 +5,7 @@ import uuid
 import pytest
 
 from starlette.applications import Starlette
+from starlette.requests import Request
 from starlette.responses import JSONResponse, PlainTextResponse, Response
 from starlette.routing import Host, Mount, NoMatchFound, Route, Router, WebSocketRoute
 from starlette.websockets import WebSocket, WebSocketDisconnect
@@ -92,6 +93,23 @@ def path_with_parentheses(request):
     number = request.path_params["param"]
     return JSONResponse({"int": number})
 
+async def middleware_skip(request: Request, next):
+    return Response("skipped", media_type="text/plain")
+
+
+async def middleware_pass(request: Request, next):
+    return await next()
+
+
+async def middleware_add_prop(request: Request, next):
+    request.custom_prop = True
+    return await next()
+
+
+async def middleware_check_prop(request: Request, next):
+    if request.custom_prop:
+        return Response("has", media_type="text/plain")
+
 
 async def websocket_endpoint(session: WebSocket):
     await session.accept()
@@ -146,6 +164,9 @@ app = Router(
             endpoint=path_with_parentheses,
             name="path-with-parentheses",
         ),
+        Route('/middleware/skip', endpoint=func_homepage, middlewares=middleware_skip),
+        Route('/middleware/pass', endpoint=func_homepage, middlewares=middleware_pass),
+        Route('/middleware/quee', endpoint=func_homepage, middlewares=[middleware_add_prop, middleware_check_prop]),
         WebSocketRoute("/ws", endpoint=websocket_endpoint),
         WebSocketRoute("/ws/{room}", endpoint=websocket_params),
     ]
@@ -304,6 +325,21 @@ def test_router_add_route(client):
     response = client.get("/func")
     assert response.status_code == 200
     assert response.text == "Hello, world!"
+
+
+def test_route_middleware_skip(client):
+    response = client.get("/middleware/skip")
+    assert response.text == "skipped"
+
+
+def test_route_middleware_pass(client):
+    response = client.get("/middleware/pass")
+    assert response.text == "Hello, world!"
+
+
+def test_route_middleware_quee(client):
+    response = client.get("/middleware/quee")
+    assert response.text == "has"
 
 
 def test_router_duplicate_path(client):
