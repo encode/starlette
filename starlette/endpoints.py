@@ -12,26 +12,22 @@ from starlette.websockets import WebSocket
 
 
 class HTTPEndpoint:
-    def __init__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        assert scope["type"] == "http"
-        self.scope = scope
-        self.receive = receive
-        self.send = send
+    def __init__(self, request: Request) -> None:
         self._allowed_methods = [
             method
             for method in ("GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
             if getattr(self, method.lower(), None) is not None
         ]
+        self.request = request
 
     def __await__(self) -> typing.Generator:
         return self.dispatch().__await__()
 
-    async def dispatch(self) -> None:
-        request = Request(self.scope, receive=self.receive)
+    async def dispatch(self) -> any:
         handler_name = (
             "get"
-            if request.method == "HEAD" and not hasattr(self, "head")
-            else request.method.lower()
+            if self.request.method == "HEAD" and not hasattr(self, "head")
+            else self.request.method.lower()
         )
 
         handler: typing.Callable[[Request], typing.Any] = getattr(
@@ -39,10 +35,10 @@ class HTTPEndpoint:
         )
         is_async = is_async_callable(handler)
         if is_async:
-            response = await handler(request)
+            response = await handler(self.request)
         else:
-            response = await run_in_threadpool(handler, request)
-        await response(self.scope, self.receive, self.send)
+            response = await run_in_threadpool(handler, self.request)
+        return response
 
     async def method_not_allowed(self, request: Request) -> Response:
         # If we're running inside a starlette application then raise an

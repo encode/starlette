@@ -186,11 +186,15 @@ class Starlette:
         path: str,
         route: typing.Callable,
         methods: typing.Optional[typing.List[str]] = None,
+        middlewares: typing.Optional[typing.Union[
+            typing.Callable[[Request, typing.Callable[[], typing.Any]], typing.Any],
+            typing.Sequence[typing.Callable[[Request, typing.Callable[[], typing.Any]], typing.Any]]
+        ]] = None,
         name: typing.Optional[str] = None,
         include_in_schema: bool = True,
     ) -> None:  # pragma: no cover
         self.router.add_route(
-            path, route, methods=methods, name=name, include_in_schema=include_in_schema
+            path, route, methods=methods, middlewares = middlewares, name=name, include_in_schema=include_in_schema
         )
 
     def add_websocket_route(
@@ -211,6 +215,10 @@ class Starlette:
         self,
         path: str,
         methods: typing.Optional[typing.List[str]] = None,
+        middlewares: typing.Optional[typing.Union[
+            typing.Callable[[Request, typing.Callable[[], typing.Any]], typing.Any],
+            typing.Sequence[typing.Callable[[Request, typing.Callable[[], typing.Any]], typing.Any]]
+        ]] = None,
         name: typing.Optional[str] = None,
         include_in_schema: bool = True,
     ) -> typing.Callable:  # pragma: nocover
@@ -231,6 +239,7 @@ class Starlette:
                 path,
                 func,
                 methods=methods,
+                middlewares = middlewares,
                 name=name,
                 include_in_schema=include_in_schema,
             )
