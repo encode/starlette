@@ -18,6 +18,7 @@ from starlette.requests import Request
 from starlette.responses import PlainTextResponse, RedirectResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketClose
+from starlette.handler import RouteHandler
 
 
 class NoMatchFound(Exception):
