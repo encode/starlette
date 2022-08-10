@@ -169,6 +169,7 @@ Takes a different set of arguments to instantiate than the other response types:
 * `headers` - Any custom headers to include, as a dictionary.
 * `media_type` - A string giving the media type. If unset, the filename or path will be used to infer a media type.
 * `filename` - If set, this will be included in the response `Content-Disposition`.
+* `content_disposition_type` - will be included in the response `Content-Disposition`. Can be set to "attachment" (default) or "inline".
 
 File responses will include appropriate `Content-Length`, `Last-Modified` and `ETag` headers.
 
@@ -187,3 +188,7 @@ async def app(scope, receive, send):
 #### [EventSourceResponse](https://github.com/sysid/sse-starlette)
 
 A response class that implements [Server-Sent Events](https://html.spec.whatwg.org/multipage/server-sent-events.html). It enables event streaming from the server to the client without the complexity of websockets.
+
+#### [baize.asgi.FileResponse](https://baize.aber.sh/asgi#fileresponse)
+
+As a smooth replacement for Starlette [`FileResponse`](https://www.starlette.io/responses/#fileresponse), it will automatically handle [Head method](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/HEAD) and [Range requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests).

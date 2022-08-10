@@ -64,6 +64,20 @@ def test_homepage():
     assert "request" in response.context
 ```
 
+## Customizing Jinja2 Environment
+
+`Jinja2Templates` accepts all options supported by Jinja2 `Environment`.
+This will allow more control over the `Environment` instance created by Starlette.
+
+For the list of options available to `Environment` you can check Jinja2 documentation [here](https://jinja.palletsprojects.com/en/3.0.x/api/#jinja2.Environment)
+
+```python
+from starlette.templating import Jinja2Templates
+
+
+templates = Jinja2Templates(directory='templates', autoescape=False, auto_reload=True)
+```
+
 ## Asynchronous template rendering
 
 Jinja2 supports async template rendering, however as a general rule
@@ -74,4 +88,4 @@ Instead we'd recommend that you ensure that your endpoints perform all I/O,
 for example, strictly evaluate any database queries within the view and
 include the final results in the context.
 
-[jinja2]: https://jinja.palletsprojects.com/en/2.10.x/api/?highlight=environment#writing-filters
+[jinja2]: https://jinja.palletsprojects.com/en/3.0.x/api/?highlight=environment#writing-filters

@@ -1,6 +1,9 @@
+import warnings
+
 import pytest
 
-from starlette.exceptions import ExceptionMiddleware, HTTPException
+from starlette.exceptions import HTTPException
+from starlette.middleware.exceptions import ExceptionMiddleware
 from starlette.responses import PlainTextResponse
 from starlette.routing import Route, Router, WebSocketRoute
 
@@ -13,8 +16,16 @@ def not_acceptable(request):
     raise HTTPException(status_code=406)
 
 
+def no_content(request):
+    raise HTTPException(status_code=204)
+
+
 def not_modified(request):
     raise HTTPException(status_code=304)
+
+
+def with_headers(request):
+    raise HTTPException(status_code=200, headers={"x-potato": "always"})
 
 
 class HandledExcAfterResponse:
@@ -28,7 +39,9 @@ router = Router(
     routes=[
         Route("/runtime_error", endpoint=raise_runtime_error),
         Route("/not_acceptable", endpoint=not_acceptable),
+        Route("/no_content", endpoint=no_content),
         Route("/not_modified", endpoint=not_modified),
+        Route("/with_headers", endpoint=with_headers),
         Route("/handled_exc_after_response", endpoint=HandledExcAfterResponse()),
         WebSocketRoute("/runtime_error", endpoint=raise_runtime_error),
     ]
@@ -50,10 +63,22 @@ def test_not_acceptable(client):
     assert response.text == "Not Acceptable"
 
 
+def test_no_content(client):
+    response = client.get("/no_content")
+    assert response.status_code == 204
+    assert "content-length" not in response.headers
+
+
 def test_not_modified(client):
     response = client.get("/not_modified")
     assert response.status_code == 304
     assert response.text == ""
+
+
+def test_with_headers(client):
+    response = client.get("/with_headers")
+    assert response.status_code == 200
+    assert response.headers["x-potato"] == "always"
 
 
 def test_websockets_should_raise(client):
@@ -77,11 +102,19 @@ def test_handled_exc_after_response(test_client_factory, client):
 
 
 def test_force_500_response(test_client_factory):
-    def app(scope):
+    # use a sentinal variable to make sure we actually
+    # make it into the endpoint and don't get a 500
+    # from an incorrect ASGI app signature or something
+    called = False
+
+    async def app(scope, receive, send):
+        nonlocal called
+        called = True
         raise RuntimeError()
 
     force_500_client = test_client_factory(app, raise_server_exceptions=False)
     response = force_500_client.get("/")
+    assert called
     assert response.status_code == 500
     assert response.text == ""
 
@@ -100,3 +133,16 @@ def test_repr():
     assert repr(CustomHTTPException(500, detail="Something custom")) == (
         "CustomHTTPException(status_code=500, detail='Something custom')"
     )
+
+
+def test_exception_middleware_deprecation() -> None:
+    # this test should be removed once the deprecation shim is removed
+    with pytest.warns(DeprecationWarning):
+        from starlette.exceptions import ExceptionMiddleware  # noqa: F401
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        import starlette.exceptions
+
+    with pytest.warns(DeprecationWarning):
+        starlette.exceptions.ExceptionMiddleware

@@ -38,6 +38,11 @@ def _user_safe_decode(src: bytes, codec: str) -> str:
         return src.decode("latin-1")
 
 
+class MultiPartException(Exception):
+    def __init__(self, message: str) -> None:
+        self.message = message
+
+
 class FormParser:
     def __init__(
         self, headers: Headers, stream: typing.AsyncGenerator[bytes, None]
@@ -159,7 +164,10 @@ class MultiPartParser:
         charset = params.get(b"charset", "utf-8")
         if type(charset) == bytes:
             charset = charset.decode("latin-1")
-        boundary = params.get(b"boundary")
+        try:
+            boundary = params[b"boundary"]
+        except KeyError:
+            raise MultiPartException("Missing boundary in multipart.")
 
         # Callbacks dictionary.
         callbacks = {
@@ -184,6 +192,7 @@ class MultiPartParser:
         file: typing.Optional[UploadFile] = None
 
         items: typing.List[typing.Tuple[str, typing.Union[str, UploadFile]]] = []
+        item_headers: typing.List[typing.Tuple[bytes, bytes]] = []
 
         # Feed the parser with data from the request.
         async for chunk in self.stream:
@@ -195,6 +204,7 @@ class MultiPartParser:
                     content_disposition = None
                     content_type = b""
                     data = b""
+                    item_headers = []
                 elif message_type == MultiPartMessage.HEADER_FIELD:
                     header_field += message_bytes
                 elif message_type == MultiPartMessage.HEADER_VALUE:
@@ -205,16 +215,24 @@ class MultiPartParser:
                         content_disposition = header_value
                     elif field == b"content-type":
                         content_type = header_value
+                    item_headers.append((field, header_value))
                     header_field = b""
                     header_value = b""
                 elif message_type == MultiPartMessage.HEADERS_FINISHED:
                     disposition, options = parse_options_header(content_disposition)
-                    field_name = _user_safe_decode(options[b"name"], charset)
+                    try:
+                        field_name = _user_safe_decode(options[b"name"], charset)
+                    except KeyError:
+                        raise MultiPartException(
+                            'The Content-Disposition header field "name" must be '
+                            "provided."
+                        )
                     if b"filename" in options:
                         filename = _user_safe_decode(options[b"filename"], charset)
                         file = UploadFile(
                             filename=filename,
                             content_type=content_type.decode("latin-1"),
+                            headers=Headers(raw=item_headers),
                         )
                     else:
                         file = None

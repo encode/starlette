@@ -39,8 +39,10 @@ class StaticFiles:
     def __init__(
         self,
         *,
-        directory: PathLike = None,
-        packages: typing.List[typing.Union[str, typing.Tuple[str, str]]] = None,
+        directory: typing.Optional[PathLike] = None,
+        packages: typing.Optional[
+            typing.List[typing.Union[str, typing.Tuple[str, str]]]
+        ] = None,
         html: bool = False,
         check_dir: bool = True,
     ) -> None:
@@ -54,8 +56,10 @@ class StaticFiles:
 
     def get_directories(
         self,
-        directory: PathLike = None,
-        packages: typing.List[typing.Union[str, typing.Tuple[str, str]]] = None,
+        directory: typing.Optional[PathLike] = None,
+        packages: typing.Optional[
+            typing.List[typing.Union[str, typing.Tuple[str, str]]]
+        ] = None,
     ) -> typing.List[PathLike]:
         """
         Given `directory` and `packages` arguments, return a list of all the
@@ -100,7 +104,7 @@ class StaticFiles:
     def get_path(self, scope: Scope) -> str:
         """
         Given the ASGI scope, return the `path` string to serve up,
-        with OS specific path seperators, and any '..', '.' components removed.
+        with OS specific path separators, and any '..', '.' components removed.
         """
         return os.path.normpath(os.path.join(*scope["path"].split("/")))
 

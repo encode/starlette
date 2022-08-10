@@ -1,25 +1,29 @@
 from starlette.applications import Starlette
 from starlette.endpoints import HTTPEndpoint
+from starlette.routing import Mount, Route, WebSocketRoute
 from starlette.schemas import SchemaGenerator
 
 schemas = SchemaGenerator(
     {"openapi": "3.0.0", "info": {"title": "Example API", "version": "1.0"}}
 )
 
-app = Starlette()
 
-
-subapp = Starlette()
-app.mount("/subapp", subapp)
-
-
-@app.websocket_route("/ws")
 def ws(session):
     """ws"""
     pass  # pragma: no cover
 
 
-@app.route("/users", methods=["GET", "HEAD"])
+def get_user(request):
+    """
+    responses:
+        200:
+            description: A user.
+            examples:
+                {"username": "tom"}
+    """
+    pass  # pragma: no cover
+
+
 def list_users(request):
     """
     responses:
@@ -31,7 +35,6 @@ def list_users(request):
     pass  # pragma: no cover
 
 
-@app.route("/users", methods=["POST"])
 def create_user(request):
     """
     responses:
@@ -43,7 +46,6 @@ def create_user(request):
     pass  # pragma: no cover
 
 
-@app.route("/orgs")
 class OrganisationsEndpoint(HTTPEndpoint):
     def get(self, request):
         """
@@ -66,7 +68,6 @@ class OrganisationsEndpoint(HTTPEndpoint):
         pass  # pragma: no cover
 
 
-@app.route("/regular-docstring-and-schema")
 def regular_docstring_and_schema(request):
     """
     This a regular docstring example (not included in schema)
@@ -80,7 +81,6 @@ def regular_docstring_and_schema(request):
     pass  # pragma: no cover
 
 
-@app.route("/regular-docstring")
 def regular_docstring(request):
     """
     This a regular docstring example (not included in schema)
@@ -88,12 +88,10 @@ def regular_docstring(request):
     pass  # pragma: no cover
 
 
-@app.route("/no-docstring")
 def no_docstring(request):
     pass  # pragma: no cover
 
 
-@subapp.route("/subapp-endpoint")
 def subapp_endpoint(request):
     """
     responses:
@@ -103,9 +101,30 @@ def subapp_endpoint(request):
     pass  # pragma: no cover
 
 
-@app.route("/schema", methods=["GET"], include_in_schema=False)
 def schema(request):
     return schemas.OpenAPIResponse(request=request)
+
+
+subapp = Starlette(
+    routes=[
+        Route("/subapp-endpoint", endpoint=subapp_endpoint),
+    ]
+)
+
+app = Starlette(
+    routes=[
+        WebSocketRoute("/ws", endpoint=ws),
+        Route("/users/{id:int}", endpoint=get_user, methods=["GET"]),
+        Route("/users", endpoint=list_users, methods=["GET", "HEAD"]),
+        Route("/users", endpoint=create_user, methods=["POST"]),
+        Route("/orgs", endpoint=OrganisationsEndpoint),
+        Route("/regular-docstring-and-schema", endpoint=regular_docstring_and_schema),
+        Route("/regular-docstring", endpoint=regular_docstring),
+        Route("/no-docstring", endpoint=no_docstring),
+        Route("/schema", endpoint=schema, methods=["GET"], include_in_schema=False),
+        Mount("/subapp", subapp),
+    ]
+)
 
 
 def test_schema_generation():
@@ -161,6 +180,16 @@ def test_schema_generation():
                     }
                 },
             },
+            "/users/{id}": {
+                "get": {
+                    "responses": {
+                        200: {
+                            "description": "A user.",
+                            "examples": {"username": "tom"},
+                        }
+                    }
+                },
+            },
         },
     }
 
@@ -204,6 +233,13 @@ paths:
           - username: tom
           - username: lucy
     post:
+      responses:
+        200:
+          description: A user.
+          examples:
+            username: tom
+  /users/{id}:
+    get:
       responses:
         200:
           description: A user.

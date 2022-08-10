@@ -1,12 +1,15 @@
-import asyncio
 import functools
 import inspect
 import typing
+from urllib.parse import urlencode
 
+from starlette._utils import is_async_callable
 from starlette.exceptions import HTTPException
 from starlette.requests import HTTPConnection, Request
 from starlette.responses import RedirectResponse, Response
 from starlette.websockets import WebSocket
+
+_CallableType = typing.TypeVar("_CallableType", bound=typing.Callable)
 
 
 def has_required_scope(conn: HTTPConnection, scopes: typing.Sequence[str]) -> bool:
@@ -19,8 +22,8 @@ def has_required_scope(conn: HTTPConnection, scopes: typing.Sequence[str]) -> bo
 def requires(
     scopes: typing.Union[str, typing.Sequence[str]],
     status_code: int = 403,
-    redirect: str = None,
-) -> typing.Callable:
+    redirect: typing.Optional[str] = None,
+) -> typing.Callable[[_CallableType], _CallableType]:
     scopes_list = [scopes] if isinstance(scopes, str) else list(scopes)
 
     def decorator(func: typing.Callable) -> typing.Callable:
@@ -52,7 +55,7 @@ def requires(
 
             return websocket_wrapper
 
-        elif asyncio.iscoroutinefunction(func):
+        elif is_async_callable(func):
             # Handle async request/response functions.
             @functools.wraps(func)
             async def async_wrapper(
@@ -63,9 +66,12 @@ def requires(
 
                 if not has_required_scope(request, scopes_list):
                     if redirect is not None:
-                        return RedirectResponse(
-                            url=request.url_for(redirect), status_code=303
+                        orig_request_qparam = urlencode({"next": str(request.url)})
+                        next_url = "{redirect_path}?{orig_request}".format(
+                            redirect_path=request.url_for(redirect),
+                            orig_request=orig_request_qparam,
                         )
+                        return RedirectResponse(url=next_url, status_code=303)
                     raise HTTPException(status_code=status_code)
                 return await func(*args, **kwargs)
 
@@ -80,15 +86,18 @@ def requires(
 
                 if not has_required_scope(request, scopes_list):
                     if redirect is not None:
-                        return RedirectResponse(
-                            url=request.url_for(redirect), status_code=303
+                        orig_request_qparam = urlencode({"next": str(request.url)})
+                        next_url = "{redirect_path}?{orig_request}".format(
+                            redirect_path=request.url_for(redirect),
+                            orig_request=orig_request_qparam,
                         )
+                        return RedirectResponse(url=next_url, status_code=303)
                     raise HTTPException(status_code=status_code)
                 return func(*args, **kwargs)
 
             return sync_wrapper
 
-    return decorator
+    return decorator  # type: ignore[return-value]
 
 
 class AuthenticationError(Exception):
@@ -103,7 +112,7 @@ class AuthenticationBackend:
 
 
 class AuthCredentials:
-    def __init__(self, scopes: typing.Sequence[str] = None):
+    def __init__(self, scopes: typing.Optional[typing.Sequence[str]] = None):
         self.scopes = [] if scopes is None else list(scopes)
 
 

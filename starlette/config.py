@@ -52,7 +52,7 @@ T = typing.TypeVar("T")
 class Config:
     def __init__(
         self,
-        env_file: typing.Union[str, Path] = None,
+        env_file: typing.Optional[typing.Union[str, Path]] = None,
         environ: typing.Mapping[str, str] = environ,
     ) -> None:
         self.environ = environ
@@ -61,30 +61,47 @@ class Config:
             self.file_values = self._read_file(env_file)
 
     @typing.overload
-    def __call__(
-        self, key: str, cast: typing.Type[T], default: T = ...
-    ) -> T:  # pragma: no cover
+    def __call__(self, key: str, *, default: None) -> typing.Optional[str]:
+        ...
+
+    @typing.overload
+    def __call__(self, key: str, cast: typing.Type[T], default: T = ...) -> T:
         ...
 
     @typing.overload
     def __call__(
         self, key: str, cast: typing.Type[str] = ..., default: str = ...
-    ) -> str:  # pragma: no cover
+    ) -> str:
+        ...
+
+    @typing.overload
+    def __call__(
+        self,
+        key: str,
+        cast: typing.Callable[[typing.Any], T] = ...,
+        default: typing.Any = ...,
+    ) -> T:
         ...
 
     @typing.overload
     def __call__(
         self, key: str, cast: typing.Type[str] = ..., default: T = ...
-    ) -> typing.Union[T, str]:  # pragma: no cover
+    ) -> typing.Union[T, str]:
         ...
 
     def __call__(
-        self, key: str, cast: typing.Callable = None, default: typing.Any = undefined
+        self,
+        key: str,
+        cast: typing.Optional[typing.Callable] = None,
+        default: typing.Any = undefined,
     ) -> typing.Any:
         return self.get(key, cast, default)
 
     def get(
-        self, key: str, cast: typing.Callable = None, default: typing.Any = undefined
+        self,
+        key: str,
+        cast: typing.Optional[typing.Callable] = None,
+        default: typing.Any = undefined,
     ) -> typing.Any:
         if key in self.environ:
             value = self.environ[key]
@@ -109,7 +126,7 @@ class Config:
         return file_values
 
     def _perform_cast(
-        self, key: str, value: typing.Any, cast: typing.Callable = None
+        self, key: str, value: typing.Any, cast: typing.Optional[typing.Callable] = None
     ) -> typing.Any:
         if cast is None or value is None:
             return value

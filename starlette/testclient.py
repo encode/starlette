@@ -1,4 +1,3 @@
-import asyncio
 import contextlib
 import http
 import inspect
@@ -16,6 +15,7 @@ import anyio.abc
 import requests
 from anyio.streams.stapled import StapledObjectStream
 
+from starlette._utils import is_async_callable
 from starlette.types import Message, Receive, Scope, Send
 from starlette.websockets import WebSocketDisconnect
 
@@ -84,10 +84,7 @@ def _get_reason_phrase(status_code: int) -> str:
 def _is_asgi3(app: typing.Union[ASGI2App, ASGI3App]) -> bool:
     if inspect.isclass(app):
         return hasattr(app, "__await__")
-    elif inspect.isfunction(app):
-        return asyncio.iscoroutinefunction(app)
-    call = getattr(app, "__call__", None)
-    return asyncio.iscoroutinefunction(call)
+    return is_async_callable(app)
 
 
 class _WrapASGI2:
@@ -162,6 +159,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             scope = {
                 "type": "websocket",
                 "path": unquote(path),
+                "raw_path": path.encode(),
                 "root_path": self.root_path,
                 "scheme": scheme,
                 "query_string": query.encode(),
@@ -178,6 +176,7 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
             "http_version": "1.1",
             "method": request.method,
             "path": unquote(path),
+            "raw_path": path.encode(),
             "root_path": self.root_path,
             "scheme": scheme,
             "query_string": query.encode(),
@@ -298,6 +297,7 @@ class WebSocketTestSession:
         self.app = app
         self.scope = scope
         self.accepted_subprotocol = None
+        self.extra_headers = None
         self.portal_factory = portal_factory
         self._receive_queue: "queue.Queue[typing.Any]" = queue.Queue()
         self._send_queue: "queue.Queue[typing.Any]" = queue.Queue()
@@ -315,6 +315,7 @@ class WebSocketTestSession:
             self.exit_stack.close()
             raise
         self.accepted_subprotocol = message.get("subprotocol", None)
+        self.extra_headers = message.get("headers", None)
         return self
 
     def __exit__(self, *args: typing.Any) -> None:
@@ -350,7 +351,9 @@ class WebSocketTestSession:
 
     def _raise_on_close(self, message: Message) -> None:
         if message["type"] == "websocket.close":
-            raise WebSocketDisconnect(message.get("code", 1000))
+            raise WebSocketDisconnect(
+                message.get("code", 1000), message.get("reason", "")
+            )
 
     def send(self, message: Message) -> None:
         self._receive_queue.put(message)

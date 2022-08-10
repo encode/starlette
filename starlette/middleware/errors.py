@@ -1,9 +1,9 @@
-import asyncio
 import html
 import inspect
 import traceback
 import typing
 
+from starlette._utils import is_async_callable
 from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, PlainTextResponse, Response
@@ -135,7 +135,10 @@ class ServerErrorMiddleware:
     """
 
     def __init__(
-        self, app: ASGIApp, handler: typing.Callable = None, debug: bool = False
+        self,
+        app: ASGIApp,
+        handler: typing.Optional[typing.Callable] = None,
+        debug: bool = False,
     ) -> None:
         self.app = app
         self.handler = handler
@@ -158,21 +161,21 @@ class ServerErrorMiddleware:
         try:
             await self.app(scope, receive, _send)
         except Exception as exc:
-            if not response_started:
-                request = Request(scope)
-                if self.debug:
-                    # In debug mode, return traceback responses.
-                    response = self.debug_response(request, exc)
-                elif self.handler is None:
-                    # Use our default 500 error handler.
-                    response = self.error_response(request, exc)
+            request = Request(scope)
+            if self.debug:
+                # In debug mode, return traceback responses.
+                response = self.debug_response(request, exc)
+            elif self.handler is None:
+                # Use our default 500 error handler.
+                response = self.error_response(request, exc)
+            else:
+                # Use an installed 500 error handler.
+                if is_async_callable(self.handler):
+                    response = await self.handler(request, exc)
                 else:
-                    # Use an installed 500 error handler.
-                    if asyncio.iscoroutinefunction(self.handler):
-                        response = await self.handler(request, exc)
-                    else:
-                        response = await run_in_threadpool(self.handler, request, exc)
+                    response = await run_in_threadpool(self.handler, request, exc)
 
+            if not response_started:
                 await response(scope, receive, send)
 
             # We always continue to raise the exception.

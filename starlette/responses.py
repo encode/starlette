@@ -17,6 +17,11 @@ from starlette.concurrency import iterate_in_threadpool
 from starlette.datastructures import URL, MutableHeaders
 from starlette.types import Receive, Scope, Send
 
+if sys.version_info >= (3, 8):  # pragma: no cover
+    from typing import Literal
+else:  # pragma: no cover
+    from typing_extensions import Literal
+
 # Workaround for adding samesite support to pre 3.8 python
 http.cookies.Morsel._reserved["samesite"] = "SameSite"  # type: ignore
 
@@ -38,9 +43,9 @@ class Response:
         self,
         content: typing.Any = None,
         status_code: int = 200,
-        headers: dict = None,
-        media_type: str = None,
-        background: BackgroundTask = None,
+        headers: typing.Optional[typing.Mapping[str, str]] = None,
+        media_type: typing.Optional[str] = None,
+        background: typing.Optional[BackgroundTask] = None,
     ) -> None:
         self.status_code = status_code
         if media_type is not None:
@@ -56,7 +61,9 @@ class Response:
             return content
         return content.encode(self.charset)
 
-    def init_headers(self, headers: typing.Mapping[str, str] = None) -> None:
+    def init_headers(
+        self, headers: typing.Optional[typing.Mapping[str, str]] = None
+    ) -> None:
         if headers is None:
             raw_headers: typing.List[typing.Tuple[bytes, bytes]] = []
             populate_content_length = True
@@ -70,8 +77,12 @@ class Response:
             populate_content_length = b"content-length" not in keys
             populate_content_type = b"content-type" not in keys
 
-        body = getattr(self, "body", b"")
-        if body and populate_content_length:
+        body = getattr(self, "body", None)
+        if (
+            body is not None
+            and populate_content_length
+            and not (self.status_code < 200 or self.status_code in (204, 304))
+        ):
             content_length = str(len(body))
             raw_headers.append((b"content-length", content_length.encode("latin-1")))
 
@@ -93,15 +104,15 @@ class Response:
         self,
         key: str,
         value: str = "",
-        max_age: int = None,
-        expires: int = None,
+        max_age: typing.Optional[int] = None,
+        expires: typing.Optional[int] = None,
         path: str = "/",
-        domain: str = None,
+        domain: typing.Optional[str] = None,
         secure: bool = False,
         httponly: bool = False,
-        samesite: str = "lax",
+        samesite: typing.Optional[Literal["lax", "strict", "none"]] = "lax",
     ) -> None:
-        cookie: http.cookies.BaseCookie = http.cookies.SimpleCookie()
+        cookie: "http.cookies.BaseCookie[str]" = http.cookies.SimpleCookie()
         cookie[key] = value
         if max_age is not None:
             cookie[key]["max-age"] = max_age
@@ -129,10 +140,10 @@ class Response:
         self,
         key: str,
         path: str = "/",
-        domain: str = None,
+        domain: typing.Optional[str] = None,
         secure: bool = False,
         httponly: bool = False,
-        samesite: str = "lax",
+        samesite: typing.Optional[Literal["lax", "strict", "none"]] = "lax",
     ) -> None:
         self.set_cookie(
             key,
@@ -170,6 +181,16 @@ class PlainTextResponse(Response):
 class JSONResponse(Response):
     media_type = "application/json"
 
+    def __init__(
+        self,
+        content: typing.Any,
+        status_code: int = 200,
+        headers: typing.Optional[typing.Dict[str, str]] = None,
+        media_type: typing.Optional[str] = None,
+        background: typing.Optional[BackgroundTask] = None,
+    ) -> None:
+        super().__init__(content, status_code, headers, media_type, background)
+
     def render(self, content: typing.Any) -> bytes:
         return json.dumps(
             content,
@@ -185,8 +206,8 @@ class RedirectResponse(Response):
         self,
         url: typing.Union[str, URL],
         status_code: int = 307,
-        headers: dict = None,
-        background: BackgroundTask = None,
+        headers: typing.Optional[typing.Mapping[str, str]] = None,
+        background: typing.Optional[BackgroundTask] = None,
     ) -> None:
         super().__init__(
             content=b"", status_code=status_code, headers=headers, background=background
@@ -194,14 +215,22 @@ class RedirectResponse(Response):
         self.headers["location"] = quote(str(url), safe=":/%#?=@[]!$&'()*+,;")
 
 
+Content = typing.Union[str, bytes]
+SyncContentStream = typing.Iterator[Content]
+AsyncContentStream = typing.AsyncIterable[Content]
+ContentStream = typing.Union[AsyncContentStream, SyncContentStream]
+
+
 class StreamingResponse(Response):
+    body_iterator: AsyncContentStream
+
     def __init__(
         self,
-        content: typing.Any,
+        content: ContentStream,
         status_code: int = 200,
-        headers: dict = None,
-        media_type: str = None,
-        background: BackgroundTask = None,
+        headers: typing.Optional[typing.Mapping[str, str]] = None,
+        media_type: typing.Optional[str] = None,
+        background: typing.Optional[BackgroundTask] = None,
     ) -> None:
         if isinstance(content, typing.AsyncIterable):
             self.body_iterator = content
@@ -236,7 +265,7 @@ class StreamingResponse(Response):
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         async with anyio.create_task_group() as task_group:
 
-            async def wrap(func: typing.Callable[[], typing.Coroutine]) -> None:
+            async def wrap(func: "typing.Callable[[], typing.Awaitable[None]]") -> None:
                 await func()
                 task_group.cancel_scope.cancel()
 
@@ -254,12 +283,13 @@ class FileResponse(Response):
         self,
         path: typing.Union[str, "os.PathLike[str]"],
         status_code: int = 200,
-        headers: dict = None,
-        media_type: str = None,
-        background: BackgroundTask = None,
-        filename: str = None,
-        stat_result: os.stat_result = None,
-        method: str = None,
+        headers: typing.Optional[typing.Mapping[str, str]] = None,
+        media_type: typing.Optional[str] = None,
+        background: typing.Optional[BackgroundTask] = None,
+        filename: typing.Optional[str] = None,
+        stat_result: typing.Optional[os.stat_result] = None,
+        method: typing.Optional[str] = None,
+        content_disposition_type: str = "attachment",
     ) -> None:
         self.path = path
         self.status_code = status_code
@@ -273,11 +303,13 @@ class FileResponse(Response):
         if self.filename is not None:
             content_disposition_filename = quote(self.filename)
             if content_disposition_filename != self.filename:
-                content_disposition = "attachment; filename*=utf-8''{}".format(
-                    content_disposition_filename
+                content_disposition = "{}; filename*=utf-8''{}".format(
+                    content_disposition_type, content_disposition_filename
                 )
             else:
-                content_disposition = f'attachment; filename="{self.filename}"'
+                content_disposition = '{}; filename="{}"'.format(
+                    content_disposition_type, self.filename
+                )
             self.headers.setdefault("content-disposition", content_disposition)
         self.stat_result = stat_result
         if stat_result is not None:

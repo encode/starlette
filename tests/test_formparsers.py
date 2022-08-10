@@ -1,8 +1,15 @@
 import os
+import typing
+from contextlib import nullcontext as does_not_raise
 
-from starlette.formparsers import UploadFile, _user_safe_decode
+import pytest
+
+from starlette.applications import Starlette
+from starlette.formparsers import MultiPartException, UploadFile, _user_safe_decode
 from starlette.requests import Request
 from starlette.responses import JSONResponse
+from starlette.routing import Mount
+from starlette.testclient import TestClient
 
 
 class ForceMultipartDict(dict):
@@ -17,7 +24,7 @@ FORCE_MULTIPART = ForceMultipartDict()
 async def app(scope, receive, send):
     request = Request(scope, receive)
     data = await request.form()
-    output = {}
+    output: typing.Dict[str, typing.Any] = {}
     for key, value in data.items():
         if isinstance(value, UploadFile):
             content = await value.read()
@@ -36,7 +43,7 @@ async def app(scope, receive, send):
 async def multi_items_app(scope, receive, send):
     request = Request(scope, receive)
     data = await request.form()
-    output = {}
+    output: typing.Dict[str, list] = {}
     for key, value in data.multi_items():
         if key not in output:
             output[key] = []
@@ -51,6 +58,26 @@ async def multi_items_app(scope, receive, send):
             )
         else:
             output[key].append(value)
+    await request.close()
+    response = JSONResponse(output)
+    await response(scope, receive, send)
+
+
+async def app_with_headers(scope, receive, send):
+    request = Request(scope, receive)
+    data = await request.form()
+    output: typing.Dict[str, typing.Any] = {}
+    for key, value in data.items():
+        if isinstance(value, UploadFile):
+            content = await value.read()
+            output[key] = {
+                "filename": value.filename,
+                "content": content.decode(),
+                "content_type": value.content_type,
+                "headers": list(value.headers.items()),
+            }
+        else:
+            output[key] = value
     await request.close()
     response = JSONResponse(output)
     await response(scope, receive, send)
@@ -133,6 +160,42 @@ def test_multipart_request_multiple_files(tmpdir, test_client_factory):
                 "filename": "test2.txt",
                 "content": "<file2 content>",
                 "content_type": "text/plain",
+            },
+        }
+
+
+def test_multipart_request_multiple_files_with_headers(tmpdir, test_client_factory):
+    path1 = os.path.join(tmpdir, "test1.txt")
+    with open(path1, "wb") as file:
+        file.write(b"<file1 content>")
+
+    path2 = os.path.join(tmpdir, "test2.txt")
+    with open(path2, "wb") as file:
+        file.write(b"<file2 content>")
+
+    client = test_client_factory(app_with_headers)
+    with open(path1, "rb") as f1, open(path2, "rb") as f2:
+        response = client.post(
+            "/",
+            files=[
+                ("test1", (None, f1)),
+                ("test2", ("test2.txt", f2, "text/plain", {"x-custom": "f2"})),
+            ],
+        )
+        assert response.json() == {
+            "test1": "<file1 content>",
+            "test2": {
+                "filename": "test2.txt",
+                "content": "<file2 content>",
+                "content_type": "text/plain",
+                "headers": [
+                    [
+                        "content-disposition",
+                        'form-data; name="test2"; filename="test2.txt"',
+                    ],
+                    ["content-type", "text/plain"],
+                    ["x-custom", "f2"],
+                ],
             },
         }
 
@@ -329,3 +392,61 @@ def test_user_safe_decode_helper():
 def test_user_safe_decode_ignores_wrong_charset():
     result = _user_safe_decode(b"abc", "latin-8")
     assert result == "abc"
+
+
+@pytest.mark.parametrize(
+    "app,expectation",
+    [
+        (app, pytest.raises(MultiPartException)),
+        (Starlette(routes=[Mount("/", app=app)]), does_not_raise()),
+    ],
+)
+def test_missing_boundary_parameter(
+    app, expectation, test_client_factory: typing.Callable[..., TestClient]
+) -> None:
+    client = test_client_factory(app)
+    with expectation:
+        res = client.post(
+            "/",
+            data=(
+                # file
+                b'Content-Disposition: form-data; name="file"; filename="\xe6\x96\x87\xe6\x9b\xb8.txt"\r\n'  # noqa: E501
+                b"Content-Type: text/plain\r\n\r\n"
+                b"<file content>\r\n"
+            ),
+            headers={"Content-Type": "multipart/form-data; charset=utf-8"},
+        )
+        assert res.status_code == 400
+        assert res.text == "Missing boundary in multipart."
+
+
+@pytest.mark.parametrize(
+    "app,expectation",
+    [
+        (app, pytest.raises(MultiPartException)),
+        (Starlette(routes=[Mount("/", app=app)]), does_not_raise()),
+    ],
+)
+def test_missing_name_parameter_on_content_disposition(
+    app, expectation, test_client_factory: typing.Callable[..., TestClient]
+):
+    client = test_client_factory(app)
+    with expectation:
+        res = client.post(
+            "/",
+            data=(
+                # data
+                b"--a7f7ac8d4e2e437c877bb7b8d7cc549c\r\n"
+                b'Content-Disposition: form-data; ="field0"\r\n\r\n'
+                b"value0\r\n"
+            ),
+            headers={
+                "Content-Type": (
+                    "multipart/form-data; boundary=a7f7ac8d4e2e437c877bb7b8d7cc549c"
+                )
+            },
+        )
+        assert res.status_code == 400
+        assert (
+            res.text == 'The Content-Disposition header field "name" must be provided.'
+        )

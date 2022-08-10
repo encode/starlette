@@ -1,6 +1,5 @@
 import tempfile
 import typing
-from collections import namedtuple
 from collections.abc import Sequence
 from shlex import shlex
 from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit
@@ -8,12 +7,25 @@ from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit
 from starlette.concurrency import run_in_threadpool
 from starlette.types import Scope
 
-Address = namedtuple("Address", ["host", "port"])
+
+class Address(typing.NamedTuple):
+    host: str
+    port: int
+
+
+_KeyType = typing.TypeVar("_KeyType")
+# Mapping keys are invariant but their values are covariant since
+# you can only read them
+# that is, you can't do `Mapping[str, Animal]()["fido"] = Dog()`
+_CovariantValueType = typing.TypeVar("_CovariantValueType", covariant=True)
 
 
 class URL:
     def __init__(
-        self, url: str = "", scope: Scope = None, **components: typing.Any
+        self,
+        url: str = "",
+        scope: typing.Optional[Scope] = None,
+        **components: typing.Any,
     ) -> None:
         if scope is not None:
             assert not url, 'Cannot set both "url" and "scope".'
@@ -163,7 +175,7 @@ class URLPath(str):
 
     def __new__(cls, path: str, protocol: str = "", host: str = "") -> "URLPath":
         assert protocol in ("http", "websocket", "")
-        return str.__new__(cls, path)  # type: ignore
+        return str.__new__(cls, path)
 
     def __init__(self, path: str, protocol: str = "", host: str = "") -> None:
         self.protocol = protocol
@@ -201,6 +213,9 @@ class Secret:
     def __str__(self) -> str:
         return self._value
 
+    def __bool__(self) -> bool:
+        return bool(self._value)
+
 
 class CommaSeparatedStrings(Sequence):
     def __init__(self, value: typing.Union[str, typing.Sequence[str]]):
@@ -230,32 +245,36 @@ class CommaSeparatedStrings(Sequence):
         return ", ".join(repr(item) for item in self)
 
 
-class ImmutableMultiDict(typing.Mapping):
+class ImmutableMultiDict(typing.Mapping[_KeyType, _CovariantValueType]):
+    _dict: typing.Dict[_KeyType, _CovariantValueType]
+
     def __init__(
         self,
         *args: typing.Union[
-            "ImmutableMultiDict",
-            typing.Mapping,
-            typing.List[typing.Tuple[typing.Any, typing.Any]],
+            "ImmutableMultiDict[_KeyType, _CovariantValueType]",
+            typing.Mapping[_KeyType, _CovariantValueType],
+            typing.Iterable[typing.Tuple[_KeyType, _CovariantValueType]],
         ],
         **kwargs: typing.Any,
     ) -> None:
         assert len(args) < 2, "Too many arguments."
 
-        value = args[0] if args else []
+        value: typing.Any = args[0] if args else []
         if kwargs:
             value = (
                 ImmutableMultiDict(value).multi_items()
-                + ImmutableMultiDict(kwargs).multi_items()
+                + ImmutableMultiDict(kwargs).multi_items()  # type: ignore[operator]
             )
 
         if not value:
             _items: typing.List[typing.Tuple[typing.Any, typing.Any]] = []
         elif hasattr(value, "multi_items"):
-            value = typing.cast(ImmutableMultiDict, value)
+            value = typing.cast(
+                ImmutableMultiDict[_KeyType, _CovariantValueType], value
+            )
             _items = list(value.multi_items())
         elif hasattr(value, "items"):
-            value = typing.cast(typing.Mapping, value)
+            value = typing.cast(typing.Mapping[_KeyType, _CovariantValueType], value)
             _items = list(value.items())
         else:
             value = typing.cast(
@@ -266,33 +285,28 @@ class ImmutableMultiDict(typing.Mapping):
         self._dict = {k: v for k, v in _items}
         self._list = _items
 
-    def getlist(self, key: typing.Any) -> typing.List[typing.Any]:
+    def getlist(self, key: typing.Any) -> typing.List[_CovariantValueType]:
         return [item_value for item_key, item_value in self._list if item_key == key]
 
-    def keys(self) -> typing.KeysView:
+    def keys(self) -> typing.KeysView[_KeyType]:
         return self._dict.keys()
 
-    def values(self) -> typing.ValuesView:
+    def values(self) -> typing.ValuesView[_CovariantValueType]:
         return self._dict.values()
 
-    def items(self) -> typing.ItemsView:
+    def items(self) -> typing.ItemsView[_KeyType, _CovariantValueType]:
         return self._dict.items()
 
-    def multi_items(self) -> typing.List[typing.Tuple[str, str]]:
+    def multi_items(self) -> typing.List[typing.Tuple[_KeyType, _CovariantValueType]]:
         return list(self._list)
 
-    def get(self, key: typing.Any, default: typing.Any = None) -> typing.Any:
-        if key in self._dict:
-            return self._dict[key]
-        return default
-
-    def __getitem__(self, key: typing.Any) -> str:
+    def __getitem__(self, key: _KeyType) -> _CovariantValueType:
         return self._dict[key]
 
     def __contains__(self, key: typing.Any) -> bool:
         return key in self._dict
 
-    def __iter__(self) -> typing.Iterator[typing.Any]:
+    def __iter__(self) -> typing.Iterator[_KeyType]:
         return iter(self.keys())
 
     def __len__(self) -> int:
@@ -309,7 +323,7 @@ class ImmutableMultiDict(typing.Mapping):
         return f"{class_name}({items!r})"
 
 
-class MultiDict(ImmutableMultiDict):
+class MultiDict(ImmutableMultiDict[typing.Any, typing.Any]):
     def __setitem__(self, key: typing.Any, value: typing.Any) -> None:
         self.setlist(key, [value])
 
@@ -369,7 +383,7 @@ class MultiDict(ImmutableMultiDict):
         self._dict.update(value)
 
 
-class QueryParams(ImmutableMultiDict):
+class QueryParams(ImmutableMultiDict[str, str]):
     """
     An immutable multidict.
     """
@@ -415,28 +429,37 @@ class UploadFile:
     """
 
     spool_max_size = 1024 * 1024
+    file: typing.BinaryIO
+    headers: "Headers"
 
     def __init__(
-        self, filename: str, file: typing.IO = None, content_type: str = ""
+        self,
+        filename: str,
+        file: typing.Optional[typing.BinaryIO] = None,
+        content_type: str = "",
+        *,
+        headers: "typing.Optional[Headers]" = None,
     ) -> None:
         self.filename = filename
         self.content_type = content_type
         if file is None:
-            file = tempfile.SpooledTemporaryFile(max_size=self.spool_max_size)
-        self.file = file
+            self.file = tempfile.SpooledTemporaryFile(max_size=self.spool_max_size)  # type: ignore  # noqa: E501
+        else:
+            self.file = file
+        self.headers = headers or Headers()
 
     @property
     def _in_memory(self) -> bool:
         rolled_to_disk = getattr(self.file, "_rolled", True)
         return not rolled_to_disk
 
-    async def write(self, data: typing.Union[bytes, str]) -> None:
+    async def write(self, data: bytes) -> None:
         if self._in_memory:
-            self.file.write(data)  # type: ignore
+            self.file.write(data)
         else:
             await run_in_threadpool(self.file.write, data)
 
-    async def read(self, size: int = -1) -> typing.Union[bytes, str]:
+    async def read(self, size: int = -1) -> bytes:
         if self._in_memory:
             return self.file.read(size)
         return await run_in_threadpool(self.file.read, size)
@@ -454,7 +477,7 @@ class UploadFile:
             await run_in_threadpool(self.file.close)
 
 
-class FormData(ImmutableMultiDict):
+class FormData(ImmutableMultiDict[str, typing.Union[UploadFile, str]]):
     """
     An immutable multidict, containing both file uploads and text input.
     """
@@ -483,9 +506,9 @@ class Headers(typing.Mapping[str, str]):
 
     def __init__(
         self,
-        headers: typing.Mapping[str, str] = None,
-        raw: typing.List[typing.Tuple[bytes, bytes]] = None,
-        scope: Scope = None,
+        headers: typing.Optional[typing.Mapping[str, str]] = None,
+        raw: typing.Optional[typing.List[typing.Tuple[bytes, bytes]]] = None,
+        scope: typing.Optional[typing.Mapping[str, typing.Any]] = None,
     ) -> None:
         self._list: typing.List[typing.Tuple[bytes, bytes]] = []
         if headers is not None:
@@ -604,6 +627,19 @@ class MutableHeaders(Headers):
         for idx in reversed(pop_indexes):
             del self._list[idx]
 
+    def __ior__(self, other: typing.Mapping) -> "MutableHeaders":
+        if not isinstance(other, typing.Mapping):
+            raise TypeError(f"Expected a mapping but got {other.__class__.__name__}")
+        self.update(other)
+        return self
+
+    def __or__(self, other: typing.Mapping) -> "MutableHeaders":
+        if not isinstance(other, typing.Mapping):
+            raise TypeError(f"Expected a mapping but got {other.__class__.__name__}")
+        new = self.mutablecopy()
+        new.update(other)
+        return new
+
     @property
     def raw(self) -> typing.List[typing.Tuple[bytes, bytes]]:
         return self._list
@@ -622,7 +658,7 @@ class MutableHeaders(Headers):
         self._list.append((set_key, set_value))
         return value
 
-    def update(self, other: dict) -> None:
+    def update(self, other: typing.Mapping) -> None:
         for key, val in other.items():
             self[key] = val
 
@@ -648,7 +684,9 @@ class State:
     Used for `request.state` and `app.state`.
     """
 
-    def __init__(self, state: typing.Dict = None):
+    _state: typing.Dict[str, typing.Any]
+
+    def __init__(self, state: typing.Optional[typing.Dict[str, typing.Any]] = None):
         if state is None:
             state = {}
         super().__setattr__("_state", state)
