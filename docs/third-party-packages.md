@@ -112,6 +112,13 @@ A Starlette middleware that allows **brotli**, **gzip** and **deflate** compress
 An authentication framework for Starlette with pluggable authenticators and login/logout flow.
 
 
+### Starception
+    
+<a href="https://github.com/alex-oleshkevich/starception" target="_blank">GitHub</a>
+
+Beautiful exception page for Starlette apps.
+
+
 ## Frameworks
 
 ### Responder
