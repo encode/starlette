@@ -1,6 +1,9 @@
+import warnings
+
 import pytest
 
-from starlette.exceptions import ExceptionMiddleware, HTTPException, WebSocketException
+from starlette.exceptions import HTTPException, WebSocketException
+from starlette.middleware.exceptions import ExceptionMiddleware
 from starlette.responses import PlainTextResponse
 from starlette.routing import Route, Router, WebSocketRoute
 
@@ -144,3 +147,16 @@ def test_websocket_repr():
         repr(CustomWebSocketException(1013, reason="Something custom"))
         == "CustomWebSocketException(code=1013, reason='Something custom')"
     )
+
+
+def test_exception_middleware_deprecation() -> None:
+    # this test should be removed once the deprecation shim is removed
+    with pytest.warns(DeprecationWarning):
+        from starlette.exceptions import ExceptionMiddleware  # noqa: F401
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        import starlette.exceptions
+
+    with pytest.warns(DeprecationWarning):
+        starlette.exceptions.ExceptionMiddleware

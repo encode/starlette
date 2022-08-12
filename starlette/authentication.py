@@ -1,13 +1,15 @@
-import asyncio
 import functools
 import inspect
 import typing
 from urllib.parse import urlencode
 
+from starlette._utils import is_async_callable
 from starlette.exceptions import HTTPException
 from starlette.requests import HTTPConnection, Request
 from starlette.responses import RedirectResponse, Response
 from starlette.websockets import WebSocket
+
+_CallableType = typing.TypeVar("_CallableType", bound=typing.Callable)
 
 
 def has_required_scope(conn: HTTPConnection, scopes: typing.Sequence[str]) -> bool:
@@ -21,7 +23,7 @@ def requires(
     scopes: typing.Union[str, typing.Sequence[str]],
     status_code: int = 403,
     redirect: typing.Optional[str] = None,
-) -> typing.Callable:
+) -> typing.Callable[[_CallableType], _CallableType]:
     scopes_list = [scopes] if isinstance(scopes, str) else list(scopes)
 
     def decorator(func: typing.Callable) -> typing.Callable:
@@ -53,7 +55,7 @@ def requires(
 
             return websocket_wrapper
 
-        elif asyncio.iscoroutinefunction(func):
+        elif is_async_callable(func):
             # Handle async request/response functions.
             @functools.wraps(func)
             async def async_wrapper(
@@ -95,7 +97,7 @@ def requires(
 
             return sync_wrapper
 
-    return decorator
+    return decorator  # type: ignore[return-value]
 
 
 class AuthenticationError(Exception):
