@@ -180,13 +180,6 @@ class ServerErrorMiddleware:
 
                 if not response_started:
                     await response(scope, receive, send)
-            elif scope["type"] == "websocket":
-                websocket = WebSocket(scope, receive, send)
-                # https://tools.ietf.org/html/rfc6455#section-7.4.1
-                # 1011 indicates that a server is terminating the connection because
-                # it encountered an unexpected condition that prevented it from
-                # fulfilling the request.
-                await websocket.close(code=status.WS_1011_INTERNAL_ERROR)
 
             # We always continue to raise the exception.
             # This allows servers to log the error, or allows test clients
