@@ -59,7 +59,7 @@ class Jinja2Templates:
 
     ..enable_async:
 
-    templates = Jinja2Templates("templates",enable_async=True)
+    templates = Jinja2Templates("templates", enable_async=True)
 
     return await templates.AsyncTemplateResponse("index.html", {"request": request})
     """
