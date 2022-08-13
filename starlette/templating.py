@@ -123,7 +123,8 @@ class Jinja2Templates:
     ) -> _TemplateResponse:
         if "request" not in context:
             raise ValueError('context must include a "request" key')
-        assert self.env.is_async, "please enable async rendering mode."
+        if not self.env.is_async:
+            raise RuntimeError("please enable async rendering mode.")
         template = self.get_template(name)
         content = await template.render_async(context)
         return _TemplateResponse(
