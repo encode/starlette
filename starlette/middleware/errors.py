@@ -145,7 +145,7 @@ class ServerErrorMiddleware:
         self.debug = debug
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] not in {"http", "websocket"}:
+        if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
 
@@ -161,23 +161,22 @@ class ServerErrorMiddleware:
         try:
             await self.app(scope, receive, _send)
         except Exception as exc:
-            if scope["type"] == "http":
-                request = Request(scope)
-                if self.debug:
-                    # In debug mode, return traceback responses.
-                    response = self.debug_response(request, exc)
-                elif self.handler is None:
-                    # Use our default 500 error handler.
-                    response = self.error_response(request, exc)
+            request = Request(scope)
+            if self.debug:
+                # In debug mode, return traceback responses.
+                response = self.debug_response(request, exc)
+            elif self.handler is None:
+                # Use our default 500 error handler.
+                response = self.error_response(request, exc)
+            else:
+                # Use an installed 500 error handler.
+                if is_async_callable(self.handler):
+                    response = await self.handler(request, exc)
                 else:
-                    # Use an installed 500 error handler.
-                    if is_async_callable(self.handler):
-                        response = await self.handler(request, exc)
-                    else:
-                        response = await run_in_threadpool(self.handler, request, exc)
+                    response = await run_in_threadpool(self.handler, request, exc)
 
-                if not response_started:
-                    await response(scope, receive, send)
+            if not response_started:
+                await response(scope, receive, send)
 
             # We always continue to raise the exception.
             # This allows servers to log the error, or allows test clients
