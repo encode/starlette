@@ -65,9 +65,12 @@ async def http_exception(request: Request, exc: HTTPException):
 You might also want to override how `WebSocketException` is handled:
 
 ```python
-@app.exception_handler(WebSocketException)
-async def websocket_exception(websocket, exc):
+async def websocket_exception(websocket: WebSocket, exc: WebSocketException):
     await websocket.close(code=1008)
+
+exception_handlers = {
+    WebSocketException: websocket_exception
+}
 ```
 
 ## Errors and handled exceptions
