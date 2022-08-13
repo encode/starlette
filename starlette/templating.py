@@ -27,7 +27,7 @@ class _TemplateResponse(Response):
         self,
         template: typing.Any,
         context: dict,
-        content: typing.Optional[typing.Any] = None,
+        content: typing.Optional[str] = None,
         status_code: int = 200,
         headers: typing.Optional[typing.Mapping[str, str]] = None,
         media_type: typing.Optional[str] = None,
