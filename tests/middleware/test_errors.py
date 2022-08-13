@@ -5,7 +5,6 @@ from starlette.background import BackgroundTask
 from starlette.middleware.errors import ServerErrorMiddleware
 from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
-from starlette.websockets import WebSocketDisconnect
 
 
 def test_handler(test_client_factory):
@@ -64,7 +63,7 @@ def test_debug_websocket(test_client_factory):
 
     app = ServerErrorMiddleware(app)
 
-    with pytest.raises(WebSocketDisconnect):
+    with pytest.raises(RuntimeError):
         client = test_client_factory(app)
         with client.websocket_connect("/"):
             pass  # pragma: nocover
