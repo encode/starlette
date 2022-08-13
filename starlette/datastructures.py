@@ -4,11 +4,12 @@ from collections.abc import Sequence
 from shlex import shlex
 from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit
 
-if typing.TYPE_CHECKING:
-    from _typeshed import SupportsKeysAndGetItem
 
 from starlette.concurrency import run_in_threadpool
 from starlette.types import Scope
+
+if typing.TYPE_CHECKING:
+    from _typeshed import SupportsKeysAndGetItem
 
 
 class Address(typing.NamedTuple):
