@@ -714,7 +714,7 @@ If you do want to apply the middelware logic to error responses only on some rou
 
 * Add an `ExceptionMiddleware` onto the `Mount`
 * Add a `try/except` block to your middleware and return an error response from there
-* Split up marking and processing into two middlewares, one that gets put on `Mount` which simply marks the response as needing processing (for example by setting `scope["log-response"] = True`) and another applied to `Starlette` that does the heavy lifting.
+* Split up marking and processing into two middlewares, one that gets put on `Mount` which simply marks the response as needing processing (for example by setting `scope["log-response"] = True`) and another applied to the `Starlette` application that does the heavy lifting.
 
 ## Third party middleware
 
