@@ -228,6 +228,16 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 assert (
                     not response_started
                 ), 'Received multiple "http.response.start" messages.'
+
+                template_info: "typing.Optional[typing.Dict[str, typing.Any]]" = (
+                    scope.get("extensions", {})
+                    .get("http.test_info", {})
+                    .get("template", None)
+                )
+                if template_info is not None:
+                    template = template_info["template"]
+                    context = template_info["context"]
+
                 raw_kwargs["version"] = 11
                 raw_kwargs["status"] = message["status"]
                 raw_kwargs["reason"] = _get_reason_phrase(message["status"])
@@ -254,9 +264,6 @@ class _ASGIAdapter(requests.adapters.HTTPAdapter):
                 if not more_body:
                     raw_kwargs["body"].seek(0)
                     response_complete.set()
-            elif message["type"] == "http.response.template":
-                template = message["template"]
-                context = message["context"]
 
         try:
             with self.portal_factory() as portal:

@@ -3,7 +3,7 @@ from os import PathLike
 
 from starlette.background import BackgroundTask
 from starlette.responses import Response
-from starlette.types import Receive, Scope, Send
+from starlette.types import Message, Receive, Scope, Send
 
 try:
     import jinja2
@@ -41,13 +41,20 @@ class _TemplateResponse(Response):
         request = self.context.get("request", {})
         extensions = request.get("extensions", {})
         if "http.response.template" in extensions:
-            await send(
-                {
-                    "type": "http.response.template",
+            original_send = send
+
+            async def wrapped_send(message: Message) -> None:
+                scope["extensions"] = extensions = scope.get("extensions", None) or {}
+                extensions["http.test_info"] = test_info = (
+                    extensions.get("http.test_info", None) or {}
+                )
+                test_info["template"] = {
                     "template": self.template,
                     "context": self.context,
                 }
-            )
+                await original_send(message)
+
+            send = wrapped_send
         await super().__call__(scope, receive, send)
 
 
