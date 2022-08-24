@@ -70,4 +70,4 @@ def test_templates_extension_response_replaced(
     response = client.get("/")
     assert response.text == "<html>Bye!</html>"
     assert not hasattr(response, "template")
-    assert not hasattr(response, "request")
+    assert not hasattr(response, "context")
