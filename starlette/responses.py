@@ -79,7 +79,8 @@ class Response:
 
         body = getattr(self, "body", None)
         if (
-            body is not None
+            self.status_code is not None
+            and body is not None
             and populate_content_length
             and not (self.status_code < 200 or self.status_code in (204, 304))
         ):
