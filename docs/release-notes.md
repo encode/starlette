@@ -1,3 +1,56 @@
+## 0.20.4
+
+June 28, 2022
+
+### Fixed
+* Remove converter from path when generating OpenAPI schema [#1648](https://github.com/encode/starlette/pull/1648).
+
+## 0.20.3
+
+June 10, 2022
+
+### Fixed
+* Revert "Allow `StaticFiles` to follow symlinks" [#1681](https://github.com/encode/starlette/pull/1681).
+
+## 0.20.2
+
+June 7, 2022
+
+### Fixed
+* Fix regression on route paths with colons [#1675](https://github.com/encode/starlette/pull/1675).
+* Allow `StaticFiles` to follow symlinks [#1337](https://github.com/encode/starlette/pull/1377).
+
+## 0.20.1
+
+May 28, 2022
+
+### Fixed
+* Improve detection of async callables [#1444](https://github.com/encode/starlette/pull/1444).
+* Send 400 (Bad Request) when `boundary` is missing [#1617](https://github.com/encode/starlette/pull/1617).
+* Send 400 (Bad Request) when missing "name" field on `Content-Disposition` header [#1643](https://github.com/encode/starlette/pull/1643).
+* Do not send empty data to `StreamingResponse` on `BaseHTTPMiddleware` [#1609](https://github.com/encode/starlette/pull/1609).
+* Add `__bool__` dunder for `Secret` [#1625](https://github.com/encode/starlette/pull/1625).
+
+## 0.20.0
+
+May 3, 2022
+
+### Removed
+* Drop Python 3.6 support [#1357](https://github.com/encode/starlette/pull/1357) and [#1616](https://github.com/encode/starlette/pull/1616).
+
+
+## 0.19.1
+
+April 22, 2022
+
+### Fixed
+* Fix inference of `Route.name` when created from methods [#1553](https://github.com/encode/starlette/pull/1553).
+* Avoid `TypeError` on `websocket.disconnect` when code is `None` [#1574](https://github.com/encode/starlette/pull/1574).
+
+### Deprecated
+* Deprecate `WS_1004_NO_STATUS_RCVD` and `WS_1005_ABNORMAL_CLOSURE` in favor of `WS_1005_NO_STATUS_RCVD` and `WS_1006_ABNORMAL_CLOSURE`, as the previous constants didn't match the [WebSockets specs](https://www.iana.org/assignments/websocket/websocket.xhtml) [#1580](https://github.com/encode/starlette/pull/1580).
+
+
 ## 0.19.0
 
 March 9, 2022

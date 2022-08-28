@@ -1,11 +1,14 @@
 import os
 import typing
+from contextlib import nullcontext as does_not_raise
 
 import pytest
 
-from starlette.formparsers import UploadFile, _user_safe_decode
+from starlette.applications import Starlette
+from starlette.formparsers import MultiPartException, UploadFile, _user_safe_decode
 from starlette.requests import Request
 from starlette.responses import JSONResponse
+from starlette.routing import Mount
 
 
 class ForceMultipartDict(dict):
@@ -20,7 +23,7 @@ FORCE_MULTIPART = ForceMultipartDict()
 async def app(scope, receive, send):
     request = Request(scope, receive)
     data = await request.form()
-    output = {}
+    output: typing.Dict[str, typing.Any] = {}
     for key, value in data.items():
         if isinstance(value, UploadFile):
             content = await value.read()
@@ -62,7 +65,7 @@ async def multi_items_app(scope, receive, send):
 async def app_with_headers(scope, receive, send):
     request = Request(scope, receive)
     data = await request.form()
-    output = {}
+    output: typing.Dict[str, typing.Any] = {}
     for key, value in data.items():
         if isinstance(value, UploadFile):
             content = await value.read()
@@ -390,10 +393,17 @@ def test_user_safe_decode_ignores_wrong_charset():
     assert result == "abc"
 
 
-def test_missing_boundary_parameter(test_client_factory):
+@pytest.mark.parametrize(
+    "app,expectation",
+    [
+        (app, pytest.raises(MultiPartException)),
+        (Starlette(routes=[Mount("/", app=app)]), does_not_raise()),
+    ],
+)
+def test_missing_boundary_parameter(app, expectation, test_client_factory) -> None:
     client = test_client_factory(app)
-    with pytest.raises(KeyError, match="boundary"):
-        client.post(
+    with expectation:
+        res = client.post(
             "/",
             data=(
                 # file
@@ -402,4 +412,38 @@ def test_missing_boundary_parameter(test_client_factory):
                 b"<file content>\r\n"
             ),
             headers={"Content-Type": "multipart/form-data; charset=utf-8"},
+        )
+        assert res.status_code == 400
+        assert res.text == "Missing boundary in multipart."
+
+
+@pytest.mark.parametrize(
+    "app,expectation",
+    [
+        (app, pytest.raises(MultiPartException)),
+        (Starlette(routes=[Mount("/", app=app)]), does_not_raise()),
+    ],
+)
+def test_missing_name_parameter_on_content_disposition(
+    app, expectation, test_client_factory
+):
+    client = test_client_factory(app)
+    with expectation:
+        res = client.post(
+            "/",
+            data=(
+                # data
+                b"--a7f7ac8d4e2e437c877bb7b8d7cc549c\r\n"
+                b'Content-Disposition: form-data; ="field0"\r\n\r\n'
+                b"value0\r\n"
+            ),
+            headers={
+                "Content-Type": (
+                    "multipart/form-data; boundary=a7f7ac8d4e2e437c877bb7b8d7cc549c"
+                )
+            },
+        )
+        assert res.status_code == 400
+        assert (
+            res.text == 'The Content-Disposition header field "name" must be provided.'
         )
