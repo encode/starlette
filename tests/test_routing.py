@@ -78,9 +78,14 @@ def float_convertor(request):
     return JSONResponse({"float": num})
 
 
-def path_convertor(request):
+def path_converter_1(request):
     path = request.path_params["param"]
-    return JSONResponse({"path": path})
+    return JSONResponse({"path_1": path})
+
+
+def path_converter_2(request):
+    path = request.path_params["param"]
+    return JSONResponse({"path_2": path})
 
 
 def uuid_converter(request):
@@ -138,7 +143,10 @@ app = Router(
         Route("/func", endpoint=contact, methods=["POST"]),
         Route("/int/{param:int}", endpoint=int_convertor, name="int-convertor"),
         Route("/float/{param:float}", endpoint=float_convertor, name="float-convertor"),
-        Route("/path/{param:path}", endpoint=path_convertor, name="path-convertor"),
+        Route("/path/{param:path}", endpoint=path_converter_1, name="path-converter-1"),
+        Route(
+            "/{param:path}/example", endpoint=path_converter_2, name="path-converter-2"
+        ),
         Route("/uuid/{param:uuid}", endpoint=uuid_converter, name="uuid-convertor"),
         # Route with chars that conflict with regex meta chars
         Route(
@@ -231,14 +239,6 @@ def test_route_converters(client):
     assert response.json() == {"float": 25.5}
     assert app.url_path_for("float-convertor", param=25.5) == "/float/25.5"
 
-    # Test path conversion
-    response = client.get("/path/some/example")
-    assert response.status_code == 200
-    assert response.json() == {"path": "some/example"}
-    assert (
-        app.url_path_for("path-convertor", param="some/example") == "/path/some/example"
-    )
-
     # Test UUID conversion
     response = client.get("/uuid/ec38df32-ceda-4cfa-9b4a-1aeb94ad551a")
     assert response.status_code == 200
@@ -248,6 +248,26 @@ def test_route_converters(client):
             "uuid-convertor", param=uuid.UUID("ec38df32-ceda-4cfa-9b4a-1aeb94ad551a")
         )
         == "/uuid/ec38df32-ceda-4cfa-9b4a-1aeb94ad551a"
+    )
+
+
+def test_path_route_converters(client):
+    # Make sure `/path/some/example` and `/path%2Fsome/example` are handled differently
+
+    response = client.get("/path/some/example")
+    assert response.status_code == 200
+    assert response.json() == {"path_1": "some/example"}
+    assert (
+        app.url_path_for("path-converter-1", param="some/example")
+        == "/path/some/example"
+    )
+
+    response = client.get("/path%2Fsome/example")
+    assert response.status_code == 200
+    assert response.json() == {"path_2": "path%2Fsome"}
+    assert (
+        app.url_path_for("path-converter-2", param="path%2Fsome")
+        == "/path%2Fsome/example"
     )
 
 
