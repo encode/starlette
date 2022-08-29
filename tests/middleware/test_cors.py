@@ -57,6 +57,15 @@ def test_cors_allow_all(test_client_factory):
     assert response.headers["access-control-expose-headers"] == "X-Status"
     assert response.headers["access-control-allow-credentials"] == "true"
 
+    # Test Authorization header credentialed response
+    headers = {"Origin": "https://example.org", "Authorization": "Bearer some_token"}
+    response = client.get("/", headers=headers)
+    assert response.status_code == 200
+    assert response.text == "Homepage"
+    assert response.headers["access-control-allow-origin"] == "https://example.org"
+    assert response.headers["access-control-expose-headers"] == "X-Status"
+    assert response.headers["access-control-allow-credentials"] == "true"
+
     # Test non-CORS response
     response = client.get("/")
     assert response.status_code == 200
