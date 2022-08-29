@@ -234,7 +234,7 @@ class Route(BaseRoute):
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] == "http":
-            match = self.path_regex.match(scope["path"])
+            match = self.path_regex.match(scope["raw_path"].decode())
             if match:
                 matched_params = match.groupdict()
                 for key, value in matched_params.items():
@@ -306,7 +306,7 @@ class WebSocketRoute(BaseRoute):
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] == "websocket":
-            match = self.path_regex.match(scope["path"])
+            match = self.path_regex.match(scope["raw_path"].decode())
             if match:
                 matched_params = match.groupdict()
                 for key, value in matched_params.items():
@@ -369,7 +369,7 @@ class Mount(BaseRoute):
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] in ("http", "websocket"):
-            path = scope["path"]
+            path = scope["raw_path"].decode()
             match = self.path_regex.match(path)
             if match:
                 matched_params = match.groupdict()
@@ -385,6 +385,7 @@ class Mount(BaseRoute):
                     "app_root_path": scope.get("app_root_path", root_path),
                     "root_path": root_path + matched_path,
                     "path": remaining_path,
+                    "raw_path": remaining_path.encode(),
                     "endpoint": self.app,
                 }
                 return Match.FULL, child_scope
@@ -695,8 +696,14 @@ class Router:
             redirect_scope = dict(scope)
             if scope["path"].endswith("/"):
                 redirect_scope["path"] = redirect_scope["path"].rstrip("/")
+                redirect_scope["raw_path"] = (
+                    redirect_scope["raw_path"].decode().rstrip("/").encode()
+                )
             else:
                 redirect_scope["path"] = redirect_scope["path"] + "/"
+                redirect_scope["raw_path"] = (
+                    redirect_scope["raw_path"].decode() + "/"
+                ).encode()
 
             for route in self.routes:
                 match, child_scope = route.matches(redirect_scope)
