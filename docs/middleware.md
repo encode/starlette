@@ -703,7 +703,7 @@ routes = [
                 endpoint=...,
             )
         ],
-        middleware=[GzipMiddleware]
+        middleware=[Middleware(GZipMiddleware)]
     )
 ]
 
