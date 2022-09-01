@@ -2,10 +2,10 @@
 -e .[full]
 
 # Testing
-autoflake==1.4
-black==22.6.0
+autoflake==1.5.3
+black==22.8.0
 coverage==6.4.2
-databases[sqlite]==0.5.5
+databases[sqlite]==0.6.1
 flake8==3.9.2
 isort==5.10.1
 mypy==0.971
@@ -21,7 +21,7 @@ greenlet==2.0.0a2; python_version >= "3.11"
 
 # Documentation
 mkdocs==1.3.1
-mkdocs-material==8.3.9
+mkdocs-material==8.4.2
 mkautodoc==0.1.0
 
 # Packaging
