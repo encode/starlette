@@ -689,7 +689,9 @@ Middleware can also be added to `Mount`, which allows you to apply middleware to
 
 ```python
 from starlette.applications import Starlette
-from starlette.middleware.gzip import GzipMiddleware
+from starlette.middleware import Middleware
+from starlette.middleware.gzip import GZipMiddleware
+from starlette.routing import Mount, Route
 
 
 routes = [
