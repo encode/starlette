@@ -7,7 +7,7 @@ sys.stderr.write(
 ===============================
 Unsupported installation method
 ===============================
-httpx no longer supports installation with `python setup.py install`.
+uvicorn no longer supports installation with `python setup.py install`.
 Please use `python -m pip install .` instead.
 """
 )
