@@ -7,7 +7,7 @@ sys.stderr.write(
 ===============================
 Unsupported installation method
 ===============================
-uvicorn no longer supports installation with `python setup.py install`.
+Starlette no longer supports installation with `python setup.py install`.
 Please use `python -m pip install .` instead.
 """
 )
