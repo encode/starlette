@@ -830,7 +830,6 @@ mounted_app_with_middleware = Mount(
     "route",
     [
         mounted_routes_with_middleware,
-        mounted_routes_with_middleware,
         mounted_app_with_middleware,
     ],
 )
