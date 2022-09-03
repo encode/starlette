@@ -26,10 +26,48 @@ function calls, not awaitables.
 You can use any of `requests` standard API, such as authentication, session
 cookies handling, or file uploads.
 
+For example, to set headers on the TestClient you can do:
+
+```python
+client = TestClient(app)
+
+# Set headers on the client for future requests
+client.headers = {"Authorization": "..."}
+response = client.get("/")
+
+# Set headers for each request separately
+response = client.get("/", headers={"Authorization": "..."})
+```
+
+And for example to send files with the TestClient:
+
+```python
+client = TestClient(app)
+
+# Send a single file
+with open("example.txt", "rb") as f:
+    response = client.post("/form", files={"file": f})
+
+# Send multiple files
+with open("example.txt", "rb") as f1:
+    with open("example.png", "rb") as f2:
+        files = {"file1": f1, "file2": ("filename", f2, "image/png")}
+        response = client.post("/form", files=files)
+```
+
+For more information you can check the `requests` [documentation](https://requests.readthedocs.io/en/master/user/advanced/).
+
 By default the `TestClient` will raise any exceptions that occur in the
 application. Occasionally you might want to test the content of 500 error
 responses, rather than allowing client to raise the server exception. In this
 case you should use `client = TestClient(app, raise_server_exceptions=False)`.
+
+!!! note
+
+    If you want the `TestClient` to run `lifespan` events (`on_startup`, `on_shutdown`, or `lifespan`),
+    you will need to use the `TestClient` as a context manager. Otherwise, the events
+    will not be triggered when the `TestClient` is instantiated. You can learn more about it
+    [here](/events/#running-event-handlers-in-tests).
 
 ### Selecting the Async backend
 
@@ -97,6 +135,15 @@ May raise `starlette.websockets.WebSocketDisconnect` if the application does not
 
 `websocket_connect()` must be used as a context manager (in a `with` block).
 
+!!! note
+    The `params` argument is not supported by `websocket_connect`. If you need to pass query arguments, hard code it
+    directly in the URL.
+
+    ```python
+    with client.websocket_connect('/path?foo=bar') as websocket:
+        ...
+    ```
+
 #### Sending data
 
 * `.send_text(data)` - Send the given text to the application.
@@ -114,3 +161,41 @@ May raise `starlette.websockets.WebSocketDisconnect`.
 #### Closing the connection
 
 * `.close(code=1000)` - Perform a client-side close of the websocket connection.
+
+### Asynchronous tests
+
+Sometimes you will want to do async things outside of your application.
+For example, you might want to check the state of your database after calling your app using your existing async database client / infrastructure.
+
+For these situations, using `TestClient` is difficult because it creates it's own event loop and async resources (like a database connection) often cannot be shared across event loops.
+The simplest way to work around this is to just make your entire test async and use an async client, like [httpx.AsyncClient].
+
+Here is an example of such a test:
+
+```python
+from httpx import AsyncClient
+from starlette.applications import Starlette
+from starlette.routing import Route
+from starlette.requests import Request
+from starlette.responses import PlainTextResponse
+
+
+def hello(request: Request) -> PlainTextResponse:
+    return PlainTextResponse("Hello World!")
+
+
+app = Starlette(routes=[Route("/", hello)])
+
+
+# if you're using pytest, you'll need to to add an async marker like:
+# @pytest.mark.anyio  # using https://github.com/agronholm/anyio
+# or install and configure pytest-asyncio (https://github.com/pytest-dev/pytest-asyncio)
+async def test_app() -> None:
+    # note: you _must_ set `base_url` for relative urls like "/" to work
+    async with AsyncClient(app=app, base_url="http://testserver") as client:
+        r = await client.get("/")
+        assert r.status_code == 200
+        assert r.text == "Hello World!"
+```
+
+[httpx.AsyncClient]: https://www.python-httpx.org/advanced/#calling-into-python-web-apps

@@ -8,11 +8,14 @@ from starlette.types import Receive, Scope, Send
 try:
     import jinja2
 
-    # @contextfunction renamed to @pass_context in Jinja 3.0, to be removed in 3.1
+    # @contextfunction was renamed to @pass_context in Jinja 3.0, and was removed in 3.1
+    # hence we try to get pass_context (most installs will be >=3.1)
+    # and fall back to contextfunction,
+    # adding a type ignore for mypy to let us access an attribute that may not exist
     if hasattr(jinja2, "pass_context"):
         pass_context = jinja2.pass_context
     else:  # pragma: nocover
-        pass_context = jinja2.contextfunction
+        pass_context = jinja2.contextfunction  # type: ignore[attr-defined]
 except ImportError:  # pragma: nocover
     jinja2 = None  # type: ignore
 
@@ -25,9 +28,9 @@ class _TemplateResponse(Response):
         template: typing.Any,
         context: dict,
         status_code: int = 200,
-        headers: typing.Mapping[str, str] = None,
-        media_type: str = None,
-        background: BackgroundTask = None,
+        headers: typing.Optional[typing.Mapping[str, str]] = None,
+        media_type: typing.Optional[str] = None,
+        background: typing.Optional[BackgroundTask] = None,
     ):
         self.template = template
         self.context = context
@@ -85,9 +88,9 @@ class Jinja2Templates:
         name: str,
         context: dict,
         status_code: int = 200,
-        headers: typing.Mapping[str, str] = None,
-        media_type: str = None,
-        background: BackgroundTask = None,
+        headers: typing.Optional[typing.Mapping[str, str]] = None,
+        media_type: typing.Optional[str] = None,
+        background: typing.Optional[BackgroundTask] = None,
     ) -> _TemplateResponse:
         if "request" not in context:
             raise ValueError('context must include a "request" key')

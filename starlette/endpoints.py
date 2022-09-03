@@ -1,8 +1,8 @@
-import asyncio
 import json
 import typing
 
 from starlette import status
+from starlette._utils import is_async_callable
 from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
@@ -37,7 +37,7 @@ class HTTPEndpoint:
         handler: typing.Callable[[Request], typing.Any] = getattr(
             self, handler_name, self.method_not_allowed
         )
-        is_async = asyncio.iscoroutinefunction(handler)
+        is_async = is_async_callable(handler)
         if is_async:
             response = await handler(request)
         else:
@@ -80,7 +80,9 @@ class WebSocketEndpoint:
                     data = await self.decode(websocket, message)
                     await self.on_receive(websocket, data)
                 elif message["type"] == "websocket.disconnect":
-                    close_code = int(message.get("code", status.WS_1000_NORMAL_CLOSURE))
+                    close_code = int(
+                        message.get("code") or status.WS_1000_NORMAL_CLOSURE
+                    )
                     break
         except Exception as exc:
             close_code = status.WS_1011_INTERNAL_ERROR
