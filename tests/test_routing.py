@@ -5,6 +5,7 @@ import uuid
 import pytest
 
 from starlette.applications import Starlette
+from starlette.exceptions import HTTPException
 from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, PlainTextResponse, Response
@@ -890,3 +891,62 @@ def test_exception_on_mounted_apps(test_client_factory):
     with pytest.raises(Exception) as ctx:
         client.get("/sub/")
     assert str(ctx.value) == "Exc"
+
+
+def test_mounted_middleware_does_not_catch_exception(
+    test_client_factory: typing.Callable[..., TestClient],
+) -> None:
+    # https://github.com/encode/starlette/pull/1649#discussion_r960236107
+    def exc(request: Request) -> Response:
+        raise HTTPException(status_code=403, detail="auth")
+
+    class NamedMiddleware:
+        def __init__(self, app: ASGIApp, name: str) -> None:
+            self.app = app
+            self.name = name
+
+        async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+            async def modified_send(msg: Message) -> None:
+                if msg["type"] == "http.response.start":
+                    msg["headers"].append((f"X-{self.name}".encode(), b"true"))
+                await send(msg)
+
+            await self.app(scope, receive, modified_send)
+
+    app = Starlette(
+        routes=[
+            Mount(
+                "/mount",
+                routes=[
+                    Route("/err", exc),
+                    Route("/home", homepage),
+                ],
+                middleware=[Middleware(NamedMiddleware, name="Mounted")],
+            ),
+            Route("/err", exc),
+            Route("/home", homepage),
+        ],
+        middleware=[Middleware(NamedMiddleware, name="Outer")],
+    )
+
+    client = test_client_factory(app)
+
+    resp = client.get("/home")
+    assert resp.status_code == 200, resp.content
+    assert "X-Outer" in resp.headers
+
+    resp = client.get("/err")
+    assert resp.status_code == 403, resp.content
+    assert "X-Outer" in resp.headers
+
+    resp = client.get("/mount/home")
+    assert resp.status_code == 200, resp.content
+    assert "X-Mounted" in resp.headers
+
+    # this is the "surprising" behavior bit
+    # the middleware on the mount never runs because there
+    # is nothing to catch the HTTPException
+    # since Mount middlweare is not wrapped by ExceptionMiddleware
+    resp = client.get("/mount/err")
+    assert resp.status_code == 403, resp.content
+    assert "X-Mounted" not in resp.headers
