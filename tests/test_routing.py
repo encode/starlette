@@ -847,12 +847,12 @@ def test_mount_middleware(
     "route",
     [
         mounted_routes_with_middleware,
-        mounted_routes_with_middleware,
+        mounted_app_with_middleware,
     ],
 )
 def test_mount_middleware_url_path_for(route: BaseRoute) -> None:
     """Checks that url_path_for still works with middleware on Mounts"""
-    router = Router([route])
+    router = Router([mounted_routes_with_middleware])
     assert router.url_path_for("route") == "/http/"
 
 
