@@ -8,15 +8,7 @@ from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, PlainTextResponse, Response
-from starlette.routing import (
-    BaseRoute,
-    Host,
-    Mount,
-    NoMatchFound,
-    Route,
-    Router,
-    WebSocketRoute,
-)
+from starlette.routing import Host, Mount, NoMatchFound, Route, Router, WebSocketRoute
 from starlette.testclient import TestClient
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketDisconnect
@@ -800,34 +792,44 @@ def assert_middleware_header_route(request: Request) -> Response:
     return Response()
 
 
-mounted_routes_with_middleware = Mount(
-    "/http",
+mounted_routes_with_middleware = Starlette(
     routes=[
-        Route(
-            "/",
-            endpoint=assert_middleware_header_route,
-            methods=["GET"],
-            name="route",
+        Mount(
+            "/http",
+            routes=[
+                Route(
+                    "/",
+                    endpoint=assert_middleware_header_route,
+                    methods=["GET"],
+                    name="route",
+                ),
+            ],
+            middleware=[Middleware(AddHeadersMiddleware)],
         ),
-    ],
-    middleware=[Middleware(AddHeadersMiddleware)],
+        Route("/home", homepage),
+    ]
 )
 
 
-mounted_app_with_middleware = Mount(
-    "/http",
-    app=Route(
-        "/",
-        endpoint=assert_middleware_header_route,
-        methods=["GET"],
-        name="route",
-    ),
-    middleware=[Middleware(AddHeadersMiddleware)],
+mounted_app_with_middleware = Starlette(
+    routes=[
+        Mount(
+            "/http",
+            app=Route(
+                "/",
+                endpoint=assert_middleware_header_route,
+                methods=["GET"],
+                name="route",
+            ),
+            middleware=[Middleware(AddHeadersMiddleware)],
+        ),
+        Route("/home", homepage),
+    ]
 )
 
 
 @pytest.mark.parametrize(
-    "route",
+    "app",
     [
         mounted_routes_with_middleware,
         mounted_app_with_middleware,
@@ -835,25 +837,28 @@ mounted_app_with_middleware = Mount(
 )
 def test_mount_middleware(
     test_client_factory: typing.Callable[..., TestClient],
-    route: BaseRoute,
+    app: Starlette,
 ) -> None:
-    test_client = test_client_factory(Router([route]))
+    test_client = test_client_factory(app)
+
+    response = test_client.get("/home")
+    assert response.status_code == 200
+    assert "X-Test" not in response.headers
+
     response = test_client.get("/http")
     assert response.status_code == 200
     assert response.headers["X-Test"] == "Set by middleware"
 
 
-@pytest.mark.parametrize(
-    "route",
-    [
-        mounted_routes_with_middleware,
-        mounted_app_with_middleware,
-    ],
-)
-def test_mount_middleware_url_path_for(route: BaseRoute) -> None:
-    """Checks that url_path_for still works with middleware on Mounts"""
-    router = Router([mounted_routes_with_middleware])
-    assert router.url_path_for("route") == "/http/"
+def test_mount_routes_with_middleware_url_path_for() -> None:
+    """Checks that url_path_for still works with mounted routes with Middleware"""
+    assert mounted_routes_with_middleware.url_path_for("route") == "/http/"
+
+
+def test_mount_asgi_app_with_middleware_url_path_for() -> None:
+    """Mounted ASGI apps do not work with url path for, middleware does not change this"""
+    with pytest.raises(NoMatchFound):
+        mounted_app_with_middleware.url_path_for("route")
 
 
 def test_add_route_to_app_after_mount(
@@ -866,7 +871,7 @@ def test_add_route_to_app_after_mount(
     app = Mount("/http", app=inner_app)
     inner_app.add_route(
         "/inner",
-        endpoint=lambda request: Response(),
+        endpoint=homepage,
         methods=["GET"],
     )
     client = test_client_factory(app)
