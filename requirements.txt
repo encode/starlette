@@ -1,6 +1,3 @@
-# Optionals
--e .[full]
-
 # Testing
 autoflake==1.5.3
 black==22.8.0
@@ -8,12 +5,14 @@ coverage==6.4.2
 databases[sqlite]==0.6.1
 flake8==3.9.2
 isort==5.10.1
+itsdangerous==2.1.2
 mypy==0.971
 typing_extensions==4.3.0
 types-contextvars==2.4.7
 types-PyYAML==6.0.11
 types-dataclasses==0.6.6
 pytest==7.1.2
+python-multipart==0.0.5
 trio==0.21.0
 # NOTE: Remove once greenlet releases 2.0.0.
 greenlet==2.0.0a2; python_version >= "3.11"
