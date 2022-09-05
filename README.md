@@ -135,7 +135,6 @@ in isolation.
 
 [asgi]: https://asgi.readthedocs.io/en/latest/
 [httpx]: https://www.python-httpx.org/
-[requests]: http://docs.python-requests.org/en/master/
 [jinja2]: http://jinja.pocoo.org/
 [python-multipart]: https://andrew-d.github.io/python-multipart/
 [itsdangerous]: https://pythonhosted.org/itsdangerous/
