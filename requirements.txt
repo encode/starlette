@@ -5,7 +5,6 @@ coverage==6.4.2
 databases[sqlite]==0.6.1
 flake8==3.9.2
 isort==5.10.1
-itsdangerous==2.1.2
 mypy==0.971
 typing_extensions==4.3.0
 types-contextvars==2.4.7
