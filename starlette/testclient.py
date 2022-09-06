@@ -177,6 +177,99 @@ class WebSocketTestSession:
         return json.loads(text)
 
 
+class _HTTPResponseReceiver:
+    def __init__(
+        self, request: httpx.Request, portal: anyio.abc.BlockingPortal
+    ) -> None:
+        self.request = request
+        self.response_complete = portal.call(anyio.Event)
+        self.response_started = False
+        self.raw_kwargs: typing.Dict[str, typing.Any] = {"stream": io.BytesIO()}
+        self.template = None
+        self.context = None
+
+    async def __call__(self, message: Message) -> None:
+        if message["type"] == "http.response.start":
+            assert (
+                not self.response_started
+            ), 'Received multiple "http.response.start" messages.'
+            self.raw_kwargs["status_code"] = message["status"]
+            self.raw_kwargs["headers"] = [
+                (key.decode(), value.decode())
+                for key, value in message.get("headers", [])
+            ]
+            self.response_started = True
+        elif message["type"] == "http.response.body":
+            assert (
+                self.response_started
+            ), 'Received "http.response.body" without "http.response.start".'
+            assert (
+                not self.response_complete.is_set()
+            ), 'Received "http.response.body" after response completed.'
+            body = message.get("body", b"")
+            more_body = message.get("more_body", False)
+            if self.request.method != "HEAD":
+                self.raw_kwargs["stream"].write(body)
+            if not more_body:
+                self.raw_kwargs["stream"].seek(0)
+                self.response_complete.set()
+        elif message["type"] == "http.response.template":
+            self.template = message["template"]
+            self.context = message["context"]
+
+    def get_response(self, raise_server_exceptions: bool = True) -> httpx.Response:
+        if raise_server_exceptions:
+            assert self.response_started, "TestClient did not receive any response."
+        elif not self.response_started:
+            self.raw_kwargs = {
+                "status_code": 500,
+                "headers": [],
+                "stream": io.BytesIO(),
+            }
+        self.raw_kwargs["stream"] = httpx.ByteStream(self.raw_kwargs["stream"].read())
+
+        response = httpx.Response(**self.raw_kwargs, request=self.request)
+        if self.template is not None:
+            response.template = self.template  # type: ignore[attr-defined]
+            response.context = self.context  # type: ignore[attr-defined]
+        return response
+
+
+class _HTTPRequestSender:
+    def __init__(
+        self, request: httpx.Request, response_receiver: _HTTPResponseReceiver
+    ):
+        self.request = request
+        self.request_complete = False
+        self.response_receiver = response_receiver
+
+    async def __call__(self) -> Message:
+        if self.request_complete:
+            if not self.response_receiver.response_complete.is_set():
+                await self.response_receiver.response_complete.wait()
+            return {"type": "http.disconnect"}
+
+        body = self.request.read()
+        if isinstance(body, str):
+            body_bytes: bytes = body.encode("utf-8")  # pragma: no cover
+        elif body is None:
+            body_bytes = b""  # pragma: no cover
+        elif isinstance(body, GeneratorType):
+            try:  # pragma: no cover
+                chunk = body.send(None)
+                if isinstance(chunk, str):
+                    chunk = chunk.encode("utf-8")
+                return {"type": "http.request", "body": chunk, "more_body": True}
+            except StopIteration:  # pragma: no cover
+                self.request_complete = True
+                return {"type": "http.request", "body": b""}
+        else:
+            body_bytes = body
+
+        self.request_complete = True
+        return {"type": "http.request", "body": body_bytes}
+
+
 class _TestClientTransport(httpx.BaseTransport):
     def __init__(
         self,
@@ -258,96 +351,16 @@ class _TestClientTransport(httpx.BaseTransport):
             "extensions": {"http.response.template": {}},
         }
 
-        request_complete = False
-        response_started = False
-        response_complete: anyio.Event
-        raw_kwargs: typing.Dict[str, typing.Any] = {"stream": io.BytesIO()}
-        template = None
-        context = None
+        with self.portal_factory() as portal:
+            try:
+                send_response = _HTTPResponseReceiver(request, portal)
+                receive_request = _HTTPRequestSender(request, send_response)
+                portal.call(self.app, scope, receive_request, send_response)
+            except BaseException as exc:
+                if self.raise_server_exceptions:
+                    raise exc
 
-        async def receive() -> Message:
-            nonlocal request_complete
-
-            if request_complete:
-                if not response_complete.is_set():
-                    await response_complete.wait()
-                return {"type": "http.disconnect"}
-
-            body = request.read()
-            if isinstance(body, str):
-                body_bytes: bytes = body.encode("utf-8")  # pragma: no cover
-            elif body is None:
-                body_bytes = b""  # pragma: no cover
-            elif isinstance(body, GeneratorType):
-                try:  # pragma: no cover
-                    chunk = body.send(None)
-                    if isinstance(chunk, str):
-                        chunk = chunk.encode("utf-8")
-                    return {"type": "http.request", "body": chunk, "more_body": True}
-                except StopIteration:  # pragma: no cover
-                    request_complete = True
-                    return {"type": "http.request", "body": b""}
-            else:
-                body_bytes = body
-
-            request_complete = True
-            return {"type": "http.request", "body": body_bytes}
-
-        async def send(message: Message) -> None:
-            nonlocal raw_kwargs, response_started, template, context
-
-            if message["type"] == "http.response.start":
-                assert (
-                    not response_started
-                ), 'Received multiple "http.response.start" messages.'
-                raw_kwargs["status_code"] = message["status"]
-                raw_kwargs["headers"] = [
-                    (key.decode(), value.decode())
-                    for key, value in message.get("headers", [])
-                ]
-                response_started = True
-            elif message["type"] == "http.response.body":
-                assert (
-                    response_started
-                ), 'Received "http.response.body" without "http.response.start".'
-                assert (
-                    not response_complete.is_set()
-                ), 'Received "http.response.body" after response completed.'
-                body = message.get("body", b"")
-                more_body = message.get("more_body", False)
-                if request.method != "HEAD":
-                    raw_kwargs["stream"].write(body)
-                if not more_body:
-                    raw_kwargs["stream"].seek(0)
-                    response_complete.set()
-            elif message["type"] == "http.response.template":
-                template = message["template"]
-                context = message["context"]
-
-        try:
-            with self.portal_factory() as portal:
-                response_complete = portal.call(anyio.Event)
-                portal.call(self.app, scope, receive, send)
-        except BaseException as exc:
-            if self.raise_server_exceptions:
-                raise exc
-
-        if self.raise_server_exceptions:
-            assert response_started, "TestClient did not receive any response."
-        elif not response_started:
-            raw_kwargs = {
-                "status_code": 500,
-                "headers": [],
-                "stream": io.BytesIO(),
-            }
-
-        raw_kwargs["stream"] = httpx.ByteStream(raw_kwargs["stream"].read())
-
-        response = httpx.Response(**raw_kwargs, request=request)
-        if template is not None:
-            response.template = template  # type: ignore[attr-defined]
-            response.context = context  # type: ignore[attr-defined]
-        return response
+            return send_response.get_response(self.raise_server_exceptions)
 
 
 class TestClient(httpx.Client):
