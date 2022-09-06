@@ -299,6 +299,10 @@ class _TestClientTransport(httpx.BaseTransport):
             host = netloc
             port = default_port
 
+        asgi_websocket_denial_response: bool = json.loads(
+            request.headers.pop("x-asgi-websocket-denial-response", "false")
+        )
+
         # Include the 'host' header.
         if "host" in request.headers:
             headers: typing.List[typing.Tuple[bytes, bytes]] = []
@@ -332,7 +336,10 @@ class _TestClientTransport(httpx.BaseTransport):
                 "client": ["testclient", 50000],
                 "server": [host, port],
                 "subprotocols": subprotocols,
+                "extensions": {"http.response.template": {}},
             }
+            if asgi_websocket_denial_response:
+                scope["extensions"]["websocket.http.response"] = {}
             session = WebSocketTestSession(self.app, scope, self.portal_factory)
             raise _Upgrade(session)
 
@@ -702,13 +709,20 @@ class TestClient(httpx.Client):
         )
 
     def websocket_connect(
-        self, url: str, subprotocols: typing.Sequence[str] = None, **kwargs: typing.Any
+        self,
+        url: str,
+        subprotocols: typing.Sequence[str] = None,
+        denial_response: bool = False,
+        **kwargs: typing.Any,
     ) -> typing.Any:
         url = urljoin("ws://testserver", url)
         headers = kwargs.get("headers", {})
         headers.setdefault("connection", "upgrade")
         headers.setdefault("sec-websocket-key", "testserver==")
         headers.setdefault("sec-websocket-version", "13")
+        headers.setdefault(
+            "x-asgi-websocket-denial-response", json.dumps(denial_response)
+        )
         if subprotocols is not None:
             headers.setdefault("sec-websocket-protocol", ", ".join(subprotocols))
         kwargs["headers"] = headers
