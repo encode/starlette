@@ -4,8 +4,15 @@ import anyio
 import pytest
 
 from starlette import status
+from starlette.responses import PlainTextResponse
+from starlette.testclient import WebSocketDenied
 from starlette.types import Receive, Scope, Send
-from starlette.websockets import WebSocket, WebSocketDisconnect, WebSocketState
+from starlette.websockets import (
+    WebSocket,
+    WebsocketDenialResponse,
+    WebSocketDisconnect,
+    WebSocketState,
+)
 
 
 def test_websocket_url(test_client_factory):
@@ -468,3 +475,37 @@ def test_receive_wrong_message_type(test_client_factory):
     with pytest.raises(RuntimeError):
         with client.websocket_connect("/") as websocket:
             websocket.send({"type": "websocket.connect"})
+
+
+def test_denial_response(test_client_factory):
+    async def plaintext_app(scope: Scope, receive: Receive, send: Send) -> None:
+        response = PlainTextResponse(
+            "Websocket Denied Reason", status_code=status.HTTP_403_FORBIDDEN
+        )
+        await response(scope, receive, send)
+
+        # Disconnect is sent to the application when `receive`
+        # is called after an HTTP response has been sent
+        for _ in range(5):
+            msg = await receive()
+            assert msg["type"] == "http.disconnect"
+
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
+        websocket = WebSocket(scope, receive=receive, send=send)
+        response = WebsocketDenialResponse(plaintext_app)
+        await response.send(websocket)
+
+    client = test_client_factory(app)
+
+    # If Denial Response is disabled, should get a regular WebSocketDisconnect
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect("/"):
+            pass  # pragma: nocover
+
+    # Otherwise it should get a WebSocketDenied and a response
+    with pytest.raises(WebSocketDenied) as exc:
+        with client.websocket_connect("/", denial_response=True):
+            pass  # pragma: nocover
+
+    assert exc.value.response.status_code == status.HTTP_403_FORBIDDEN
+    assert exc.value.response.text == "Websocket Denied Reason"
