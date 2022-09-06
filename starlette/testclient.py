@@ -66,16 +66,19 @@ class WebSocketTestSession:
     def __init__(
         self,
         app: ASGI3App,
+        request: httpx.Request,
         scope: Scope,
         portal_factory: _PortalFactoryType,
     ) -> None:
         self.app = app
+        self.request = request
         self.scope = scope
         self.accepted_subprotocol = None
         self.portal_factory = portal_factory
         self._receive_queue: "queue.Queue[typing.Any]" = queue.Queue()
         self._send_queue: "queue.Queue[typing.Any]" = queue.Queue()
         self.extra_headers = None
+        self.denial_response_receiver: typing.Optional[_HTTPResponseReceiver] = None
 
     def __enter__(self) -> "WebSocketTestSession":
         self.exit_stack = contextlib.ExitStack()
@@ -86,6 +89,7 @@ class WebSocketTestSession:
             self.send({"type": "websocket.connect"})
             message = self.receive()
             self._raise_on_close(message)
+            self._raise_on_denial(message)
         except Exception:
             self.exit_stack.close()
             raise
@@ -117,9 +121,16 @@ class WebSocketTestSession:
             raise
 
     async def _asgi_receive(self) -> Message:
-        while self._receive_queue.empty():
-            await anyio.sleep(0)
-        return self._receive_queue.get()
+        while True:
+            if self.denial_response_receiver is not None:
+                # When using Websocket Denial Responses, the only thing that can be
+                # received is a "disconnect" event, after the response has been sent
+                await self.denial_response_receiver.wait_complete()
+                return {"type": "websocket.disconnect"}
+            elif not self._receive_queue.empty():
+                return self._receive_queue.get()
+            else:
+                await anyio.sleep(0)
 
     async def _asgi_send(self, message: Message) -> None:
         self._send_queue.put(message)
@@ -129,6 +140,29 @@ class WebSocketTestSession:
             raise WebSocketDisconnect(
                 message.get("code", 1000), message.get("reason", "")
             )
+
+    def _raise_on_denial(self, message: Message) -> typing.Any:
+        if message["type"] != "websocket.http.response.start":
+            return
+
+        def translate_type(message: Message) -> None:
+            assert message["type"].startswith(
+                "websocket.http."
+            ), f"Unexpected message type: {message['type']}"
+            message["type"] = message["type"][len("websocket.") :]
+
+        self.denial_response_receiver = _HTTPResponseReceiver(self.request, self.portal)
+
+        while True:
+            translate_type(message)
+            self.portal.call(self.denial_response_receiver, message)
+
+            if self.denial_response_receiver.is_complete:
+                response = self.denial_response_receiver.get_response()
+                response.read()  # Assume non-streaming response
+                raise WebSocketDenied(response)
+
+            message = self.receive()
 
     def send(self, message: Message) -> None:
         self._receive_queue.put(message)
@@ -216,6 +250,14 @@ class _HTTPResponseReceiver:
         elif message["type"] == "http.response.template":
             self.template = message["template"]
             self.context = message["context"]
+
+    @property
+    def is_complete(self) -> bool:
+        return self.response_complete.is_set()
+
+    async def wait_complete(self) -> None:
+        if not self.response_complete.is_set():
+            await self.response_complete.wait()
 
     def get_response(self, raise_server_exceptions: bool = True) -> httpx.Response:
         if raise_server_exceptions:
@@ -340,7 +382,9 @@ class _TestClientTransport(httpx.BaseTransport):
             }
             if asgi_websocket_denial_response:
                 scope["extensions"]["websocket.http.response"] = {}
-            session = WebSocketTestSession(self.app, scope, self.portal_factory)
+            session = WebSocketTestSession(
+                self.app, request, scope, self.portal_factory
+            )
             raise _Upgrade(session)
 
         scope = {
@@ -368,6 +412,16 @@ class _TestClientTransport(httpx.BaseTransport):
                     raise exc
 
             return send_response.get_response(self.raise_server_exceptions)
+
+
+class WebSocketDenied(Exception):
+    """
+    Thrown when an attempt to connect to a websocket fails
+    with an HTTP Denial Response
+    """
+
+    def __init__(self, response: httpx.Response) -> None:
+        self.response = response
 
 
 class TestClient(httpx.Client):
