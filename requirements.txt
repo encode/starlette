@@ -11,7 +11,6 @@ types-contextvars==2.4.7
 types-PyYAML==6.0.11
 types-dataclasses==0.6.6
 pytest==7.1.2
-python-multipart==0.0.5
 trio==0.21.0
 # NOTE: Remove once greenlet releases 2.0.0.
 greenlet==2.0.0a2; python_version >= "3.11"
