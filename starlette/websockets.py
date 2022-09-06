@@ -3,7 +3,7 @@ import json
 import typing
 
 from starlette.requests import HTTPConnection
-from starlette.types import Message, Receive, Scope, Send
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
 class WebSocketState(enum.Enum):
@@ -191,3 +191,56 @@ class WebSocketClose:
         await send(
             {"type": "websocket.close", "code": self.code, "reason": self.reason}
         )
+
+
+class WebsocketDenialResponse:
+    """
+    Represents a failure to stabilish a websocket connection
+
+    If the ASGI server supports it, the specified HTTP denial response
+    will be sent to the client, otherwise a standard 'close' event is sent,
+    resulting in a generic HTTP 403 Response
+    """
+
+    def __init__(self, response: ASGIApp) -> None:
+        self.response = response
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        assert (
+            scope["type"] == "websocket"
+        ), "WebsocketDenialResponse requires a websocket scope"
+
+        # Check if Websocket Denial Response can be used
+        if self.response is None or "websocket.http.response" not in scope.get(
+            "extensions", {}
+        ):
+            await send({"type": "websocket.close"})
+            return
+
+        # call the specified response, mapping send/receive events
+        # between http/websocket ASGI protocols
+
+        async def xsend(msg: Message) -> None:
+            assert msg["type"].startswith(
+                "http.response."
+            ), f"Unsupported message type: {msg['type']}"
+            msg["type"] = "websocket." + msg["type"]
+            await send(msg)
+
+        async def xreceive() -> Message:
+            while True:
+                msg = await receive()
+                if msg["type"] == "websocket.disconnect":
+                    msg["type"] = "http.disconnect"
+                    return msg
+
+        await self.response(scope, xreceive, xsend)
+
+    async def send(self, websocket: WebSocket) -> None:
+        """Sends a denial response from an existing WebSocket object"""
+        state = websocket.application_state
+        assert (
+            state == WebSocketState.CONNECTING
+        ), f"Cannot send Websocket Denial Response: status is {state}"
+
+        await self(websocket.scope, websocket._receive, websocket._send)
