@@ -71,14 +71,14 @@ class WebSocketTestSession:
         portal_factory: _PortalFactoryType,
     ) -> None:
         self.app = app
-        self.request = request
+        self._request = request
         self.scope = scope
         self.accepted_subprotocol = None
         self.portal_factory = portal_factory
         self._receive_queue: "queue.Queue[typing.Any]" = queue.Queue()
         self._send_queue: "queue.Queue[typing.Any]" = queue.Queue()
         self.extra_headers = None
-        self.denial_response_receiver: typing.Optional[_HTTPResponseReceiver] = None
+        self._denial_response_receiver: typing.Optional[_HTTPResponseReceiver] = None
 
     def __enter__(self) -> "WebSocketTestSession":
         self.exit_stack = contextlib.ExitStack()
@@ -122,10 +122,10 @@ class WebSocketTestSession:
 
     async def _asgi_receive(self) -> Message:
         while True:
-            if self.denial_response_receiver is not None:
+            if self._denial_response_receiver is not None:
                 # When using Websocket Denial Responses, the only thing that can be
                 # received is a "disconnect" event, after the response has been sent
-                await self.denial_response_receiver.wait_complete()
+                await self._denial_response_receiver.wait_complete()
                 return {"type": "websocket.disconnect"}
             elif not self._receive_queue.empty():
                 return self._receive_queue.get()
@@ -151,14 +151,16 @@ class WebSocketTestSession:
             ), f"Unexpected message type: {message['type']}"
             message["type"] = message["type"][len("websocket.") :]
 
-        self.denial_response_receiver = _HTTPResponseReceiver(self.request, self.portal)
+        self._denial_response_receiver = _HTTPResponseReceiver(
+            self._request, self.portal
+        )
 
         while True:
             translate_type(message)
-            self.portal.call(self.denial_response_receiver, message)
+            self.portal.call(self._denial_response_receiver, message)
 
-            if self.denial_response_receiver.is_complete:
-                response = self.denial_response_receiver.get_response()
+            if self._denial_response_receiver.is_complete:
+                response = self._denial_response_receiver.get_response()
                 response.read()  # Assume non-streaming response
                 raise WebSocketDenied(response)
 
