@@ -14,6 +14,7 @@ if [ -z "$GITHUB_ACTIONS" ]; then
 else
     PIP="pip"
 fi
+
 "$PIP" install pip setuptools --upgrade
 "$PIP" install -r "$REQUIREMENTS"
-"$PIP" install .
+"$PIP" install -e .
