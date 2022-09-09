@@ -23,3 +23,8 @@ mkautodoc==0.1.0
 # Packaging
 build==0.8.0
 twine==4.0.1
+
+# Dev
+httpx==0.23.0
+itsdangerous==2.1.2
+python-multipart==0.0.5
