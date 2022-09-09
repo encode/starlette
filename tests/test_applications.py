@@ -7,7 +7,7 @@ import pytest
 from starlette import status
 from starlette.applications import Starlette
 from starlette.endpoints import HTTPEndpoint
-from starlette.exceptions import HTTPException, WebSocketException
+from starlette.exceptions import HTTPException, WebSocketException, ImproperlyConfigured
 from starlette.middleware import Middleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.responses import JSONResponse, PlainTextResponse
@@ -429,3 +429,123 @@ def test_app_sync_gen_lifespan(test_client_factory):
         assert not cleanup_complete
     assert startup_complete
     assert cleanup_complete
+
+
+@pytest.mark.anyio
+async def test_trusted_host_not_configured():
+    async def async_url_for(request):
+        return PlainTextResponse(request.url_for("async_url_for"))
+
+    app = Starlette(
+        routes=[
+            Route("/func", endpoint=async_url_for),
+        ],
+    )
+    scope = {
+        "type": "http",
+        "headers": {
+            (b"host", b"testserver"),
+        },
+        "method": "GET",
+        "path": "/func",
+    }
+    async def receive(arg):
+        pass
+    async def send(arg):
+        if arg["type"] == "http.response.start":
+            assert arg["status"] == 500
+        elif arg["type"] == "http.response.body":
+            assert arg["body"] == b"Internal Server Error"
+
+    request = app(scope, receive, send)
+    with pytest.raises(ImproperlyConfigured):
+        await request
+
+
+@pytest.mark.anyio
+async def test_trusted_host_wildcard():
+    async def async_url_for(request):
+        return PlainTextResponse(request.url_for("async_url_for"))
+
+    app = Starlette(
+        routes=[
+            Route("/func", endpoint=async_url_for),
+        ],
+    )
+    scope = {
+        "type": "http",
+        "headers": {
+            (b"host", b"testserver"),
+        },
+        "method": "GET",
+        "path": "/func",
+    }
+    async def receive(arg):
+        pass
+    async def send(arg):
+        if arg["type"] == "http.response.start":
+            assert arg["status"] == 200
+
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
+    request = app(scope, receive, send)
+    await request
+
+
+@pytest.mark.anyio
+async def test_trusted_host_in_allowed_hosts():
+    async def async_url_for(request):
+        return PlainTextResponse(request.url_for("async_url_for"))
+
+    app = Starlette(
+        routes=[
+            Route("/func", endpoint=async_url_for),
+        ],
+    )
+    scope = {
+        "type": "http",
+        "headers": {
+            (b"host", b"testserver"),
+        },
+        "method": "GET",
+        "path": "/func",
+    }
+    async def receive(arg):
+        pass
+    async def send(arg):
+        if arg["type"] == "http.response.start":
+            assert arg["status"] == 200
+
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["testserver"])
+    request = app(scope, receive, send)
+    await request
+
+
+@pytest.mark.anyio
+async def test_trusted_host_not_in_allowed_hosts():
+    async def async_url_for(request):
+        return PlainTextResponse(request.url_for("async_url_for"))
+
+    app = Starlette(
+        routes=[
+            Route("/func", endpoint=async_url_for),
+        ],
+    )
+    scope = {
+        "type": "http",
+        "headers": {
+            (b"host", b"testserver"),
+        },
+        "method": "GET",
+        "path": "/func",
+    }
+    async def receive(arg):
+        pass
+    async def send(arg):
+        if arg["type"] == "http.response.start":
+            assert arg["status"] == 400
+        elif arg["type"] == "http.response.body":
+            assert arg["body"] == b"Invalid host header"
+
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["anotherserver"])
+    request = app(scope, receive, send)
+    resp = await request

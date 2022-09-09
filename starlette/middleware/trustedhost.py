@@ -1,6 +1,6 @@
 import typing
 
-from starlette.datastructures import URL, Headers
+from starlette.datastructures import URL, Headers, TrustedHost
 from starlette.responses import PlainTextResponse, RedirectResponse, Response
 from starlette.types import ASGIApp, Receive, Scope, Send
 
@@ -31,6 +31,7 @@ class TrustedHostMiddleware:
             "http",
             "websocket",
         ):  # pragma: no cover
+            self._mark_host_header_as_trusted(scope)
             await self.app(scope, receive, send)
             return
 
@@ -48,6 +49,7 @@ class TrustedHostMiddleware:
                 found_www_redirect = True
 
         if is_valid_host:
+            self._mark_host_header_as_trusted(scope)
             await self.app(scope, receive, send)
         else:
             response: Response
@@ -58,3 +60,11 @@ class TrustedHostMiddleware:
             else:
                 response = PlainTextResponse("Invalid host header", status_code=400)
             await response(scope, receive, send)
+
+    def _mark_host_header_as_trusted(self, scope):
+        if "headers" not in scope:
+            return
+        scope["headers"] = [
+            (key, value if key != b"host" else TrustedHost(value))
+            for key, value in scope["headers"]
+        ]

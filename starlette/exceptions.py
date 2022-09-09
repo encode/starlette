@@ -33,6 +33,10 @@ class WebSocketException(Exception):
         return f"{class_name}(code={self.code!r}, reason={self.reason!r})"
 
 
+class ImproperlyConfigured(Exception):
+    pass
+
+
 __deprecated__ = "ExceptionMiddleware"
 
 
