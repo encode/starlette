@@ -45,6 +45,7 @@ nav:
   - Test Client: 'testclient.md'
   - Third Party Packages: 'third-party-packages.md'
   - Contributing: 'contributing.md'
+  - Deprecation Policy: 'deprecation.md'
   - Release Notes: 'release-notes.md'
 
 markdown_extensions:
@@ -53,7 +54,7 @@ markdown_extensions:
   - pymdownx.highlight
   - pymdownx.superfences
   - pymdownx.tabbed:
-      alternate_style: true 
+      alternate_style: true
 
 extra_javascript:
   - 'js/chat.js'
