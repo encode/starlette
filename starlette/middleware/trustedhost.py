@@ -31,7 +31,7 @@ class TrustedHostMiddleware:
             "http",
             "websocket",
         ):  # pragma: no cover
-            self._mark_host_header_as_trusted(scope)
+            scope = self._mark_host_header_as_trusted(scope)
             await self.app(scope, receive, send)
             return
 
@@ -49,7 +49,7 @@ class TrustedHostMiddleware:
                 found_www_redirect = True
 
         if is_valid_host:
-            self._mark_host_header_as_trusted(scope)
+            scope = self._mark_host_header_as_trusted(scope)
             await self.app(scope, receive, send)
         else:
             response: Response
@@ -63,8 +63,10 @@ class TrustedHostMiddleware:
 
     def _mark_host_header_as_trusted(self, scope):
         if "headers" not in scope:
-            return
-        scope["headers"] = [
+            return scope
+        new_scope = scope.copy()
+        new_scope["headers"] = [
             (key, value if key != b"host" else TrustedHost(value))
-            for key, value in scope["headers"]
+            for key, value in new_scope["headers"]
         ]
+        return new_scope
