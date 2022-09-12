@@ -449,8 +449,10 @@ async def test_trusted_host_not_configured():
         "method": "GET",
         "path": "/func",
     }
+
     async def receive(message):
         pass
+
     async def send(message):
         if message["type"] == "http.response.start":
             assert message["status"] == 500
@@ -480,8 +482,10 @@ async def test_trusted_host_wildcard():
         "method": "GET",
         "path": "/func",
     }
+
     async def receive(message):
         pass
+
     async def send(message):
         if message["type"] == "http.response.start":
             assert message["status"] == 200
@@ -509,8 +513,10 @@ async def test_trusted_host_in_allowed_hosts():
         "method": "GET",
         "path": "/func",
     }
+
     async def receive(message):
         pass
+
     async def send(message):
         if message["type"] == "http.response.start":
             assert message["status"] == 200
@@ -538,8 +544,10 @@ async def test_trusted_host_not_in_allowed_hosts():
         "method": "GET",
         "path": "/func",
     }
+
     async def receive(message):
         pass
+
     async def send(message):
         if message["type"] == "http.response.start":
             assert message["status"] == 400
