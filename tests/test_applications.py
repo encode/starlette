@@ -556,4 +556,4 @@ async def test_trusted_host_not_in_allowed_hosts():
 
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["anotherserver"])
     request = app(scope, receive, send)
-    resp = await request
+    await request
