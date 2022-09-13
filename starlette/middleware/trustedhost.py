@@ -1,3 +1,4 @@
+import copy
 import typing
 
 from starlette.datastructures import URL, Headers, TrustedHost
@@ -61,10 +62,10 @@ class TrustedHostMiddleware:
                 response = PlainTextResponse("Invalid host header", status_code=400)
             await response(scope, receive, send)
 
-    def _mark_host_header_as_trusted(self, scope):
+    def _mark_host_header_as_trusted(self, scope: Scope) -> Scope:
         if "headers" not in scope:
             return scope
-        new_scope = scope.copy()
+        new_scope = copy.copy(scope)
         new_scope["headers"] = [
             (key, value if key != b"host" else TrustedHost(value))
             for key, value in new_scope["headers"]

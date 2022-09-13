@@ -13,6 +13,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.responses import JSONResponse, PlainTextResponse
 from starlette.routing import Host, Mount, Route, Router, WebSocketRoute
 from starlette.staticfiles import StaticFiles
+from starlette.types import Message
 from starlette.websockets import WebSocket
 
 
@@ -450,7 +451,7 @@ async def test_trusted_host_not_configured():
         "path": "/func",
     }
 
-    async def receive(message):
+    async def receive() -> Message:
         pass
 
     async def send(message):
@@ -483,7 +484,7 @@ async def test_trusted_host_wildcard():
         "path": "/func",
     }
 
-    async def receive(message):
+    async def receive() -> Message:
         pass
 
     async def send(message):
@@ -514,7 +515,7 @@ async def test_trusted_host_in_allowed_hosts():
         "path": "/func",
     }
 
-    async def receive(message):
+    async def receive() -> Message:
         pass
 
     async def send(message):
@@ -545,7 +546,7 @@ async def test_trusted_host_not_in_allowed_hosts():
         "path": "/func",
     }
 
-    async def receive(message):
+    async def receive() -> Message:
         pass
 
     async def send(message):
