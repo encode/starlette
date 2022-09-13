@@ -529,7 +529,7 @@ async def test_trusted_host_in_allowed_hosts():
 
 @pytest.mark.anyio
 async def test_trusted_host_not_in_allowed_hosts():
-    async def async_url_for(request): # pragma: no cover
+    async def async_url_for(request):  # pragma: no cover
         assert False
 
     app = Starlette(
