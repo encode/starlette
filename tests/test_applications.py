@@ -451,8 +451,8 @@ async def test_trusted_host_not_configured():
         "path": "/func",
     }
 
-    async def receive() -> Message:
-        pass
+    async def receive() -> Message:  # pragma: no cover
+        assert False
 
     async def send(message):
         if message["type"] == "http.response.start":
@@ -484,8 +484,8 @@ async def test_trusted_host_wildcard():
         "path": "/func",
     }
 
-    async def receive() -> Message:
-        pass
+    async def receive() -> Message:  # pragma: no cover
+        assert False
 
     async def send(message):
         if message["type"] == "http.response.start":
@@ -515,8 +515,8 @@ async def test_trusted_host_in_allowed_hosts():
         "path": "/func",
     }
 
-    async def receive() -> Message:
-        pass
+    async def receive() -> Message:  # pragma: no cover
+        assert False
 
     async def send(message):
         if message["type"] == "http.response.start":
@@ -529,8 +529,8 @@ async def test_trusted_host_in_allowed_hosts():
 
 @pytest.mark.anyio
 async def test_trusted_host_not_in_allowed_hosts():
-    async def async_url_for(request):
-        return PlainTextResponse(request.url_for("async_url_for"))
+    async def async_url_for(request): # pragma: no cover
+        assert False
 
     app = Starlette(
         routes=[
@@ -546,8 +546,8 @@ async def test_trusted_host_not_in_allowed_hosts():
         "path": "/func",
     }
 
-    async def receive() -> Message:
-        pass
+    async def receive() -> Message:  # pragma: no cover
+        assert False
 
     async def send(message):
         if message["type"] == "http.response.start":
