@@ -10,6 +10,7 @@ This release replaces the underneath HTTP client used on the `TestClient` (`requ
 ### Added
 * Add `WebSocketException` and support for WS handlers [#1263](https://github.com/encode/starlette/pull/1263).
 * Add `middleware` parameter to `Mount` class [#1649](https://github.com/encode/starlette/pull/1649).
+
 ## 0.20.4
 
 June 28, 2022
