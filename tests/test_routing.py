@@ -979,7 +979,8 @@ def test_mount_repr() -> None:
             Route("/", endpoint=homepage),
         ],
     )
-    assert repr(route) == "Mount(path='/app', name='', app=Router(1 route))"
+    # test for substring because repr(Router) returns unique object ID
+    assert repr(route).startswith("Mount(path='/app', name='', app=")
 
 
 def test_mount_named_repr() -> None:
@@ -990,7 +991,8 @@ def test_mount_named_repr() -> None:
             Route("/", endpoint=homepage),
         ],
     )
-    assert repr(route) == "Mount(path='/app', name='app', app=Router(1 route))"
+    # test for substring because repr(Router) returns unique object ID
+    assert repr(route).startswith("Mount(path='/app', name='app', app=")
 
 
 def test_host_repr() -> None:
@@ -1002,7 +1004,8 @@ def test_host_repr() -> None:
             ]
         ),
     )
-    assert repr(route) == "Host(host='example.com', name='', app=Router(1 route))"
+    # test for substring because repr(Router) returns unique object ID
+    assert repr(route).startswith("Host(host='example.com', name='', app=")
 
 
 def test_host_named_repr() -> None:
@@ -1015,23 +1018,5 @@ def test_host_named_repr() -> None:
             ]
         ),
     )
-    assert repr(route) == "Host(host='example.com', name='app', app=Router(1 route))"
-
-
-def test_router_repr() -> None:
-    route = Router(
-        routes=[
-            Route("/", endpoint=homepage),
-        ]
-    )
-    assert repr(route) == "Router(1 route)"
-
-
-def test_router_repr_plural() -> None:
-    route = Router(
-        routes=[
-            Route("/", endpoint=homepage),
-            Route("/app", endpoint=homepage),
-        ]
-    )
-    assert repr(route) == "Router(2 routes)"
+    # test for substring because repr(Router) returns unique object ID
+    assert repr(route).startswith("Host(host='example.com', name='app', app=")

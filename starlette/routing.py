@@ -866,8 +866,3 @@ class Router:
             return func
 
         return decorator
-
-    def __repr__(self) -> str:
-        routes_count = len(self.routes)
-        noun = "route" if routes_count == 1 else "routes"
-        return f"{self.__class__.__name__}({routes_count} {noun})"
