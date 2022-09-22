@@ -285,8 +285,9 @@ class Route(BaseRoute):
 
     def __repr__(self) -> str:
         return (
-            f"<{self.__class__.__name__}: "
-            f"path={self.path}, name={self.name}, methods={sorted(self.methods or [])}>"
+            f"{self.__class__.__name__}("
+            f'path="{self.path}", name="{self.name}", '
+            f"methods={sorted(self.methods or [])})"
         )
 
 
@@ -348,7 +349,7 @@ class WebSocketRoute(BaseRoute):
         )
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__}: path={self.path}, name={self.name}>"
+        return f'{self.__class__.__name__}(path="{self.path}", name="{self.name}")'
 
 
 class Mount(BaseRoute):
@@ -451,8 +452,8 @@ class Mount(BaseRoute):
 
     def __repr__(self) -> str:
         return (
-            f"<{self.__class__.__name__}: "
-            f"path={self.path}, name={self.name or ''}, app={self.app}>"
+            f"{self.__class__.__name__}("
+            f'path="{self.path}", name="{self.name or ""}", app="{self.app}")'
         )
 
 
@@ -524,8 +525,8 @@ class Host(BaseRoute):
 
     def __repr__(self) -> str:
         return (
-            f"<{self.__class__.__name__}: "
-            f"host={self.host}, name={self.name or ''}, app={self.app}>"
+            f"{self.__class__.__name__}("
+            f'host="{self.host}", name="{self.name or ""}", app="{self.app}")'
         )
 
 
@@ -872,4 +873,4 @@ class Router:
     def __repr__(self) -> str:
         routes_count = len(self.routes)
         noun = "route" if routes_count == 1 else "routes"
-        return f"<{self.__class__.__name__}: {routes_count} {noun}>"
+        return f"{self.__class__.__name__}({routes_count} {noun})"
