@@ -453,7 +453,7 @@ class Mount(BaseRoute):
     def __repr__(self) -> str:
         return (
             f"{self.__class__.__name__}("
-            f'path="{self.path}", name="{self.name or ""}", app="{self.app}")'
+            f'path="{self.path}", name="{self.name or ""}", app="{self.app!r}")'
         )
 
 
@@ -526,7 +526,7 @@ class Host(BaseRoute):
     def __repr__(self) -> str:
         return (
             f"{self.__class__.__name__}("
-            f'host="{self.host}", name="{self.name or ""}", app="{self.app}")'
+            f'host="{self.host}", name="{self.name or ""}", app="{self.app!r}")'
         )
 
 
