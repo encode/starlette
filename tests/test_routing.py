@@ -969,7 +969,7 @@ def test_route_repr_without_methods() -> None:
 
 def test_websocket_route_repr() -> None:
     route = WebSocketRoute("/ws", endpoint=websocket_endpoint)
-    assert repr(route) == 'WebSocketRoute(path="/ws", name="websocket_endpoint")'
+    assert repr(route) == "WebSocketRoute(path='/ws', name='websocket_endpoint')"
 
 
 def test_mount_repr() -> None:
