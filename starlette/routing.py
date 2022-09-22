@@ -284,11 +284,10 @@ class Route(BaseRoute):
         )
 
     def __repr__(self) -> str:
-        return (
-            f"{self.__class__.__name__}("
-            f'path="{self.path}", name="{self.name}", '
-            f"methods={sorted(self.methods or [])})"
-        )
+        class_name = self.__class__.__name__
+        methods = sorted(self.methods or [])
+        path, name = self.path, self.name
+        return f"{class_name}(path={path!r}, name={name!r}, methods={methods!r})"
 
 
 class WebSocketRoute(BaseRoute):
