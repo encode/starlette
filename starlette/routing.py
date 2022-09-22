@@ -283,6 +283,9 @@ class Route(BaseRoute):
             and self.methods == other.methods
         )
 
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}: path={self.path}, name={self.name}, methods={sorted(self.methods)}>"
+
 
 class WebSocketRoute(BaseRoute):
     def __init__(

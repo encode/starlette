@@ -952,3 +952,10 @@ def test_mounted_middleware_does_not_catch_exception(
     resp = client.get("/mount/err")
     assert resp.status_code == 403, resp.content
     assert "X-Mounted" not in resp.headers
+
+
+def test_route_repr() -> None:
+    route = Route("/welcome", endpoint=homepage)
+    assert (
+        repr(route) == "<Route: path=/welcome, name=homepage, methods=['GET', 'HEAD']>"
+    )
