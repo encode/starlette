@@ -961,6 +961,11 @@ def test_route_repr() -> None:
     )
 
 
+def test_route_repr_without_methods() -> None:
+    route = Route("/welcome", endpoint=Endpoint, methods=None)
+    assert repr(route) == "<Route: path=/welcome, name=Endpoint, methods=[]>"
+
+
 def test_websocket_route_repr() -> None:
     route = WebSocketRoute("/ws", endpoint=websocket_endpoint)
     assert repr(route) == "<WebSocketRoute: path=/ws, name=websocket_endpoint>"
