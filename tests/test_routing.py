@@ -958,13 +958,13 @@ def test_route_repr() -> None:
     route = Route("/welcome", endpoint=homepage)
     assert (
         repr(route)
-        == "Route(path=\"/welcome\", name=\"homepage\", methods=['GET', 'HEAD'])"
+        == "Route(path='/welcome', name='homepage', methods=['GET', 'HEAD'])"
     )
 
 
 def test_route_repr_without_methods() -> None:
     route = Route("/welcome", endpoint=Endpoint, methods=None)
-    assert repr(route) == 'Route(path="/welcome", name="Endpoint", methods=[])'
+    assert repr(route) == "Route(path='/welcome', name='Endpoint', methods=[])"
 
 
 def test_websocket_route_repr() -> None:
@@ -979,7 +979,7 @@ def test_mount_repr() -> None:
             Route("/", endpoint=homepage),
         ],
     )
-    assert repr(route) == "Mount(path='/app', name='', app=\"Router(1 route)\")"
+    assert repr(route) == "Mount(path='/app', name='', app=Router(1 route))"
 
 
 def test_mount_named_repr() -> None:
@@ -990,7 +990,7 @@ def test_mount_named_repr() -> None:
             Route("/", endpoint=homepage),
         ],
     )
-    assert repr(route) == "Mount(path='/app', name='app', app=\"Router(1 route)\")"
+    assert repr(route) == "Mount(path='/app', name='app', app=Router(1 route))"
 
 
 def test_host_repr() -> None:
@@ -1002,7 +1002,7 @@ def test_host_repr() -> None:
             ]
         ),
     )
-    assert repr(route) == "Host(host='example.com', name='', app=\"Router(1 route)\")"
+    assert repr(route) == "Host(host='example.com', name='', app=Router(1 route))"
 
 
 def test_host_named_repr() -> None:
@@ -1015,7 +1015,7 @@ def test_host_named_repr() -> None:
             ]
         ),
     )
-    assert repr(route) == "Host(host='example.com', name='app', app=\"Router(1 route)\")"
+    assert repr(route) == "Host(host='example.com', name='app', app=Router(1 route))"
 
 
 def test_router_repr() -> None:
