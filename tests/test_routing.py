@@ -990,7 +990,7 @@ def test_mount_named_repr() -> None:
             Route("/", endpoint=homepage),
         ],
     )
-    assert repr(route) == 'Mount(path="/app", name="app", app="Router(1 route)")'
+    assert repr(route) == "Mount(path='/app', name='app', app=\"Router(1 route)\")"
 
 
 def test_host_repr() -> None:
