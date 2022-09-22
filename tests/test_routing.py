@@ -1002,7 +1002,7 @@ def test_host_repr() -> None:
             ]
         ),
     )
-    assert repr(route) == 'Host(host="example.com", name="", app="Router(1 route)")'
+    assert repr(route) == "Host(host='example.com', name='', app=\"Router(1 route)\")"
 
 
 def test_host_named_repr() -> None:
