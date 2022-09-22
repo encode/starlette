@@ -959,3 +959,73 @@ def test_route_repr() -> None:
     assert (
         repr(route) == "<Route: path=/welcome, name=homepage, methods=['GET', 'HEAD']>"
     )
+
+
+def test_websocket_route_repr() -> None:
+    route = WebSocketRoute("/ws", endpoint=websocket_endpoint)
+    assert repr(route) == "<WebSocketRoute: path=/ws, name=websocket_endpoint>"
+
+
+def test_mount_repr() -> None:
+    route = Mount(
+        "/app",
+        routes=[
+            Route("/", endpoint=homepage),
+        ],
+    )
+    assert repr(route) == "<Mount: path=/app, name=, app=<Router: 1 route>>"
+
+
+def test_mount_named_repr() -> None:
+    route = Mount(
+        "/app",
+        name="app",
+        routes=[
+            Route("/", endpoint=homepage),
+        ],
+    )
+    assert repr(route) == "<Mount: path=/app, name=app, app=<Router: 1 route>>"
+
+
+def test_host_repr() -> None:
+    route = Host(
+        "example.com",
+        app=Router(
+            [
+                Route("/", endpoint=homepage),
+            ]
+        ),
+    )
+    assert repr(route) == "<Host: host=example.com, name=, app=<Router: 1 route>>"
+
+
+def test_host_named_repr() -> None:
+    route = Host(
+        "example.com",
+        name="app",
+        app=Router(
+            [
+                Route("/", endpoint=homepage),
+            ]
+        ),
+    )
+    assert repr(route) == "<Host: host=example.com, name=app, app=<Router: 1 route>>"
+
+
+def test_router_repr() -> None:
+    route = Router(
+        routes=[
+            Route("/", endpoint=homepage),
+        ]
+    )
+    assert repr(route) == "<Router: 1 route>"
+
+
+def test_router_repr_plural() -> None:
+    route = Router(
+        routes=[
+            Route("/", endpoint=homepage),
+            Route("/app", endpoint=homepage),
+        ]
+    )
+    assert repr(route) == "<Router: 2 routes>"

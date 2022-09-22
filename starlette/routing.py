@@ -344,6 +344,9 @@ class WebSocketRoute(BaseRoute):
             and self.endpoint == other.endpoint
         )
 
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}: path={self.path}, name={self.name}>"
+
 
 class Mount(BaseRoute):
     def __init__(
@@ -443,6 +446,9 @@ class Mount(BaseRoute):
             and self.app == other.app
         )
 
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}: path={self.path}, name={self.name or ''}, app={self.app}>"
+
 
 class Host(BaseRoute):
     def __init__(
@@ -509,6 +515,9 @@ class Host(BaseRoute):
             and self.host == other.host
             and self.app == other.app
         )
+
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}: host={self.host}, name={self.name or ''}, app={self.app}>"
 
 
 _T = typing.TypeVar("_T")
@@ -850,3 +859,8 @@ class Router:
             return func
 
         return decorator
+
+    def __repr__(self) -> str:
+        routes_count = len(self.routes)
+        noun = "route" if routes_count == 1 else "routes"
+        return f"<{self.__class__.__name__}: {routes_count} {noun}>"
