@@ -348,7 +348,7 @@ class WebSocketRoute(BaseRoute):
         )
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}(path="{self.path}", name="{self.name}")'
+        return f"{self.__class__.__name__}(path={self.path!r}, name={self.name!r})"
 
 
 class Mount(BaseRoute):
