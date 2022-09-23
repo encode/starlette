@@ -1,6 +1,6 @@
 ## 0.21.0
 
-September 21, 2022
+September 24, 2022
 
 This release replaces the underneath HTTP client used on the `TestClient` (`requests` :arrow_right: `httpx`), and as those clients [differ _a bit_ on their API](https://www.python-httpx.org/compatibility/), your test suite will likely break. To make the migration smoother, you can use the [`bump-testclient`](https://github.com/Kludex/bump-testclient) tool.
 
@@ -10,6 +10,7 @@ This release replaces the underneath HTTP client used on the `TestClient` (`requ
 ### Added
 * Add `WebSocketException` and support for WS handlers [#1263](https://github.com/encode/starlette/pull/1263).
 * Add `middleware` parameter to `Mount` class [#1649](https://github.com/encode/starlette/pull/1649).
+* Implement `__repr__` for route classes [#1864](https://github.com/encode/starlette/pull/1864).
 
 ## 0.20.4
 
