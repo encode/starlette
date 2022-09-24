@@ -41,7 +41,8 @@ def __getattr__(name: str) -> typing.Any:  # pragma: no cover
         from starlette.middleware.exceptions import ExceptionMiddleware
 
         warnings.warn(
-            f"{__deprecated__} is deprecated on `starlette.exceptions`. "
+            f"{__deprecated__} is deprecated on `starlette.exceptions`, "
+            "and will be removed in version 1.0.0. "
             f"Import it from `starlette.middleware.exceptions` instead.",
             category=DeprecationWarning,
             stacklevel=3,

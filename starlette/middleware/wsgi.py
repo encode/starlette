@@ -9,7 +9,7 @@ import anyio
 from starlette.types import Receive, Scope, Send
 
 warnings.warn(
-    "starlette.middleware.wsgi is deprecated and will be removed in a future release. "
+    "starlette.middleware.wsgi is deprecated, and will be removed in version 1.0.0. "
     "Please refer to https://github.com/abersheeran/a2wsgi as a replacement.",
     DeprecationWarning,
 )

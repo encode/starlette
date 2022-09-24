@@ -380,8 +380,9 @@ def test_app_async_cm_lifespan(test_client_factory):
 
 deprecated_lifespan = pytest.mark.filterwarnings(
     r"ignore"
-    r":(async )?generator function lifespans are deprecated, use an "
-    r"@contextlib\.asynccontextmanager function instead"
+    r":Usage of (async )?generator function lifespans is deprecated, "
+    r"and will be removed in version 1.0.0. "
+    r"Use an @contextlib\.asynccontextmanager function instead."
     r":DeprecationWarning"
     r":starlette.routing"
 )

@@ -17,8 +17,7 @@ P = ParamSpec("P")
 
 async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -> None:
     warnings.warn(
-        "run_until_first_complete is deprecated "
-        "and will be removed in a future version.",
+        "run_until_first_complete is deprecated, and will be removed in version 1.0.0.",
         DeprecationWarning,
     )
 

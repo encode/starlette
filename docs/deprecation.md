@@ -6,9 +6,17 @@ and API interfaces.
 
 This policy describes what Starlette should follow pre-1.0, and what Starlette will follow post-1.0.
 
+## Starlette Versions
+
+Starlette follows [Semantic Versioning](https://semver.org/), with some additional constraints.
+While we are pre-1.0, we treat any SemVer changes requiring a:
+
+- **major** bump as a change requiring a **minor** bump.
+- **minor** bump as a change requiring a **patch** bump.
+
 ## Deprecation Types
 
-We'll consider two kinds of deprecations: **Python version** deprecations and **feature** deprecations.
+We'll consider two kinds of deprecations: **Python version** and **feature** deprecations.
 
 ### Python Version Deprecation
 
@@ -53,8 +61,6 @@ def banana():
 ```
 
 !!! warning
-    Pre-1.0 Starlette will consider two minor releases instead of the next major release.
-
-    If a feature is deprecated in version 0.1.0, it will be removed in version 0.3.0.
+    Pre-1.0 Starlette will remove deprecated code in the stable release (1.0).
 
 The drop of a feature will be documented in the release notes, and the user will be warned about it.

@@ -45,7 +45,7 @@ def iscoroutinefunction_or_partial(obj: typing.Any) -> bool:  # pragma: no cover
     """
     warnings.warn(
         "iscoroutinefunction_or_partial is deprecated, "
-        "and will be removed in a future release.",
+        "and will be removed in version 1.0.0.",
         DeprecationWarning,
     )
     while isinstance(obj, functools.partial):
@@ -597,8 +597,9 @@ class Router:
 
         elif inspect.isasyncgenfunction(lifespan):
             warnings.warn(
-                "async generator function lifespans are deprecated, "
-                "use an @contextlib.asynccontextmanager function instead",
+                "Usage of async generator function lifespans is deprecated, "
+                "and will be removed in version 1.0.0. "
+                "Use an @contextlib.asynccontextmanager function instead.",
                 DeprecationWarning,
             )
             self.lifespan_context = asynccontextmanager(
@@ -606,8 +607,9 @@ class Router:
             )
         elif inspect.isgeneratorfunction(lifespan):
             warnings.warn(
-                "generator function lifespans are deprecated, "
-                "use an @contextlib.asynccontextmanager function instead",
+                "Usage of generator function lifespans is deprecated, "
+                "and will be removed in version 1.0.0. "
+                "Use an @contextlib.asynccontextmanager function instead.",
                 DeprecationWarning,
             )
             self.lifespan_context = _wrap_gen_lifespan_context(

@@ -8,12 +8,14 @@ import pytest
     (
         (
             "WS_1004_NO_STATUS_RCVD",
-            "'WS_1004_NO_STATUS_RCVD' is deprecated. "
+            "'WS_1004_NO_STATUS_RCVD' is deprecated, "
+            "and will be removed in version 1.0.0. "
             "Use 'WS_1005_NO_STATUS_RCVD' instead.",
         ),
         (
             "WS_1005_ABNORMAL_CLOSURE",
-            "'WS_1005_ABNORMAL_CLOSURE' is deprecated. "
+            "'WS_1005_ABNORMAL_CLOSURE' is deprecated, "
+            "and will be removed in version 1.0.0. "
             "Use 'WS_1006_ABNORMAL_CLOSURE' instead.",
         ),
     ),

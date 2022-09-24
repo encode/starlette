@@ -187,7 +187,8 @@ def __getattr__(name: str) -> int:
     deprecated = __deprecated__.get(name)
     if deprecated:
         warnings.warn(
-            f"'{name}' is deprecated. Use '{deprecation_changes[name]}' instead.",
+            f"'{name}' is deprecated, and will be removed in version 1.0.0. "
+            f"Use '{deprecation_changes[name]}' instead.",
             category=DeprecationWarning,
             stacklevel=3,
         )
