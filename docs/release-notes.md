@@ -10,7 +10,7 @@ This release replaces the underneath HTTP client used on the `TestClient` (`requ
 ### Added
 * Add `WebSocketException` and support for WS handlers [#1263](https://github.com/encode/starlette/pull/1263).
 * Add `middleware` parameter to `Mount` class [#1649](https://github.com/encode/starlette/pull/1649).
-* Oficially support Python 3.11 [1863](https://github.com/encode/starlette/pull/1863).
+* Officially support Python 3.11 [1863](https://github.com/encode/starlette/pull/1863).
 * Implement `__repr__` for route classes [#1864](https://github.com/encode/starlette/pull/1864).
 
 ### Fixed
