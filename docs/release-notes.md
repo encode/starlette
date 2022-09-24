@@ -13,6 +13,9 @@ This release replaces the underneath HTTP client used on the `TestClient` (`requ
 * Oficially support Python 3.11 [1863](https://github.com/encode/starlette/pull/1863).
 * Implement `__repr__` for route classes [#1864](https://github.com/encode/starlette/pull/1864).
 
+### Fixed
+* Fix bug on which `BackgroundTasks` were cancelled when using `BaseHTTPMiddleware` and client disconnected [#1715](https://github.com/encode/starlette/pull/1715).
+
 ## 0.20.4
 
 June 28, 2022
