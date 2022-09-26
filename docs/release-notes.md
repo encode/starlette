@@ -2,13 +2,13 @@
 
 September 24, 2022
 
-This release replaces the underneath HTTP client used on the `TestClient` (`requests` :arrow_right: `httpx`), and as those clients [differ _a bit_ on their API](https://www.python-httpx.org/compatibility/), your test suite will likely break. To make the migration smoother, you can use the [`bump-testclient`](https://github.com/Kludex/bump-testclient) tool.
+This release replaces the underlying HTTP client used on the `TestClient` (`requests` :arrow_right: `httpx`), and as those clients [differ _a bit_ on their API](https://www.python-httpx.org/compatibility/), your test suite will likely break. To make the migration smoother, you can use the [`bump-testclient`](https://github.com/Kludex/bump-testclient) tool.
 
 ### Changed
-* Replace HTTP client on TestClient from `requests` to `httpx` [#1376](https://github.com/encode/starlette/pull/1376).
+* Replace `requests` with `httpx` in `TestClient` [#1376](https://github.com/encode/starlette/pull/1376).
 
 ### Added
-* Add `WebSocketException` and support for WS handlers [#1263](https://github.com/encode/starlette/pull/1263).
+* Add `WebSocketException` and support for WebSocket exception handlers [#1263](https://github.com/encode/starlette/pull/1263).
 * Add `middleware` parameter to `Mount` class [#1649](https://github.com/encode/starlette/pull/1649).
 * Officially support Python 3.11 [1863](https://github.com/encode/starlette/pull/1863).
 * Implement `__repr__` for route classes [#1864](https://github.com/encode/starlette/pull/1864).
