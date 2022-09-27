@@ -9,7 +9,7 @@ import trio.lowlevel
 
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, RedirectResponse
 from starlette.routing import Route
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
@@ -18,9 +18,14 @@ def mock_service_endpoint(request):
     return JSONResponse({"mock": "example"})
 
 
+def mock_service_redirect(request):
+    return RedirectResponse(request.url_for("mock_service_endpoint"))
+
+
 mock_service = Starlette(
     routes=[
         Route("/", endpoint=mock_service_endpoint),
+        Route("/redirect", endpoint=mock_service_redirect),
     ]
 )
 
@@ -240,3 +245,15 @@ def test_client(test_client_factory):
     client = test_client_factory(app)
     response = client.get("/")
     assert response.json() == {"host": "testclient", "port": 50000}
+
+
+def test_client_not_follows_redirects(test_client_factory):
+    client = test_client_factory(mock_service)
+    response = client.get("/redirect")
+    assert response.status_code == 307
+    assert response.url == "http://testserver/redirect"
+
+    client = test_client_factory(mock_service)
+    response = client.get("/redirect", follow_redirects=True)
+    assert response.status_code == 200
+    assert response.url == "http://testserver/"

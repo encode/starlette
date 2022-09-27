@@ -386,7 +386,6 @@ class TestClient(httpx.Client):
             base_url=base_url,
             headers={"user-agent": "testclient"},
             transport=transport,
-            follow_redirects=True,
             cookies=cookies,
         )
 
