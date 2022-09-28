@@ -261,6 +261,7 @@ class StreamingResponse(Response):
                 "type": "http.response.start",
                 "status": self.status_code,
                 "headers": self.raw_headers,
+                "trailers": bool(self.trailers),
             }
         )
         async for chunk in self.body_iterator:
