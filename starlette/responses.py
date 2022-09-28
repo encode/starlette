@@ -217,18 +217,17 @@ class RedirectResponse(Response):
 
 
 Content = typing.Union[str, bytes]
-ContentStream = typing.Union[typing.AsyncIterable[Content], typing.Iterable[Content]]
+SyncContentStream = typing.Iterator[Content]
+AsyncContentStream = typing.AsyncIterable[Content]
+ContentStream = typing.Union[AsyncContentStream, SyncContentStream]
 
 Trailers = typing.Mapping[
-    str,
-    typing.Callable[
-        [], typing.Union[str, bytes, typing.Awaitable[typing.Union[str, bytes]]]
-    ],
+    str, typing.Callable[[], typing.Union[str, typing.Awaitable[str]]]
 ]
 
 
 class StreamingResponse(Response):
-    body_iterator: typing.AsyncIterable[Content]
+    body_iterator: AsyncContentStream
 
     def __init__(
         self,
