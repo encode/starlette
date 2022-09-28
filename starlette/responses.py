@@ -12,6 +12,7 @@ from urllib.parse import quote
 import anyio
 
 from starlette._compat import md5_hexdigest
+from starlette._utils import is_async_callable
 from starlette.background import BackgroundTask
 from starlette.concurrency import iterate_in_threadpool
 from starlette.datastructures import URL, MutableHeaders
@@ -216,13 +217,18 @@ class RedirectResponse(Response):
 
 
 Content = typing.Union[str, bytes]
-SyncContentStream = typing.Iterator[Content]
-AsyncContentStream = typing.AsyncIterable[Content]
-ContentStream = typing.Union[AsyncContentStream, SyncContentStream]
+ContentStream = typing.Union[typing.AsyncIterable[Content], typing.Iterable[Content]]
+
+Trailers = typing.Mapping[
+    str,
+    typing.Callable[
+        [], typing.Union[str, bytes, typing.Awaitable[typing.Union[str, bytes]]]
+    ],
+]
 
 
 class StreamingResponse(Response):
-    body_iterator: AsyncContentStream
+    body_iterator: typing.AsyncIterable[Content]
 
     def __init__(
         self,
@@ -231,6 +237,8 @@ class StreamingResponse(Response):
         headers: typing.Optional[typing.Mapping[str, str]] = None,
         media_type: typing.Optional[str] = None,
         background: typing.Optional[BackgroundTask] = None,
+        *,
+        trailers: typing.Optional[Trailers] = None,
     ) -> None:
         if isinstance(content, typing.AsyncIterable):
             self.body_iterator = content
@@ -239,6 +247,7 @@ class StreamingResponse(Response):
         self.status_code = status_code
         self.media_type = self.media_type if media_type is None else media_type
         self.background = background
+        self.trailers = trailers or {}
         self.init_headers(headers)
 
     async def listen_for_disconnect(self, receive: Receive) -> None:
@@ -247,7 +256,7 @@ class StreamingResponse(Response):
             if message["type"] == "http.disconnect":
                 break
 
-    async def stream_response(self, send: Send) -> None:
+    async def stream_response(self, send: Send, support_trailers: bool) -> None:
         await send(
             {
                 "type": "http.response.start",
@@ -262,14 +271,36 @@ class StreamingResponse(Response):
 
         await send({"type": "http.response.body", "body": b"", "more_body": False})
 
+        if support_trailers and self.trailers:
+            trailers: typing.List[typing.Tuple[str, str]] = []
+            for key, call in self.trailers.items():
+                if not is_async_callable(call):
+                    trailers.append(key, await anyio.to_thread.run_sync(call))
+                else:
+                    trailers.append(key, await call())
+
+            await send(
+                {
+                    "type": "http.response.trailers",
+                    "headers": [
+                        (key.encode(self.charset), value.encode(self.charset))
+                        for key, value in trailers
+                    ],
+                    "more_trailers": False,
+                }
+            )
+
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        support_trailers = "http.response.trailers" in scope.get("extensions", {})
         async with anyio.create_task_group() as task_group:
 
             async def wrap(func: "typing.Callable[[], typing.Awaitable[None]]") -> None:
                 await func()
                 task_group.cancel_scope.cancel()
 
-            task_group.start_soon(wrap, partial(self.stream_response, send))
+            task_group.start_soon(
+                wrap, partial(self.stream_response, send, support_trailers)
+            )
             await wrap(partial(self.listen_for_disconnect, receive))
 
         if self.background is not None:
