@@ -1,3 +1,17 @@
+## 1.0.0
+
+Wow!!! 1.0.0 is here! 🎉
+
+### Removed
+
+* Removed `WSGIMiddleware`, which is deprecated since `0.19.0`. Please use [`a2wsgi`](https://github.com/abersheeran/a2wsgi) instead.
+* Removed `run_until_first_complete`, which is deprecated since `0.19.0`.
+* Removed `iscoroutinefunction_or_partial`, which is deprecated since `0.20.1`.
+  It was an internal function, which we have replaced by `_utils.is_async_callable`.
+* Removed `WS_1004_NO_STATUS_RCVD` and `WS_1005_ABNORMAL_CLOSURE` from the `status` module, which were deprecated since `0.19.1`.
+* Removed `ExceptionMiddleware` from the `exceptions` module, which was deprecated since `0.19.1`.
+  The same middleware can be found in the `middleware.exceptions` module.
+
 ## 0.28.0
 
 June 7, 2023

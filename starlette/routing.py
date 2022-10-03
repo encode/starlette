@@ -39,21 +39,6 @@ class Match(Enum):
     FULL = 2
 
 
-def iscoroutinefunction_or_partial(obj: typing.Any) -> bool:  # pragma: no cover
-    """
-    Correctly determines if an object is a coroutine function,
-    including those wrapped in functools.partial objects.
-    """
-    warnings.warn(
-        "iscoroutinefunction_or_partial is deprecated, "
-        "and will be removed in a future release.",
-        DeprecationWarning,
-    )
-    while isinstance(obj, functools.partial):
-        obj = obj.func
-    return inspect.iscoroutinefunction(obj)
-
-
 def request_response(func: typing.Callable) -> ASGIApp:
     """
     Takes a function or coroutine `func(request) -> response`,

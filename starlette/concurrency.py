@@ -1,7 +1,6 @@
 import functools
 import sys
 import typing
-import warnings
 
 import anyio
 
@@ -13,23 +12,6 @@ else:  # pragma: no cover
 
 T = typing.TypeVar("T")
 P = ParamSpec("P")
-
-
-async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -> None:
-    warnings.warn(
-        "run_until_first_complete is deprecated "
-        "and will be removed in a future version.",
-        DeprecationWarning,
-    )
-
-    async with anyio.create_task_group() as task_group:
-
-        async def run(func: typing.Callable[[], typing.Coroutine]) -> None:
-            await func()
-            task_group.cancel_scope.cancel()
-
-        for func, kwargs in args:
-            task_group.start_soon(run, functools.partial(func, **kwargs))
 
 
 async def run_in_threadpool(

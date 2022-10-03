@@ -1,5 +1,3 @@
-import warnings
-
 import pytest
 
 from starlette.exceptions import HTTPException, WebSocketException

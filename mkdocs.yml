@@ -47,6 +47,7 @@ nav:
   - Test Client: 'testclient.md'
   - Third Party Packages: 'third-party-packages.md'
   - Contributing: 'contributing.md'
+  - Deprecation Policy: 'deprecation.md'
   - Release Notes: 'release-notes.md'
 
 markdown_extensions:
