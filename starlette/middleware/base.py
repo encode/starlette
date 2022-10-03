@@ -15,7 +15,7 @@ DispatchFunction = typing.Callable[
 T = typing.TypeVar("T")
 
 warnings.warn(
-    "The 'BaseHTTPMiddleware' is deprecated, and will be removed in version 2.0.0."
+    "The 'BaseHTTPMiddleware' is deprecated, and will be removed in version 2.0.0. "
     "Refer to https://www.starlette.io/middleware/#pure-asgi-middleware to learn "
     "how to create middlewares.\nIf you need help, please create a discussion on: "
     "https://github.com/encode/starlette/discussions.",
