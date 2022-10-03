@@ -1020,3 +1020,11 @@ def test_host_named_repr() -> None:
     )
     # test for substring because repr(Router) returns unique object ID
     assert repr(route).startswith("Host(host='example.com', name='app', app=")
+
+
+def test_websocket_endpoint_must_be_async() -> None:
+    def websocket_endpoint(websocket: WebSocket) -> None:
+        ...
+
+    with pytest.raises(RuntimeError):
+        WebSocketRoute("/ws", endpoint=websocket_endpoint)
