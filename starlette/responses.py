@@ -112,7 +112,7 @@ class Response:
         httponly: bool = False,
         samesite: typing.Optional[Literal["lax", "strict", "none"]] = "lax",
     ) -> None:
-        cookie: http.cookies.BaseCookie = http.cookies.SimpleCookie()
+        cookie: "http.cookies.BaseCookie[str]" = http.cookies.SimpleCookie()
         cookie[key] = value
         if max_age is not None:
             cookie[key]["max-age"] = max_age
@@ -185,7 +185,7 @@ class JSONResponse(Response):
         self,
         content: typing.Any,
         status_code: int = 200,
-        headers: typing.Optional[dict] = None,
+        headers: typing.Optional[typing.Dict[str, str]] = None,
         media_type: typing.Optional[str] = None,
         background: typing.Optional[BackgroundTask] = None,
     ) -> None:
@@ -215,10 +215,18 @@ class RedirectResponse(Response):
         self.headers["location"] = quote(str(url), safe=":/%#?=@[]!$&'()*+,;")
 
 
+Content = typing.Union[str, bytes]
+SyncContentStream = typing.Iterator[Content]
+AsyncContentStream = typing.AsyncIterable[Content]
+ContentStream = typing.Union[AsyncContentStream, SyncContentStream]
+
+
 class StreamingResponse(Response):
+    body_iterator: AsyncContentStream
+
     def __init__(
         self,
-        content: typing.Any,
+        content: ContentStream,
         status_code: int = 200,
         headers: typing.Optional[typing.Mapping[str, str]] = None,
         media_type: typing.Optional[str] = None,
@@ -257,7 +265,7 @@ class StreamingResponse(Response):
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         async with anyio.create_task_group() as task_group:
 
-            async def wrap(func: typing.Callable[[], typing.Coroutine]) -> None:
+            async def wrap(func: "typing.Callable[[], typing.Awaitable[None]]") -> None:
                 await func()
                 task_group.cancel_scope.cancel()
 

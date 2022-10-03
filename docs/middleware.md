@@ -3,6 +3,8 @@ Starlette includes several middleware classes for adding behavior that is applie
 your entire application. These are all implemented as standard ASGI
 middleware classes, and can be applied either to Starlette or to any other ASGI application.
 
+## Using middleware
+
 The Starlette application class allows you to include the ASGI middleware
 in a way that ensures that it remains wrapped by the exception handler.
 
@@ -14,11 +16,14 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 routes = ...
 
-# Ensure that all requests include an 'example.com' or '*.example.com' host header,
-# and strictly enforce https-only access.
+# Ensure that all requests include an 'example.com' or
+# '*.example.com' host header, and strictly enforce https-only access.
 middleware = [
-  Middleware(TrustedHostMiddleware, allowed_hosts=['example.com', '*.example.com']),
-  Middleware(HTTPSRedirectMiddleware)
+    Middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=['example.com', '*.example.com'],
+    ),
+    Middleware(HTTPSRedirectMiddleware)
 ]
 
 app = Starlette(routes=routes, middleware=middleware)
@@ -109,6 +114,7 @@ requests to `http` or `ws` will be redirected to the secure scheme instead.
 
 ```python
 from starlette.applications import Starlette
+from starlette.middleware import Middleware
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 
 routes = ...
@@ -177,19 +183,26 @@ The following arguments are supported:
 ## BaseHTTPMiddleware
 
 An abstract class that allows you to write ASGI middleware against a request/response
-interface, rather than dealing with ASGI messages directly.
+interface.
+
+### Usage
 
 To implement a middleware class using `BaseHTTPMiddleware`, you must override the
 `async def dispatch(request, call_next)` method.
 
 ```python
+from starlette.applications import Starlette
+from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
+
 
 class CustomHeaderMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         response = await call_next(request)
         response.headers['Custom'] = 'Example'
         return response
+
+routes = ...
 
 middleware = [
     Middleware(CustomHeaderMiddleware)
@@ -226,11 +239,437 @@ Middleware classes should not modify their state outside of the `__init__` metho
 Instead you should keep any state local to the `dispatch` method, or pass it
 around explicitly, rather than mutating the middleware instance.
 
-!!! bug
-    Currently, the `BaseHTTPMiddleware` has some known issues:
+### Limitations
 
-    - It's not possible to use `BackgroundTasks` with `BaseHTTPMiddleware`. Check [#1438](https://github.com/encode/starlette/issues/1438) for more details.
-    - Using `BaseHTTPMiddleware` will prevent changes to [`contextlib.ContextVar`](https://docs.python.org/3/library/contextvars.html#contextvars.ContextVar)s from propagating upwards. That is, if you set a value for a `ContextVar` in your endpoint and try to read it from a middleware you will find that the value is not the same value you set in your endpoint (see [this test](https://github.com/encode/starlette/blob/621abc747a6604825190b93467918a0ec6456a24/tests/middleware/test_base.py#L192-L223) for an example of this behavior).
+Currently, the `BaseHTTPMiddleware` has some known limitations:
+
+- Using `BaseHTTPMiddleware` will prevent changes to [`contextlib.ContextVar`](https://docs.python.org/3/library/contextvars.html#contextvars.ContextVar)s from propagating upwards. That is, if you set a value for a `ContextVar` in your endpoint and try to read it from a middleware you will find that the value is not the same value you set in your endpoint (see [this test](https://github.com/encode/starlette/blob/621abc747a6604825190b93467918a0ec6456a24/tests/middleware/test_base.py#L192-L223) for an example of this behavior).
+
+To overcome these limitations, use [pure ASGI middleware](#pure-asgi-middleware), as shown below.
+
+## Pure ASGI Middleware
+
+The [ASGI spec](https://asgi.readthedocs.io/en/latest/) makes it possible to implement ASGI middleware using the ASGI interface directly, as a chain of ASGI applications that call into the next one. In fact, this is how middleware classes shipped with Starlette are implemented.
+
+This lower-level approach provides greater control over behavior and enhanced interoperability across frameworks and servers. It also overcomes the [limitations of `BaseHTTPMiddleware`](#limitations).
+
+### Writing pure ASGI middleware
+
+The most common way to create an ASGI middleware is with a class.
+
+```python
+class ASGIMiddleware:
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        await self.app(scope, receive, send)
+```
+
+The middleware above is the most basic ASGI middleware. It receives a parent ASGI application as an argument for its constructor, and implements an `async __call__` method which calls into that parent application.
+
+Some implementations such as [`asgi-cors`](https://github.com/simonw/asgi-cors/blob/10ef64bfcc6cd8d16f3014077f20a0fb8544ec39/asgi_cors.py) use an alternative style, using functions:
+
+```python
+import functools
+
+def asgi_middleware():
+    def asgi_decorator(app):
+
+        @functools.wraps(app)
+        async def wrapped_app(scope, receive, send):
+            await app(scope, receive, send)
+
+        return wrapped_app
+
+    return asgi_decorator
+```
+
+In any case, ASGI middleware must be callables that accept three arguments: `scope`, `receive`, and `send`.
+
+* `scope` is a dict holding information about the connection, where `scope["type"]` may be:
+    * [`"http"`](https://asgi.readthedocs.io/en/latest/specs/www.html#http-connection-scope): for HTTP requests.
+    * [`"websocket"`](https://asgi.readthedocs.io/en/latest/specs/www.html#websocket-connection-scope): for WebSocket connections.
+    * [`"lifespan"`](https://asgi.readthedocs.io/en/latest/specs/lifespan.html#scope): for ASGI lifespan messages.
+* `receive` and `send` can be used to exchange ASGI event messages with the ASGI server — more on this below. The type and contents of these messages depend on the scope type. Learn more in the [ASGI specification](https://asgi.readthedocs.io/en/latest/specs/index.html).
+
+### Using pure ASGI middleware
+
+Pure ASGI middleware can be used like any other middleware:
+
+```python
+from starlette.applications import Starlette
+from starlette.middleware import Middleware
+
+from .middleware import ASGIMiddleware
+
+routes = ...
+
+middleware = [
+    Middleware(ASGIMiddleware),
+]
+
+app = Starlette(..., middleware=middleware)
+```
+
+See also [Using middleware](#using-middleware).
+
+### Type annotations
+
+There are two ways of annotating a middleware: using Starlette itself or [`asgiref`](https://github.com/django/asgiref).
+
+* Using Starlette: for most common use cases.
+
+```python
+from starlette.types import ASGIApp, Message, Scope, Receive, Send
+
+
+class ASGIMiddleware:
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+
+        async def send_wrapper(message: Message) -> None:
+            # ... Do something
+            await send(message)
+
+        await self.app(scope, receive, send_wrapper)
+```
+
+* Using [`asgiref`](https://github.com/django/asgiref): for more rigorous type hinting.
+
+```python
+from asgiref.typing import ASGI3Application, ASGIReceiveCallable, ASGISendCallable, Scope
+from asgiref.typing import ASGIReceiveEvent, ASGISendEvent
+
+
+class ASGIMiddleware:
+    def __init__(self, app: ASGI3Application) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: ASGIReceiveCallable, send: ASGISendCallable) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        async def send_wrapper(message: ASGISendEvent) -> None:
+            # ... Do something
+            await send(message)
+
+        return await self.app(scope, receive, send_wrapper)
+```
+
+### Common patterns
+
+#### Processing certain requests only
+
+ASGI middleware can apply specific behavior according to the contents of `scope`.
+
+For example, to only process HTTP requests, write this...
+
+```python
+class ASGIMiddleware:
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        ...  # Do something here!
+
+        await self.app(scope, receive, send)
+```
+
+Likewise, WebSocket-only middleware would guard on `scope["type"] != "websocket"`.
+
+The middleware may also act differently based on the request method, URL, headers, etc.
+
+#### Reusing Starlette components
+
+Starlette provides several data structures that accept the ASGI `scope`, `receive` and/or `send` arguments, allowing you to work at a higher level of abstraction. Such data structures include [`Request`](requests.md#request), [`Headers`](requests.md#headers), [`QueryParams`](requests.md#query-parameters), [`URL`](requests.md#url), etc.
+
+For example, you can instantiate a `Request` to more easily inspect an HTTP request:
+
+```python
+from starlette.requests import Request
+
+class ASGIMiddleware:
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http":
+            request = Request(scope)
+            ... # Use `request.method`, `request.url`, `request.headers`, etc.
+
+        await self.app(scope, receive, send)
+```
+
+You can also reuse [responses](responses.md), which are ASGI applications as well.
+
+#### Sending eager responses
+
+Inspecting the connection `scope` allows you to conditionally call into a different ASGI app. One use case might be sending a response without calling into the app.
+
+As an example, this middleware uses a dictionary to perform permanent redirects based on the requested path. This could be used to implement ongoing support of legacy URLs in case you need to refactor route URL patterns.
+
+```python
+from starlette.datastructures import URL
+from starlette.responses import RedirectResponse
+
+class RedirectsMiddleware:
+    def __init__(self, app, path_mapping: dict):
+        self.app = app
+        self.path_mapping = path_mapping
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        url = URL(scope=scope)
+
+        if url.path in self.path_mapping:
+            url = url.replace(path=self.path_mapping[url.path])
+            response = RedirectResponse(url, status_code=301)
+            await response(scope, receive, send)
+            return
+
+        await self.app(scope, receive, send)
+```
+
+Example usage would look like this:
+
+```python
+from starlette.applications import Starlette
+from starlette.middleware import Middleware
+
+routes = ...
+
+redirections = {
+    "/v1/resource/": "/v2/resource/",
+    # ...
+}
+
+middleware = [
+    Middleware(RedirectsMiddleware, path_mapping=redirections),
+]
+
+app = Starlette(routes=routes, middleware=middleware)
+```
+
+
+#### Inspecting or modifying the request
+
+Request information can be accessed or changed by manipulating the `scope`. For a full example of this pattern, see Uvicorn's [`ProxyHeadersMiddleware`](https://github.com/encode/uvicorn/blob/fd4386fefb8fe8a4568831a7d8b2930d5fb61455/uvicorn/middleware/proxy_headers.py) which inspects and tweaks the `scope` when serving behind a frontend proxy.
+
+Besides, wrapping the `receive` ASGI callable allows you to access or modify the HTTP request body by manipulating [`http.request`](https://asgi.readthedocs.io/en/latest/specs/www.html#request-receive-event) ASGI event messages.
+
+As an example, this middleware computes and logs the size of the incoming request body...
+
+```python
+class LoggedRequestBodySizeMiddleware:
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        body_size = 0
+
+        async def receive_logging_request_body_size():
+            nonlocal body_size
+
+            message = await receive()
+            assert message["type"] == "http.request"
+
+            body_size += len(message.get("body", b""))
+
+            if not message.get("more_body", False):
+                print(f"Size of request body was: {body_size} bytes")
+
+            return message
+
+        await self.app(scope, receive_logging_request_body_size, send)
+```
+
+Likewise, WebSocket middleware may manipulate [`websocket.receive`](https://asgi.readthedocs.io/en/latest/specs/www.html#receive-receive-event) ASGI event messages to inspect or alter incoming WebSocket data.
+
+For an example that changes the HTTP request body, see [`msgpack-asgi`](https://github.com/florimondmanca/msgpack-asgi).
+
+#### Inspecting or modifying the response
+
+Wrapping the `send` ASGI callable allows you to inspect or modify the HTTP response sent by the underlying application. To do so, react to [`http.response.start`](https://asgi.readthedocs.io/en/latest/specs/www.html#response-start-send-event) or [`http.response.body`](https://asgi.readthedocs.io/en/latest/specs/www.html#response-body-send-event) ASGI event messages.
+
+As an example, this middleware adds some fixed extra response headers:
+
+```python
+from starlette.datastructures import MutableHeaders
+
+class ExtraResponseHeadersMiddleware:
+    def __init__(self, app, headers):
+        self.app = app
+        self.headers = headers
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+
+        async def send_with_extra_headers(message):
+            if message["type"] == "http.response.start":
+                headers = MutableHeaders(scope=message)
+                for key, value in self.headers:
+                    headers.append(key, value)
+
+            await send(message)
+
+        await self.app(scope, receive, send_with_extra_headers)
+```
+
+See also [`asgi-logger`](https://github.com/Kludex/asgi-logger/blob/main/asgi_logger/middleware.py) for an example that inspects the HTTP response and logs a configurable HTTP access log line.
+
+Likewise, WebSocket middleware may manipulate [`websocket.send`](https://asgi.readthedocs.io/en/latest/specs/www.html#send-send-event) ASGI event messages to inspect or alter outgoing WebSocket data.
+
+Note that if you change the response body, you will need to update the response `Content-Length` header to match the new response body length. See [`brotli-asgi`](https://github.com/fullonic/brotli-asgi) for a complete example.
+
+#### Passing information to endpoints
+
+If you need to share information with the underlying app or endpoints, you may store it into the `scope` dictionary. Note that this is a convention -- for example, Starlette uses this to share routing information with endpoints -- but it is not part of the ASGI specification. If you do so, be sure to avoid conflicts by using keys that have low chances of being used by other middleware or applications.
+
+For example, when including the middleware below, endpoints would be able to access `request.scope["asgi_transaction_id"]`.
+
+```python
+import uuid
+
+class TransactionIDMiddleware:
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        scope["asgi_transaction_id"] = uuid.uuid4()
+        await self.app(scope, receive, send)
+```
+
+#### Cleanup and error handling
+
+You can wrap the application in a `try/except/finally` block or a context manager to perform cleanup operations or do error handling.
+
+For example, the following middleware might collect metrics and process application exceptions...
+
+```python
+import time
+
+class MonitoringMiddleware:
+    def __init__(self, app):
+        self.app = app
+    
+    async def __call__(self, scope, receive, send):
+        start = time.time()
+        try:
+            await self.app(scope, receive, send)
+        except Exception as exc:
+            ...  # Process the exception
+            raise
+        finally:
+            end = time.time()
+            elapsed = end - start
+            ...  # Submit `elapsed` as a metric to a monitoring backend
+```
+
+See also [`timing-asgi`](https://github.com/steinnes/timing-asgi) for a full example of this pattern.
+
+### Gotchas
+
+#### ASGI middleware should be stateless
+
+Because ASGI is designed to handle concurrent requests, any connection-specific state should be scoped to the `__call__` implementation. Not doing so would typically lead to conflicting variable reads/writes across requests, and most likely bugs.
+
+As an example, this would conditionally replace the response body, if an `X-Mock` header is present in the response...
+
+=== "✅ Do"
+
+    ```python
+    from starlette.datastructures import Headers
+
+    class MockResponseBodyMiddleware:
+        def __init__(self, app, content):
+            self.app = app
+            self.content = content
+
+        async def __call__(self, scope, receive, send):
+            if scope["type"] != "http":
+                await self.app(scope, receive, send)
+                return
+
+            # A flag that we will turn `True` if the HTTP response
+            # has the 'X-Mock' header.
+            # ✅: Scoped to this function.
+            should_mock = False
+
+            async def maybe_send_with_mock_content(message):
+                nonlocal should_mock
+
+                if message["type"] == "http.response.start":
+                    headers = Headers(raw=message["headers"])
+                    should_mock = headers.get("X-Mock") == "1"
+                    await send(message)
+
+                elif message["type"] == "http.response.body":
+                    if should_mock:
+                        message = {"type": "http.response.body", "body": self.content}
+                    await send(message)
+
+            await self.app(scope, receive, maybe_send_with_mock_content)
+    ```
+
+=== "❌ Don't"
+
+    ```python hl_lines="7-8"
+    from starlette.datastructures import Headers
+
+    class MockResponseBodyMiddleware:
+        def __init__(self, app, content):
+            self.app = app
+            self.content = content
+            # ❌: This variable would be read and written across requests!
+            self.should_mock = False
+
+        async def __call__(self, scope, receive, send):
+            if scope["type"] != "http":
+                await self.app(scope, receive, send)
+                return
+
+            async def maybe_send_with_mock_content(message):
+                if message["type"] == "http.response.start":
+                    headers = Headers(raw=message["headers"])
+                    self.should_mock = headers.get("X-Mock") == "1"
+                    await send(message)
+
+                elif message["type"] == "http.response.body":
+                    if self.should_mock:
+                        message = {"type": "http.response.body", "body": self.content}
+                    await send(message)
+
+            await self.app(scope, receive, maybe_send_with_mock_content)
+    ```
+
+See also [`GZipMiddleware`](https://github.com/encode/starlette/blob/9ef1b91c9c043197da6c3f38aa153fd874b95527/starlette/middleware/gzip.py) for a full example implementation that navigates this potential gotcha.
+
+### Further reading
+
+This documentation should be enough to have a good basis on how to create an ASGI middleware.
+
+Nonetheless, there are great articles about the subject:
+
+- [Introduction to ASGI: Emergence of an Async Python Web Ecosystem](https://florimond.dev/en/posts/2019/08/introduction-to-asgi-async-python-web/)
+- [How to write ASGI middleware](https://pgjones.dev/blog/how-to-write-asgi-middleware-2021/)
 
 ## Using middleware in other frameworks
 
@@ -246,6 +685,41 @@ to use the `middleware=<List of Middleware instances>` style, as it will:
 
 * Ensure that everything remains wrapped in a single outermost `ServerErrorMiddleware`.
 * Preserves the top-level `app` instance.
+
+## Applying middleware to `Mount`s
+
+Middleware can also be added to `Mount`, which allows you to apply middleware to a single route, a group of routes or any mounted ASGI application:
+
+```python
+from starlette.applications import Starlette
+from starlette.middleware import Middleware
+from starlette.middleware.gzip import GZipMiddleware
+from starlette.routing import Mount, Route
+
+
+routes = [
+    Mount(
+        "/",
+        routes=[
+            Route(
+                "/example",
+                endpoint=...,
+            )
+        ],
+        middleware=[Middleware(GZipMiddleware)]
+    )
+]
+
+app = Starlette(routes=routes)
+```
+
+Note that middleware used in this way is *not* wrapped in exception handling middleware like the middleware applied to the `Starlette` application is.
+This is often not a problem because it only applies to middleware that inspect or modify the `Response`, and even then you probably don't want to apply this logic to error responses.
+If you do want to apply the middleware logic to error responses only on some routes you have a couple of options:
+
+* Add an `ExceptionMiddleware` onto the `Mount`
+* Add a `try/except` block to your middleware and return an error response from there
+* Split up marking and processing into two middlewares, one that gets put on `Mount` which marks the response as needing processing (for example by setting `scope["log-response"] = True`) and another applied to the `Starlette` application that does the heavy lifting.
 
 ## Third party middleware
 
