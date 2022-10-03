@@ -4,24 +4,29 @@ The goal of this policy is to reduce the impact of changes on users and develope
 clear guidelines and a well-defined process for deprecating functionalities. This policy applies to both features
 and API interfaces.
 
+!!! info "Terminology"
+    **Deprecation** and **removal** of a feature have different meanings. **Deprecation** refers to the process of
+    communicating to users that a feature will be removed in the future. **Removal** refers to the actual
+    deletion of the feature from the codebase.
+
 ## Starlette Versions
 
-Starlette follows [Semantic Versioning](https://semver.org/), with some additional constraints.
+Starlette follows [Semantic Versioning](https://semver.org/).
 
-## Deprecation Types
+## Process to Remove a Feature
 
-We'll consider two kinds of deprecations: **Python version** and **feature** deprecations.
+We'll consider two kinds of processes: **drop Python version support** and **feature removal**.
 
-### Python Version Deprecation
+### Python Version
 
 Starlette will aim to support a Python version until the [EOL date of that version](https://endoflife.date/python).
 When a Python version reaches EOL, Starlette will drop support for that version in the next **minor** release.
 
-The drop of Python version support will be documented in the release notes, but the user will **not** be warned it.
+The drop of Python version support will be documented in the release notes, but the user will **not** be warned it in code.
 
-### Feature Deprecation
+### Feature Removal
 
-Starlette will deprecate a feature in the next **minor** release after the feature is marked as deprecated.
+The first step to remove a feature is to **deprecate** it, which is done in **major** releases.
 
 The deprecation of a feature needs to be followed by a warning message using `warnings.warn` in the code that
 uses the deprecated feature. The warning message should include the version in which the feature will be removed.
@@ -52,3 +57,5 @@ def banana():
 ```
 
 The deprecation of a feature will be documented in the release notes, and the user will be warned about it.
+
+Also, in the above example, on version 2.0.0, the `potato` function will be removed from the codebase.
