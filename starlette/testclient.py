@@ -452,7 +452,7 @@ class TestClient(httpx.Client):
             method,
             url,
             content=content,
-            data=data,
+            data=data,  # type: ignore
             files=files,
             json=json,
             params=params,
