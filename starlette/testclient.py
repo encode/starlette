@@ -576,7 +576,7 @@ class TestClient(httpx.Client):
         return super().post(
             url,
             content=content,
-            data=data,
+            data=data,  # type: ignore
             files=files,
             json=json,
             params=params,
@@ -613,7 +613,7 @@ class TestClient(httpx.Client):
         return super().put(
             url,
             content=content,
-            data=data,
+            data=data,  # type: ignore
             files=files,
             json=json,
             params=params,
@@ -650,7 +650,7 @@ class TestClient(httpx.Client):
         return super().patch(
             url,
             content=content,
-            data=data,
+            data=data,  # type: ignore
             files=files,
             json=json,
             params=params,
