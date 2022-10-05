@@ -452,7 +452,8 @@ class TestClient(httpx.Client):
             method,
             url,
             content=content,
-            data=data,  # type: ignore[arg-ty[e            files=files,
+            data=data,  # type: ignore[arg-type]
+            files=files,
             json=json,
             params=params,
             headers=headers,
