@@ -33,6 +33,7 @@ class GZipResponder:
         self.send: Send = unattached_send
         self.initial_message: Message = {}
         self.started = False
+        self.content_encoding_set = False
         self.gzip_buffer = io.BytesIO()
         self.gzip_file = gzip.GzipFile(
             mode="wb", fileobj=self.gzip_buffer, compresslevel=compresslevel
@@ -48,12 +49,19 @@ class GZipResponder:
             # Don't send the initial message until we've determined how to
             # modify the outgoing headers correctly.
             self.initial_message = message
+            self.content_encoding_set = any(
+                header == b"content-encoding"
+                for header, _ in message.get("headers", [])
+            )
         elif message_type == "http.response.body" and not self.started:
             self.started = True
             body = message.get("body", b"")
             more_body = message.get("more_body", False)
-            if len(body) < self.minimum_size and not more_body:
-                # Don't apply GZip to small outgoing responses.
+            if (
+                len(body) < self.minimum_size and not more_body
+            ) or self.content_encoding_set:
+                # Don't apply GZip to small outgoing responses, or
+                # those already encoded.
                 await self.send(self.initial_message)
                 await self.send(message)
             elif not more_body:
@@ -86,19 +94,22 @@ class GZipResponder:
                 await self.send(message)
 
         elif message_type == "http.response.body":
-            # Remaining body in streaming GZip response.
-            body = message.get("body", b"")
-            more_body = message.get("more_body", False)
+            if self.content_encoding_set:
+                await self.send(message)
+            else:
+                # Remaining body in streaming GZip response.
+                body = message.get("body", b"")
+                more_body = message.get("more_body", False)
 
-            self.gzip_file.write(body)
-            if not more_body:
-                self.gzip_file.close()
+                self.gzip_file.write(body)
+                if not more_body:
+                    self.gzip_file.close()
 
-            message["body"] = self.gzip_buffer.getvalue()
-            self.gzip_buffer.seek(0)
-            self.gzip_buffer.truncate()
+                message["body"] = self.gzip_buffer.getvalue()
+                self.gzip_buffer.seek(0)
+                self.gzip_buffer.truncate()
 
-            await self.send(message)
+                await self.send(message)
 
 
 async def unattached_send(message: Message) -> typing.NoReturn:
