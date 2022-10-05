@@ -182,6 +182,11 @@ The following arguments are supported:
 
 ## BaseHTTPMiddleware
 
+!!! warning
+    The `BaseHTTPMiddleware` is deprecated since version `0.22.0`.
+
+    Please refer to [Pure ASGI Middleware](#pure-asgi-middleware) for the recommended way to implement middleware.
+
 An abstract class that allows you to write ASGI middleware against a request/response
 interface.
 
@@ -569,7 +574,7 @@ import time
 class MonitoringMiddleware:
     def __init__(self, app):
         self.app = app
-    
+
     async def __call__(self, scope, receive, send):
         start = time.time()
         try:
