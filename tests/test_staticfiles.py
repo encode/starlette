@@ -9,9 +9,6 @@ import pytest
 
 from starlette.applications import Starlette
 from starlette.exceptions import HTTPException
-from starlette.middleware import Middleware
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
 from starlette.routing import Mount
 from starlette.staticfiles import StaticFiles
 
@@ -38,28 +35,6 @@ def test_staticfiles_with_pathlib(tmp_path: Path, test_client_factory):
     response = client.get("/example.txt")
     assert response.status_code == 200
     assert response.text == "<file content>"
-
-
-def test_staticfiles_head_with_middleware(tmpdir, test_client_factory):
-    """
-    see https://github.com/encode/starlette/pull/935
-    """
-    path = os.path.join(tmpdir, "example.txt")
-    with open(path, "w") as file:
-        file.write("x" * 100)
-
-    async def does_nothing_middleware(request: Request, call_next):
-        response = await call_next(request)
-        return response
-
-    routes = [Mount("/static", app=StaticFiles(directory=tmpdir), name="static")]
-    middleware = [Middleware(BaseHTTPMiddleware, dispatch=does_nothing_middleware)]
-    app = Starlette(routes=routes, middleware=middleware)
-
-    client = test_client_factory(app)
-    response = client.head("/static/example.txt")
-    assert response.status_code == 200
-    assert response.headers.get("content-length") == "100"
 
 
 def test_staticfiles_with_package(test_client_factory):

@@ -952,24 +952,6 @@ def test_mount_asgi_app_with_middleware_url_path_for() -> None:
         mounted_app_with_middleware.url_path_for("route")
 
 
-def test_add_route_to_app_after_mount(
-    test_client_factory: typing.Callable[..., TestClient],
-) -> None:
-    """Checks that Mount will pick up routes
-    added to the underlying app after it is mounted
-    """
-    inner_app = Router()
-    app = Mount("/http", app=inner_app)
-    inner_app.add_route(
-        "/inner",
-        endpoint=homepage,
-        methods=["GET"],
-    )
-    client = test_client_factory(app)
-    response = client.get("/http/inner")
-    assert response.status_code == 200
-
-
 def test_exception_on_mounted_apps(test_client_factory):
     def exc(request):
         raise Exception("Exc")
