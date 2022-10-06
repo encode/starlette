@@ -436,7 +436,6 @@ class UploadFile:
     ) -> None:
         self.filename = filename
         self.file = file
-        self.content_type = content_type
         self.headers = headers or Headers()
 
     @property
