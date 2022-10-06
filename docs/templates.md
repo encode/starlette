@@ -73,8 +73,8 @@ Pass context processors to `context_processors` argument of the `Jinja2Templates
 
 ```python
 import typing
-from starlette.requests import Request
 
+from starlette.requests import Request
 from starlette.templating import Jinja2Templates
 
 def app_context(request: Request) -> typing.Dict[str, typing.Any]:
