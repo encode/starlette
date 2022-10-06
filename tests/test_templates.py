@@ -32,3 +32,32 @@ def test_template_response_requires_request(tmpdir):
     templates = Jinja2Templates(str(tmpdir))
     with pytest.raises(ValueError):
         templates.TemplateResponse("", {})
+
+
+def test_calls_context_processors(tmpdir, test_client_factory):
+    path = os.path.join(tmpdir, "index.html")
+    with open(path, "w") as file:
+        file.write("<html>Hello {{ username }}</html>")
+
+    async def homepage(request):
+        return templates.TemplateResponse("index.html", {"request": request})
+
+    def hello_world_processor(request):
+        return {"username": "World"}
+
+    app = Starlette(
+        debug=True,
+        routes=[Route("/", endpoint=homepage)],
+    )
+    templates = Jinja2Templates(
+        directory=str(tmpdir),
+        context_processors=[
+            hello_world_processor,
+        ],
+    )
+
+    client = test_client_factory(app)
+    response = client.get("/")
+    assert response.text == "<html>Hello World</html>"
+    assert response.template.name == "index.html"
+    assert set(response.context.keys()) == {"request", "username"}

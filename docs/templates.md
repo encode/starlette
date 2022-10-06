@@ -50,6 +50,65 @@ templates = Jinja2Templates(directory='templates')
 templates.env.filters['marked'] = marked_filter
 ```
 
+## Context processors
+
+A context processor is a function that returns a dictionary to be merged into a template context.
+Every function takes only one argument `request` and must return a dictionary to add to the context.
+
+A common use case of template processors is to extend the template context with shared variables.
+
+```python
+import typing
+from starlette.requests import Request
+
+def app_context(request: Request) -> typing.Dict[str, typing.Any]:
+    return {
+        'app': request.app,
+    }
+```
+
+### Registering context templates
+
+Pass context processors to `context_processors` argument of the `Jinja2Templates` class.
+
+```python
+import typing
+from starlette.requests import Request
+
+from starlette.templating import Jinja2Templates
+
+def app_context(request: Request) -> typing.Dict[str, typing.Any]:
+    return {'app': request.app}
+
+templates = Jinja2Templates(directory='templates', context_processors=[
+    app_context,
+])
+```
+
+### Asynchronous context processors
+
+Asynchronous context processors are not supported. You have several options to workaround it:
+1. perform IO operations in the view and pass their results to the template context as usually
+2. do IO operations in the middleware, set their results into `request.state` and then read it in the context processor
+
+```python
+
+class MyTeamsMiddleware:
+    def __init__(self, app):
+        self.app = app
+    async def __call__(self, scope, receive, send):
+        scope.setdefault('state', {})
+        scope['state']['teams'] = await fetch_teams()
+        await self.app(scope, receive, send)
+
+
+def teams_context_processor(request):
+    return {'teams': request.state.teams}
+
+```
+
+
+
 ## Testing template responses
 
 When using the test client, template responses include `.template` and `.context`

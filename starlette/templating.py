@@ -1,5 +1,7 @@
 import typing
 from os import PathLike
+from urllib import request
+from urllib.request import Request
 
 from starlette.background import BackgroundTask
 from starlette.responses import Response
@@ -59,10 +61,16 @@ class Jinja2Templates:
     """
 
     def __init__(
-        self, directory: typing.Union[str, PathLike], **env_options: typing.Any
+        self,
+        directory: typing.Union[str, PathLike],
+        context_processors: typing.Optional[
+            typing.List[typing.Callable[[Request], typing.Dict[str, typing.Any]]]
+        ] = None,
+        **env_options: typing.Any
     ) -> None:
         assert jinja2 is not None, "jinja2 must be installed to use Jinja2Templates"
         self.env = self._create_env(directory, **env_options)
+        self.context_processors = context_processors or []
 
     def _create_env(
         self, directory: typing.Union[str, PathLike], **env_options: typing.Any
@@ -94,6 +102,10 @@ class Jinja2Templates:
     ) -> _TemplateResponse:
         if "request" not in context:
             raise ValueError('context must include a "request" key')
+
+        for context_processor in self.context_processors:
+            context.update(context_processor(typing.cast(Request, request)))
+
         template = self.get_template(name)
         return _TemplateResponse(
             template,
