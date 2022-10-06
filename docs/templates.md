@@ -92,7 +92,6 @@ Asynchronous context processors are not supported. You have several options to w
 2. do IO operations in the middleware, set their results into `request.state` and then read it in the context processor
 
 ```python
-
 class MyTeamsMiddleware:
     def __init__(self, app):
         self.app = app
