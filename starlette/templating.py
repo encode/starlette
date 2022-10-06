@@ -1,9 +1,8 @@
 import typing
 from os import PathLike
-from urllib import request
-from urllib.request import Request
 
 from starlette.background import BackgroundTask
+from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import Receive, Scope, Send
 
@@ -103,8 +102,9 @@ class Jinja2Templates:
         if "request" not in context:
             raise ValueError('context must include a "request" key')
 
+        request = typing.cast(Request, context["request"])
         for context_processor in self.context_processors:
-            context.update(context_processor(typing.cast(Request, request)))
+            context.update(context_processor(request))
 
         template = self.get_template(name)
         return _TemplateResponse(
