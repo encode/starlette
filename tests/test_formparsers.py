@@ -220,7 +220,7 @@ def test_multi_items(tmpdir, test_client_factory):
                 "abc",
                 {
                     "filename": "test1.txt",
-                    "content": "<file1 content>"
+                    "content": "<file1 content>",
                     "content_type": "text/plain",
                 },
                 {
