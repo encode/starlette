@@ -20,7 +20,7 @@ theme:
 
 repo_name: encode/starlette
 repo_url: https://github.com/encode/starlette
-edit_uri: ""
+edit_uri: https://github.com/encode/starlette/tree/master/docs
 
 nav:
   - Introduction: 'index.md'
