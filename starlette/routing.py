@@ -14,6 +14,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.convertors import CONVERTOR_TYPES, Convertor
 from starlette.datastructures import URL, Headers, URLPath
 from starlette.exceptions import HTTPException
+from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, RedirectResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -282,6 +283,12 @@ class Route(BaseRoute):
             and self.methods == other.methods
         )
 
+    def __repr__(self) -> str:
+        class_name = self.__class__.__name__
+        methods = sorted(self.methods or [])
+        path, name = self.path, self.name
+        return f"{class_name}(path={path!r}, name={name!r}, methods={methods!r})"
+
 
 class WebSocketRoute(BaseRoute):
     def __init__(
@@ -340,6 +347,9 @@ class WebSocketRoute(BaseRoute):
             and self.endpoint == other.endpoint
         )
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(path={self.path!r}, name={self.name!r})"
+
 
 class Mount(BaseRoute):
     def __init__(
@@ -348,6 +358,8 @@ class Mount(BaseRoute):
         app: typing.Optional[ASGIApp] = None,
         routes: typing.Optional[typing.Sequence[BaseRoute]] = None,
         name: typing.Optional[str] = None,
+        *,
+        middleware: typing.Optional[typing.Sequence[Middleware]] = None,
     ) -> None:
         assert path == "" or path.startswith("/"), "Routed paths must start with '/'"
         assert (
@@ -355,9 +367,13 @@ class Mount(BaseRoute):
         ), "Either 'app=...', or 'routes=' must be specified"
         self.path = path.rstrip("/")
         if app is not None:
-            self.app: ASGIApp = app
+            self._base_app: ASGIApp = app
         else:
-            self.app = Router(routes=routes)
+            self._base_app = Router(routes=routes)
+        self.app = self._base_app
+        if middleware is not None:
+            for cls, options in reversed(middleware):
+                self.app = cls(app=self.app, **options)
         self.name = name
         self.path_regex, self.path_format, self.param_convertors = compile_path(
             self.path + "/{path:path}"
@@ -365,7 +381,7 @@ class Mount(BaseRoute):
 
     @property
     def routes(self) -> typing.List[BaseRoute]:
-        return getattr(self.app, "routes", [])
+        return getattr(self._base_app, "routes", [])
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] in ("http", "websocket"):
@@ -433,6 +449,11 @@ class Mount(BaseRoute):
             and self.app == other.app
         )
 
+    def __repr__(self) -> str:
+        class_name = self.__class__.__name__
+        name = self.name or ""
+        return f"{class_name}(path={self.path!r}, name={name!r}, app={self.app!r})"
+
 
 class Host(BaseRoute):
     def __init__(
@@ -499,6 +520,11 @@ class Host(BaseRoute):
             and self.host == other.host
             and self.app == other.app
         )
+
+    def __repr__(self) -> str:
+        class_name = self.__class__.__name__
+        name = self.name or ""
+        return f"{class_name}(host={self.host!r}, name={name!r}, app={self.app!r})"
 
 
 _T = typing.TypeVar("_T")

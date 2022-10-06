@@ -409,7 +409,7 @@ class QueryParams(ImmutableMultiDict[str, str]):
                 parse_qsl(value.decode("latin-1"), keep_blank_values=True), **kwargs
             )
         else:
-            super().__init__(*args, **kwargs)  # type: ignore
+            super().__init__(*args, **kwargs)  # type: ignore[arg-type]
         self._list = [(str(k), str(v)) for k, v in self._list]
         self._dict = {str(k): str(v) for k, v in self._dict.items()}
 
@@ -436,6 +436,7 @@ class UploadFile:
     ) -> None:
         self.filename = filename
         self.file = file
+        self.content_type = content_type
         self.headers = headers or Headers()
 
     @property
@@ -523,23 +524,17 @@ class Headers(typing.Mapping[str, str]):
     def raw(self) -> typing.List[typing.Tuple[bytes, bytes]]:
         return list(self._list)
 
-    def keys(self) -> typing.List[str]:  # type: ignore
+    def keys(self) -> typing.List[str]:  # type: ignore[override]
         return [key.decode("latin-1") for key, value in self._list]
 
-    def values(self) -> typing.List[str]:  # type: ignore
+    def values(self) -> typing.List[str]:  # type: ignore[override]
         return [value.decode("latin-1") for key, value in self._list]
 
-    def items(self) -> typing.List[typing.Tuple[str, str]]:  # type: ignore
+    def items(self) -> typing.List[typing.Tuple[str, str]]:  # type: ignore[override]
         return [
             (key.decode("latin-1"), value.decode("latin-1"))
             for key, value in self._list
         ]
-
-    def get(self, key: str, default: typing.Any = None) -> typing.Any:
-        try:
-            return self[key]
-        except KeyError:
-            return default
 
     def getlist(self, key: str) -> typing.List[str]:
         get_header_key = key.lower().encode("latin-1")
