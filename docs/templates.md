@@ -103,9 +103,7 @@ class MyTeamsMiddleware:
 
 def teams_context_processor(request):
     return {'teams': request.state.teams}
-
 ```
-
 
 
 ## Testing template responses
