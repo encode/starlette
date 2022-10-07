@@ -210,3 +210,5 @@ An extension to integrate Swagger/OpenAPI document easily for Starlette project 
 ### Starlette-Babel
 
 Provides translations, localization, and timezone support via Babel integration.
+
+<a href="https://github.com/alex-oleshkevich/starlette_babel" target="_blank">GitHub</a>
