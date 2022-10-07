@@ -1,4 +1,3 @@
-
 Starlette has a rapidly growing community of developers, building tools that integrate into Starlette, tools that depend on Starlette, etc.
 
 Here are some of those third party packages:
@@ -102,9 +101,8 @@ A simple tool for integrating Starlette and WTForms. It is modeled on the excell
 <a href="https://github.com/jockerz/Starlette-Login" target="_blank">GitHub</a> |
 <a href="https://starlette-login.readthedocs.io/en/stable/" target="_blank">Documentation</a>
 
-User session management for Starlette. 
+User session management for Starlette.
 It handles the common tasks of logging in, logging out, and remembering your users' sessions over extended periods of time.
-
 
 ### Starsessions
 
@@ -131,7 +129,7 @@ FastAPI style routing for Starlette.
 Allows you to use decorators to generate routing tables.
 
 ### Starception
-    
+
 <a href="https://github.com/alex-oleshkevich/starception" target="_blank">GitHub</a>
 
 Beautiful exception page for Starlette apps.
@@ -143,10 +141,9 @@ Beautiful exception page for Starlette apps.
 
 Simple and extensible admin interface framework.
 
-Built with [Tabler](https://tabler.io/) and [Datatables](https://datatables.net/), it allows you 
-to quickly generate fully customizable admin interface for your models. You can export your data to many formats (*CSV*, *PDF*,
-*Excel*, etc), filter your data with complex query including `AND` and `OR` conditions,  upload files, ...
-
+Built with [Tabler](https://tabler.io/) and [Datatables](https://datatables.net/), it allows you
+to quickly generate fully customizable admin interface for your models. You can export your data to many formats (_CSV_, _PDF_,
+_Excel_, etc), filter your data with complex query including `AND` and `OR` conditions, upload files, ...
 
 ## Frameworks
 
@@ -202,10 +199,14 @@ A simple framework to help minimise the code needed to get HTML to the browser. 
 A flexible and extendable web framework built on top of Starlette, Pydantic and [di](https://github.com/adriangb/di).
 
 <a href="https://github.com/adriangb/xpresso" target="_blank">GitHub</a> |
-<a href=https://xpresso-api.dev/" target="_blank">Documentation</a>
+<a href=https://xpresso-api.dev/" target="\_blank">Documentation</a>
 
 ### Apiman
 
 An extension to integrate Swagger/OpenAPI document easily for Starlette project and provide [SwaggerUI](http://swagger.io/swagger-ui/) and [RedocUI](https://rebilly.github.io/ReDoc/).
 
 <a href="https://github.com/strongbugman/apiman" target="_blank">GitHub</a>
+
+### Starlette-Babel
+
+Provides translations, localization, and timezone support via Babel integration.
