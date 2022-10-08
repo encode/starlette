@@ -4,6 +4,7 @@ import os
 import stat
 import sys
 import typing
+from datetime import datetime
 from email.utils import formatdate
 from functools import partial
 from mimetypes import guess_type as mimetypes_guess_type
@@ -105,7 +106,7 @@ class Response:
         key: str,
         value: str = "",
         max_age: typing.Optional[int] = None,
-        expires: typing.Optional[int] = None,
+        expires: typing.Optional[typing.Union[datetime, str]] = None,
         path: str = "/",
         domain: typing.Optional[str] = None,
         secure: bool = False,
@@ -117,7 +118,8 @@ class Response:
         if max_age is not None:
             cookie[key]["max-age"] = max_age
         if expires is not None:
-            cookie[key]["expires"] = expires
+            expires = typing.cast(typing.Union[datetime, str], expires)
+            cookie[key]["expires"] = self._format_expires(expires)
         if path is not None:
             cookie[key]["path"] = path
         if domain is not None:
@@ -148,13 +150,19 @@ class Response:
         self.set_cookie(
             key,
             max_age=0,
-            expires=0,
+            expires="0",
             path=path,
             domain=domain,
             secure=secure,
             httponly=httponly,
             samesite=samesite,
         )
+
+    def _format_expires(self, date: typing.Union[datetime, str]) -> str:
+        if isinstance(date, str):
+            return date
+        else:
+            return date.strftime("%a, %d %b %Y %H:%M:%S GMT")
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         await send(
