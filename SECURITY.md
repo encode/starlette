@@ -1,16 +1,5 @@
 # Security Policy
 
-Security is very important for Starlette. 🔒
-
-Learn more about it below. 👇
-
-## Versions
-
-The latest version of Starlette is supported.
-
-You are encouraged to write tests for your application, and update your Starlette version frequently after ensuring that your tests are passing.
-This way you will benefit from the latest features, bug fixes, and **security fixes**.
-
 ## Reporting a Vulnerability
 
 If you think you found a vulnerability, and even if you are not sure about it, please send a message on
