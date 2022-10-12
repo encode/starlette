@@ -742,3 +742,48 @@ class Router:
 
     def __eq__(self, other: typing.Any) -> bool:
         return isinstance(other, Router) and self.routes == other.routes
+
+    def mount(
+        self, path: str, app: ASGIApp, name: typing.Optional[str] = None
+    ) -> None:  # pragma: nocover
+        route = Mount(path, app=app, name=name)
+        self.routes.append(route)
+
+    def host(
+        self, host: str, app: ASGIApp, name: typing.Optional[str] = None
+    ) -> None:  # pragma: no cover
+        route = Host(host, app=app, name=name)
+        self.routes.append(route)
+
+    def add_route(
+        self,
+        path: str,
+        endpoint: typing.Callable,
+        methods: typing.Optional[typing.List[str]] = None,
+        name: typing.Optional[str] = None,
+        include_in_schema: bool = True,
+    ) -> None:  # pragma: nocover
+        route = Route(
+            path,
+            endpoint=endpoint,
+            methods=methods,
+            name=name,
+            include_in_schema=include_in_schema,
+        )
+        self.routes.append(route)
+
+    def add_websocket_route(
+        self, path: str, endpoint: typing.Callable, name: typing.Optional[str] = None
+    ) -> None:  # pragma: no cover
+        route = WebSocketRoute(path, endpoint=endpoint, name=name)
+        self.routes.append(route)
+
+    def add_event_handler(
+        self, event_type: str, func: typing.Callable
+    ) -> None:  # pragma: no cover
+        assert event_type in ("startup", "shutdown")
+
+        if event_type == "startup":
+            self.on_startup.append(func)
+        else:
+            self.on_shutdown.append(func)
