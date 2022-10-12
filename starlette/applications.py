@@ -181,6 +181,12 @@ class Starlette:
     def exception_handler(
         self, exc_class_or_status_code: typing.Union[int, typing.Type[Exception]]
     ) -> typing.Callable:  # pragma: nocover
+        warnings.warn(
+            "The `exception_handler` decorator is deprecated, and will be removed in version 1.0.0."  # noqa: E501
+            "Refer to https://www.starlette.io/exceptions/ for the recommended approach.",  # noqa: E501
+            DeprecationWarning,
+        )
+
         def decorator(func: typing.Callable) -> typing.Callable:
             self.add_exception_handler(exc_class_or_status_code, func)
             return func
