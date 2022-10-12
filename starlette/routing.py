@@ -737,27 +737,15 @@ class Router:
     def __eq__(self, other: typing.Any) -> bool:
         return isinstance(other, Router) and self.routes == other.routes
 
-    # The following usages are now discouraged in favour of configuration
-    #  during Router.__init__(...)
     def mount(
         self, path: str, app: ASGIApp, name: typing.Optional[str] = None
     ) -> None:  # pragma: nocover
-        warnings.warn(
-            "The 'mount' method is now deprecated, and will be removed in version 1.0.0. "  # noqa: E501
-            "Refer to https://www.starlette.io/routing/#submounting-routes for recommended approach.",  # noqa: E501
-            DeprecationWarning,
-        )
         route = Mount(path, app=app, name=name)
         self.routes.append(route)
 
     def host(
         self, host: str, app: ASGIApp, name: typing.Optional[str] = None
     ) -> None:  # pragma: no cover
-        warnings.warn(
-            "The 'host' method is deprecated, and will be removed in version 1.0.0."
-            "Refer to https://www.starlette.io/routing/#host-based-routing for the recommended approach.",  # noqa: E501
-            DeprecationWarning,
-        )
         route = Host(host, app=app, name=name)
         self.routes.append(route)
 
@@ -769,11 +757,6 @@ class Router:
         name: typing.Optional[str] = None,
         include_in_schema: bool = True,
     ) -> None:  # pragma: nocover
-        warnings.warn(
-            "The `add_route` method is deprecated, and will be removed in version 1.0.0."  # noqa: E501
-            "Refer to https://www.starlette.io/routing/#http-routing for the recommended approach.",  # noqa: E501
-            DeprecationWarning,
-        )
         route = Route(
             path,
             endpoint=endpoint,
@@ -786,11 +769,6 @@ class Router:
     def add_websocket_route(
         self, path: str, endpoint: typing.Callable, name: typing.Optional[str] = None
     ) -> None:  # pragma: no cover
-        warnings.warn(
-            "The `add_websocket_route` method is deprecated, and will be removed in version 1.0.0. Refer to "  # noqa: E501
-            "https://www.starlette.io/routing/#websocket-routing for the recommended approach.",  # noqa: E501
-            DeprecationWarning,
-        )
         route = WebSocketRoute(path, endpoint=endpoint, name=name)
         self.routes.append(route)
 
@@ -837,11 +815,6 @@ class Router:
     def add_event_handler(
         self, event_type: str, func: typing.Callable
     ) -> None:  # pragma: no cover
-        warnings.warn(
-            "The `add_event_handler` method is deprecated, and will be removed in version 1.0.0. "  # noqa: E501
-            "Refer to https://www.starlette.io/events/#registering-events for recommended approach.",  # noqa: E501
-            DeprecationWarning,
-        )
         assert event_type in ("startup", "shutdown")
 
         if event_type == "startup":
