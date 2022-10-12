@@ -207,7 +207,7 @@ class Request(HTTPConnection):
 
     @property
     def receive(self) -> Receive:
-        return self._receive
+        return self._receive  # pragma: no cover
 
     async def stream(self) -> typing.AsyncGenerator[bytes, None]:
         if hasattr(self, "_body"):
