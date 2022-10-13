@@ -298,7 +298,7 @@ def test_set_cookie(test_client_factory):
             "mycookie",
             "myvalue",
             max_age=10,
-            expires="10",
+            expires=10,
             path="/",
             domain="localhost",
             secure=True,
