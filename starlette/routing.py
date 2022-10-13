@@ -779,6 +779,15 @@ class Router:
         name: typing.Optional[str] = None,
         include_in_schema: bool = True,
     ) -> typing.Callable:  # pragma: nocover
+        """
+        We no longer document this decorator style API, and its usage is discouraged.
+        Instead you should use the following approach:
+        routes = [
+            Route(path, endpoint=..., ...),
+            ...
+        ]
+        app = Starlette(routes=routes)
+        """
         warnings.warn(
             "The `route` decorator is deprecated, and will be removed in version 1.0.0."
             "Refer to https://www.starlette.io/routing/#http-routing for the recommended approach.",  # noqa: E501
@@ -800,6 +809,15 @@ class Router:
     def websocket_route(
         self, path: str, name: typing.Optional[str] = None
     ) -> typing.Callable:  # pragma: nocover
+        """
+        We no longer document this decorator style API, and its usage is discouraged.
+        Instead you should use the following approach:
+        routes = [
+            WebSocketRoute(path, endpoint=..., ...),
+            ...
+        ]
+        app = Starlette(routes=routes)
+        """
         warnings.warn(
             "The `websocket_route` decorator is deprecated, and will be removed in version 1.0.0. Refer to "  # noqa: E501
             "https://www.starlette.io/routing/#websocket-routing for the recommended approach.",  # noqa: E501
