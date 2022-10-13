@@ -140,11 +140,6 @@ class Starlette:
     def add_middleware(
         self, middleware_class: type, **options: typing.Any
     ) -> None:  # pragma: no cover
-        warnings.warn(
-            "The `add_middleware` method is deprecated, and will be removed in version 1.0.0. "  # noqa: E501
-            "Refer to https://www.starlette.io/middleware/#using-middleware for recommended approach.",  # noqa: E501
-            DeprecationWarning,
-        )
         self.user_middleware.insert(0, Middleware(middleware_class, **options))
         self.middleware_stack = self.build_middleware_stack()
 
@@ -251,6 +246,11 @@ class Starlette:
         ]
         app = Starlette(middleware=middleware)
         """
+        warnings.warn(
+            "The `middleware` decorator is deprecated, and will be removed in version 1.0.0. "  # noqa: E501
+            "Refer to https://www.starlette.io/middleware/#using-middleware for recommended approach.",  # noqa: E501
+            DeprecationWarning,
+        )
         assert (
             middleware_type == "http"
         ), 'Currently only middleware("http") is supported.'
