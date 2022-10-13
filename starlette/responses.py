@@ -4,7 +4,7 @@ import os
 import stat
 import sys
 import typing
-from datetime import datetime
+from datetime import datetime, timezone
 from email.utils import formatdate
 from functools import partial
 from mimetypes import guess_type as mimetypes_guess_type
@@ -34,6 +34,12 @@ def guess_type(
     if sys.version_info < (3, 8):  # pragma: no cover
         url = os.fspath(url)
     return mimetypes_guess_type(url, strict)
+
+
+# Format based on MDN HTTP documentation on Set-Cookie and Date format
+# https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie
+# https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Date
+COOKIE_DATETIME_FORMAT = "%a, %d %b %Y %H:%M:%S GMT"
 
 
 class Response:
@@ -106,7 +112,7 @@ class Response:
         key: str,
         value: str = "",
         max_age: typing.Optional[int] = None,
-        expires: typing.Optional[typing.Union[datetime, str]] = None,
+        expires: typing.Optional[typing.Union[datetime, int]] = None,
         path: str = "/",
         domain: typing.Optional[str] = None,
         secure: bool = False,
@@ -118,8 +124,10 @@ class Response:
         if max_age is not None:
             cookie[key]["max-age"] = max_age
         if expires is not None:
-            expires = typing.cast(typing.Union[datetime, str], expires)
-            cookie[key]["expires"] = self._format_expires(expires)
+            if isinstance(expires, datetime):
+                cookie[key]["expires"] = expires.strftime(COOKIE_DATETIME_FORMAT)
+            else:
+                cookie[key]["expires"] = expires
         if path is not None:
             cookie[key]["path"] = path
         if domain is not None:
@@ -150,19 +158,13 @@ class Response:
         self.set_cookie(
             key,
             max_age=0,
-            expires="0",
+            expires=datetime.now(timezone.utc),
             path=path,
             domain=domain,
             secure=secure,
             httponly=httponly,
             samesite=samesite,
         )
-
-    def _format_expires(self, date: typing.Union[datetime, str]) -> str:
-        if isinstance(date, str):
-            return date
-        else:
-            return date.strftime("%a, %d %b %Y %H:%M:%S GMT")
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         await send(
