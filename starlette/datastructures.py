@@ -585,7 +585,6 @@ class Headers(typing.Mapping[str, str]):
 
 
 class MutableHeaders(Headers):
-
     def __init__(
         self,
         headers: typing.Optional[typing.Mapping[str, str]] = None,
