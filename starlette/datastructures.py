@@ -585,6 +585,16 @@ class Headers(typing.Mapping[str, str]):
 
 
 class MutableHeaders(Headers):
+
+    def __init__(
+        self,
+        headers: typing.Optional[typing.Mapping[str, str]] = None,
+        raw: typing.Optional[typing.List[typing.Tuple[bytes, bytes]]] = None,
+        scope: typing.Optional[typing.Mapping[str, typing.Any]] = None,
+    ) -> None:
+        super().__init__(headers, raw, scope)
+        self._list = list(self._list)
+
     def __setitem__(self, key: str, value: str) -> None:
         """
         Set the header `key` to `value`, removing any duplicate entries.
