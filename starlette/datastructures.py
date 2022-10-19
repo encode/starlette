@@ -522,7 +522,9 @@ class Headers(typing.Mapping[str, str]):
             assert scope is None, 'Cannot set both "raw" and "scope".'
             self._list = raw
         elif scope is not None:
-            self._list = scope["headers"]
+            # scope["headers"] isn't necessarily a list
+            # it might be a tuple or other iterable
+            self._list = list(scope["headers"])
 
     @property
     def raw(self) -> typing.List[typing.Tuple[bytes, bytes]]:
@@ -585,15 +587,6 @@ class Headers(typing.Mapping[str, str]):
 
 
 class MutableHeaders(Headers):
-    def __init__(
-        self,
-        headers: typing.Optional[typing.Mapping[str, str]] = None,
-        raw: typing.Optional[typing.List[typing.Tuple[bytes, bytes]]] = None,
-        scope: typing.Optional[typing.Mapping[str, typing.Any]] = None,
-    ) -> None:
-        super().__init__(headers, raw, scope)
-        self._list = list(self._list)
-
     def __setitem__(self, key: str, value: str) -> None:
         """
         Set the header `key` to `value`, removing any duplicate entries.
