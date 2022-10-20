@@ -4,7 +4,7 @@ import os
 import stat
 import sys
 import typing
-from datetime import datetime, timezone
+from datetime import datetime
 from email.utils import formatdate
 from functools import partial
 from mimetypes import guess_type as mimetypes_guess_type
@@ -36,9 +36,9 @@ def guess_type(
     return mimetypes_guess_type(url, strict)
 
 
-# Format based on MDN HTTP documentation on Set-Cookie and Date format
-# https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie
-# https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Date
+# Cookie expire format
+# As described by https://www.rfc-editor.org/rfc/rfc6265#section-4.1.1
+# And defined by https://www.rfc-editor.org/rfc/rfc2616#section-3.3.1
 COOKIE_DATETIME_FORMAT = "%a, %d %b %Y %H:%M:%S GMT"
 
 
@@ -158,7 +158,6 @@ class Response:
         self.set_cookie(
             key,
             max_age=0,
-            expires=datetime.now(timezone.utc),
             path=path,
             domain=domain,
             secure=secure,

@@ -334,7 +334,13 @@ def test_set_cookie_with_expire_datetime(test_client_factory):
     response = client.get("/")
     cookie: SimpleCookie = SimpleCookie(response.headers.get("set-cookie"))
 
-    assert cookie["mycookie"]
+    expires = cookie["mycookie"]["expires"]
+
+    # Date format spec from
+    # And defined by https://www.rfc-editor.org/rfc/rfc2616#section-3.3.1
+    pattern = r"\w{3}, \d{2} \w{3} \d{4} \d{2}:\d{2}:\d{2}"
+
+    assert re.search(pattern, expires)
 
 
 def test_set_cookie_expire_format(test_client_factory):
