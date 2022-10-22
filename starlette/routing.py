@@ -782,11 +782,9 @@ class Router:
         """
         We no longer document this decorator style API, and its usage is discouraged.
         Instead you should use the following approach:
-        routes = [
-            Route(path, endpoint=..., ...),
-            ...
-        ]
-        app = Starlette(routes=routes)
+
+        >>> routes = [Route(path, endpoint=...), ...]
+        >>> app = Starlette(routes=routes)
         """
         warnings.warn(
             "The `route` decorator is deprecated, and will be removed in version 1.0.0."
@@ -812,11 +810,9 @@ class Router:
         """
         We no longer document this decorator style API, and its usage is discouraged.
         Instead you should use the following approach:
-        routes = [
-            WebSocketRoute(path, endpoint=..., ...),
-            ...
-        ]
-        app = Starlette(routes=routes)
+
+        >>> routes = [WebSocketRoute(path, endpoint=...), ...]
+        >>> app = Starlette(routes=routes)
         """
         warnings.warn(
             "The `websocket_route` decorator is deprecated, and will be removed in version 1.0.0. Refer to "  # noqa: E501

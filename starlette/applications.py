@@ -198,11 +198,9 @@ class Starlette:
         """
         We no longer document this decorator style API, and its usage is discouraged.
         Instead you should use the following approach:
-        routes = [
-            Route(path, endpoint=..., ...),
-            ...
-        ]
-        app = Starlette(routes=routes)
+
+        >>> routes = [Route(path, endpoint=...), ...]
+        >>> app = Starlette(routes=routes)
         """
 
         def decorator(func: typing.Callable) -> typing.Callable:
@@ -223,11 +221,9 @@ class Starlette:
         """
         We no longer document this decorator style API, and its usage is discouraged.
         Instead you should use the following approach:
-        routes = [
-            WebSocketRoute(path, endpoint=..., ...),
-            ...
-        ]
-        app = Starlette(routes=routes)
+
+        >>> routes = [WebSocketRoute(path, endpoint=...), ...]
+        >>> app = Starlette(routes=routes)
         """
 
         def decorator(func: typing.Callable) -> typing.Callable:
@@ -240,11 +236,9 @@ class Starlette:
         """
         We no longer document this decorator style API, and its usage is discouraged.
         Instead you should use the following approach:
-        middleware = [
-            Middleware(...),
-            ...
-        ]
-        app = Starlette(middleware=middleware)
+
+        >>> middleware = [Middleware(...), ...]
+        >>> app = Starlette(middleware=middleware)
         """
         warnings.warn(
             "The `middleware` decorator is deprecated, and will be removed in version 1.0.0. "  # noqa: E501
