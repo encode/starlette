@@ -1,7 +1,7 @@
 import json
 import sys
 import typing
-from base64 import b64decode, b64encode
+from base64 import urlsafe_b64decode, urlsafe_b64encode
 
 import itsdangerous
 from itsdangerous.exc import BadSignature
@@ -48,7 +48,7 @@ class SessionMiddleware:
             data = connection.cookies[self.session_cookie].encode("utf-8")
             try:
                 data = self.signer.unsign(data, max_age=self.max_age)
-                scope["session"] = json.loads(b64decode(data))
+                scope["session"] = json.loads(base64url_decode(data))
                 initial_session_was_empty = False
             except BadSignature:
                 scope["session"] = {}
@@ -59,7 +59,9 @@ class SessionMiddleware:
             if message["type"] == "http.response.start":
                 if scope["session"]:
                     # We have session data to persist.
-                    data = b64encode(json.dumps(scope["session"]).encode("utf-8"))
+                    data = base64url_encode(
+                        json.dumps(scope["session"]).encode("utf-8")
+                    )
                     data = self.signer.sign(data)
                     headers = MutableHeaders(scope=message)
                     header_value = "{session_cookie}={data}; path={path}; {max_age}{security_flags}".format(  # noqa E501
@@ -84,3 +86,21 @@ class SessionMiddleware:
             await send(message)
 
         await self.app(scope, receive, send_wrapper)
+
+
+def base64url_encode(data: bytes) -> bytes:
+    """
+    Encode a byte-string to base64url.
+
+    See https://tools.ietf.org/html/rfc7515#appendix-C
+    """
+    return urlsafe_b64encode(data).rstrip(b"=")
+
+
+def base64url_decode(data: bytes) -> bytes:
+    """
+    Decode a base64url byte-string.
+
+    See https://tools.ietf.org/html/rfc7515#appendix-C
+    """
+    return urlsafe_b64decode(data + b"=" * (-len(data) % 4))
