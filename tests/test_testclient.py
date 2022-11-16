@@ -242,12 +242,12 @@ def test_client(test_client_factory):
     assert response.json() == {"host": "testclient", "port": 50000}
 
 
-def test_query_params(test_client_factory):
+@pytest.mark.parametrize("param", ("2020-07-14T00:00:00+00:00", "España", "voilà"))
+def test_query_params(test_client_factory, param: str):
     def homepage(request):
         return Response(request.query_params["param"])
 
     app = Starlette(routes=[Route("/", endpoint=homepage)])
     client = test_client_factory(app)
-    for param in ("2020-07-14T00:00:00+00:00", "España", "voilà"):
-        response = client.get("/", params={"param": param})
-        assert response.text == param
+    response = client.get("/", params={"param": param})
+    assert response.text == param
