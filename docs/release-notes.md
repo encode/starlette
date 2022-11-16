@@ -2,9 +2,11 @@
 
 November 16, 2022
 
+### Changed
+* Bypass `GZipMiddleware` when response includes `Content-Encoding` [#1901](https://github.com/encode/starlette/pull/1901).
+
 ### Fixed
 * Remove unneeded `unquote()` from query parameters on the `TestClient` [#1953](https://github.com/encode/starlette/pull/1953).
-* Bypass `GZipMiddleware` when response includes `Content-Encoding` [#1901](https://github.com/encode/starlette/pull/1901).
 * Make sure `MutableHeaders._list` is actually a `list` [#1917](https://github.com/encode/starlette/pull/1917).
 * Import compatibility with the next version of `AnyIO` [#1936](https://github.com/encode/starlette/pull/1936).
 
