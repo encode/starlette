@@ -1,6 +1,6 @@
 ## 0.22.0
 
-November 16, 2022
+November 17, 2022
 
 ### Changed
 * Bypass `GZipMiddleware` when response includes `Content-Encoding` [#1901](https://github.com/encode/starlette/pull/1901).
