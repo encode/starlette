@@ -388,13 +388,12 @@ class TestClient(httpx.Client):
         )
         if headers is None:
             headers = {}
+        if "user-agent" not in headers:
+            headers["user-agent"] = "testclient" # this is for backwards compatibility in case no user-agent is set in the given headers
         super().__init__(
             app=self.app,
             base_url=base_url,
-            headers=headers
-            | {
-                "user-agent": "testclient"
-            },  # override user-agent value with "testclient" for backward compatibility
+            headers=headers,
             transport=transport,
             follow_redirects=True,
             cookies=cookies,
