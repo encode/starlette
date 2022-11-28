@@ -778,7 +778,7 @@ class Router:
         methods: typing.Optional[typing.List[str]] = None,
         name: typing.Optional[str] = None,
         include_in_schema: bool = True,
-    ) -> typing.Callable:  # pragma: nocover
+    ) -> typing.Callable:
         """
         We no longer document this decorator style API, and its usage is discouraged.
         Instead you should use the following approach:
@@ -806,7 +806,7 @@ class Router:
 
     def websocket_route(
         self, path: str, name: typing.Optional[str] = None
-    ) -> typing.Callable:  # pragma: nocover
+    ) -> typing.Callable:
         """
         We no longer document this decorator style API, and its usage is discouraged.
         Instead you should use the following approach:
@@ -836,7 +836,7 @@ class Router:
         else:
             self.on_shutdown.append(func)
 
-    def on_event(self, event_type: str) -> typing.Callable:  # pragma: nocover
+    def on_event(self, event_type: str) -> typing.Callable:
         warnings.warn(
             "The `on_event` decorator is deprecated, and will be removed in version 1.0.0. "  # noqa: E501
             "Refer to https://www.starlette.io/events/#registering-events for recommended approach.",  # noqa: E501

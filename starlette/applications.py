@@ -175,9 +175,9 @@ class Starlette:
 
     def exception_handler(
         self, exc_class_or_status_code: typing.Union[int, typing.Type[Exception]]
-    ) -> typing.Callable:  # pragma: nocover
+    ) -> typing.Callable:
         warnings.warn(
-            "The `exception_handler` decorator is deprecated, and will be removed in version 1.0.0."  # noqa: E501
+            "The `exception_handler` decorator is deprecated, and will be removed in version 1.0.0. "  # noqa: E501
             "Refer to https://www.starlette.io/exceptions/ for the recommended approach.",  # noqa: E501
             DeprecationWarning,
         )
@@ -194,7 +194,7 @@ class Starlette:
         methods: typing.Optional[typing.List[str]] = None,
         name: typing.Optional[str] = None,
         include_in_schema: bool = True,
-    ) -> typing.Callable:  # pragma: nocover
+    ) -> typing.Callable:
         """
         We no longer document this decorator style API, and its usage is discouraged.
         Instead you should use the following approach:
@@ -202,6 +202,11 @@ class Starlette:
         >>> routes = [Route(path, endpoint=...), ...]
         >>> app = Starlette(routes=routes)
         """
+        warnings.warn(
+            "The `route` decorator is deprecated, and will be removed in version 1.0.0. "  # noqa: E501
+            "Refer to https://www.starlette.io/routing/ for the recommended approach.",  # noqa: E501
+            DeprecationWarning,
+        )
 
         def decorator(func: typing.Callable) -> typing.Callable:
             self.router.add_route(
@@ -217,7 +222,7 @@ class Starlette:
 
     def websocket_route(
         self, path: str, name: typing.Optional[str] = None
-    ) -> typing.Callable:  # pragma: nocover
+    ) -> typing.Callable:
         """
         We no longer document this decorator style API, and its usage is discouraged.
         Instead you should use the following approach:
@@ -225,6 +230,11 @@ class Starlette:
         >>> routes = [WebSocketRoute(path, endpoint=...), ...]
         >>> app = Starlette(routes=routes)
         """
+        warnings.warn(
+            "The `websocket_route` decorator is deprecated, and will be removed in version 1.0.0. "  # noqa: E501
+            "Refer to https://www.starlette.io/routing/#websocket-routing for the recommended approach.",  # noqa: E501
+            DeprecationWarning,
+        )
 
         def decorator(func: typing.Callable) -> typing.Callable:
             self.router.add_websocket_route(path, func, name=name)
@@ -232,7 +242,7 @@ class Starlette:
 
         return decorator
 
-    def middleware(self, middleware_type: str) -> typing.Callable:  # pragma: nocover
+    def middleware(self, middleware_type: str) -> typing.Callable:
         """
         We no longer document this decorator style API, and its usage is discouraged.
         Instead you should use the following approach:
