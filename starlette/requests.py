@@ -4,8 +4,16 @@ from http import cookies as http_cookies
 
 import anyio
 
-from starlette.datastructures import URL, Address, FormData, Headers, QueryParams, State
-from starlette.exceptions import HTTPException
+from starlette.datastructures import (
+    URL,
+    Address,
+    FormData,
+    Headers,
+    QueryParams,
+    State,
+    TrustedHost,
+)
+from starlette.exceptions import HTTPException, ImproperlyConfigured
 from starlette.formparsers import FormParser, MultiPartException, MultiPartParser
 from starlette.types import Message, Receive, Scope, Send
 
@@ -103,6 +111,13 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
             base_url_scope["root_path"] = base_url_scope.get(
                 "app_root_path", base_url_scope.get("root_path", "")
             )
+            for key, value in base_url_scope["headers"]:
+                if key == b"host" and not isinstance(value, TrustedHost):
+                    raise ImproperlyConfigured(
+                        "No trusted host header configuration found, you need "
+                        "to use TrustedHostMiddleware(allowed_hosts=[...]) "
+                        "if you want to generate absolute URL."
+                    )
             self._base_url = URL(scope=base_url_scope)
         return self._base_url
 

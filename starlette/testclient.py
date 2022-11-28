@@ -17,6 +17,7 @@ import httpx
 from anyio.streams.stapled import StapledObjectStream
 
 from starlette._utils import is_async_callable
+from starlette.datastructures import TrustedHost
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from starlette.websockets import WebSocketDisconnect
 
@@ -214,14 +215,18 @@ class _TestClientTransport(httpx.BaseTransport):
         if "host" in request.headers:
             headers: typing.List[typing.Tuple[bytes, bytes]] = []
         elif port == default_port:  # pragma: no cover
-            headers = [(b"host", host.encode())]
+            headers = [(b"host", TrustedHost(host.encode()))]
         else:  # pragma: no cover
-            headers = [(b"host", (f"{host}:{port}").encode())]
+            headers = [(b"host", TrustedHost((f"{host}:{port}").encode()))]
 
         # Include other request headers.
         headers += [
             (key.lower().encode(), value.encode())
             for key, value in request.headers.items()
+        ]
+        headers = [
+            (key, (value if key != b"host" else TrustedHost(value)))
+            for key, value in headers
         ]
 
         scope: typing.Dict[str, typing.Any]

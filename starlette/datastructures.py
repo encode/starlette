@@ -20,6 +20,11 @@ _KeyType = typing.TypeVar("_KeyType")
 _CovariantValueType = typing.TypeVar("_CovariantValueType", covariant=True)
 
 
+class TrustedHost(bytes):
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({super().__repr__()})"
+
+
 class URL:
     def __init__(
         self,
