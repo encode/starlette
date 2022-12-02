@@ -72,7 +72,7 @@ def test_testclient_headers_behavior():
     """
     We should be able to use the test client with user defined headers.
 
-    This could useful if we need to set custom headers for authentication
+    This is useful if we need to set custom headers for authentication
     during tests or in development.
 
     make sure default value of "user-agent" is "testclient" unless overridden.
