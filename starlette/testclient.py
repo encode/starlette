@@ -388,9 +388,7 @@ class TestClient(httpx.Client):
         )
         if headers is None:
             headers = {}
-        headers.setdefault(
-            "user-agent", "testclient"
-        )  # for backwards compatibility in case no user-agent is set
+        headers.setdefault("user-agent", "testclient")
         super().__init__(
             app=self.app,
             base_url=base_url,
