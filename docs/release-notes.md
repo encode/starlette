@@ -8,6 +8,9 @@ December 3, 2022
 ### Deprecated
 * Deprecate `Starlette` and `Router` decorators [#1897](https://github.com/encode/starlette/pull/1897).
 
+### Fixed
+* Fix bug on `FloatConvertor` regex [#1973](https://github.com/encode/starlette/pull/1973).
+
 ## 0.22.0
 
 November 17, 2022
