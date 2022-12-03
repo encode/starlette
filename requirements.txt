@@ -2,25 +2,25 @@
 -e .[full]
 
 # Testing
-autoflake==1.4
-black==22.3.0
-coverage==6.2
-databases[sqlite]==0.5.5
+autoflake==1.5.3
+black==22.10.0
+coverage==6.5.0
 flake8==3.9.2
+importlib-metadata==4.13.0
 isort==5.10.1
-mypy==0.960
-types-requests==2.26.3
-types-contextvars==2.4.6
-types-PyYAML==6.0.4
-types-dataclasses==0.6.5
-pytest==7.1.2
-trio==0.19.0
+mypy==0.991
+typing_extensions==4.4.0
+types-contextvars==2.4.7
+types-PyYAML==6.0.12.2
+types-dataclasses==0.6.6
+pytest==7.2.0
+trio==0.21.0
 
 # Documentation
-mkdocs==1.3.0
-mkdocs-material==8.2.8
-mkautodoc==0.1.0
+mkdocs==1.4.2
+mkdocs-material==8.5.7
+mkautodoc==0.2.0
 
 # Packaging
-twine==4.0.0
-wheel==0.37.1
+build==0.8.0
+twine==4.0.1

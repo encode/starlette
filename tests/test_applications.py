@@ -1,16 +1,19 @@
 import os
 from contextlib import asynccontextmanager
 
+import anyio
 import pytest
 
+from starlette import status
 from starlette.applications import Starlette
 from starlette.endpoints import HTTPEndpoint
-from starlette.exceptions import HTTPException
+from starlette.exceptions import HTTPException, WebSocketException
 from starlette.middleware import Middleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.responses import JSONResponse, PlainTextResponse
 from starlette.routing import Host, Mount, Route, Router, WebSocketRoute
 from starlette.staticfiles import StaticFiles
+from starlette.websockets import WebSocket
 
 
 async def error_500(request, exc):
@@ -61,6 +64,24 @@ async def websocket_endpoint(session):
     await session.close()
 
 
+async def websocket_raise_websocket(websocket: WebSocket):
+    await websocket.accept()
+    raise WebSocketException(code=status.WS_1003_UNSUPPORTED_DATA)
+
+
+class CustomWSException(Exception):
+    pass
+
+
+async def websocket_raise_custom(websocket: WebSocket):
+    await websocket.accept()
+    raise CustomWSException()
+
+
+def custom_ws_exception_handler(websocket: WebSocket, exc: CustomWSException):
+    anyio.from_thread.run(websocket.close, status.WS_1013_TRY_AGAIN_LATER)
+
+
 users = Router(
     routes=[
         Route("/", endpoint=all_users_page),
@@ -78,6 +99,7 @@ exception_handlers = {
     500: error_500,
     405: method_not_allowed,
     HTTPException: http_exception,
+    CustomWSException: custom_ws_exception_handler,
 }
 
 middleware = [
@@ -91,6 +113,8 @@ app = Starlette(
         Route("/class", endpoint=Homepage),
         Route("/500", endpoint=runtime_error),
         WebSocketRoute("/ws", endpoint=websocket_endpoint),
+        WebSocketRoute("/ws-raise-websocket", endpoint=websocket_raise_websocket),
+        WebSocketRoute("/ws-raise-custom", endpoint=websocket_raise_custom),
         Mount("/users", app=users),
         Host("{subdomain}.example.org", app=subdomain),
     ],
@@ -180,6 +204,26 @@ def test_500(test_client_factory):
     assert response.json() == {"detail": "Server Error"}
 
 
+def test_websocket_raise_websocket_exception(client):
+    with client.websocket_connect("/ws-raise-websocket") as session:
+        response = session.receive()
+        assert response == {
+            "type": "websocket.close",
+            "code": status.WS_1003_UNSUPPORTED_DATA,
+            "reason": "",
+        }
+
+
+def test_websocket_raise_custom_exception(client):
+    with client.websocket_connect("/ws-raise-custom") as session:
+        response = session.receive()
+        assert response == {
+            "type": "websocket.close",
+            "code": status.WS_1013_TRY_AGAIN_LATER,
+            "reason": "",
+        }
+
+
 def test_middleware(test_client_factory):
     client = test_client_factory(app, base_url="http://incorrecthost")
     response = client.get("/func")
@@ -194,6 +238,8 @@ def test_routes():
         Route("/class", endpoint=Homepage),
         Route("/500", endpoint=runtime_error, methods=["GET"]),
         WebSocketRoute("/ws", endpoint=websocket_endpoint),
+        WebSocketRoute("/ws-raise-websocket", endpoint=websocket_raise_websocket),
+        WebSocketRoute("/ws-raise-custom", endpoint=websocket_raise_custom),
         Mount(
             "/users",
             app=Router(
@@ -383,3 +429,60 @@ def test_app_sync_gen_lifespan(test_client_factory):
         assert not cleanup_complete
     assert startup_complete
     assert cleanup_complete
+
+
+def test_decorator_deprecations() -> None:
+    app = Starlette()
+
+    with pytest.deprecated_call(
+        match=(
+            "The `exception_handler` decorator is deprecated, "
+            "and will be removed in version 1.0.0."
+        )
+    ) as record:
+        app.exception_handler(500)(http_exception)
+        assert len(record) == 1
+
+    with pytest.deprecated_call(
+        match=(
+            "The `middleware` decorator is deprecated, "
+            "and will be removed in version 1.0.0."
+        )
+    ) as record:
+
+        async def middleware(request, call_next):
+            ...  # pragma: no cover
+
+        app.middleware("http")(middleware)
+        assert len(record) == 1
+
+    with pytest.deprecated_call(
+        match=(
+            "The `route` decorator is deprecated, "
+            "and will be removed in version 1.0.0."
+        )
+    ) as record:
+        app.route("/")(async_homepage)
+        assert len(record) == 1
+
+    with pytest.deprecated_call(
+        match=(
+            "The `websocket_route` decorator is deprecated, "
+            "and will be removed in version 1.0.0."
+        )
+    ) as record:
+        app.websocket_route("/ws")(websocket_endpoint)
+        assert len(record) == 1
+
+    with pytest.deprecated_call(
+        match=(
+            "The `on_event` decorator is deprecated, "
+            "and will be removed in version 1.0.0."
+        )
+    ) as record:
+
+        async def startup():
+            ...  # pragma: no cover
+
+        app.on_event("startup")(startup)
+        assert len(record) == 1
