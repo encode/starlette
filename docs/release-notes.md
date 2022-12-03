@@ -1,3 +1,13 @@
+## 0.23.0
+
+December 3, 2022
+
+### Added
+* Add `headers` parameter to the `TestClient` [#1966](https://github.com/encode/starlette/pull/1966).
+
+### Deprecated
+* Deprecate `Starlette` and `Router` decorators [#1897](https://github.com/encode/starlette/pull/1897).
+
 ## 0.22.0
 
 November 17, 2022
