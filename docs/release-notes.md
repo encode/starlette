@@ -1,3 +1,28 @@
+## 0.23.0
+
+December 5, 2022
+
+### Added
+* Add `headers` parameter to the `TestClient` [#1966](https://github.com/encode/starlette/pull/1966).
+
+### Deprecated
+* Deprecate `Starlette` and `Router` decorators [#1897](https://github.com/encode/starlette/pull/1897).
+
+### Fixed
+* Fix bug on `FloatConvertor` regex [#1973](https://github.com/encode/starlette/pull/1973).
+
+## 0.22.0
+
+November 17, 2022
+
+### Changed
+* Bypass `GZipMiddleware` when response includes `Content-Encoding` [#1901](https://github.com/encode/starlette/pull/1901).
+
+### Fixed
+* Remove unneeded `unquote()` from query parameters on the `TestClient` [#1953](https://github.com/encode/starlette/pull/1953).
+* Make sure `MutableHeaders._list` is actually a `list` [#1917](https://github.com/encode/starlette/pull/1917).
+* Import compatibility with the next version of `AnyIO` [#1936](https://github.com/encode/starlette/pull/1936).
+
 ## 0.21.0
 
 September 26, 2022
