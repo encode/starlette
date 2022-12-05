@@ -1,6 +1,6 @@
 ## 0.23.0
 
-December 3, 2022
+December 5, 2022
 
 ### Added
 * Add `headers` parameter to the `TestClient` [#1966](https://github.com/encode/starlette/pull/1966).
