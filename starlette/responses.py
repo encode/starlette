@@ -5,7 +5,7 @@ import stat
 import sys
 import typing
 from datetime import datetime
-from email.utils import formatdate
+from email.utils import format_datetime, formatdate
 from functools import partial
 from mimetypes import guess_type as mimetypes_guess_type
 from urllib.parse import quote
@@ -34,12 +34,6 @@ def guess_type(
     if sys.version_info < (3, 8):  # pragma: no cover
         url = os.fspath(url)
     return mimetypes_guess_type(url, strict)
-
-
-# Cookie expire format
-# As described by https://www.rfc-editor.org/rfc/rfc6265#section-4.1.1
-# And defined by https://www.rfc-editor.org/rfc/rfc2616#section-3.3.1
-COOKIE_DATETIME_FORMAT = "%a, %d %b %Y %H:%M:%S GMT"
 
 
 class Response:
@@ -125,7 +119,7 @@ class Response:
             cookie[key]["max-age"] = max_age
         if expires is not None:
             if isinstance(expires, datetime):
-                cookie[key]["expires"] = expires.strftime(COOKIE_DATETIME_FORMAT)
+                cookie[key]["expires"] = format_datetime(expires, usegmt=True)
             else:
                 cookie[key]["expires"] = expires
         if path is not None:

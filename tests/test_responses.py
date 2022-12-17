@@ -1,5 +1,4 @@
 import os
-import re
 from datetime import datetime, timedelta, timezone
 from http.cookies import SimpleCookie
 
@@ -312,35 +311,19 @@ def test_set_cookie(test_client_factory):
     assert response.text == "Hello, world!"
 
 
-def test_set_cookie_with_expire_datetime(test_client_factory):
+@pytest.mark.parametrize(
+    "expires", [datetime.now(timezone.utc) + timedelta(days=1), 10]
+)
+def test_expires_on_set_cookie(test_client_factory, expires):
     async def app(scope, receive, send):
         response = Response("Hello, world!", media_type="text/plain")
-        now = datetime.now(timezone.utc)
-        expires = now + timedelta(minutes=1)
-        response.set_cookie(
-            "mycookie",
-            "myvalue",
-            max_age=10,
-            expires=expires,
-            path="/",
-            domain="localhost",
-            secure=True,
-            httponly=True,
-            samesite="none",
-        )
+        response.set_cookie("mycookie", "myvalue", expires=expires)
         await response(scope, receive, send)
 
     client = test_client_factory(app)
     response = client.get("/")
     cookie: SimpleCookie = SimpleCookie(response.headers.get("set-cookie"))
-
-    expires = cookie["mycookie"]["expires"]
-
-    # Date format spec from
-    # And defined by https://www.rfc-editor.org/rfc/rfc2616#section-3.3.1
-    pattern = r"\w{3}, \d{2} \w{3} \d{4} \d{2}:\d{2}:\d{2}"
-
-    assert re.search(pattern, expires)
+    assert cookie["mycookie"]["expires"]
 
 
 def test_delete_cookie(test_client_factory):
