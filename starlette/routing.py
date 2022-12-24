@@ -634,23 +634,23 @@ async def _app_lifespan(scope: Scope, app: ASGIApp) -> typing.AsyncIterator[None
         else:
             raise RuntimeError("unexpected send")
 
-    # This wrapper is needed because TaskGroup.start_soon does not like that
-    # App returns Awaitable instead of Coroutine
     async def coro_app(scope: Scope, receive: Receive, send: Send) -> None:
         await app(scope, receive, send)
+        if exception is None and not shutdown_done.is_set():
+            raise RuntimeError("lifespan returned unexpectedly")
 
     try:
         async with create_task_group() as tg:
             tg.start_soon(coro_app, {**scope, "app": app}, receive, send)
             await startup_done.wait()
-            if exception:
+            if exception is not None:
                 raise LifespanException(exception)
             try:
                 yield
             finally:
                 shutdown_init.set()
                 await shutdown_done.wait()
-                if exception:
+                if exception is not None:
                     raise LifespanException(exception)
     except Exception:
         if lifespan_supported:
