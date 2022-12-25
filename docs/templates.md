@@ -78,9 +78,9 @@ from starlette.templating import Jinja2Templates
 def app_context(request: Request) -> typing.Dict[str, typing.Any]:
     return {'app': request.app}
 
-templates = Jinja2Templates(directory='templates', context_processors=[
-    app_context,
-])
+templates = Jinja2Templates(
+    directory='templates', context_processors=[app_context]
+)
 ```
 
 ### Asynchronous context processors
