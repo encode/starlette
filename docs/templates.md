@@ -104,6 +104,8 @@ def teams_context_processor(request):
     return {'teams': request.state.teams}
 ```
 
+!!! tip
+    If the above middleware is not clear, check the [Pure ASGI Middleware](https://www.starlette.io/middleware/#pure-asgi-middleware) section on our documentation.
 
 ## Testing template responses
 
