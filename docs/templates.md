@@ -85,7 +85,7 @@ templates = Jinja2Templates(
 
 ### Asynchronous context processors
 
-Asynchronous context processors are not supported. You have several options to workaround it:
+Asynchronous context processors are not supported. You have the following alternatives:
 1. perform IO operations in the view and pass their results to the template context as usually
 2. do IO operations in the middleware, set their results into `request.state` and then read it in the context processor
 
