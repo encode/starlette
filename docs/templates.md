@@ -1,4 +1,4 @@
-Starlette is not *strictly* coupled to any particular templating engine, but
+Starlette is not _strictly_ coupled to any particular templating engine, but
 Jinja2 provides an excellent choice.
 
 Starlette provides a simple way to get `jinja2` configured. This is probably
@@ -33,7 +33,7 @@ so we can correctly hyperlink to other pages within the application.
 For example, we can link to static files from within our HTML templates:
 
 ```html
-<link href="{{ url_for('static', path='/css/bootstrap.min.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', path='/css/bootstrap.min.css') }}" rel="stylesheet" />
 ```
 
 If you want to use [custom filters][jinja2], you will need to update the `env`
@@ -85,27 +85,7 @@ templates = Jinja2Templates(
 
 ### Asynchronous context processors
 
-Asynchronous context processors are not supported. You have the following alternatives:
-1. perform IO operations in the view and pass their results to the template context as usually
-2. do IO operations in the middleware, set their results into `request.state` and then read it in the context processor
-
-```python
-class MyTeamsMiddleware:
-    def __init__(self, app):
-        self.app = app
-
-    async def __call__(self, scope, receive, send):
-        scope.setdefault('state', {})
-        scope['state']['teams'] = await fetch_teams()
-        await self.app(scope, receive, send)
-
-
-def teams_context_processor(request):
-    return {'teams': request.state.teams}
-```
-
-!!! tip
-    If the above middleware is not clear, check the [Pure ASGI Middleware](https://www.starlette.io/middleware/#pure-asgi-middleware) section on our documentation.
+Asynchronous context processors currently are not supported.
 
 ## Testing template responses
 
