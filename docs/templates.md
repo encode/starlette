@@ -62,9 +62,7 @@ import typing
 from starlette.requests import Request
 
 def app_context(request: Request) -> typing.Dict[str, typing.Any]:
-    return {
-        'app': request.app,
-    }
+    return {'app': request.app}
 ```
 
 ### Registering context templates
