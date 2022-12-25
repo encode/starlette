@@ -83,9 +83,8 @@ templates = Jinja2Templates(
 )
 ```
 
-### Asynchronous context processors
-
-Asynchronous context processors currently are not supported.
+!!! info
+    Asynchronous functions as context processors are not supported.
 
 ## Testing template responses
 
