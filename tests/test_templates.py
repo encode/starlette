@@ -34,10 +34,9 @@ def test_template_response_requires_request(tmpdir):
         templates.TemplateResponse("", {})
 
 
-def test_calls_context_processors(tmpdir, test_client_factory):
-    path = os.path.join(tmpdir, "index.html")
-    with open(path, "w") as file:
-        file.write("<html>Hello {{ username }}</html>")
+def test_calls_context_processors(tmp_path, test_client_factory):
+    path = tmp_path / "index.html"
+    path.write_text("<html>Hello {{ username }}</html>")
 
     async def homepage(request):
         return templates.TemplateResponse("index.html", {"request": request})
