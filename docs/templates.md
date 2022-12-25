@@ -93,6 +93,7 @@ Asynchronous context processors are not supported. You have the following altern
 class MyTeamsMiddleware:
     def __init__(self, app):
         self.app = app
+
     async def __call__(self, scope, receive, send):
         scope.setdefault('state', {})
         scope['state']['teams'] = await fetch_teams()
