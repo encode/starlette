@@ -49,7 +49,7 @@ def test_calls_context_processors(tmp_path, test_client_factory, tmpdir):
         routes=[Route("/", endpoint=homepage)],
     )
     templates = Jinja2Templates(
-        directory=str(tmpdir),
+        directory=tmp_path,
         context_processors=[
             hello_world_processor,
         ],
