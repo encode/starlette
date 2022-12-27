@@ -3,24 +3,22 @@
 
 # Testing
 autoflake==1.5.3
-black==22.8.0
-coverage==6.4.2
+black==22.10.0
+coverage==6.5.0
 flake8==3.9.2
 importlib-metadata==4.13.0
 isort==5.10.1
-mypy==0.971
-typing_extensions==4.3.0
+mypy==0.991
+typing_extensions==4.4.0
 types-contextvars==2.4.7
-types-PyYAML==6.0.12
+types-PyYAML==6.0.12.2
 types-dataclasses==0.6.6
-pytest==7.1.3
+pytest==7.2.0
 trio==0.21.0
-# NOTE: Remove once greenlet releases 2.0.0.
-greenlet==2.0.0a2; python_version >= "3.11"
 
 # Documentation
-mkdocs==1.4.0
-mkdocs-material==8.5.5
+mkdocs==1.4.2
+mkdocs-material==8.5.7
 mkautodoc==0.2.0
 
 # Packaging

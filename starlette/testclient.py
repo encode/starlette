@@ -12,6 +12,7 @@ from types import GeneratorType
 from urllib.parse import unquote, urljoin
 
 import anyio
+import anyio.from_thread
 import httpx
 from anyio.streams.stapled import StapledObjectStream
 
@@ -195,10 +196,10 @@ class _TestClientTransport(httpx.BaseTransport):
 
     def handle_request(self, request: httpx.Request) -> httpx.Response:
         scheme = request.url.scheme
-        netloc = unquote(request.url.netloc.decode(encoding="ascii"))
+        netloc = request.url.netloc.decode(encoding="ascii")
         path = request.url.path
         raw_path = request.url.raw_path
-        query = unquote(request.url.query.decode(encoding="ascii"))
+        query = request.url.query.decode(encoding="ascii")
 
         default_port = {"http": 80, "ws": 80, "https": 443, "wss": 443}[scheme]
 
@@ -367,6 +368,7 @@ class TestClient(httpx.Client):
         backend: str = "asyncio",
         backend_options: typing.Optional[typing.Dict[str, typing.Any]] = None,
         cookies: httpx._client.CookieTypes = None,
+        headers: typing.Dict[str, str] = None,
     ) -> None:
         self.async_backend = _AsyncBackend(
             backend=backend, backend_options=backend_options or {}
@@ -384,10 +386,13 @@ class TestClient(httpx.Client):
             raise_server_exceptions=raise_server_exceptions,
             root_path=root_path,
         )
+        if headers is None:
+            headers = {}
+        headers.setdefault("user-agent", "testclient")
         super().__init__(
             app=self.app,
             base_url=base_url,
-            headers={"user-agent": "testclient"},
+            headers=headers,
             transport=transport,
             follow_redirects=True,
             cookies=cookies,
@@ -398,7 +403,9 @@ class TestClient(httpx.Client):
         if self.portal is not None:
             yield self.portal
         else:
-            with anyio.start_blocking_portal(**self.async_backend) as portal:
+            with anyio.from_thread.start_blocking_portal(
+                **self.async_backend
+            ) as portal:
                 yield portal
 
     def _choose_redirect_arg(
@@ -714,7 +721,7 @@ class TestClient(httpx.Client):
     def __enter__(self) -> "TestClient":
         with contextlib.ExitStack() as stack:
             self.portal = portal = stack.enter_context(
-                anyio.start_blocking_portal(**self.async_backend)
+                anyio.from_thread.start_blocking_portal(**self.async_backend)
             )
 
             @stack.callback
