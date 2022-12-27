@@ -34,7 +34,7 @@ def test_template_response_requires_request(tmpdir):
         templates.TemplateResponse("", {})
 
 
-def test_calls_context_processors(tmp_path, test_client_factory, tmpdir):
+def test_calls_context_processors(tmp_path, test_client_factory):
     path = tmp_path / "index.html"
     path.write_text("<html>Hello {{ username }}</html>")
 
