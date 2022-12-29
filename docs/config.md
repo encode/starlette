@@ -129,7 +129,7 @@ os.environ['ENVIRONMENT'] = 'dev'
 config = Config(env_prefix='APP_')
 
 DEBUG = config('DEBUG') # lookups APP_DEBUG, returns "yes"
-DEBUG = config('ENVIRONMENT') # lookups APP_ENVIRONMENT, raises KeyError as variable is not defined
+ENVIRONMENT = config('ENVIRONMENT') # lookups APP_ENVIRONMENT, raises KeyError as variable is not defined
 ```
 
 ## A full example
