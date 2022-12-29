@@ -40,9 +40,9 @@ ALLOWED_HOSTS=127.0.0.1, localhost
 
 The order in which configuration values are read is:
 
-* From an environment variable.
-* From the ".env" file.
-* The default value given in `config`.
+-   From an environment variable.
+-   From the ".env" file.
+-   The default value given in `config`.
 
 If none of those match, then `config(...)` will raise an error.
 
@@ -100,7 +100,7 @@ keys in the environment.
 Rather than reading or writing from `os.environ`, you should use Starlette's
 `environ` instance. This instance is a mapping onto the standard `os.environ`
 that additionally protects you by raising an error if any environment variable
-is set *after* the point that it has already been read by the configuration.
+is set _after_ the point that it has already been read by the configuration.
 
 If you're using `pytest`, then you can setup any initial environment in
 `tests/conftest.py`.
@@ -111,6 +111,25 @@ If you're using `pytest`, then you can setup any initial environment in
 from starlette.config import environ
 
 environ['TESTING'] = 'TRUE'
+```
+
+## Reading prefixed environment variables
+
+You can namespace the environment variables by setting `env_prefix` argument.
+
+**myproject/settings.py**:
+
+```python
+import os
+from starlette.config import Config
+
+os.environ['APP_DEBUG'] = 'yes'
+os.environ['ENVIRONMENT'] = 'dev'
+
+config = Config(env_prefix='APP_')
+
+DEBUG = config('DEBUG') # lookups APP_DEBUG, returns "yes"
+DEBUG = config('ENVIRONMENT') # lookups APP_ENVIRONMENT, raises KeyError as variable is not defined
 ```
 
 ## A full example
