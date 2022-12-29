@@ -40,9 +40,9 @@ ALLOWED_HOSTS=127.0.0.1, localhost
 
 The order in which configuration values are read is:
 
--   From an environment variable.
--   From the ".env" file.
--   The default value given in `config`.
+* From an environment variable.
+* From the ".env" file.
+* The default value given in `config`.
 
 If none of those match, then `config(...)` will raise an error.
 
@@ -100,7 +100,7 @@ keys in the environment.
 Rather than reading or writing from `os.environ`, you should use Starlette's
 `environ` instance. This instance is a mapping onto the standard `os.environ`
 that additionally protects you by raising an error if any environment variable
-is set _after_ the point that it has already been read by the configuration.
+is set *after* the point that it has already been read by the configuration.
 
 If you're using `pytest`, then you can setup any initial environment in
 `tests/conftest.py`.
