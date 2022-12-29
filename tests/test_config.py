@@ -136,4 +136,4 @@ def test_config_with_env_prefix(tmpdir, monkeypatch):
     assert config.get("DEBUG") == "value"
 
     with pytest.raises(KeyError):
-        assert config.get("ENVIRONMENT") == "value"
+        config.get("ENVIRONMENT")
