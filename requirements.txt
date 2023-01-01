@@ -2,7 +2,7 @@
 -e .[full]
 
 # Testing
-autoflake==1.5.3
+autoflake==2.0.0
 black==22.12.0
 coverage==7.0.1
 flake8==3.9.2
