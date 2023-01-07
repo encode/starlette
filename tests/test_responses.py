@@ -5,6 +5,7 @@ import pytest
 
 from starlette import status
 from starlette.background import BackgroundTask
+from starlette.datastructures import Headers
 from starlette.requests import Request
 from starlette.responses import (
     FileResponse,
@@ -239,6 +240,31 @@ def test_file_response(tmpdir, test_client_factory):
     assert "last-modified" in response.headers
     assert "etag" in response.headers
     assert filled_by_bg_task == "6, 7, 8, 9"
+
+
+def test_file_response_with_range(tmpdir, test_client_factory):
+    path = os.path.join(tmpdir, "xyz")
+    content = b"<file content>"
+    with open(path, "wb") as file:
+        file.write(content)
+
+    async def app(scope, receive, send):
+        range_header = Headers(scope=scope)["range"]
+        start, end = (int(v) for v in range_header[len("bytes=") :].split("-"))
+        response = FileResponse(path=path, filename="example.png", range=(start, end))
+        await response(scope, receive, send)
+
+    client = test_client_factory(app)
+    response = client.get("/", headers={"range": "bytes=1-12"})
+    expected_disposition = 'attachment; filename="example.png"'
+    assert response.status_code == status.HTTP_206_PARTIAL_CONTENT
+    assert response.content == content[1:13]
+    assert response.headers["content-type"] == "image/png"
+    assert response.headers["content-disposition"] == expected_disposition
+    assert response.headers["content-range"] == "bytes 1-12/14"
+    assert "content-length" in response.headers
+    assert "last-modified" in response.headers
+    assert "etag" in response.headers
 
 
 def test_file_response_with_directory_raises_error(tmpdir, test_client_factory):

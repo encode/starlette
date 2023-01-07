@@ -290,9 +290,11 @@ class FileResponse(Response):
         stat_result: typing.Optional[os.stat_result] = None,
         method: typing.Optional[str] = None,
         content_disposition_type: str = "attachment",
+        range: typing.Optional[typing.Tuple[int, int]] = None,
     ) -> None:
         self.path = path
-        self.status_code = status_code
+        self.status_code = status_code if range is None else 206
+        self.range = range
         self.filename = filename
         self.send_header_only = method is not None and method.upper() == "HEAD"
         if media_type is None:
@@ -316,9 +318,17 @@ class FileResponse(Response):
             self.set_stat_headers(stat_result)
 
     def set_stat_headers(self, stat_result: os.stat_result) -> None:
-        content_length = str(stat_result.st_size)
+        size = str(stat_result.st_size)
         last_modified = formatdate(stat_result.st_mtime, usegmt=True)
         etag_base = str(stat_result.st_mtime) + "-" + str(stat_result.st_size)
+        if self.range is not None:
+            start, end = self.range
+            etag_base += f"-{start}/{end}"
+            content_length = str(end - start + 1)
+            self.headers.setdefault("accept-ranges", "bytes")
+            self.headers.setdefault("content-range", f"bytes {start}-{end}/{size}")
+        else:
+            content_length = size
         etag = md5_hexdigest(etag_base.encode(), usedforsecurity=False)
 
         self.headers.setdefault("content-length", content_length)
@@ -336,6 +346,8 @@ class FileResponse(Response):
                 mode = stat_result.st_mode
                 if not stat.S_ISREG(mode):
                     raise RuntimeError(f"File at path {self.path} is not a file.")
+        else:
+            stat_result = self.stat_result
         await send(
             {
                 "type": "http.response.start",
@@ -347,10 +359,18 @@ class FileResponse(Response):
             await send({"type": "http.response.body", "body": b"", "more_body": False})
         else:
             async with await anyio.open_file(self.path, mode="rb") as file:
+                if self.range is not None:
+                    start, end = self.range
+                    await file.seek(start)
+                else:
+                    start, end = 0, stat_result.st_size - 1
+                remaining_bytes = end - start + 1
                 more_body = True
                 while more_body:
-                    chunk = await file.read(self.chunk_size)
-                    more_body = len(chunk) == self.chunk_size
+                    chunk_size = min(remaining_bytes, self.chunk_size)
+                    chunk = await file.read(chunk_size)
+                    remaining_bytes -= len(chunk)
+                    more_body = remaining_bytes > 0 and len(chunk) == chunk_size
                     await send(
                         {
                             "type": "http.response.body",
