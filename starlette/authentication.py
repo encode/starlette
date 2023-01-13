@@ -13,10 +13,8 @@ _CallableType = typing.TypeVar("_CallableType", bound=typing.Callable)
 
 
 def has_required_scope(conn: HTTPConnection, scopes: typing.Sequence[str]) -> bool:
-    for scope in scopes:
-        if scope not in conn.auth.scopes:
-            return False
-    return True
+    inside_scopes = [scope in conn.auth.scopes for scope in scopes]
+    return any(inside_scopes)
 
 
 def requires(
