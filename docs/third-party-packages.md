@@ -212,9 +212,7 @@ A simple framework to help minimise the code needed to get HTML to the browser. 
 A flexible and extendable web framework built on top of Starlette, Pydantic and [di](https://github.com/adriangb/di).
 
 <a href="https://github.com/adriangb/xpresso" target="_blank">GitHub</a> |
-<a href=https://xpresso-api.dev/" target="_bl
-
-ank">Documentation</a>
+<a href=https://xpresso-api.dev/" target="_blank">Documentation</a>
 
 ### Ellar
 
