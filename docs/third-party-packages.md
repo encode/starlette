@@ -217,7 +217,7 @@ A flexible and extendable web framework built on top of Starlette, Pydantic and 
 ### Ellar
 
 <a href="https://github.com/eadwinCode/ellar" target="_blank">GitHub</a> |
-<a href="eadwincode.github.io/ellar/" target="_blank">Documentation</a>
+<a href="https://eadwincode.github.io/ellar/" target="_blank">Documentation</a>
 
 Ellar is an ASGI web framework for building fast, efficient and scalable RESTAPIs and server-side applications. It offers a high level of abstraction in building server-side applications and combines elements of OOP (Object Oriented Programming), and FP (Functional Programming) - Inspired by Nestjs.
 
