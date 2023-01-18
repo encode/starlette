@@ -212,8 +212,19 @@ A simple framework to help minimise the code needed to get HTML to the browser. 
 A flexible and extendable web framework built on top of Starlette, Pydantic and [di](https://github.com/adriangb/di).
 
 <a href="https://github.com/adriangb/xpresso" target="_blank">GitHub</a> |
-<a href=https://xpresso-api.dev/" target="_blank">Documentation</a>
+<a href=https://xpresso-api.dev/" target="_bl
 
+ank">Documentation</a>
+
+### Ellar
+
+<a href="https://github.com/eadwinCode/ellar" target="_blank">GitHub</a> |
+<a href="eadwincode.github.io/ellar/" target="_blank">Documentation</a>
+
+Ellar is an ASGI web framework for building fast, efficient and scalable RESTAPIs and server-side applications. It offers a high level of abstraction in building server-side applications and combines elements of OOP (Object Oriented Programming), and FP (Functional Programming) - Inspired by Nestjs.
+
+It is built on 3 core libraries **Starlette**, **Pydantic**, and **injector**.
+                                                       
 ### Apiman
 
 An extension to integrate Swagger/OpenAPI document easily for Starlette project and provide [SwaggerUI](http://swagger.io/swagger-ui/) and [RedocUI](https://rebilly.github.io/ReDoc/).
