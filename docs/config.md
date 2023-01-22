@@ -117,9 +117,7 @@ environ['TESTING'] = 'TRUE'
 
 You can namespace the environment variables by setting `env_prefix` argument.
 
-**myproject/settings.py**:
-
-```python
+```python title="myproject/settings.py"
 import os
 from starlette.config import Config
 
