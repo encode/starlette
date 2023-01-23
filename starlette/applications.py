@@ -74,7 +74,7 @@ class Starlette:
             {} if exception_handlers is None else dict(exception_handlers)
         )
         self.user_middleware = [] if middleware is None else list(middleware)
-        self.middleware_stack = None
+        self.middleware_stack: typing.Optional[ASGIApp] = None
 
     def build_middleware_stack(self) -> ASGIApp:
         debug = self.debug
