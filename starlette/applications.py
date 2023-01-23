@@ -74,7 +74,7 @@ class Starlette:
             {} if exception_handlers is None else dict(exception_handlers)
         )
         self.user_middleware = [] if middleware is None else list(middleware)
-        self.middleware_stack = self.build_middleware_stack()
+        self.middleware_stack = None
 
     def build_middleware_stack(self) -> ASGIApp:
         debug = self.debug
@@ -115,13 +115,14 @@ class Starlette:
     @debug.setter
     def debug(self, value: bool) -> None:
         self._debug = value
-        self.middleware_stack = self.build_middleware_stack()
 
     def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         return self.router.url_path_for(name, **path_params)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         scope["app"] = self
+        if self.middleware_stack is None:
+            self.middleware_stack = self.build_middleware_stack()
         await self.middleware_stack(scope, receive, send)
 
     def on_event(self, event_type: str) -> typing.Callable:  # pragma: nocover
@@ -140,8 +141,11 @@ class Starlette:
     def add_middleware(
         self, middleware_class: type, **options: typing.Any
     ) -> None:  # pragma: no cover
+        if self.middleware_stack is not None:
+            raise RuntimeError(
+                "Cannot add middlewares after an application has started"
+            )
         self.user_middleware.insert(0, Middleware(middleware_class, **options))
-        self.middleware_stack = self.build_middleware_stack()
 
     def add_exception_handler(
         self,
@@ -149,7 +153,6 @@ class Starlette:
         handler: typing.Callable,
     ) -> None:  # pragma: no cover
         self.exception_handlers[exc_class_or_status_code] = handler
-        self.middleware_stack = self.build_middleware_stack()
 
     def add_event_handler(
         self, event_type: str, func: typing.Callable
