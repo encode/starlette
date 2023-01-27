@@ -55,6 +55,11 @@ class ExceptionMiddleware:
             await self.app(scope, receive, send)
             return
 
+        scope["starlette.exception_handlers"] = (
+            self._exception_handlers,
+            self._status_handlers,
+        )
+
         response_started = False
 
         async def sender(message: Message) -> None:

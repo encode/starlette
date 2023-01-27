@@ -53,20 +53,78 @@ def iscoroutinefunction_or_partial(obj: typing.Any) -> bool:  # pragma: no cover
     return inspect.iscoroutinefunction(obj)
 
 
+def _lookup_exception_handler(
+    exc: Exception,
+    handlers: typing.Mapping[typing.Type[Exception], typing.Callable[..., typing.Any]],
+) -> typing.Optional[typing.Callable[..., typing.Any]]:
+    for cls in type(exc).__mro__:
+        if cls in handlers:
+            return handlers[cls]
+    return None
+
+
 def request_response(func: typing.Callable) -> ASGIApp:
     """
     Takes a function or coroutine `func(request) -> response`,
     and returns an ASGI application.
     """
+
     is_coroutine = is_async_callable(func)
 
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
-        request = Request(scope, receive=receive, send=send)
-        if is_coroutine:
-            response = await func(request)
+        exception_handlers: typing.Mapping[
+            typing.Type[Exception], typing.Callable[..., typing.Any]
+        ]
+        status_handlers: typing.Mapping[int, typing.Callable[..., typing.Any]]
+
+        try:
+            exception_handlers, status_handlers = scope["starlette.exception_handlers"]
+        except KeyError:
+            exception_handlers, status_handlers = {}, {}
+
+        response_started = False
+
+        async def sender(message) -> None:
+            nonlocal response_started
+
+            if message["type"] == "http.response.start":
+                response_started = True
+            await send(message)
+
+        request = Request(scope, receive=receive, send=sender)
+
+        try:
+            if is_coroutine:
+                response = await func(request)
+            else:
+                response = await run_in_threadpool(func, request)
+        except Exception as exc:
+            handler = None
+
+            if isinstance(exc, HTTPException):
+                handler = status_handlers.get(exc.status_code)
+
+            if handler is None:
+                handler = _lookup_exception_handler(exc, exception_handlers)
+
+            if handler is None:
+                raise exc
+
+            if response_started:
+                msg = "Caught handled exception, but response already started."
+                raise RuntimeError(msg) from exc
+
+            if is_async_callable(handler):
+                response = await handler(request, exc)
+            else:
+                response = await run_in_threadpool(handler, request, exc)
+            await response(scope, receive, send)
         else:
-            response = await run_in_threadpool(func, request)
-        await response(scope, receive, send)
+            try:
+                await response(scope, receive, send)
+            except Exception as exc:
+                msg = "Caught handled exception, but response already started."
+                raise RuntimeError(msg) from exc
 
     return app
 
@@ -78,8 +136,49 @@ def websocket_session(func: typing.Callable) -> ASGIApp:
     # assert asyncio.iscoroutinefunction(func), "WebSocket endpoints must be async"
 
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
-        session = WebSocket(scope, receive=receive, send=send)
-        await func(session)
+        exception_handlers: typing.Mapping[
+            typing.Type[Exception], typing.Callable[..., typing.Any]
+        ]
+        status_handlers: typing.Mapping[int, typing.Callable[..., typing.Any]]
+
+        try:
+            exception_handlers, status_handlers = scope["starlette.exception_handlers"]
+        except KeyError:
+            exception_handlers, status_handlers = {}, {}
+
+        response_started = False
+
+        async def sender(message) -> None:
+            nonlocal response_started
+
+            if message["type"] == "http.response.start":
+                response_started = True
+            await send(message)
+
+        session = WebSocket(scope, receive=receive, send=sender)
+
+        try:
+            await func(session)
+        except Exception as exc:
+            handler = None
+
+            if isinstance(exc, HTTPException):
+                handler = status_handlers.get(exc.status_code)
+
+            if handler is None:
+                handler = _lookup_exception_handler(exc, exception_handlers)
+
+            if handler is None:
+                raise exc
+
+            if response_started:
+                msg = "Caught handled exception, but response already started."
+                raise RuntimeError(msg) from exc
+
+            if is_async_callable(handler):
+                await handler(session, exc)
+            else:
+                await run_in_threadpool(handler, session, exc)
 
     return app
 
