@@ -17,7 +17,7 @@ from starlette.exceptions import HTTPException
 from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, RedirectResponse
-from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketClose
 
 
@@ -84,7 +84,7 @@ def request_response(func: typing.Callable) -> ASGIApp:
 
         response_started = False
 
-        async def sender(message) -> None:
+        async def sender(message: Message) -> None:
             nonlocal response_started
 
             if message["type"] == "http.response.start":
@@ -148,7 +148,7 @@ def websocket_session(func: typing.Callable) -> ASGIApp:
 
         response_started = False
 
-        async def sender(message) -> None:
+        async def sender(message: Message) -> None:
             nonlocal response_started
 
             if message["type"] == "http.response.start":

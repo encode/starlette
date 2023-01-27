@@ -70,7 +70,10 @@ router = Router(
 )
 
 
-app = ExceptionMiddleware(router, handlers={BadBodyException: handler_that_reads_body})
+app = ExceptionMiddleware(
+    router,
+    handlers={BadBodyException: handler_that_reads_body},  # type: ignore[dict-item]
+)
 
 
 @pytest.fixture
