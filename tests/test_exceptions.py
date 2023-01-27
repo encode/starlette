@@ -38,7 +38,9 @@ async def read_body_and_raise_exc(request: Request):
     raise BadBodyException(422)
 
 
-async def handler_that_reads_body(request: Request, exc: BadBodyException) -> JSONResponse:
+async def handler_that_reads_body(
+    request: Request, exc: BadBodyException
+) -> JSONResponse:
     body = await request.body()
     return JSONResponse(status_code=422, content={"body": body.decode()})
 
@@ -59,7 +61,11 @@ router = Router(
         Route("/with_headers", endpoint=with_headers),
         Route("/handled_exc_after_response", endpoint=HandledExcAfterResponse()),
         WebSocketRoute("/runtime_error", endpoint=raise_runtime_error),
-        Route("/consume_body_in_endpoint_and_handler", endpoint=read_body_and_raise_exc, methods=["POST"]),
+        Route(
+            "/consume_body_in_endpoint_and_handler",
+            endpoint=read_body_and_raise_exc,
+            methods=["POST"],
+        ),
     ]
 )
 
