@@ -118,13 +118,8 @@ def request_response(func: typing.Callable) -> ASGIApp:
                 response = await handler(request, exc)
             else:
                 response = await run_in_threadpool(handler, request, exc)
-            await response(scope, receive, send)
-        else:
-            try:
-                await response(scope, receive, send)
-            except Exception as exc:
-                msg = "Caught handled exception, but response already started."
-                raise RuntimeError(msg) from exc
+
+        await response(scope, receive, send)
 
     return app
 
