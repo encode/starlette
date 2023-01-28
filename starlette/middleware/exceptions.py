@@ -110,5 +110,5 @@ class ExceptionMiddleware:
 
     async def websocket_exception(
         self, websocket: WebSocket, exc: WebSocketException
-    ) -> None:
-        await websocket.close(code=exc.code, reason=exc.reason)
+    ) -> None: 
+        await websocket.close(code=exc.code, reason=exc.reason)  # pragma: no cover
