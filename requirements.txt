@@ -6,7 +6,7 @@ autoflake==1.5.3
 black==22.12.0
 coverage==7.1.0
 flake8==3.9.2
-importlib-metadata==4.13.0
+importlib-metadata==6.0.0
 isort==5.10.1
 mypy==0.991
 typing_extensions==4.4.0
