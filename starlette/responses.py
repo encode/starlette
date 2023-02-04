@@ -106,7 +106,7 @@ class Response:
         key: str,
         value: str = "",
         max_age: typing.Optional[int] = None,
-        expires: typing.Optional[typing.Union[datetime, int]] = None,
+        expires: typing.Optional[typing.Union[datetime, str, int]] = None,
         path: str = "/",
         domain: typing.Optional[str] = None,
         secure: bool = False,
