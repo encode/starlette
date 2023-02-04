@@ -463,7 +463,7 @@ def test_staticfiles_follows_symlinks(tmpdir, test_client_factory):
     statics_file_path = os.path.join(statics_path, "index.html")
     os.symlink(source_file_path, statics_file_path)
 
-    app = StaticFiles(directory=statics_path)
+    app = StaticFiles(directory=statics_path, follow_symlink=True)
     client = test_client_factory(app)
 
     response = client.get("/index.html")
@@ -484,7 +484,7 @@ def test_staticfiles_follows_symlink_directories(tmpdir, test_client_factory):
 
     os.symlink(source_path, statics_html_path)
 
-    app = StaticFiles(directory=statics_path)
+    app = StaticFiles(directory=statics_path, follow_symlink=True)
     client = test_client_factory(app)
 
     response = client.get("/html/page.html")
@@ -506,7 +506,7 @@ def test_staticfiles_disallows_path_traversal_with_symlinks(tmpdir):
 
     os.symlink(source_path, statics_path)
 
-    app = StaticFiles(directory=statics_path)
+    app = StaticFiles(directory=statics_path, follow_symlink=True)
     # We can't test this with 'httpx', so we test the app directly here.
     path = app.get_path({"path": "/../index.html"})
     scope = {"method": "GET"}
