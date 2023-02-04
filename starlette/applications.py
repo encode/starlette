@@ -140,7 +140,7 @@ class Starlette:
 
     def add_middleware(
         self, middleware_class: type, **options: typing.Any
-    ) -> None:  # pragma: no cover
+    ) -> None:
         if self.middleware_stack is not None:
             raise RuntimeError(
                 "Cannot add middlewares after an application has started"
