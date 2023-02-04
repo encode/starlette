@@ -439,8 +439,8 @@ class UploadFile:
         self.headers = headers or Headers()
 
     @property
-    def content_type(self) -> typing.Optional[str]:
-        return self.headers.get("content-type", None)
+    def content_type(self) -> str:
+        return self.headers.get("content-type", "")
 
     @property
     def _in_memory(self) -> bool:
