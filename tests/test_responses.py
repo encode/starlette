@@ -1,5 +1,7 @@
 import os
+import time
 from datetime import datetime, timedelta, timezone
+from email.utils import formatdate
 from http.cookies import SimpleCookie
 
 import anyio
@@ -291,6 +293,8 @@ def test_file_response_with_inline_disposition(tmpdir, test_client_factory):
 
 
 def test_set_cookie(test_client_factory):
+    set_cookie_expires = formatdate(time.time() + 10, usegmt=True)
+
     async def app(scope, receive, send):
         response = Response("Hello, world!", media_type="text/plain")
         response.set_cookie(
@@ -309,12 +313,19 @@ def test_set_cookie(test_client_factory):
     client = test_client_factory(app)
     response = client.get("/")
     assert response.text == "Hello, world!"
+    assert (
+        response.headers["set-cookie"]
+        == f"mycookie=myvalue; Domain=localhost; expires={set_cookie_expires}; "
+        "HttpOnly; Max-Age=10; Path=/; SameSite=none; Secure"
+    )
 
 
 @pytest.mark.parametrize(
-    "expires", [datetime.now(timezone.utc) + timedelta(days=1), 10]
+    "expires", [datetime.now(timezone.utc) + timedelta(seconds=10), 10]
 )
 def test_expires_on_set_cookie(test_client_factory, expires):
+    set_cookie_expires = formatdate(time.time() + 10, usegmt=True)
+
     async def app(scope, receive, send):
         response = Response("Hello, world!", media_type="text/plain")
         response.set_cookie("mycookie", "myvalue", expires=expires)
@@ -323,7 +334,7 @@ def test_expires_on_set_cookie(test_client_factory, expires):
     client = test_client_factory(app)
     response = client.get("/")
     cookie: SimpleCookie = SimpleCookie(response.headers.get("set-cookie"))
-    assert cookie["mycookie"]["expires"]
+    assert cookie["mycookie"]["expires"] == set_cookie_expires
 
 
 def test_delete_cookie(test_client_factory):
