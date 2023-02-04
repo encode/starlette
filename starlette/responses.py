@@ -152,6 +152,7 @@ class Response:
         self.set_cookie(
             key,
             max_age=0,
+            expires=0,
             path=path,
             domain=domain,
             secure=secure,
