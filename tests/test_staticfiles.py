@@ -507,7 +507,7 @@ def test_staticfiles_disallows_path_traversal_with_symlinks(tmpdir):
     os.symlink(source_path, statics_path)
 
     app = StaticFiles(directory=statics_path)
-    # We can't test this with 'requests', so we test the app directly here.
+    # We can't test this with 'httpx', so we test the app directly here.
     path = app.get_path({"path": "/../index.html"})
     scope = {"method": "GET"}
 
