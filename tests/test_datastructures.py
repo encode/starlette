@@ -286,6 +286,20 @@ async def test_upload_file_file_input():
 
 
 @pytest.mark.anyio
+async def test_upload_file_without_size():
+    """Test passing file/stream into the UploadFile constructor without size"""
+    stream = io.BytesIO(b"data")
+    file = UploadFile(filename="file", file=stream)
+    assert await file.read() == b"data"
+    assert file.size is None
+    await file.write(b" and more data!")
+    assert await file.read() == b""
+    assert file.size is None
+    await file.seek(0)
+    assert await file.read() == b"data and more data!"
+
+
+@pytest.mark.anyio
 @pytest.mark.parametrize("max_size", [1, 1024], ids=["rolled", "unrolled"])
 async def test_uploadfile_rolling(max_size: int) -> None:
     """Test that we can r/w to a SpooledTemporaryFile

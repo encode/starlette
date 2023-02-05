@@ -430,8 +430,8 @@ class UploadFile:
     def __init__(
         self,
         file: typing.BinaryIO,
-        size: int,
         *,
+        size: typing.Optional[int] = None,
         filename: typing.Optional[str] = None,
         headers: "typing.Optional[Headers]" = None,
     ) -> None:
@@ -451,7 +451,8 @@ class UploadFile:
         return not rolled_to_disk
 
     async def write(self, data: bytes) -> None:
-        self.size += len(data)
+        if self.size is not None:
+            self.size += len(data)
 
         if self._in_memory:
             self.file.write(data)
