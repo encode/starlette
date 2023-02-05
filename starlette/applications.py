@@ -139,9 +139,9 @@ class Starlette:
         self.router.host(host, app=app, name=name)
 
     def add_middleware(self, middleware_class: type, **options: typing.Any) -> None:
-        if self.middleware_stack is not None:
+        if self.middleware_stack is not None:  # pragma: no cover
             raise RuntimeError(
-                "Cannot add middlewares after an application has started"
+                "Cannot add middleware after an application has started"
             )
         self.user_middleware.insert(0, Middleware(middleware_class, **options))
 
