@@ -65,7 +65,7 @@ class Starlette:
             on_startup is None and on_shutdown is None
         ), "Use either 'lifespan' or 'on_startup'/'on_shutdown', not both."
 
-        self._debug = debug
+        self.debug = debug
         self.state = State()
         self.router = Router(
             routes, on_startup=on_startup, on_shutdown=on_shutdown, lifespan=lifespan
@@ -108,14 +108,6 @@ class Starlette:
     def routes(self) -> typing.List[BaseRoute]:
         return self.router.routes
 
-    @property
-    def debug(self) -> bool:
-        return self._debug
-
-    @debug.setter
-    def debug(self, value: bool) -> None:
-        self._debug = value
-
     def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
         return self.router.url_path_for(name, **path_params)
 
@@ -140,9 +132,7 @@ class Starlette:
 
     def add_middleware(self, middleware_class: type, **options: typing.Any) -> None:
         if self.middleware_stack is not None:  # pragma: no cover
-            raise RuntimeError(
-                "Cannot add middleware after an application has started"
-            )
+            raise RuntimeError("Cannot add middleware after an application has started")
         self.user_middleware.insert(0, Middleware(middleware_class, **options))
 
     def add_exception_handler(
