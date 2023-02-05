@@ -137,7 +137,7 @@ As all these methods are `async` methods, you need to "await" them.
 For example, you can get the file name and the contents with:
 
 ```python
-async await request.form() as form:
+async with request.form() as form:
     filename = form["upload_file"].filename
     contents = await form["upload_file"].read()
 ```
