@@ -1,6 +1,6 @@
+import datetime as dt
 import os
-from datetime import datetime, timedelta, timezone
-from email.utils import format_datetime
+import time
 from http.cookies import SimpleCookie
 
 import anyio
@@ -291,8 +291,10 @@ def test_file_response_with_inline_disposition(tmpdir, test_client_factory):
     assert response.headers["content-disposition"] == expected_disposition
 
 
-def test_set_cookie(test_client_factory, time_machine):
-    time_machine.move_to(datetime(2100, 1, 22, 12, 0, 0))
+def test_set_cookie(test_client_factory, monkeypatch):
+    # Mock time used as a reference for `Expires` by stdlib `SimpleCookie`.
+    mocked_now = dt.datetime(2100, 1, 22, 12, 0, 0, tzinfo=dt.timezone.utc)
+    monkeypatch.setattr(time, "time", lambda: mocked_now.timestamp())
 
     async def app(scope, receive, send):
         response = Response("Hello, world!", media_type="text/plain")
@@ -320,21 +322,23 @@ def test_set_cookie(test_client_factory, time_machine):
 
 
 @pytest.mark.parametrize(
-    "expires_factory",
+    "expires",
     [
-        lambda: datetime.now(timezone.utc) + timedelta(seconds=10),
-        lambda: format_datetime(
-            datetime.now(timezone.utc) + timedelta(seconds=10), usegmt=True
+        pytest.param(
+            dt.datetime(2100, 1, 22, 12, 0, 10, tzinfo=dt.timezone.utc), id="datetime"
         ),
-        lambda: 10,
+        pytest.param("Fri, 22 Jan 2100 12:00:10 GMT", id="str"),
+        pytest.param(10, id="int"),
     ],
 )
-def test_expires_on_set_cookie(test_client_factory, expires_factory, time_machine):
-    time_machine.move_to(datetime(2100, 1, 22, 12, 0, 0))
+def test_expires_on_set_cookie(test_client_factory, monkeypatch, expires):
+    # Mock time used as a reference for `Expires` by stdlib `SimpleCookie`.
+    mocked_now = dt.datetime(2100, 1, 22, 12, 0, 0, tzinfo=dt.timezone.utc)
+    monkeypatch.setattr(time, "time", lambda: mocked_now.timestamp())
 
     async def app(scope, receive, send):
         response = Response("Hello, world!", media_type="text/plain")
-        response.set_cookie("mycookie", "myvalue", expires=expires_factory())
+        response.set_cookie("mycookie", "myvalue", expires=expires)
         await response(scope, receive, send)
 
     client = test_client_factory(app)
