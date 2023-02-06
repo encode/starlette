@@ -1,4 +1,3 @@
-import tempfile
 import typing
 from collections.abc import Sequence
 from shlex import shlex
@@ -114,10 +113,17 @@ class URL:
             or "hostname" in kwargs
             or "port" in kwargs
         ):
-            hostname = kwargs.pop("hostname", self.hostname)
+            hostname = kwargs.pop("hostname", None)
             port = kwargs.pop("port", self.port)
             username = kwargs.pop("username", self.username)
             password = kwargs.pop("password", self.password)
+
+            if hostname is None:
+                netloc = self.netloc
+                _, _, hostname = netloc.rpartition("@")
+
+                if hostname[-1] != "]":
+                    hostname = hostname.rsplit(":", 1)[0]
 
             netloc = hostname
             if port is not None:
@@ -428,32 +434,33 @@ class UploadFile:
     An uploaded file included as part of the request data.
     """
 
-    spool_max_size = 1024 * 1024
-    file: typing.BinaryIO
-    headers: "Headers"
-
     def __init__(
         self,
-        filename: str,
-        file: typing.Optional[typing.BinaryIO] = None,
-        content_type: str = "",
+        file: typing.BinaryIO,
         *,
+        size: typing.Optional[int] = None,
+        filename: typing.Optional[str] = None,
         headers: "typing.Optional[Headers]" = None,
     ) -> None:
         self.filename = filename
-        self.content_type = content_type
-        if file is None:
-            self.file = tempfile.SpooledTemporaryFile(max_size=self.spool_max_size)  # type: ignore[assignment]  # noqa: E501
-        else:
-            self.file = file
+        self.file = file
+        self.size = size
         self.headers = headers or Headers()
 
     @property
+    def content_type(self) -> typing.Optional[str]:
+        return self.headers.get("content-type", None)
+
+    @property
     def _in_memory(self) -> bool:
+        # check for SpooledTemporaryFile._rolled
         rolled_to_disk = getattr(self.file, "_rolled", True)
         return not rolled_to_disk
 
     async def write(self, data: bytes) -> None:
+        if self.size is not None:
+            self.size += len(data)
+
         if self._in_memory:
             self.file.write(data)
         else:
