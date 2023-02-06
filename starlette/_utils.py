@@ -22,6 +22,9 @@ def is_async_callable(obj: typing.Any) -> bool:
 T_co = typing.TypeVar("T_co", covariant=True)
 
 
+# TODO: once 3.8 is the minimum supported version (27 Jun 2023)
+# this can just become
+# class AwaitableOrContextManager(typing.Awaitable[T_co], typing.AsyncContextManager[T_co]):    pass
 class AwaitableOrContextManager(Protocol[T_co]):
     def __await__(self) -> typing.Generator[typing.Any, None, T_co]:
         ...  # pragma: no cover
