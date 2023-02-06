@@ -12,6 +12,9 @@ February 7, 2023
 * Support `str` and `datetime` on `expires` parameter on the `Response.set_cookie` method [#1908](https://github.com/encode/starlette/pull/1908).
 * Support debug extension instead of custom response template extension [#1991](https://github.com/encode/starlette/pull/1991).
 
+### Fixed
+* Fix url parsing of ipv6 urls on `URL.replace` [#1965](https://github.com/encode/starlette/pull/1965).
+
 ## 0.23.1
 
 December 9, 2022
