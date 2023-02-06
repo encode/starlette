@@ -1,6 +1,6 @@
 ## 0.24.0
 
-February 7, 2023
+February 6, 2023
 
 ### Added
 * Allow `StaticFiles` to follow symlinks [#1683](https://github.com/encode/starlette/pull/1683).
