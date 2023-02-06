@@ -119,7 +119,7 @@ class URL:
             username = kwargs.pop("username", self.username)
             password = kwargs.pop("password", self.password)
 
-            if not hostname:
+            if hostname is None:
                 netloc = self.netloc
                 _, _, hostname = netloc.rpartition("@")
 
