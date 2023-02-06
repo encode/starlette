@@ -5,6 +5,7 @@ February 7, 2023
 ### Added
 * Allow `StaticFiles` to follow symlinks [#1683](https://github.com/encode/starlette/pull/1683).
 * Allow `Request.form()` as a context manager [#1903](https://github.com/encode/starlette/pull/1903).
+* Lazily build the middleware stack [#2017](https://github.com/encode/starlette/pull/2017).
 * Make the `file` argument required on `UploadFile` [#1413](https://github.com/encode/starlette/pull/1413).
 * Add `env_prefix` argument to `Config` [#1990](https://github.com/encode/starlette/pull/1990).
 * Add template context processors [#1904](https://github.com/encode/starlette/pull/1904).
