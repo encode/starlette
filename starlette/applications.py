@@ -125,6 +125,9 @@ class Starlette:
     ) -> Mount:  # pragma: nocover
         return self.router.mount(path, app=app, name=name)
 
+    def unmount(self, route: Mount) -> None:  # pragma: nocover
+        self.router.unmount(route)
+
     def host(
         self, host: str, app: ASGIApp, name: typing.Optional[str] = None
     ) -> None:  # pragma: no cover

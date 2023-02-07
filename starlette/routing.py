@@ -744,6 +744,9 @@ class Router:
         self.routes.append(route)
         return route
 
+    def unmount(self, route: Mount) -> None:  # pragma: no cover
+        self.routes.remove(route)
+
     def host(
         self, host: str, app: ASGIApp, name: typing.Optional[str] = None
     ) -> None:  # pragma: no cover
