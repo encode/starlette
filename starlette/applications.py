@@ -8,7 +8,7 @@ from starlette.middleware.errors import ServerErrorMiddleware
 from starlette.middleware.exceptions import ExceptionMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
-from starlette.routing import BaseRoute, Router
+from starlette.routing import BaseRoute, Mount, Router
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 
@@ -122,8 +122,8 @@ class Starlette:
 
     def mount(
         self, path: str, app: ASGIApp, name: typing.Optional[str] = None
-    ) -> None:  # pragma: nocover
-        self.router.mount(path, app=app, name=name)
+    ) -> Mount:  # pragma: nocover
+        return self.router.mount(path, app=app, name=name)
 
     def host(
         self, host: str, app: ASGIApp, name: typing.Optional[str] = None

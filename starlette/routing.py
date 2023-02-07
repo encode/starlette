@@ -739,9 +739,10 @@ class Router:
 
     def mount(
         self, path: str, app: ASGIApp, name: typing.Optional[str] = None
-    ) -> None:  # pragma: nocover
+    ) -> Mount:  # pragma: nocover
         route = Mount(path, app=app, name=name)
         self.routes.append(route)
+        return route
 
     def host(
         self, host: str, app: ASGIApp, name: typing.Optional[str] = None
