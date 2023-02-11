@@ -102,7 +102,7 @@ A simple tool for integrating Starlette and WTForms. It is modeled on the excell
 <a href="https://github.com/jockerz/Starlette-Login" target="_blank">GitHub</a> |
 <a href="https://starlette-login.readthedocs.io/en/stable/" target="_blank">Documentation</a>
 
-User session management for Starlette. 
+User session management for Starlette.
 It handles the common tasks of logging in, logging out, and remembering your users' sessions over extended periods of time.
 
 
@@ -131,7 +131,7 @@ FastAPI style routing for Starlette.
 Allows you to use decorators to generate routing tables.
 
 ### Starception
-    
+
 <a href="https://github.com/alex-oleshkevich/starception" target="_blank">GitHub</a>
 
 Beautiful exception page for Starlette apps.
@@ -143,9 +143,15 @@ Beautiful exception page for Starlette apps.
 
 Simple and extensible admin interface framework.
 
-Built with [Tabler](https://tabler.io/) and [Datatables](https://datatables.net/), it allows you 
+Built with [Tabler](https://tabler.io/) and [Datatables](https://datatables.net/), it allows you
 to quickly generate fully customizable admin interface for your models. You can export your data to many formats (*CSV*, *PDF*,
 *Excel*, etc), filter your data with complex query including `AND` and `OR` conditions,  upload files, ...
+
+### sse-starlette
+
+<a href="https://github.com/sysid/sse-starlette" target="_blank">GitHub</a>
+
+Server Sent Events for Starlette.
 
 ## Frameworks
 
@@ -222,7 +228,7 @@ A flexible and extendable web framework built on top of Starlette, Pydantic and 
 Ellar is an ASGI web framework for building fast, efficient and scalable RESTAPIs and server-side applications. It offers a high level of abstraction in building server-side applications and combines elements of OOP (Object Oriented Programming), and FP (Functional Programming) - Inspired by Nestjs.
 
 It is built on 3 core libraries **Starlette**, **Pydantic**, and **injector**.
-                                                       
+
 ### Apiman
 
 An extension to integrate Swagger/OpenAPI document easily for Starlette project and provide [SwaggerUI](http://swagger.io/swagger-ui/) and [RedocUI](https://rebilly.github.io/ReDoc/).
