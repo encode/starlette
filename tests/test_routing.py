@@ -521,8 +521,8 @@ def test_subdomain_reverse_urls():
 async def echo_urls(request):
     return JSONResponse(
         {
-            "index": request.url_for("index"),
-            "submount": request.url_for("mount:submount"),
+            "index": str(request.url_for("index")),
+            "submount": str(request.url_for("mount:submount")),
         }
     )
 
