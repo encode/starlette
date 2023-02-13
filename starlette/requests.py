@@ -176,7 +176,7 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
     def url_for(self, name: str, **path_params: typing.Any) -> URL:
         router: Router = self.scope["router"]
         url_path = router.url_path_for(name, **path_params)
-        return URL(url_path.make_absolute_url(base_url=self.base_url))
+        return url_path.make_absolute_url(base_url=self.base_url)
 
 
 async def empty_receive() -> typing.NoReturn:
