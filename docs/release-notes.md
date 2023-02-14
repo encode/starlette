@@ -3,6 +3,7 @@
 February 14, 2023
 
 ### Fix
+* Limit the number of fields and files when parsing `multipart/form-data` on the `MultipartParser` [8c74c2c](https://github.com/encode/starlette/commit/8c74c2c8dba7030154f8af18e016136bea1938fa).
 
 ## 0.24.0
 
