@@ -266,7 +266,7 @@ class MultiPartParser:
                     await part.file.seek(0)
                 self._file_parts_to_write.clear()
                 self._file_parts_to_finish.clear()
-        except Exception as e:
+        except MultiPartException as exc:
             # Close all the files if there was an error.
             for file in self._files_to_close_on_error:
                 file.close()
