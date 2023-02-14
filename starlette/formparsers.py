@@ -270,7 +270,7 @@ class MultiPartParser:
             # Close all the files if there was an error.
             for file in self._files_to_close_on_error:
                 file.close()
-            raise e
+            raise exc
 
         parser.finalize()
         return FormData(self.items)
