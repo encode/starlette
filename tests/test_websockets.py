@@ -302,6 +302,23 @@ def test_rejected_connection(test_client_factory: Callable[..., TestClient]):
     assert exc.value.code == status.WS_1001_GOING_AWAY
 
 
+def test_asgi_extensions(test_client_factory: Callable[..., TestClient]):
+    """
+    Test that we can supply ASGI extensions dict to the WebSocket test client.
+    """
+
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
+        assert "websocket.foobar" in scope["extensions"]
+        websocket = WebSocket(scope, receive=receive, send=send)
+        await websocket.close(status.WS_1001_GOING_AWAY)
+
+    extensions = {"websocket.foobar": {}}
+    client = test_client_factory(app, asgi_extensions=extensions)
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect("/"):
+            pass  # pragma: no cover
+
+
 def test_subprotocol(test_client_factory: Callable[..., TestClient]):
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)

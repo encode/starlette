@@ -274,6 +274,8 @@ class _TestClientTransport(httpx.BaseTransport):
                 "subprotocols": subprotocols,
                 "state": self.app_state.copy(),
             }
+            if self.asgi_extensions:
+                scope["extensions"] = self.asgi_extensions
             session = WebSocketTestSession(self.app, scope, self.portal_factory)
             raise _Upgrade(session)
 
