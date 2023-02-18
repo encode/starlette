@@ -332,6 +332,26 @@ def test_send_response_unsupported(test_client_factory):
     assert exc.value.code == status.WS_1008_POLICY_VIOLATION
 
 
+def test_send_response_invalid(test_client_factory):
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
+        websocket = WebSocket(scope, receive=receive, send=send)
+        response = Response(status_code=404, content="foo")
+        await websocket.send(
+            {
+                "type": "websocket.http.response.start",
+                "status": response.status_code,
+                "headers": response.raw_headers,
+            }
+        )
+        await websocket.close()
+
+    client = test_client_factory(app)
+    with pytest.raises(RuntimeError) as exc:
+        with client.websocket_connect("/"):
+            pass  # pragma: nocover
+    assert exc.match("Expected ASGI message")
+
+
 def test_subprotocol(test_client_factory):
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
