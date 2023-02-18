@@ -81,8 +81,8 @@ class WebSocketReject(WebSocketDisconnect):
     def __init__(
         self,
         status_code: int,
-        body: typing.Optional[str] = None,
-        code=1000,
+        body: bytes = b"",
+        code: int = 1000,
         reason: typing.Optional[str] = None,
     ) -> None:
         super().__init__(code, reason)
@@ -168,7 +168,7 @@ class WebSocketTestSession:
     async def _asgi_send(self, message: Message) -> None:
         self._send_queue.put(message)
 
-    def _handle_response(self, message: Message):
+    def _handle_response(self, message: Message) ->  None:
         status_code: int = message["status"]
         body = []
         while True:

@@ -31,7 +31,7 @@ class WebSocket(HTTPConnection):
         self.client_state = WebSocketState.CONNECTING
         self.application_state = WebSocketState.CONNECTING
 
-    def _have_response_extension(self):
+    def _have_response_extension(self) -> bool:
         return "websocket.http.response" in self.scope.get("extensions", {})
 
     async def receive(self) -> Message:
