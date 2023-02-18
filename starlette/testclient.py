@@ -168,7 +168,7 @@ class WebSocketTestSession:
     async def _asgi_send(self, message: Message) -> None:
         self._send_queue.put(message)
 
-    def _handle_response(self, message: Message) ->  None:
+    def _handle_response(self, message: Message) -> None:
         status_code: int = message["status"]
         body = []
         while True:
@@ -309,9 +309,8 @@ class _TestClientTransport(httpx.BaseTransport):
                 "server": [host, port],
                 "subprotocols": subprotocols,
                 "state": self.app_state.copy(),
+                "extensions": {"websocket.http.response": {}},
             }
-            if self.asgi_extensions:
-                scope["extensions"] = self.asgi_extensions
             session = WebSocketTestSession(self.app, scope, self.portal_factory)
             raise _Upgrade(session)
 
