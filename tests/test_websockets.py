@@ -6,8 +6,14 @@ import pytest
 from anyio.abc import ObjectReceiveStream, ObjectSendStream
 
 from starlette import status
+<<<<<<< HEAD
 from starlette.testclient import TestClient
 from starlette.types import Message, Receive, Scope, Send
+=======
+from starlette.responses import Response
+from starlette.testclient import TestClient, WebSocketReject
+from starlette.types import Receive, Scope, Send
+>>>>>>> e9f0d57 (Add response support for WebSocket testclient)
 from starlette.websockets import WebSocket, WebSocketDisconnect, WebSocketState
 
 
@@ -296,10 +302,11 @@ def test_rejected_connection(test_client_factory: Callable[..., TestClient]):
         await websocket.close(status.WS_1001_GOING_AWAY)
 
     client = test_client_factory(app)
-    with pytest.raises(WebSocketDisconnect) as exc:
+    with pytest.raises(WebSocketReject) as exc:
         with client.websocket_connect("/"):
             pass  # pragma: no cover
     assert exc.value.code == status.WS_1001_GOING_AWAY
+    assert exc.value.status_code == 403
 
 
 def test_asgi_extensions(test_client_factory: Callable[..., TestClient]):
@@ -319,7 +326,35 @@ def test_asgi_extensions(test_client_factory: Callable[..., TestClient]):
             pass  # pragma: no cover
 
 
-def test_subprotocol(test_client_factory: Callable[..., TestClient]):
+def test_send_response_unsupported(test_client_factory):
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
+        websocket = WebSocket(scope, receive=receive, send=send)
+        response = Response(status_code=404, content="foo")
+        await websocket.send_response(response)
+
+    client = test_client_factory(app)
+    with pytest.raises(WebSocketDisconnect) as exc:
+        with client.websocket_connect("/"):
+            pass  # pragma: nocover
+    assert exc.value.code == status.WS_1008_POLICY_VIOLATION
+
+
+def test_send_response_supported(test_client_factory):
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
+        websocket = WebSocket(scope, receive=receive, send=send)
+        response = Response(status_code=404, content="foo")
+        await websocket.send_response(response)
+
+    extensions = {"websocket.http.response": {}}
+    client = test_client_factory(app, asgi_extensions=extensions)
+    with pytest.raises(WebSocketReject) as exc:
+        with client.websocket_connect("/"):
+            pass  # pragma: nocover
+    assert exc.value.status_code == 404
+    assert exc.value.body == b"foo"
+
+
+def test_subprotocol(test_client_factory):
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         assert websocket["subprotocols"] == ["soap", "wamp"]
