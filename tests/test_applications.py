@@ -81,7 +81,8 @@ async def websocket_raise_custom(websocket: WebSocket):
     raise CustomWSException()
 
 
-def custom_ws_exception_handler(websocket: WebSocket, exc: CustomWSException):
+def custom_ws_exception_handler(websocket: WebSocket, exc: Exception) -> None:
+    assert isinstance(exc, CustomWSException)
     anyio.from_thread.run(websocket.close, status.WS_1013_TRY_AGAIN_LATER)
 
 
@@ -97,13 +98,6 @@ subdomain = Router(
         Route("/", custom_subdomain),
     ]
 )
-
-exception_handlers = {
-    500: error_500,
-    405: method_not_allowed,
-    HTTPException: http_exception,
-    CustomWSException: custom_ws_exception_handler,
-}
 
 middleware = [
     Middleware(TrustedHostMiddleware, allowed_hosts=["testserver", "*.example.org"])
@@ -121,8 +115,13 @@ app = Starlette(
         Mount("/users", app=users),
         Host("{subdomain}.example.org", app=subdomain),
     ],
-    exception_handlers=exception_handlers,
     middleware=middleware,
+    exception_handlers={
+        500: error_500,
+        405: method_not_allowed,
+        HTTPException: http_exception,
+        CustomWSException: custom_ws_exception_handler,
+    },
 )
 
 
