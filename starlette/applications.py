@@ -10,6 +10,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import BaseRoute, Router
 from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.websockets import WebSocket
 
 
 class Starlette:
@@ -30,7 +31,8 @@ class Starlette:
     or exception class types onto callables which handle the exceptions.
     Exception handler callables should be of the form
     `handler(request, exc) -> response` and may be be either standard functions, or
-    async functions.
+    async functions.  For handling websocket errors, they should be of the form
+    `handler(websocket, exc) -> None`.
     * **on_startup** - A list of callables to run on application startup.
     Startup handler callables do not take any arguments, and may be be either
     standard functions, or async functions.
@@ -47,9 +49,15 @@ class Starlette:
         exception_handlers: typing.Optional[
             typing.Mapping[
                 typing.Any,
-                typing.Callable[
-                    [Request, Exception],
-                    typing.Union[Response, typing.Awaitable[Response]],
+                typing.Union[
+                    typing.Callable[
+                        [Response, Exception],
+                        typing.Union[Response, typing.Awaitable[Response]],
+                    ],
+                    typing.Callable[
+                        [WebSocket, Exception],
+                        typing.Union[None, typing.Awaitable[None]],
+                    ],
                 ],
             ]
         ] = None,
