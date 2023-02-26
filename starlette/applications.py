@@ -45,13 +45,7 @@ class Starlette:
         routes: typing.Optional[typing.Sequence[BaseRoute]] = None,
         middleware: typing.Optional[typing.Sequence[Middleware]] = None,
         exception_handlers: typing.Optional[
-            typing.Mapping[
-                typing.Any,
-                typing.Callable[
-                    [Request, Exception],
-                    typing.Union[Response, typing.Awaitable[Response]],
-                ],
-            ]
+            typing.Mapping[typing.Any, typing.Any]
         ] = None,
         on_startup: typing.Optional[typing.Sequence[typing.Callable]] = None,
         on_shutdown: typing.Optional[typing.Sequence[typing.Callable]] = None,
