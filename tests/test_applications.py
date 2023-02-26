@@ -12,22 +12,23 @@ from starlette.endpoints import HTTPEndpoint
 from starlette.exceptions import HTTPException, WebSocketException
 from starlette.middleware import Middleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
-from starlette.responses import JSONResponse, PlainTextResponse
+from starlette.requests import Request
+from starlette.responses import JSONResponse, PlainTextResponse, Response
 from starlette.routing import Host, Mount, Route, Router, WebSocketRoute
 from starlette.staticfiles import StaticFiles
 from starlette.types import ASGIApp
 from starlette.websockets import WebSocket
 
 
-async def error_500(request, exc):
+async def error_500(request: Request, exc: Exception) -> Response:
     return JSONResponse({"detail": "Server Error"}, status_code=500)
 
 
-async def method_not_allowed(request, exc):
+async def method_not_allowed(request: Request, exc: Exception) -> Response:
     return JSONResponse({"detail": "Custom message"}, status_code=405)
 
 
-async def http_exception(request, exc):
+async def http_exception(request: Request, exc: HTTPException) -> Response:
     return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
 
 
@@ -67,7 +68,7 @@ async def websocket_endpoint(session):
     await session.close()
 
 
-async def websocket_raise_websocket(websocket: WebSocket):
+async def websocket_raise_websocket(websocket: WebSocket) -> None:
     await websocket.accept()
     raise WebSocketException(code=status.WS_1003_UNSUPPORTED_DATA)
 
@@ -76,12 +77,12 @@ class CustomWSException(Exception):
     pass
 
 
-async def websocket_raise_custom(websocket: WebSocket):
+async def websocket_raise_custom(websocket: WebSocket) -> None:
     await websocket.accept()
     raise CustomWSException()
 
 
-def custom_ws_exception_handler(websocket: WebSocket, exc: CustomWSException):
+def custom_ws_exception_handler(websocket: WebSocket, exc: CustomWSException) -> None:
     anyio.from_thread.run(websocket.close, status.WS_1013_TRY_AGAIN_LATER)
 
 
@@ -491,12 +492,14 @@ def test_decorator_deprecations() -> None:
         assert len(record) == 1
 
 
-def test_middleware_stack_init(test_client_factory: Callable[[ASGIApp], httpx.Client]):
+def test_middleware_stack_init(
+    test_client_factory: Callable[[ASGIApp], httpx.Client]
+) -> None:
     class NoOpMiddleware:
         def __init__(self, app: ASGIApp):
             self.app = app
 
-        async def __call__(self, *args: Any):
+        async def __call__(self, *args: Any) -> None:
             await self.app(*args)
 
     class SimpleInitializableMiddleware:
@@ -506,7 +509,7 @@ def test_middleware_stack_init(test_client_factory: Callable[[ASGIApp], httpx.Cl
             self.app = app
             SimpleInitializableMiddleware.counter += 1
 
-        async def __call__(self, *args: Any):
+        async def __call__(self, *args: Any) -> None:
             await self.app(*args)
 
     def get_app() -> ASGIApp:
