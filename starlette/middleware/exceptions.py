@@ -8,13 +8,43 @@ from starlette.responses import PlainTextResponse, Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from starlette.websockets import WebSocket
 
+_ET = typing.TypeVar("_ET", bound=Exception)
+
+
+class ExceptionHandler:
+    @typing.overload
+    def __init__(
+        self,
+        handler: typing.Callable[
+            [Request, _ET], typing.Union[Response, typing.Awaitable[Response]]
+        ],
+    ) -> None:
+        ...
+
+    @typing.overload
+    def __init__(
+        self,
+        handler: typing.Callable[
+            [WebSocket, _ET], typing.Union[None, typing.Awaitable[None]]
+        ],
+    ) -> None:
+        ...
+
+    def __init__(self, handler: typing.Callable[[typing.Any, _ET], typing.Any]) -> None:
+        self.handler: typing.Callable[[typing.Any, typing.Any], typing.Any] = handler
+
 
 class ExceptionMiddleware:
     def __init__(
         self,
         app: ASGIApp,
         handlers: typing.Optional[
-            typing.Mapping[typing.Any, typing.Callable[[Request, Exception], Response]]
+            typing.Mapping[
+                typing.Any,
+                typing.Union[
+                    ExceptionHandler, typing.Callable[[Request, Exception], Response]
+                ],
+            ]
         ] = None,
         debug: bool = False,
     ) -> None:
@@ -31,11 +61,31 @@ class ExceptionMiddleware:
             for key, value in handlers.items():
                 self.add_exception_handler(key, value)
 
+    @typing.overload
+    def add_exception_handler(
+        self,
+        exc_class_or_status_code: typing.Union[int, typing.Type[Exception]],
+        handler: ExceptionHandler,
+    ) -> None:
+        ...
+
+    @typing.overload
     def add_exception_handler(
         self,
         exc_class_or_status_code: typing.Union[int, typing.Type[Exception]],
         handler: typing.Callable[[Request, Exception], Response],
     ) -> None:
+        ...
+
+    def add_exception_handler(
+        self,
+        exc_class_or_status_code: typing.Union[int, typing.Type[Exception]],
+        handler: typing.Union[
+            ExceptionHandler, typing.Callable[[typing.Any, typing.Any], typing.Any]
+        ],
+    ) -> None:
+        if isinstance(handler, ExceptionHandler):
+            handler = handler.handler
         if isinstance(exc_class_or_status_code, int):
             self._status_handlers[exc_class_or_status_code] = handler
         else:
@@ -44,7 +94,7 @@ class ExceptionMiddleware:
 
     def _lookup_exception_handler(
         self, exc: Exception
-    ) -> typing.Optional[typing.Callable]:
+    ) -> typing.Optional[typing.Callable[[typing.Any, typing.Any], typing.Any]]:
         for cls in type(exc).__mro__:
             if cls in self._exception_handlers:
                 return self._exception_handlers[cls]

@@ -5,7 +5,7 @@ from starlette.datastructures import State, URLPath
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.errors import ServerErrorMiddleware
-from starlette.middleware.exceptions import ExceptionMiddleware
+from starlette.middleware.exceptions import ExceptionHandler, ExceptionMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import BaseRoute, Router
@@ -45,7 +45,16 @@ class Starlette:
         routes: typing.Optional[typing.Sequence[BaseRoute]] = None,
         middleware: typing.Optional[typing.Sequence[Middleware]] = None,
         exception_handlers: typing.Optional[
-            typing.Mapping[typing.Any, typing.Any]
+            typing.Mapping[
+                typing.Any,
+                typing.Union[
+                    ExceptionHandler,
+                    typing.Callable[
+                        [Request, Exception],
+                        typing.Union[Response, typing.Awaitable[Response]],
+                    ],
+                ],
+            ]
         ] = None,
         on_startup: typing.Optional[typing.Sequence[typing.Callable]] = None,
         on_shutdown: typing.Optional[typing.Sequence[typing.Callable]] = None,
@@ -74,7 +83,14 @@ class Starlette:
         debug = self.debug
         error_handler = None
         exception_handlers: typing.Dict[
-            typing.Any, typing.Callable[[Request, Exception], Response]
+            typing.Any,
+            typing.Union[
+                ExceptionHandler,
+                typing.Callable[
+                    [Request, Exception],
+                    typing.Union[Response, typing.Awaitable[Response]],
+                ],
+            ],
         ] = {}
 
         for key, value in self.exception_handlers.items():

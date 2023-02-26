@@ -7,7 +7,7 @@ import httpx
 import pytest
 
 from starlette import status
-from starlette.applications import Starlette
+from starlette.applications import ExceptionHandler, Starlette
 from starlette.endpoints import HTTPEndpoint
 from starlette.exceptions import HTTPException, WebSocketException
 from starlette.middleware import Middleware
@@ -100,10 +100,10 @@ subdomain = Router(
 )
 
 exception_handlers = {
-    500: error_500,
-    405: method_not_allowed,
-    HTTPException: http_exception,
-    CustomWSException: custom_ws_exception_handler,
+    500: ExceptionHandler(error_500),
+    405: ExceptionHandler(method_not_allowed),
+    HTTPException: ExceptionHandler(http_exception),
+    CustomWSException: ExceptionHandler(custom_ws_exception_handler),
 }
 
 middleware = [

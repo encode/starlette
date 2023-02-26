@@ -5,6 +5,7 @@ import typing
 
 from starlette._utils import is_async_callable
 from starlette.concurrency import run_in_threadpool
+from starlette.middleware.exceptions import ExceptionHandler
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, PlainTextResponse, Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
@@ -137,11 +138,17 @@ class ServerErrorMiddleware:
     def __init__(
         self,
         app: ASGIApp,
-        handler: typing.Optional[typing.Callable] = None,
+        handler: typing.Optional[
+            typing.Union[
+                ExceptionHandler, typing.Callable[[typing.Any, typing.Any], typing.Any]
+            ]
+        ] = None,
         debug: bool = False,
     ) -> None:
         self.app = app
-        self.handler = handler
+        self.handler = (
+            handler.handler if isinstance(handler, ExceptionHandler) else handler
+        )
         self.debug = debug
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
