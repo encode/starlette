@@ -161,6 +161,8 @@ class Response:
         )
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        assert scope["type"] == "http"
+
         await send(
             {
                 "type": "http.response.start",

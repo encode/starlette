@@ -1,6 +1,8 @@
 import functools
 import typing
 import uuid
+from traceback import format_exc
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -9,7 +11,15 @@ from starlette.exceptions import HTTPException
 from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, PlainTextResponse, Response
-from starlette.routing import Host, Mount, NoMatchFound, Route, Router, WebSocketRoute
+from starlette.routing import (
+    Host,
+    LifespanException,
+    Mount,
+    NoMatchFound,
+    Route,
+    Router,
+    WebSocketRoute,
+)
 from starlette.testclient import TestClient
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketDisconnect
@@ -1020,6 +1030,273 @@ def test_host_named_repr() -> None:
     )
     # test for substring because repr(Router) returns unique object ID
     assert repr(route).startswith("Host(host='example.com', name='app', app=")
+
+
+@pytest.fixture
+def lifespan():
+    startup = MagicMock()
+    shutdown = MagicMock()
+
+    async def lifespan(scope: Scope, receive: Receive, send: Send):
+        assert scope["type"] == "lifespan"
+        assert scope["app"] == lifespan
+
+        message = await receive()
+        assert message["type"] == "lifespan.startup"
+        try:
+            startup()
+        except Exception:
+            await send(
+                {
+                    "type": "lifespan.startup.failed",
+                    "message": format_exc(),
+                }
+            )
+            return
+        await send({"type": "lifespan.startup.complete"})
+
+        message = await receive()
+        assert message["type"] == "lifespan.shutdown"
+        try:
+            shutdown()
+        except Exception:
+            await send(
+                {
+                    "type": "lifespan.shutdown.failed",
+                    "message": format_exc(),
+                }
+            )
+            return
+        await send({"type": "lifespan.shutdown.complete"})
+
+    return lifespan, startup, shutdown
+
+
+def test_sub_lifespan(test_client_factory, lifespan):
+    lifespan, startup, shutdown = lifespan
+    app = Router(routes=[Mount("/sub", lifespan)])
+
+    startup.assert_not_called()
+    shutdown.assert_not_called()
+
+    with test_client_factory(app):
+        startup.assert_called_once_with()
+        shutdown.assert_not_called()
+
+    startup.assert_called_once_with()
+    shutdown.assert_called_once_with()
+
+
+def test_sub_lifespan_startup_fails(test_client_factory, lifespan):
+    lifespan, startup, shutdown = lifespan
+    app = Router(routes=[Mount("/sub", lifespan)])
+
+    startup.assert_not_called()
+    shutdown.assert_not_called()
+
+    startup.side_effect = Exception("crash")
+
+    client = test_client_factory(app)
+    with pytest.raises(LifespanException):
+        client.__enter__()
+
+    startup.assert_called_once_with()
+    shutdown.assert_not_called()
+
+
+def test_sub_lifespan_shutdown_fails(test_client_factory, lifespan):
+    lifespan, startup, shutdown = lifespan
+    app = Router(routes=[Mount("/sub", lifespan)])
+
+    startup.assert_not_called()
+    shutdown.assert_not_called()
+
+    shutdown.side_effect = Exception("crash")
+
+    client = test_client_factory(app)
+    client.__enter__()
+
+    startup.assert_called_once_with()
+    shutdown.assert_not_called()
+
+    with pytest.raises(LifespanException):
+        client.__exit__(None, None, None)
+
+    startup.assert_called_once_with()
+    shutdown.assert_called_once_with()
+
+
+def test_lifespan_receive_during_startup(test_client_factory):
+    async def lifespan(scope: Scope, receive: Receive, send: Send):
+        message = await receive()
+        assert message["type"] == "lifespan.startup"
+        await receive()
+
+    app = Router(routes=[Mount("/sub", lifespan)])
+
+    client = test_client_factory(app)
+    with pytest.raises(RuntimeError):
+        client.__enter__()
+
+
+def test_lifespan_receive_during_shutdown(test_client_factory):
+    async def lifespan(scope: Scope, receive: Receive, send: Send):
+        message = await receive()
+        assert message["type"] == "lifespan.startup"
+        await send({"type": "lifespan.startup.complete"})
+        message = await receive()
+        assert message["type"] == "lifespan.shutdown"
+        await receive()
+
+    app = Router(routes=[Mount("/sub", lifespan)])
+
+    client = test_client_factory(app)
+    client.__enter__()
+    with pytest.raises(RuntimeError):
+        client.__exit__(None, None, None)
+
+
+def test_lifespan_receive_after_shutdown(test_client_factory):
+    async def lifespan(scope: Scope, receive: Receive, send: Send):
+        message = await receive()
+        assert message["type"] == "lifespan.startup"
+        await send({"type": "lifespan.startup.complete"})
+        message = await receive()
+        assert message["type"] == "lifespan.shutdown"
+        await send({"type": "lifespan.shutdown.complete"})
+        await receive()
+
+    app = Router(routes=[Mount("/sub", lifespan)])
+
+    client = test_client_factory(app)
+    client.__enter__()
+    with pytest.raises(RuntimeError):
+        client.__exit__(None, None, None)
+
+
+def test_lifespan_send_before_startup(test_client_factory):
+    async def lifespan(scope: Scope, receive: Receive, send: Send):
+        await send({"type": "lifespan.startup.complete"})
+
+    app = Router(routes=[Mount("/sub", lifespan)])
+
+    client = test_client_factory(app)
+    with pytest.raises(RuntimeError):
+        client.__enter__()
+
+
+def test_lifespan_send_wrong_type_during_startup(test_client_factory):
+    async def lifespan(scope: Scope, receive: Receive, send: Send):
+        message = await receive()
+        assert message["type"] == "lifespan.startup"
+        await send({"type": "lifespan.shutdown.complete"})
+
+    app = Router(routes=[Mount("/sub", lifespan)])
+
+    client = test_client_factory(app)
+    with pytest.raises(ValueError):
+        client.__enter__()
+
+
+def test_lifespan_send_between_startup_and_shutdown(test_client_factory):
+    async def lifespan(scope: Scope, receive: Receive, send: Send):
+        message = await receive()
+        assert message["type"] == "lifespan.startup"
+        await send({"type": "lifespan.startup.complete"})
+        await send({"type": "lifespan.shutdown.complete"})
+
+    app = Router(routes=[Mount("/sub", lifespan)])
+
+    client = test_client_factory(app)
+    with pytest.raises(RuntimeError):
+        client.__enter__()
+
+
+def test_lifespan_send_wrong_type_during_shutdown(test_client_factory):
+    async def lifespan(scope: Scope, receive: Receive, send: Send):
+        message = await receive()
+        assert message["type"] == "lifespan.startup"
+        await send({"type": "lifespan.startup.complete"})
+        message = await receive()
+        assert message["type"] == "lifespan.shutdown"
+        await send({"type": "lifespan.startup.complete"})
+
+    app = Router(routes=[Mount("/sub", lifespan)])
+
+    client = test_client_factory(app)
+    client.__enter__()
+    with pytest.raises(ValueError):
+        client.__exit__(None, None, None)
+
+
+def test_lifespan_send_after_shutdown(test_client_factory):
+    async def lifespan(scope: Scope, receive: Receive, send: Send):
+        message = await receive()
+        assert message["type"] == "lifespan.startup"
+        await send({"type": "lifespan.startup.complete"})
+        message = await receive()
+        assert message["type"] == "lifespan.shutdown"
+        await send({"type": "lifespan.shutdown.complete"})
+        await send({"type": "lifespan.shutdown.complete"})
+
+    app = Router(routes=[Mount("/sub", lifespan)])
+
+    client = test_client_factory(app)
+    client.__enter__()
+    with pytest.raises(RuntimeError):
+        client.__exit__(None, None, None)
+
+
+def test_lifespan_return_before_startup(test_client_factory):
+    async def lifespan(scope: Scope, receive: Receive, send: Send):
+        pass
+
+    app = Router(routes=[Mount("/sub", lifespan)])
+
+    client = test_client_factory(app)
+    client.__enter__()
+    client.__exit__(None, None, None)
+
+
+def test_lifespan_return_during_startup(test_client_factory):
+    async def lifespan(scope: Scope, receive: Receive, send: Send):
+        message = await receive()
+        assert message["type"] == "lifespan.startup"
+
+    app = Router(routes=[Mount("/sub", lifespan)])
+
+    client = test_client_factory(app)
+    with pytest.raises(RuntimeError):
+        client.__enter__()
+
+
+def test_lifespan_return_between_startup_and_shutdown(test_client_factory):
+    async def lifespan(scope: Scope, receive: Receive, send: Send):
+        message = await receive()
+        assert message["type"] == "lifespan.startup"
+        await send({"type": "lifespan.startup.complete"})
+
+    app = Router(routes=[Mount("/sub", lifespan)])
+
+    client = test_client_factory(app)
+    with pytest.raises(RuntimeError):
+        client.__enter__()
+
+
+def test_lifespan_return_during_shutdown(test_client_factory):
+    async def lifespan(scope: Scope, receive: Receive, send: Send):
+        message = await receive()
+        assert message["type"] == "lifespan.startup"
+        await send({"type": "lifespan.startup.complete"})
+        message = await receive()
+        assert message["type"] == "lifespan.shutdown"
+
+    app = Router(routes=[Mount("/sub", lifespan)])
+
+    client = test_client_factory(app)
+    client.__enter__()
+    with pytest.raises(RuntimeError):
+        client.__exit__(None, None, None)
 
 
 def test_decorator_deprecations() -> None:
