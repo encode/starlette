@@ -21,6 +21,23 @@ def test_handler(test_client_factory):
     assert response.json() == {"detail": "Server Error"}
 
 
+def test_handler_return_request_body(test_client_factory):
+    async def app(scope, receive, send):
+        raise RuntimeError("Something went wrong")
+
+    async def error_500(request, exc):
+        body = await request.body()
+        return JSONResponse(
+            {"detail": "Server Error", "body": body.decode()}, status_code=500
+        )
+
+    app = ServerErrorMiddleware(app, handler=error_500)
+    client = test_client_factory(app, raise_server_exceptions=False)
+    response = client.get("/")
+    assert response.status_code == 500
+    assert response.json() == {"detail": "Server Error", "body": ""}
+
+
 def test_debug_text(test_client_factory):
     async def app(scope, receive, send):
         raise RuntimeError("Something went wrong")

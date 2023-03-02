@@ -161,7 +161,7 @@ class ServerErrorMiddleware:
         try:
             await self.app(scope, receive, _send)
         except Exception as exc:
-            request = Request(scope)
+            request = Request(scope, receive=receive)
             if self.debug:
                 # In debug mode, return traceback responses.
                 response = self.debug_response(request, exc)
