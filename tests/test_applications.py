@@ -1,6 +1,6 @@
 import os
 from contextlib import asynccontextmanager
-from typing import Any, Callable
+from typing import Any, Awaitable, Callable, Coroutine, Dict
 
 import anyio
 import httpx
@@ -531,3 +531,21 @@ def test_middleware_stack_init(test_client_factory: Callable[[ASGIApp], httpx.Cl
     test_client_factory(app).get("/foo")
 
     assert SimpleInitializableMiddleware.counter == 2
+
+
+def test_app_typing():
+    # Not a real test, but catches the typing bug when checked with mypy
+    # https://github.com/encode/starlette/issues/2057
+
+    # The types from `httpx`
+    _Message = Dict[str, Any]
+    _Receive = Callable[[], Awaitable[_Message]]
+    _Send = Callable[[Dict[str, Any]], Coroutine[None, None, None]]
+    _ASGIApp = Callable[[Dict[str, Any], _Receive, _Send], Coroutine[None, None, None]]
+
+    class ASGITransport:
+        def __init__(self, app: _ASGIApp) -> None:
+            ...
+
+    # Check types compatibility
+    ASGITransport(Starlette())
