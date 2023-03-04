@@ -1,9 +1,12 @@
+import contextlib
 import functools
 import inspect
 import re
 import traceback
+import types
 import typing
 import warnings
+from contextlib import asynccontextmanager
 from enum import Enum
 
 from starlette._utils import is_async_callable
@@ -527,6 +530,34 @@ class Host(BaseRoute):
 _T = typing.TypeVar("_T")
 
 
+class _AsyncLiftContextManager(typing.AsyncContextManager[_T]):
+    def __init__(self, cm: typing.ContextManager[_T]):
+        self._cm = cm
+
+    async def __aenter__(self) -> _T:
+        return self._cm.__enter__()
+
+    async def __aexit__(
+        self,
+        exc_type: typing.Optional[typing.Type[BaseException]],
+        exc_value: typing.Optional[BaseException],
+        traceback: typing.Optional[types.TracebackType],
+    ) -> typing.Optional[bool]:
+        return self._cm.__exit__(exc_type, exc_value, traceback)
+
+
+def _wrap_gen_lifespan_context(
+    lifespan_context: typing.Callable[[typing.Any], typing.Generator]
+) -> typing.Callable[[typing.Any], typing.AsyncContextManager]:
+    cmgr = contextlib.contextmanager(lifespan_context)
+
+    @functools.wraps(cmgr)
+    def wrapper(app: typing.Any) -> _AsyncLiftContextManager:
+        return _AsyncLiftContextManager(cmgr(app))
+
+    return wrapper
+
+
 _TDefaultLifespan = typing.TypeVar("_TDefaultLifespan", bound="_DefaultLifespan")
 
 
@@ -567,12 +598,23 @@ class Router:
 
         if lifespan is None:
             self.lifespan_context: Lifespan = _DefaultLifespan(self)
-        elif inspect.isasyncgenfunction(lifespan) or inspect.isgeneratorfunction(
-            lifespan
-        ):
-            raise RuntimeError(
-                "Generator functions are not supported for lifespan, "
-                "use an @contextlib.asynccontextmanager function instead."
+        elif inspect.isasyncgenfunction(lifespan):
+            warnings.warn(
+                "async generator function lifespans are deprecated, "
+                "use an @contextlib.asynccontextmanager function instead",
+                DeprecationWarning,
+            )
+            self.lifespan_context = asynccontextmanager(
+                lifespan,  # type: ignore[arg-type]
+            )
+        elif inspect.isgeneratorfunction(lifespan):
+            warnings.warn(
+                "generator function lifespans are deprecated, "
+                "use an @contextlib.asynccontextmanager function instead",
+                DeprecationWarning,
+            )
+            self.lifespan_context = _wrap_gen_lifespan_context(
+                lifespan,  # type: ignore[arg-type]
             )
         else:
             self.lifespan_context = lifespan
