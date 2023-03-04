@@ -674,18 +674,21 @@ def test_lifespan_with_state(test_client_factory):
     shutdown_complete = False
 
     async def hello_world(request):
-        assert request.state.startup
+        request.state.count += 1
+        request.state.list.append(1)
         return PlainTextResponse("hello, world")
 
     async def run_startup(state):
         nonlocal startup_complete
         startup_complete = True
-        state["startup"] = True
+        state["count"] = 0
+        state["list"] = []
 
     async def run_shutdown(state):
         nonlocal shutdown_complete
         shutdown_complete = True
-        assert state["startup"]
+        assert state["count"] == 0
+        assert state["list"] == [1, 1]
 
     app = Router(
         on_startup=[run_startup],
@@ -698,6 +701,8 @@ def test_lifespan_with_state(test_client_factory):
     with test_client_factory(app) as client:
         assert startup_complete
         assert not shutdown_complete
+        client.get("/")
+        # Calling it a second time to ensure that the state is preserved.
         client.get("/")
     assert startup_complete
     assert shutdown_complete
