@@ -188,11 +188,13 @@ class _TestClientTransport(httpx.BaseTransport):
         portal_factory: _PortalFactoryType,
         raise_server_exceptions: bool = True,
         root_path: str = "",
+        state: typing.Optional[typing.Dict[str, typing.Any]] = None,
     ) -> None:
         self.app = app
         self.raise_server_exceptions = raise_server_exceptions
         self.root_path = root_path
         self.portal_factory = portal_factory
+        self.state = state
 
     def handle_request(self, request: httpx.Request) -> httpx.Response:
         scheme = request.url.scheme
@@ -243,6 +245,7 @@ class _TestClientTransport(httpx.BaseTransport):
                 "client": ["testclient", 50000],
                 "server": [host, port],
                 "subprotocols": subprotocols,
+                "state": self.state,
             }
             session = WebSocketTestSession(self.app, scope, self.portal_factory)
             raise _Upgrade(session)
@@ -260,6 +263,7 @@ class _TestClientTransport(httpx.BaseTransport):
             "client": ["testclient", 50000],
             "server": [host, port],
             "extensions": {"http.response.debug": {}},
+            "state": self.state,
         }
 
         request_complete = False
@@ -380,11 +384,13 @@ class TestClient(httpx.Client):
             app = typing.cast(ASGI2App, app)  # type: ignore[assignment]
             asgi_app = _WrapASGI2(app)  # type: ignore[arg-type]
         self.app = asgi_app
+        self.app_state: typing.Dict[str, typing.Any] = {}
         transport = _TestClientTransport(
             self.app,
             portal_factory=self._portal_factory,
             raise_server_exceptions=raise_server_exceptions,
             root_path=root_path,
+            state=self.app_state,
         )
         if headers is None:
             headers = {}
@@ -749,7 +755,7 @@ class TestClient(httpx.Client):
         self.exit_stack.close()
 
     async def lifespan(self) -> None:
-        scope = {"type": "lifespan"}
+        scope = {"type": "lifespan", "state": self.app_state}
         try:
             await self.app(scope, self.stream_receive.receive, self.stream_send.send)
         finally:

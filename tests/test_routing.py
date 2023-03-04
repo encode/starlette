@@ -669,6 +669,40 @@ def test_lifespan_sync(test_client_factory):
     assert shutdown_complete
 
 
+def test_lifespan_with_state(test_client_factory):
+    startup_complete = False
+    shutdown_complete = False
+
+    async def hello_world(request):
+        assert request.state.startup
+        return PlainTextResponse("hello, world")
+
+    async def run_startup(state):
+        nonlocal startup_complete
+        startup_complete = True
+        state["startup"] = True
+
+    async def run_shutdown(state):
+        nonlocal shutdown_complete
+        shutdown_complete = True
+        assert state["startup"]
+
+    app = Router(
+        on_startup=[run_startup],
+        on_shutdown=[run_shutdown],
+        routes=[Route("/", hello_world)],
+    )
+
+    assert not startup_complete
+    assert not shutdown_complete
+    with test_client_factory(app) as client:
+        assert startup_complete
+        assert not shutdown_complete
+        client.get("/")
+    assert startup_complete
+    assert shutdown_complete
+
+
 def test_raise_on_startup(test_client_factory):
     def run_startup():
         raise RuntimeError()
