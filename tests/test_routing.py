@@ -717,6 +717,27 @@ def test_lifespan_with_state(test_client_factory):
     assert shutdown_complete
 
 
+def test_lifespan_state_unsupported(test_client_factory):
+    @contextlib.asynccontextmanager
+    async def lifespan(app, scope):
+        yield None
+
+    app = Router(
+        lifespan=lifespan,
+        routes=[Mount("/", PlainTextResponse("hello, world"))],
+    )
+
+    async def no_state_wrapper(scope, receive, send):
+        scope.pop("state", None)
+        await app(scope, receive, send)
+
+    with pytest.raises(
+        RuntimeError, match='This server does not support "state" in the lifespan scope'
+    ):
+        with test_client_factory(no_state_wrapper):
+            raise AssertionError("Should not be called")
+
+
 def test_lifespan_async_cm(test_client_factory):
     startup_complete = False
     shutdown_complete = False
