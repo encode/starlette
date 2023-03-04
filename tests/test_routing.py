@@ -674,7 +674,12 @@ def test_lifespan_with_state(test_client_factory):
     shutdown_complete = False
 
     async def hello_world(request):
+        # modifications to the state should not leak across requests
+        assert request.state.count == 0
+        # modify the state, this should not leak to the lifespan or other requests
         request.state.count += 1
+        # since state.list is a mutable object this modification _will_ leak across
+        # requests and to the lifespan
         request.state.list.append(1)
         return PlainTextResponse("hello, world")
 
@@ -687,7 +692,10 @@ def test_lifespan_with_state(test_client_factory):
     async def run_shutdown(state):
         nonlocal shutdown_complete
         shutdown_complete = True
+        # modifications made to the state from a request do not leak to the lifespan
         assert state["count"] == 0
+        # unless of course the request mutates a mutable object that is referenced
+        # via state
         assert state["list"] == [1, 1]
 
     app = Router(
