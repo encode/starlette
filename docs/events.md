@@ -116,7 +116,7 @@ app = Starlette(
 )
 ```
 
-The `state` received on the requests is a copy of the state received on the
+The `state` received on the requests is a **shallow** copy of the state received on the
 startup event.
 
 ## Running event handlers in tests
