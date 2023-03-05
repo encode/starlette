@@ -333,32 +333,6 @@ def test_app_add_websocket_route(test_client_factory):
         assert text == "Hello, world!"
 
 
-def test_app_add_event_handler(test_client_factory):
-    startup_complete = False
-    cleanup_complete = False
-
-    def run_startup():
-        nonlocal startup_complete
-        startup_complete = True
-
-    def run_cleanup():
-        nonlocal cleanup_complete
-        cleanup_complete = True
-
-    app = Starlette(
-        on_startup=[run_startup],
-        on_shutdown=[run_cleanup],
-    )
-
-    assert not startup_complete
-    assert not cleanup_complete
-    with test_client_factory(app):
-        assert startup_complete
-        assert not cleanup_complete
-    assert startup_complete
-    assert cleanup_complete
-
-
 def test_app_async_cm_lifespan(test_client_factory):
     startup_complete = False
     cleanup_complete = False
@@ -475,19 +449,6 @@ def test_decorator_deprecations() -> None:
         )
     ) as record:
         app.websocket_route("/ws")(websocket_endpoint)
-        assert len(record) == 1
-
-    with pytest.deprecated_call(
-        match=(
-            "The `on_event` decorator is deprecated, "
-            "and will be removed in version 1.0.0."
-        )
-    ) as record:
-
-        async def startup():
-            ...  # pragma: no cover
-
-        app.on_event("startup")(startup)
         assert len(record) == 1
 
 

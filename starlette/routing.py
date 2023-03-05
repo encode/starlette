@@ -558,26 +558,9 @@ def _wrap_gen_lifespan_context(
     return wrapper
 
 
-_TDefaultLifespan = typing.TypeVar("_TDefaultLifespan", bound="_DefaultLifespan")
-
-
-class _DefaultLifespan:
-    def __init__(self, router: "Router"):
-        self._router = router
-
-    async def __aenter__(self) -> None:
-        await self._router.startup(state=self._state)
-
-    async def __aexit__(self, *exc_info: object) -> None:
-        await self._router.shutdown(state=self._state)
-
-    def __call__(
-        self: _TDefaultLifespan,
-        app: object,
-        state: typing.Optional[typing.Dict[str, typing.Any]],
-    ) -> _TDefaultLifespan:
-        self._state = state
-        return self
+@asynccontextmanager
+async def _default_lifespan(_: typing.Any) -> typing.AsyncIterator[None]:
+    yield None
 
 
 class Router:
@@ -586,18 +569,14 @@ class Router:
         routes: typing.Optional[typing.Sequence[BaseRoute]] = None,
         redirect_slashes: bool = True,
         default: typing.Optional[ASGIApp] = None,
-        on_startup: typing.Optional[typing.Sequence[typing.Callable]] = None,
-        on_shutdown: typing.Optional[typing.Sequence[typing.Callable]] = None,
         lifespan: typing.Optional[Lifespan] = None,
     ) -> None:
         self.routes = [] if routes is None else list(routes)
         self.redirect_slashes = redirect_slashes
         self.default = self.not_found if default is None else default
-        self.on_startup = [] if on_startup is None else list(on_startup)
-        self.on_shutdown = [] if on_shutdown is None else list(on_shutdown)
 
         if lifespan is None:
-            self.lifespan_context: Lifespan = _DefaultLifespan(self)
+            self.lifespan_context: Lifespan = _default_lifespan
         elif inspect.isasyncgenfunction(lifespan):
             warnings.warn(
                 "async generator function lifespans are deprecated, "
@@ -641,36 +620,6 @@ class Router:
             except NoMatchFound:
                 pass
         raise NoMatchFound(name, path_params)
-
-    async def startup(
-        self, state: typing.Optional[typing.Dict[str, typing.Any]]
-    ) -> None:
-        """
-        Run any `.on_startup` event handlers.
-        """
-        for handler in self.on_startup:
-            sig = inspect.signature(handler)
-            if len(sig.parameters) == 1 and state is not None:
-                handler = functools.partial(handler, state)
-            if is_async_callable(handler):
-                await handler()
-            else:
-                handler()
-
-    async def shutdown(
-        self, state: typing.Optional[typing.Dict[str, typing.Any]]
-    ) -> None:
-        """
-        Run any `.on_shutdown` event handlers.
-        """
-        for handler in self.on_shutdown:
-            sig = inspect.signature(handler)
-            if len(sig.parameters) == 1 and state is not None:
-                handler = functools.partial(handler, state)
-            if is_async_callable(handler):
-                await handler()
-            else:
-                handler()
 
     async def lifespan(self, scope: Scope, receive: Receive, send: Send) -> None:
         """
@@ -849,29 +798,6 @@ class Router:
 
         def decorator(func: typing.Callable) -> typing.Callable:
             self.add_websocket_route(path, func, name=name)
-            return func
-
-        return decorator
-
-    def add_event_handler(
-        self, event_type: str, func: typing.Callable
-    ) -> None:  # pragma: no cover
-        assert event_type in ("startup", "shutdown")
-
-        if event_type == "startup":
-            self.on_startup.append(func)
-        else:
-            self.on_shutdown.append(func)
-
-    def on_event(self, event_type: str) -> typing.Callable:
-        warnings.warn(
-            "The `on_event` decorator is deprecated, and will be removed in version 1.0.0. "  # noqa: E501
-            "Refer to https://www.starlette.io/events/#registering-events for recommended approach.",  # noqa: E501
-            DeprecationWarning,
-        )
-
-        def decorator(func: typing.Callable) -> typing.Callable:
-            self.add_event_handler(event_type, func)
             return func
 
         return decorator

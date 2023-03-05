@@ -608,115 +608,6 @@ def test_standalone_ws_route_does_not_match(test_client_factory):
             pass  # pragma: nocover
 
 
-def test_lifespan_async(test_client_factory):
-    startup_complete = False
-    shutdown_complete = False
-
-    async def hello_world(request):
-        return PlainTextResponse("hello, world")
-
-    async def run_startup():
-        nonlocal startup_complete
-        startup_complete = True
-
-    async def run_shutdown():
-        nonlocal shutdown_complete
-        shutdown_complete = True
-
-    app = Router(
-        on_startup=[run_startup],
-        on_shutdown=[run_shutdown],
-        routes=[Route("/", hello_world)],
-    )
-
-    assert not startup_complete
-    assert not shutdown_complete
-    with test_client_factory(app) as client:
-        assert startup_complete
-        assert not shutdown_complete
-        client.get("/")
-    assert startup_complete
-    assert shutdown_complete
-
-
-def test_lifespan_sync(test_client_factory):
-    startup_complete = False
-    shutdown_complete = False
-
-    def hello_world(request):
-        return PlainTextResponse("hello, world")
-
-    def run_startup():
-        nonlocal startup_complete
-        startup_complete = True
-
-    def run_shutdown():
-        nonlocal shutdown_complete
-        shutdown_complete = True
-
-    app = Router(
-        on_startup=[run_startup],
-        on_shutdown=[run_shutdown],
-        routes=[Route("/", hello_world)],
-    )
-
-    assert not startup_complete
-    assert not shutdown_complete
-    with test_client_factory(app) as client:
-        assert startup_complete
-        assert not shutdown_complete
-        client.get("/")
-    assert startup_complete
-    assert shutdown_complete
-
-
-def test_lifespan_with_state(test_client_factory):
-    startup_complete = False
-    shutdown_complete = False
-
-    async def hello_world(request):
-        # modifications to the state should not leak across requests
-        assert request.state.count == 0
-        # modify the state, this should not leak to the lifespan or other requests
-        request.state.count += 1
-        # since state.list is a mutable object this modification _will_ leak across
-        # requests and to the lifespan
-        request.state.list.append(1)
-        return PlainTextResponse("hello, world")
-
-    async def run_startup(state):
-        nonlocal startup_complete
-        startup_complete = True
-        state["count"] = 0
-        state["list"] = []
-
-    async def run_shutdown(state):
-        nonlocal shutdown_complete
-        shutdown_complete = True
-        # modifications made to the state from a request do not leak to the lifespan
-        assert state["count"] == 0
-        # unless of course the request mutates a mutable object that is referenced
-        # via state
-        assert state["list"] == [1, 1]
-
-    app = Router(
-        on_startup=[run_startup],
-        on_shutdown=[run_shutdown],
-        routes=[Route("/", hello_world)],
-    )
-
-    assert not startup_complete
-    assert not shutdown_complete
-    with test_client_factory(app) as client:
-        assert startup_complete
-        assert not shutdown_complete
-        client.get("/")
-        # Calling it a second time to ensure that the state is preserved.
-        client.get("/")
-    assert startup_complete
-    assert shutdown_complete
-
-
 def test_lifespan_state_unsupported(test_client_factory):
     @contextlib.asynccontextmanager
     async def lifespan(app, scope):
@@ -783,39 +674,6 @@ def test_lifespan_async_cm(test_client_factory):
     assert shutdown_complete
 
 
-def test_raise_on_startup(test_client_factory):
-    def run_startup():
-        raise RuntimeError()
-
-    router = Router(on_startup=[run_startup])
-    startup_failed = False
-
-    async def app(scope, receive, send):
-        async def _send(message):
-            nonlocal startup_failed
-            if message["type"] == "lifespan.startup.failed":
-                startup_failed = True
-            return await send(message)
-
-        await router(scope, receive, _send)
-
-    with pytest.raises(RuntimeError):
-        with test_client_factory(app):
-            pass  # pragma: nocover
-    assert startup_failed
-
-
-def test_raise_on_shutdown(test_client_factory):
-    def run_shutdown():
-        raise RuntimeError()
-
-    app = Router(on_shutdown=[run_shutdown])
-
-    with pytest.raises(RuntimeError):
-        with test_client_factory(app):
-            pass  # pragma: nocover
-
-
 def test_partial_async_endpoint(test_client_factory):
     test_client = test_client_factory(app)
     response = test_client.get("/partial")
@@ -850,6 +708,43 @@ def test_duplicated_param_names():
         match="Duplicated param names id, name at path /{id}/{name}/{id}/{name}",
     ):
         Route("/{id}/{name}/{id}/{name}", user)
+
+
+def test_raise_on_startup(test_client_factory):
+    @contextlib.asynccontextmanager
+    async def lifespan(app):
+        raise RuntimeError()
+        yield None
+
+    router = Router(lifespan=lifespan)
+    startup_failed = False
+
+    async def app(scope, receive, send):
+        async def _send(message):
+            nonlocal startup_failed
+            if message["type"] == "lifespan.startup.failed":
+                startup_failed = True
+            return await send(message)
+
+        await router(scope, receive, _send)
+
+    with pytest.raises(RuntimeError):
+        with test_client_factory(app):
+            pass  # pragma: nocover
+    assert startup_failed
+
+
+def test_raise_on_shutdown(test_client_factory):
+    @contextlib.asynccontextmanager
+    async def lifespan(app):
+        yield None
+        raise RuntimeError()
+
+    app = Router(lifespan=lifespan)
+
+    with pytest.raises(RuntimeError):
+        with test_client_factory(app):
+            pass  # pragma: nocover
 
 
 class Endpoint:
@@ -1144,10 +1039,3 @@ def test_decorator_deprecations() -> None:
 
     with pytest.deprecated_call():
         router.websocket_route("/ws")(websocket_endpoint)
-
-    with pytest.deprecated_call():
-
-        async def startup() -> None:
-            ...  # pragma: nocover
-
-        router.on_event("startup")(startup)

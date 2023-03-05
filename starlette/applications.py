@@ -31,12 +31,6 @@ class Starlette:
     Exception handler callables should be of the form
     `handler(request, exc) -> response` and may be be either standard functions, or
     async functions.
-    * **on_startup** - A list of callables to run on application startup.
-    Startup handler callables do not take any arguments, and may be be either
-    standard functions, or async functions.
-    * **on_shutdown** - A list of callables to run on application shutdown.
-    Shutdown handler callables do not take any arguments, and may be be either
-    standard functions, or async functions.
     """
 
     def __init__(
@@ -53,21 +47,11 @@ class Starlette:
                 ],
             ]
         ] = None,
-        on_startup: typing.Optional[typing.Sequence[typing.Callable]] = None,
-        on_shutdown: typing.Optional[typing.Sequence[typing.Callable]] = None,
         lifespan: typing.Optional[Lifespan] = None,
     ) -> None:
-        # The lifespan context function is a newer style that replaces
-        # on_startup / on_shutdown handlers. Use one or the other, not both.
-        assert lifespan is None or (
-            on_startup is None and on_shutdown is None
-        ), "Use either 'lifespan' or 'on_startup'/'on_shutdown', not both."
-
         self.debug = debug
         self.state = State()
-        self.router = Router(
-            routes, on_startup=on_startup, on_shutdown=on_shutdown, lifespan=lifespan
-        )
+        self.router = Router(routes, lifespan=lifespan)
         self.exception_handlers = (
             {} if exception_handlers is None else dict(exception_handlers)
         )
@@ -115,9 +99,6 @@ class Starlette:
             self.middleware_stack = self.build_middleware_stack()
         await self.middleware_stack(scope, receive, send)
 
-    def on_event(self, event_type: str) -> typing.Callable:  # pragma: nocover
-        return self.router.on_event(event_type)
-
     def mount(
         self, path: str, app: ASGIApp, name: typing.Optional[str] = None
     ) -> None:  # pragma: nocover
@@ -139,11 +120,6 @@ class Starlette:
         handler: typing.Callable,
     ) -> None:  # pragma: no cover
         self.exception_handlers[exc_class_or_status_code] = handler
-
-    def add_event_handler(
-        self, event_type: str, func: typing.Callable
-    ) -> None:  # pragma: no cover
-        self.router.add_event_handler(event_type, func)
 
     def add_route(
         self,

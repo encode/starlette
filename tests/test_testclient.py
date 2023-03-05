@@ -41,11 +41,13 @@ def current_task():
     raise RuntimeError(f"unsupported asynclib={asynclib_name}")  # pragma: no cover
 
 
-def startup():
+@asynccontextmanager
+async def lifespan(app):
     raise RuntimeError()
+    yield None
 
 
-startup_error_app = Starlette(on_startup=[startup])
+startup_error_app = Starlette(lifespan=lifespan)
 
 
 def test_use_testclient_in_endpoint(test_client_factory):
