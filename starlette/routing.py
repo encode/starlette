@@ -17,7 +17,7 @@ from starlette.exceptions import HTTPException
 from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, RedirectResponse
-from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.types import ASGIApp, Lifespan, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketClose
 
 
@@ -580,9 +580,7 @@ class Router:
         default: typing.Optional[ASGIApp] = None,
         on_startup: typing.Optional[typing.Sequence[typing.Callable]] = None,
         on_shutdown: typing.Optional[typing.Sequence[typing.Callable]] = None,
-        lifespan: typing.Optional[
-            typing.Callable[[typing.Any], typing.AsyncContextManager]
-        ] = None,
+        lifespan: typing.Optional[Lifespan] = None,
     ) -> None:
         self.routes = [] if routes is None else list(routes)
         self.redirect_slashes = redirect_slashes
@@ -591,9 +589,7 @@ class Router:
         self.on_shutdown = [] if on_shutdown is None else list(on_shutdown)
 
         if lifespan is None:
-            self.lifespan_context: typing.Callable[
-                [typing.Any], typing.AsyncContextManager
-            ] = _DefaultLifespan(self)
+            self.lifespan_context: Lifespan = _DefaultLifespan(self)
 
         elif inspect.isasyncgenfunction(lifespan):
             warnings.warn(
@@ -665,10 +661,16 @@ class Router:
         startup and shutdown events.
         """
         started = False
-        app = scope.get("app")
+        app: typing.Any = scope.get("app")
         await receive()
         try:
-            async with self.lifespan_context(app):
+            async with self.lifespan_context(app) as maybe_state:
+                if maybe_state is not None:
+                    if "state" not in scope:
+                        raise RuntimeError(
+                            'The server does not support "state" in the lifespan scope.'
+                        )
+                    scope["state"].update(maybe_state)
                 await send({"type": "lifespan.startup.complete"})
                 started = True
                 await receive()
