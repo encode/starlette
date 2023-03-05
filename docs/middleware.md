@@ -773,9 +773,9 @@ A middleware class for reading/generating request IDs and attaching them to appl
 
 A middleware class for logging exceptions, errors, and log messages to [Rollbar](https://www.rollbar.com).
 
-#### [SentryMiddleware](https://github.com/encode/sentry-asgi)
+#### [SentryMiddleware](https://docs.sentry.io/platforms/python/guides/starlette/)
 
-A middleware class for logging exceptions to [Sentry](https://sentry.io/).
+Sentry provides a dedicated integration for Starlette. A middleware class for logging exceptions to [Sentry](https://sentry.io/). Integrations available for collecting performance data, in the form of spans and traces. If you already use [OpenTelemetry](https://docs.sentry.io/platforms/python/guides/starlette/performance/instrumentation/opentelemetry/), there is also support to send those traces and spans with their SDK.
 
 #### [StarletteOpentracing](https://github.com/acidjunk/starlette-opentracing)
 
