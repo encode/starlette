@@ -732,7 +732,7 @@ def test_lifespan_state_unsupported(test_client_factory):
         await app(scope, receive, send)
 
     with pytest.raises(
-        RuntimeError, match='This server does not support "state" in the lifespan scope'
+        RuntimeError, match='The server does not support "state" in the lifespan scope'
     ):
         with test_client_factory(no_state_wrapper):
             raise AssertionError("Should not be called")  # pragma: no cover
