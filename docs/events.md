@@ -104,9 +104,9 @@ from starlette.routing import Route
 
 @contextlib.asynccontextmanager
 async def lifespan(app, state):
-    state["http_client"] = httpx.AsyncClient()
-    yield state
-    await state["http_client"].aclose()
+    async with httpx.AsyncClient() as client:
+        state["http_client"] = client
+        yield
 
 
 app = Starlette(
