@@ -71,6 +71,7 @@ and the requests.
 ```python
 import httpx
 from starlette.applications import Starlette
+from starlette.responses import PlainTextResponse
 from starlette.routing import Route
 
 
