@@ -679,15 +679,22 @@ class Router:
         """
         started = False
         app = scope.get("app")
-        state = scope.get("state")
         await receive()
+        lifespan_needs_state = (
+            len(inspect.signature(self.lifespan_context).parameters) == 2
+        )
+        server_supports_state = "state" in scope
+        if lifespan_needs_state and not server_supports_state:
+            raise RuntimeError(
+                'This server does not support "state" in the lifespan scope.'
+                " Please try updating your ASGI server."
+            )
         try:
             lifespan_context: Lifespan
-            if (
-                len(inspect.signature(self.lifespan_context).parameters) == 2
-                and state is not None
-            ):
-                lifespan_context = functools.partial(self.lifespan_context, state=state)
+            if lifespan_needs_state:
+                lifespan_context = functools.partial(
+                    self.lifespan_context, state=scope["state"]
+                )
             else:
                 lifespan_context = typing.cast(StatelessLifespan, self.lifespan_context)
             async with lifespan_context(app):
