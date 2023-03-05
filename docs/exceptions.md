@@ -131,3 +131,10 @@ You can use the `WebSocketException` class to raise errors inside of WebSocket e
 * `WebSocketException(code=1008, reason=None)`
 
 You can set any code valid as defined [in the specification](https://tools.ietf.org/html/rfc6455#section-7.4.1).
+
+## Third party services
+
+#### Sentry for errors, exceptions, and performance issues
+
+The [Sentry SDK](https://docs.sentry.io/platforms/python/guides/starlette/) automatically enables support for Starlette if you have the starlette Python package installed in your project. Sentry can automatically detect [performance issues](https://blog.sentry.io/2022/09/19/performance-issues-slow-you-can-act-on-quickly/) in your application as well.
+
