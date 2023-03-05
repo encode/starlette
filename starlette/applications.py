@@ -9,7 +9,7 @@ from starlette.middleware.exceptions import ExceptionMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import BaseRoute, Router
-from starlette.types import ASGIApp, Lifespan, Receive, Scope, Send
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 
 class Starlette:
@@ -55,7 +55,9 @@ class Starlette:
         ] = None,
         on_startup: typing.Optional[typing.Sequence[typing.Callable]] = None,
         on_shutdown: typing.Optional[typing.Sequence[typing.Callable]] = None,
-        lifespan: typing.Optional[Lifespan] = None,
+        lifespan: typing.Optional[
+            typing.Callable[["Starlette"], typing.AsyncContextManager]
+        ] = None,
     ) -> None:
         # The lifespan context function is a newer style that replaces
         # on_startup / on_shutdown handlers. Use one or the other, not both.
