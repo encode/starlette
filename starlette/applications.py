@@ -51,11 +51,11 @@ class Starlette:
                 typing.Any,
                 typing.Union[
                     typing.Callable[
-                        [Response, Exception],
+                        [Response, Any],
                         typing.Union[Response, typing.Awaitable[Response]],
                     ],
                     typing.Callable[
-                        [WebSocket, Exception],
+                        [WebSocket, Any],
                         typing.Union[None, typing.Awaitable[None]],
                     ],
                 ],
