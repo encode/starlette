@@ -1,9 +1,7 @@
-import contextlib
 import functools
 import inspect
 import re
 import traceback
-import types
 import typing
 import warnings
 from contextlib import asynccontextmanager
@@ -527,42 +525,6 @@ class Host(BaseRoute):
         return f"{class_name}(host={self.host!r}, name={name!r}, app={self.app!r})"
 
 
-_T = typing.TypeVar("_T")
-
-
-class _AsyncLiftContextManager(typing.AsyncContextManager[_T]):
-    def __init__(self, cm: typing.ContextManager[_T]):
-        self._cm = cm
-
-    async def __aenter__(self) -> _T:
-        return self._cm.__enter__()
-
-    async def __aexit__(
-        self,
-        exc_type: typing.Optional[typing.Type[BaseException]],
-        exc_value: typing.Optional[BaseException],
-        traceback: typing.Optional[types.TracebackType],
-    ) -> typing.Optional[bool]:
-        return self._cm.__exit__(exc_type, exc_value, traceback)
-
-
-def _wrap_gen_lifespan_context(
-    lifespan_context: typing.Callable[[typing.Any], typing.Generator]
-) -> typing.Callable[[typing.Any], typing.AsyncContextManager]:
-    cmgr = contextlib.contextmanager(lifespan_context)
-
-    @functools.wraps(cmgr)
-    def wrapper(app: typing.Any) -> _AsyncLiftContextManager:
-        return _AsyncLiftContextManager(cmgr(app))
-
-    return wrapper
-
-
-@asynccontextmanager
-async def _default_lifespan(_: typing.Any) -> typing.AsyncIterator[None]:
-    yield None
-
-
 class Router:
     def __init__(
         self,
@@ -576,27 +538,14 @@ class Router:
         self.default = self.not_found if default is None else default
 
         if lifespan is None:
-            self.lifespan_context: Lifespan = _default_lifespan
-        elif inspect.isasyncgenfunction(lifespan):
-            warnings.warn(
-                "async generator function lifespans are deprecated, "
-                "use an @contextlib.asynccontextmanager function instead",
-                DeprecationWarning,
-            )
-            self.lifespan_context = asynccontextmanager(
-                lifespan,  # type: ignore[arg-type]
-            )
-        elif inspect.isgeneratorfunction(lifespan):
-            warnings.warn(
-                "generator function lifespans are deprecated, "
-                "use an @contextlib.asynccontextmanager function instead",
-                DeprecationWarning,
-            )
-            self.lifespan_context = _wrap_gen_lifespan_context(
-                lifespan,  # type: ignore[arg-type]
-            )
+
+            @asynccontextmanager
+            async def _no_op_lifespan(_: typing.Any) -> typing.AsyncIterator[None]:
+                yield None
+
+            self._lifespan: Lifespan = _no_op_lifespan
         else:
-            self.lifespan_context = lifespan
+            self._lifespan = lifespan
 
     async def not_found(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "websocket":
@@ -630,9 +579,7 @@ class Router:
         app = scope.get("app")
         state = scope.get("state")
         await receive()
-        lifespan_needs_state = (
-            len(inspect.signature(self.lifespan_context).parameters) == 2
-        )
+        lifespan_needs_state = len(inspect.signature(self._lifespan).parameters) == 2
         server_supports_state = state is not None
         if lifespan_needs_state and not server_supports_state:
             raise RuntimeError(
@@ -641,9 +588,9 @@ class Router:
         try:
             lifespan_context: Lifespan
             if lifespan_needs_state:
-                lifespan_context = functools.partial(self.lifespan_context, state=state)
+                lifespan_context = functools.partial(self._lifespan, state=state)
             else:
-                lifespan_context = typing.cast(StatelessLifespan, self.lifespan_context)
+                lifespan_context = typing.cast(StatelessLifespan, self._lifespan)
             async with lifespan_context(app):
                 await send({"type": "lifespan.startup.complete"})
                 started = True
