@@ -713,8 +713,8 @@ def test_duplicated_param_names():
 def test_raise_on_startup(test_client_factory):
     @contextlib.asynccontextmanager
     async def lifespan(app):
-        raise RuntimeError()
-        yield None
+        raise RuntimeError
+        yield None  # pragma: no cover
 
     router = Router(lifespan=lifespan)
     startup_failed = False

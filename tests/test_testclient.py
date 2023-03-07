@@ -43,8 +43,8 @@ def current_task():
 
 @asynccontextmanager
 async def lifespan(app):
-    raise RuntimeError()
-    yield None
+    raise RuntimeError
+    yield None  # pragma: no cover
 
 
 startup_error_app = Starlette(lifespan=lifespan)
