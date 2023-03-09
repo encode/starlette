@@ -588,6 +588,14 @@ class Router:
         self.on_startup = [] if on_startup is None else list(on_startup)
         self.on_shutdown = [] if on_shutdown is None else list(on_shutdown)
 
+        if on_startup or on_shutdown:
+            warnings.warn(
+                "The on_startup and on_shutdown parameters are deprecated, and they "
+                "will be removed on version 1.0. Use the lifespan parameter instead. "
+                "See more about it on https://www.starlette.io/events/.",
+                DeprecationWarning,
+            )
+
         if lifespan is None:
             self.lifespan_context: Lifespan = _DefaultLifespan(self)
 
