@@ -592,7 +592,7 @@ class Router:
             warnings.warn(
                 "The on_startup and on_shutdown parameters are deprecated, and they "
                 "will be removed on version 1.0. Use the lifespan parameter instead. "
-                "See more about it on https://www.starlette.io/events/.",
+                "See more about it on https://www.starlette.io/lifespan/.",
                 DeprecationWarning,
             )
 
@@ -849,7 +849,7 @@ class Router:
     def on_event(self, event_type: str) -> typing.Callable:
         warnings.warn(
             "The `on_event` decorator is deprecated, and will be removed in version 1.0.0. "  # noqa: E501
-            "Refer to https://www.starlette.io/events/#registering-events for recommended approach.",  # noqa: E501
+            "Refer to https://www.starlette.io/lifespan/ for recommended approach.",
             DeprecationWarning,
         )
 
