@@ -37,6 +37,9 @@ class Starlette:
     * **on_shutdown** - A list of callables to run on application shutdown.
     Shutdown handler callables do not take any arguments, and may be be either
     standard functions, or async functions.
+    * **lifespan** - A lifespan context function, which can be used to perform
+    startup and shutdown tasks. This is a newer style that replaces the
+    `on_startup` and `on_shutdown` handlers. Use one or the other, not both.
     """
 
     def __init__(
@@ -106,8 +109,9 @@ class Starlette:
     def routes(self) -> typing.List[BaseRoute]:
         return self.router.routes
 
-    def url_path_for(self, name: str, **path_params: typing.Any) -> URLPath:
-        return self.router.url_path_for(name, **path_params)
+    # TODO: Make `__name` a positional-only argument when we drop Python 3.7 support.
+    def url_path_for(self, __name: str, **path_params: typing.Any) -> URLPath:
+        return self.router.url_path_for(__name, **path_params)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         scope["app"] = self
