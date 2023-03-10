@@ -1,3 +1,102 @@
+## 0.26.0.post1
+
+### Fixed
+* Replace reference from Events to Lifespan on the mkdocs.yml [#2072](https://github.com/encode/starlette/pull/2072).
+
+## 0.26.0
+
+March 9, 2023
+
+### Added
+* Support [lifespan state](/lifespan/) [#2060](https://github.com/encode/starlette/pull/2060),
+  [#2065](https://github.com/encode/starlette/pull/2065) and [#2064](https://github.com/encode/starlette/pull/2064).
+
+### Changed
+* Change `url_for` signature to return a `URL` instance [#1385](https://github.com/encode/starlette/pull/1385).
+
+### Fixed
+* Allow "name" argument on `url_for()` and `url_path_for()` [#2050](https://github.com/encode/starlette/pull/2050).
+
+### Deprecated
+* Deprecate `on_startup` and `on_shutdown` events [#2070](https://github.com/encode/starlette/pull/2070).
+
+## 0.25.0
+
+February 14, 2023
+
+### Fix
+* Limit the number of fields and files when parsing `multipart/form-data` on the `MultipartParser` [8c74c2c](https://github.com/encode/starlette/commit/8c74c2c8dba7030154f8af18e016136bea1938fa) and [#2036](https://github.com/encode/starlette/pull/2036).
+
+## 0.24.0
+
+February 6, 2023
+
+### Added
+* Allow `StaticFiles` to follow symlinks [#1683](https://github.com/encode/starlette/pull/1683).
+* Allow `Request.form()` as a context manager [#1903](https://github.com/encode/starlette/pull/1903).
+* Add `size` attribute to `UploadFile` [#1405](https://github.com/encode/starlette/pull/1405).
+* Add `env_prefix` argument to `Config` [#1990](https://github.com/encode/starlette/pull/1990).
+* Add template context processors [#1904](https://github.com/encode/starlette/pull/1904).
+* Support `str` and `datetime` on `expires` parameter on the `Response.set_cookie` method [#1908](https://github.com/encode/starlette/pull/1908).
+
+### Changed
+* Lazily build the middleware stack [#2017](https://github.com/encode/starlette/pull/2017).
+* Make the `file` argument required on `UploadFile` [#1413](https://github.com/encode/starlette/pull/1413).
+* Use debug extension instead of custom response template extension [#1991](https://github.com/encode/starlette/pull/1991).
+
+### Fixed
+* Fix url parsing of ipv6 urls on `URL.replace` [#1965](https://github.com/encode/starlette/pull/1965).
+
+## 0.23.1
+
+December 9, 2022
+
+### Fixed
+* Only stop receiving stream on `body_stream` if body is empty on the `BaseHTTPMiddleware` [#1940](https://github.com/encode/starlette/pull/1940).
+
+## 0.23.0
+
+December 5, 2022
+
+### Added
+* Add `headers` parameter to the `TestClient` [#1966](https://github.com/encode/starlette/pull/1966).
+
+### Deprecated
+* Deprecate `Starlette` and `Router` decorators [#1897](https://github.com/encode/starlette/pull/1897).
+
+### Fixed
+* Fix bug on `FloatConvertor` regex [#1973](https://github.com/encode/starlette/pull/1973).
+
+## 0.22.0
+
+November 17, 2022
+
+### Changed
+* Bypass `GZipMiddleware` when response includes `Content-Encoding` [#1901](https://github.com/encode/starlette/pull/1901).
+
+### Fixed
+* Remove unneeded `unquote()` from query parameters on the `TestClient` [#1953](https://github.com/encode/starlette/pull/1953).
+* Make sure `MutableHeaders._list` is actually a `list` [#1917](https://github.com/encode/starlette/pull/1917).
+* Import compatibility with the next version of `AnyIO` [#1936](https://github.com/encode/starlette/pull/1936).
+
+## 0.21.0
+
+September 26, 2022
+
+This release replaces the underlying HTTP client used on the `TestClient` (`requests` :arrow_right: `httpx`), and as those clients [differ _a bit_ on their API](https://www.python-httpx.org/compatibility/), your test suite will likely break. To make the migration smoother, you can use the [`bump-testclient`](https://github.com/Kludex/bump-testclient) tool.
+
+### Changed
+* Replace `requests` with `httpx` in `TestClient` [#1376](https://github.com/encode/starlette/pull/1376).
+
+### Added
+* Add `WebSocketException` and support for WebSocket exception handlers [#1263](https://github.com/encode/starlette/pull/1263).
+* Add `middleware` parameter to `Mount` class [#1649](https://github.com/encode/starlette/pull/1649).
+* Officially support Python 3.11 [1863](https://github.com/encode/starlette/pull/1863).
+* Implement `__repr__` for route classes [#1864](https://github.com/encode/starlette/pull/1864).
+
+### Fixed
+* Fix bug on which `BackgroundTasks` were cancelled when using `BaseHTTPMiddleware` and client disconnected [#1715](https://github.com/encode/starlette/pull/1715).
+
 ## 0.20.4
 
 June 28, 2022
@@ -149,7 +248,7 @@ July 19, 2021
  * The ClassVar `starlette.testclient.TestClient.async_backend` was removed,
    the backend is now configured using constructor kwargs
    [#1211](https://github.com/encode/starlette/pull/1211)
- * Passing an Async Generator Function or a Generator Function to `starlette.router.Router(lifespan_context=)` is deprecated. You should wrap your lifespan in `@contextlib.asynccontextmanager`.
+ * Passing an Async Generator Function or a Generator Function to `starlette.routing.Router(lifespan=)` is deprecated. You should wrap your lifespan in `@contextlib.asynccontextmanager`.
    [#1227](https://github.com/encode/starlette/pull/1227)
    [#1110](https://github.com/encode/starlette/pull/1110)
 

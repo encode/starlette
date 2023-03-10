@@ -128,6 +128,19 @@ def test_request_form_urlencoded(test_client_factory):
     assert response.json() == {"form": {"abc": "123 @"}}
 
 
+def test_request_form_context_manager(test_client_factory):
+    async def app(scope, receive, send):
+        request = Request(scope, receive)
+        async with request.form() as form:
+            response = JSONResponse({"form": dict(form)})
+            await response(scope, receive, send)
+
+    client = test_client_factory(app)
+
+    response = client.post("/", data={"abc": "123 @"})
+    assert response.json() == {"form": {"abc": "123 @"}}
+
+
 def test_request_body_then_stream(test_client_factory):
     async def app(scope, receive, send):
         request = Request(scope, receive)
@@ -431,7 +444,7 @@ def test_chunked_encoding(test_client_factory):
 
     def post_body():
         yield b"foo"
-        yield "bar"
+        yield b"bar"
 
     response = client.post("/", data=post_body())
     assert response.json() == {"body": "foobar"}

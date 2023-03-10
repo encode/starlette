@@ -4,6 +4,7 @@ from http import cookies as http_cookies
 
 import anyio
 
+from starlette._utils import AwaitableOrContextManager, AwaitableOrContextManagerWrapper
 from starlette.datastructures import URL, Address, FormData, Headers, QueryParams, State
 from starlette.exceptions import HTTPException
 from starlette.formparsers import FormParser, MultiPartException, MultiPartParser
@@ -172,9 +173,9 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
             self._state = State(self.scope["state"])
         return self._state
 
-    def url_for(self, name: str, **path_params: typing.Any) -> str:
+    def url_for(self, __name: str, **path_params: typing.Any) -> URL:
         router: Router = self.scope["router"]
-        url_path = router.url_path_for(name, **path_params)
+        url_path = router.url_path_for(__name, **path_params)
         return url_path.make_absolute_url(base_url=self.base_url)
 
 
@@ -187,6 +188,8 @@ async def empty_send(message: Message) -> typing.NoReturn:
 
 
 class Request(HTTPConnection):
+    _form: typing.Optional[FormData]
+
     def __init__(
         self, scope: Scope, receive: Receive = empty_receive, send: Send = empty_send
     ):
@@ -196,6 +199,7 @@ class Request(HTTPConnection):
         self._send = send
         self._stream_consumed = False
         self._is_disconnected = False
+        self._form = None
 
     @property
     def method(self) -> str:
@@ -210,10 +214,8 @@ class Request(HTTPConnection):
             yield self._body
             yield b""
             return
-
         if self._stream_consumed:
             raise RuntimeError("Stream consumed")
-
         self._stream_consumed = True
         while True:
             message = await self._receive()
@@ -242,8 +244,13 @@ class Request(HTTPConnection):
             self._json = json.loads(body)
         return self._json
 
-    async def form(self) -> FormData:
-        if not hasattr(self, "_form"):
+    async def _get_form(
+        self,
+        *,
+        max_files: typing.Union[int, float] = 1000,
+        max_fields: typing.Union[int, float] = 1000,
+    ) -> FormData:
+        if self._form is None:
             assert (
                 parse_options_header is not None
             ), "The `python-multipart` library must be installed to use form parsing."
@@ -252,7 +259,12 @@ class Request(HTTPConnection):
             content_type, _ = parse_options_header(content_type_header)
             if content_type == b"multipart/form-data":
                 try:
-                    multipart_parser = MultiPartParser(self.headers, self.stream())
+                    multipart_parser = MultiPartParser(
+                        self.headers,
+                        self.stream(),
+                        max_files=max_files,
+                        max_fields=max_fields,
+                    )
                     self._form = await multipart_parser.parse()
                 except MultiPartException as exc:
                     if "app" in self.scope:
@@ -265,8 +277,18 @@ class Request(HTTPConnection):
                 self._form = FormData()
         return self._form
 
+    def form(
+        self,
+        *,
+        max_files: typing.Union[int, float] = 1000,
+        max_fields: typing.Union[int, float] = 1000,
+    ) -> AwaitableOrContextManager[FormData]:
+        return AwaitableOrContextManagerWrapper(
+            self._get_form(max_files=max_files, max_fields=max_fields)
+        )
+
     async def close(self) -> None:
-        if hasattr(self, "_form"):
+        if self._form is not None:
             await self._form.close()
 
     async def is_disconnected(self) -> bool:

@@ -1,4 +1,3 @@
-import tempfile
 import typing
 from collections.abc import Sequence
 from shlex import shlex
@@ -114,10 +113,17 @@ class URL:
             or "hostname" in kwargs
             or "port" in kwargs
         ):
-            hostname = kwargs.pop("hostname", self.hostname)
+            hostname = kwargs.pop("hostname", None)
             port = kwargs.pop("port", self.port)
             username = kwargs.pop("username", self.username)
             password = kwargs.pop("password", self.password)
+
+            if hostname is None:
+                netloc = self.netloc
+                _, _, hostname = netloc.rpartition("@")
+
+                if hostname[-1] != "]":
+                    hostname = hostname.rsplit(":", 1)[0]
 
             netloc = hostname
             if port is not None:
@@ -181,7 +187,7 @@ class URLPath(str):
         self.protocol = protocol
         self.host = host
 
-    def make_absolute_url(self, base_url: typing.Union[str, URL]) -> str:
+    def make_absolute_url(self, base_url: typing.Union[str, URL]) -> URL:
         if isinstance(base_url, str):
             base_url = URL(base_url)
         if self.protocol:
@@ -194,7 +200,7 @@ class URLPath(str):
 
         netloc = self.host or base_url.netloc
         path = base_url.path.rstrip("/") + str(self)
-        return str(URL(scheme=scheme, netloc=netloc, path=path))
+        return URL(scheme=scheme, netloc=netloc, path=path)
 
 
 class Secret:
@@ -410,7 +416,7 @@ class QueryParams(ImmutableMultiDict[str, str]):
                 parse_qsl(value.decode("latin-1"), keep_blank_values=True), **kwargs
             )
         else:
-            super().__init__(*args, **kwargs)  # type: ignore
+            super().__init__(*args, **kwargs)  # type: ignore[arg-type]
         self._list = [(str(k), str(v)) for k, v in self._list]
         self._dict = {str(k): str(v) for k, v in self._dict.items()}
 
@@ -428,32 +434,33 @@ class UploadFile:
     An uploaded file included as part of the request data.
     """
 
-    spool_max_size = 1024 * 1024
-    file: typing.BinaryIO
-    headers: "Headers"
-
     def __init__(
         self,
-        filename: str,
-        file: typing.Optional[typing.BinaryIO] = None,
-        content_type: str = "",
+        file: typing.BinaryIO,
         *,
+        size: typing.Optional[int] = None,
+        filename: typing.Optional[str] = None,
         headers: "typing.Optional[Headers]" = None,
     ) -> None:
         self.filename = filename
-        self.content_type = content_type
-        if file is None:
-            self.file = tempfile.SpooledTemporaryFile(max_size=self.spool_max_size)  # type: ignore  # noqa: E501
-        else:
-            self.file = file
+        self.file = file
+        self.size = size
         self.headers = headers or Headers()
 
     @property
+    def content_type(self) -> typing.Optional[str]:
+        return self.headers.get("content-type", None)
+
+    @property
     def _in_memory(self) -> bool:
+        # check for SpooledTemporaryFile._rolled
         rolled_to_disk = getattr(self.file, "_rolled", True)
         return not rolled_to_disk
 
     async def write(self, data: bytes) -> None:
+        if self.size is not None:
+            self.size += len(data)
+
         if self._in_memory:
             self.file.write(data)
         else:
@@ -508,7 +515,7 @@ class Headers(typing.Mapping[str, str]):
         self,
         headers: typing.Optional[typing.Mapping[str, str]] = None,
         raw: typing.Optional[typing.List[typing.Tuple[bytes, bytes]]] = None,
-        scope: typing.Optional[typing.Mapping[str, typing.Any]] = None,
+        scope: typing.Optional[typing.MutableMapping[str, typing.Any]] = None,
     ) -> None:
         self._list: typing.List[typing.Tuple[bytes, bytes]] = []
         if headers is not None:
@@ -522,19 +529,21 @@ class Headers(typing.Mapping[str, str]):
             assert scope is None, 'Cannot set both "raw" and "scope".'
             self._list = raw
         elif scope is not None:
-            self._list = scope["headers"]
+            # scope["headers"] isn't necessarily a list
+            # it might be a tuple or other iterable
+            self._list = scope["headers"] = list(scope["headers"])
 
     @property
     def raw(self) -> typing.List[typing.Tuple[bytes, bytes]]:
         return list(self._list)
 
-    def keys(self) -> typing.List[str]:  # type: ignore
+    def keys(self) -> typing.List[str]:  # type: ignore[override]
         return [key.decode("latin-1") for key, value in self._list]
 
-    def values(self) -> typing.List[str]:  # type: ignore
+    def values(self) -> typing.List[str]:  # type: ignore[override]
         return [value.decode("latin-1") for key, value in self._list]
 
-    def items(self) -> typing.List[typing.Tuple[str, str]]:  # type: ignore
+    def items(self) -> typing.List[typing.Tuple[str, str]]:  # type: ignore[override]
         return [
             (key.decode("latin-1"), value.decode("latin-1"))
             for key, value in self._list
@@ -593,7 +602,7 @@ class MutableHeaders(Headers):
         set_key = key.lower().encode("latin-1")
         set_value = value.encode("latin-1")
 
-        found_indexes = []
+        found_indexes: "typing.List[int]" = []
         for idx, (item_key, item_value) in enumerate(self._list):
             if item_key == set_key:
                 found_indexes.append(idx)
@@ -613,7 +622,7 @@ class MutableHeaders(Headers):
         """
         del_key = key.lower().encode("latin-1")
 
-        pop_indexes = []
+        pop_indexes: "typing.List[int]" = []
         for idx, (item_key, item_value) in enumerate(self._list):
             if item_key == del_key:
                 pop_indexes.append(idx)
@@ -621,13 +630,13 @@ class MutableHeaders(Headers):
         for idx in reversed(pop_indexes):
             del self._list[idx]
 
-    def __ior__(self, other: typing.Mapping) -> "MutableHeaders":
+    def __ior__(self, other: typing.Mapping[str, str]) -> "MutableHeaders":
         if not isinstance(other, typing.Mapping):
             raise TypeError(f"Expected a mapping but got {other.__class__.__name__}")
         self.update(other)
         return self
 
-    def __or__(self, other: typing.Mapping) -> "MutableHeaders":
+    def __or__(self, other: typing.Mapping[str, str]) -> "MutableHeaders":
         if not isinstance(other, typing.Mapping):
             raise TypeError(f"Expected a mapping but got {other.__class__.__name__}")
         new = self.mutablecopy()
@@ -652,7 +661,7 @@ class MutableHeaders(Headers):
         self._list.append((set_key, set_value))
         return value
 
-    def update(self, other: typing.Mapping) -> None:
+    def update(self, other: typing.Mapping[str, str]) -> None:
         for key, val in other.items():
             self[key] = val
 

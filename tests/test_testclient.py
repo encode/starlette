@@ -9,8 +9,9 @@ import trio.lowlevel
 
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
+from starlette.testclient import TestClient
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 
@@ -44,9 +45,6 @@ def startup():
     raise RuntimeError()
 
 
-startup_error_app = Starlette(on_startup=[startup])
-
-
 def test_use_testclient_in_endpoint(test_client_factory):
     """
     We should be able to use the test client within applications.
@@ -65,6 +63,25 @@ def test_use_testclient_in_endpoint(test_client_factory):
     client = test_client_factory(app)
     response = client.get("/")
     assert response.json() == {"mock": "example"}
+
+
+def test_testclient_headers_behavior():
+    """
+    We should be able to use the test client with user defined headers.
+
+    This is useful if we need to set custom headers for authentication
+    during tests or in development.
+    """
+
+    client = TestClient(mock_service)
+    assert client.headers.get("user-agent") == "testclient"
+
+    client = TestClient(mock_service, headers={"user-agent": "non-default-agent"})
+    assert client.headers.get("user-agent") == "non-default-agent"
+
+    client = TestClient(mock_service, headers={"Authentication": "Bearer 123"})
+    assert client.headers.get("user-agent") == "testclient"
+    assert client.headers.get("Authentication") == "Bearer 123"
 
 
 def test_use_testclient_as_contextmanager(test_client_factory, anyio_backend_name):
@@ -146,6 +163,11 @@ def test_use_testclient_as_contextmanager(test_client_factory, anyio_backend_nam
 
 
 def test_error_on_startup(test_client_factory):
+    with pytest.deprecated_call(
+        match="The on_startup and on_shutdown parameters are deprecated"
+    ):
+        startup_error_app = Starlette(on_startup=[startup])
+
     with pytest.raises(RuntimeError):
         with test_client_factory(startup_error_app):
             pass  # pragma: no cover
@@ -240,3 +262,14 @@ def test_client(test_client_factory):
     client = test_client_factory(app)
     response = client.get("/")
     assert response.json() == {"host": "testclient", "port": 50000}
+
+
+@pytest.mark.parametrize("param", ("2020-07-14T00:00:00+00:00", "España", "voilà"))
+def test_query_params(test_client_factory, param: str):
+    def homepage(request):
+        return Response(request.query_params["param"])
+
+    app = Starlette(routes=[Route("/", endpoint=homepage)])
+    client = test_client_factory(app)
+    response = client.get("/", params={"param": param})
+    assert response.text == param

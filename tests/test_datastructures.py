@@ -1,4 +1,6 @@
 import io
+from tempfile import SpooledTemporaryFile
+from typing import BinaryIO
 
 import pytest
 
@@ -37,6 +39,24 @@ def test_url():
     new = u.replace(hostname="example.com")
     assert new == "https://example.com:123/path/to/somewhere?abc=123#anchor"
     assert new.hostname == "example.com"
+
+    ipv6_url = URL("https://[fe::2]:12345")
+    new = ipv6_url.replace(port=8080)
+    assert new == "https://[fe::2]:8080"
+
+    new = ipv6_url.replace(username="username", password="password")
+    assert new == "https://username:password@[fe::2]:12345"
+    assert new.netloc == "username:password@[fe::2]:12345"
+
+    ipv6_url = URL("https://[fe::2]")
+    new = ipv6_url.replace(port=123)
+    assert new == "https://[fe::2]:123"
+
+    url = URL("http://u:p@host/")
+    assert url.replace(hostname="bar") == URL("http://u:p@bar/")
+
+    url = URL("http://u:p@host:80")
+    assert url.replace(port=88) == URL("http://u:p@host:88")
 
 
 def test_url_query_params():
@@ -201,9 +221,9 @@ def test_mutable_headers_update_dict():
 def test_mutable_headers_merge_not_mapping():
     h = MutableHeaders()
     with pytest.raises(TypeError):
-        h |= {"not_mapping"}  # type: ignore
+        h |= {"not_mapping"}  # type: ignore[arg-type]
     with pytest.raises(TypeError):
-        h | {"not_mapping"}  # type: ignore
+        h | {"not_mapping"}  # type: ignore[operator]
 
 
 def test_headers_mutablecopy():
@@ -212,6 +232,16 @@ def test_headers_mutablecopy():
     assert c.items() == [("a", "123"), ("a", "456"), ("b", "789")]
     c["a"] = "abc"
     assert c.items() == [("a", "abc"), ("b", "789")]
+
+
+def test_mutable_headers_from_scope():
+    # "headers" in scope must not necessarily be a list
+    h = MutableHeaders(scope={"headers": ((b"a", b"1"),)})
+    assert dict(h) == {"a": "1"}
+    h.update({"b": "2"})
+    assert dict(h) == {"a": "1", "b": "2"}
+    assert list(h.items()) == [("a", "1"), ("b", "2")]
+    assert list(h.raw) == [(b"a", b"1"), (b"b", b"2")]
 
 
 def test_url_blank_params():
@@ -259,35 +289,63 @@ def test_queryparams():
     assert QueryParams(q) == q
 
 
-class BigUploadFile(UploadFile):
-    spool_max_size = 1024
-
-
-@pytest.mark.anyio
-async def test_upload_file():
-    big_file = BigUploadFile("big-file")
-    await big_file.write(b"big-data" * 512)
-    await big_file.write(b"big-data")
-    await big_file.seek(0)
-    assert await big_file.read(1024) == b"big-data" * 128
-    await big_file.close()
-
-
 @pytest.mark.anyio
 async def test_upload_file_file_input():
     """Test passing file/stream into the UploadFile constructor"""
     stream = io.BytesIO(b"data")
-    file = UploadFile(filename="file", file=stream)
+    file = UploadFile(filename="file", file=stream, size=4)
     assert await file.read() == b"data"
+    assert file.size == 4
     await file.write(b" and more data!")
     assert await file.read() == b""
+    assert file.size == 19
     await file.seek(0)
     assert await file.read() == b"data and more data!"
 
 
+@pytest.mark.anyio
+async def test_upload_file_without_size():
+    """Test passing file/stream into the UploadFile constructor without size"""
+    stream = io.BytesIO(b"data")
+    file = UploadFile(filename="file", file=stream)
+    assert await file.read() == b"data"
+    assert file.size is None
+    await file.write(b" and more data!")
+    assert await file.read() == b""
+    assert file.size is None
+    await file.seek(0)
+    assert await file.read() == b"data and more data!"
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("max_size", [1, 1024], ids=["rolled", "unrolled"])
+async def test_uploadfile_rolling(max_size: int) -> None:
+    """Test that we can r/w to a SpooledTemporaryFile
+    managed by UploadFile before and after it rolls to disk
+    """
+    stream: BinaryIO = SpooledTemporaryFile(  # type: ignore[assignment]
+        max_size=max_size
+    )
+    file = UploadFile(filename="file", file=stream, size=0)
+    assert await file.read() == b""
+    assert file.size == 0
+    await file.write(b"data")
+    assert await file.read() == b""
+    assert file.size == 4
+    await file.seek(0)
+    assert await file.read() == b"data"
+    await file.write(b" more")
+    assert await file.read() == b""
+    assert file.size == 9
+    await file.seek(0)
+    assert await file.read() == b"data more"
+    assert file.size == 9
+    await file.close()
+
+
 def test_formdata():
     stream = io.BytesIO(b"data")
-    upload = UploadFile(filename="file", file=stream)
+    upload = UploadFile(filename="file", file=stream, size=4)
     form = FormData([("a", "123"), ("a", "456"), ("b", upload)])
     assert "a" in form
     assert "A" not in form

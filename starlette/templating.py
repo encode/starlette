@@ -2,6 +2,8 @@ import typing
 from os import PathLike
 
 from starlette.background import BackgroundTask
+from starlette.datastructures import URL
+from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import Receive, Scope, Send
 
@@ -17,7 +19,7 @@ try:
     else:  # pragma: nocover
         pass_context = jinja2.contextfunction  # type: ignore[attr-defined]
 except ImportError:  # pragma: nocover
-    jinja2 = None  # type: ignore
+    jinja2 = None  # type: ignore[assignment]
 
 
 class _TemplateResponse(Response):
@@ -40,12 +42,14 @@ class _TemplateResponse(Response):
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         request = self.context.get("request", {})
         extensions = request.get("extensions", {})
-        if "http.response.template" in extensions:
+        if "http.response.debug" in extensions:
             await send(
                 {
-                    "type": "http.response.template",
-                    "template": self.template,
-                    "context": self.context,
+                    "type": "http.response.debug",
+                    "info": {
+                        "template": self.template,
+                        "context": self.context,
+                    },
                 }
             )
         await super().__call__(scope, receive, send)
@@ -59,16 +63,22 @@ class Jinja2Templates:
     """
 
     def __init__(
-        self, directory: typing.Union[str, PathLike], **env_options: typing.Any
+        self,
+        directory: typing.Union[str, PathLike],
+        context_processors: typing.Optional[
+            typing.List[typing.Callable[[Request], typing.Dict[str, typing.Any]]]
+        ] = None,
+        **env_options: typing.Any
     ) -> None:
         assert jinja2 is not None, "jinja2 must be installed to use Jinja2Templates"
         self.env = self._create_env(directory, **env_options)
+        self.context_processors = context_processors or []
 
     def _create_env(
         self, directory: typing.Union[str, PathLike], **env_options: typing.Any
     ) -> "jinja2.Environment":
         @pass_context
-        def url_for(context: dict, name: str, **path_params: typing.Any) -> str:
+        def url_for(context: dict, name: str, **path_params: typing.Any) -> URL:
             request = context["request"]
             return request.url_for(name, **path_params)
 
@@ -94,6 +104,11 @@ class Jinja2Templates:
     ) -> _TemplateResponse:
         if "request" not in context:
             raise ValueError('context must include a "request" key')
+
+        request = typing.cast(Request, context["request"])
+        for context_processor in self.context_processors:
+            context.update(context_processor(request))
+
         template = self.get_template(name)
         return _TemplateResponse(
             template,

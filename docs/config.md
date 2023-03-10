@@ -113,6 +113,23 @@ from starlette.config import environ
 environ['TESTING'] = 'TRUE'
 ```
 
+## Reading prefixed environment variables
+
+You can namespace the environment variables by setting `env_prefix` argument.
+
+```python title="myproject/settings.py"
+import os
+from starlette.config import Config
+
+os.environ['APP_DEBUG'] = 'yes'
+os.environ['ENVIRONMENT'] = 'dev'
+
+config = Config(env_prefix='APP_')
+
+DEBUG = config('DEBUG') # lookups APP_DEBUG, returns "yes"
+ENVIRONMENT = config('ENVIRONMENT') # lookups APP_ENVIRONMENT, raises KeyError as variable is not defined
+```
+
 ## A full example
 
 Structuring large applications can be complex. You need proper separation of
@@ -223,10 +240,7 @@ def client():
     Make a 'client' fixture available to test cases.
     """
     # Our fixture is created within a context manager. This ensures that
-    # application startup and shutdown run for every test case.
-    #
-    # Because we've configured the DatabaseMiddleware with `rollback_on_shutdown`
-    # we'll get a complete rollback to the initial state after each test case runs.
+    # application lifespan runs for every test case.
     with TestClient(app) as test_client:
         yield test_client
 ```

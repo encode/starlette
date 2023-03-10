@@ -1,12 +1,24 @@
+import contextlib
 import functools
+import sys
 import typing
 import uuid
+
+if sys.version_info < (3, 8):
+    from typing_extensions import TypedDict  # pragma: no cover
+else:
+    from typing import TypedDict  # pragma: no cover
 
 import pytest
 
 from starlette.applications import Starlette
+from starlette.exceptions import HTTPException
+from starlette.middleware import Middleware
+from starlette.requests import Request
 from starlette.responses import JSONResponse, PlainTextResponse, Response
 from starlette.routing import Host, Mount, NoMatchFound, Route, Router, WebSocketRoute
+from starlette.testclient import TestClient
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 
@@ -536,8 +548,8 @@ def test_subdomain_reverse_urls():
 async def echo_urls(request):
     return JSONResponse(
         {
-            "index": request.url_for("index"),
-            "submount": request.url_for("mount:submount"),
+            "index": str(request.url_for("index")),
+            "submount": str(request.url_for("mount:submount")),
         }
     )
 
@@ -637,11 +649,14 @@ def test_lifespan_async(test_client_factory):
         nonlocal shutdown_complete
         shutdown_complete = True
 
-    app = Router(
-        on_startup=[run_startup],
-        on_shutdown=[run_shutdown],
-        routes=[Route("/", hello_world)],
-    )
+    with pytest.deprecated_call(
+        match="The on_startup and on_shutdown parameters are deprecated"
+    ):
+        app = Router(
+            on_startup=[run_startup],
+            on_shutdown=[run_shutdown],
+            routes=[Route("/", hello_world)],
+        )
 
     assert not startup_complete
     assert not shutdown_complete
@@ -668,11 +683,14 @@ def test_lifespan_sync(test_client_factory):
         nonlocal shutdown_complete
         shutdown_complete = True
 
-    app = Router(
-        on_startup=[run_startup],
-        on_shutdown=[run_shutdown],
-        routes=[Route("/", hello_world)],
-    )
+    with pytest.deprecated_call(
+        match="The on_startup and on_shutdown parameters are deprecated"
+    ):
+        app = Router(
+            on_startup=[run_startup],
+            on_shutdown=[run_shutdown],
+            routes=[Route("/", hello_world)],
+        )
 
     assert not startup_complete
     assert not shutdown_complete
@@ -684,11 +702,83 @@ def test_lifespan_sync(test_client_factory):
     assert shutdown_complete
 
 
+def test_lifespan_state_unsupported(test_client_factory):
+    @contextlib.asynccontextmanager
+    async def lifespan(app):
+        yield {"foo": "bar"}
+
+    app = Router(
+        lifespan=lifespan,
+        routes=[Mount("/", PlainTextResponse("hello, world"))],
+    )
+
+    async def no_state_wrapper(scope, receive, send):
+        del scope["state"]
+        await app(scope, receive, send)
+
+    with pytest.raises(
+        RuntimeError, match='The server does not support "state" in the lifespan scope'
+    ):
+        with test_client_factory(no_state_wrapper):
+            raise AssertionError("Should not be called")  # pragma: no cover
+
+
+def test_lifespan_state_async_cm(test_client_factory):
+    startup_complete = False
+    shutdown_complete = False
+
+    class State(TypedDict):
+        count: int
+        items: typing.List[int]
+
+    async def hello_world(request: Request) -> Response:
+        # modifications to the state should not leak across requests
+        assert request.state.count == 0
+        # modify the state, this should not leak to the lifespan or other requests
+        request.state.count += 1
+        # since state.items is a mutable object this modification _will_ leak across
+        # requests and to the lifespan
+        request.state.items.append(1)
+        return PlainTextResponse("hello, world")
+
+    @contextlib.asynccontextmanager
+    async def lifespan(app: Starlette) -> typing.AsyncIterator[State]:
+        nonlocal startup_complete, shutdown_complete
+        startup_complete = True
+        state = State(count=0, items=[])
+        yield state
+        shutdown_complete = True
+        # modifications made to the state from a request do not leak to the lifespan
+        assert state["count"] == 0
+        # unless of course the request mutates a mutable object that is referenced
+        # via state
+        assert state["items"] == [1, 1]
+
+    app = Router(
+        lifespan=lifespan,
+        routes=[Route("/", hello_world)],
+    )
+
+    assert not startup_complete
+    assert not shutdown_complete
+    with test_client_factory(app) as client:
+        assert startup_complete
+        assert not shutdown_complete
+        client.get("/")
+        # Calling it a second time to ensure that the state is preserved.
+        client.get("/")
+    assert startup_complete
+    assert shutdown_complete
+
+
 def test_raise_on_startup(test_client_factory):
     def run_startup():
         raise RuntimeError()
 
-    router = Router(on_startup=[run_startup])
+    with pytest.deprecated_call(
+        match="The on_startup and on_shutdown parameters are deprecated"
+    ):
+        router = Router(on_startup=[run_startup])
     startup_failed = False
 
     async def app(scope, receive, send):
@@ -710,7 +800,10 @@ def test_raise_on_shutdown(test_client_factory):
     def run_shutdown():
         raise RuntimeError()
 
-    app = Router(on_shutdown=[run_shutdown])
+    with pytest.deprecated_call(
+        match="The on_startup and on_shutdown parameters are deprecated"
+    ):
+        app = Router(on_shutdown=[run_shutdown])
 
     with pytest.raises(RuntimeError):
         with test_client_factory(app):
@@ -788,6 +881,115 @@ def test_route_name(endpoint: typing.Callable, expected_name: str):
     assert Route(path="/", endpoint=endpoint).name == expected_name
 
 
+class AddHeadersMiddleware:
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        scope["add_headers_middleware"] = True
+
+        async def modified_send(msg: Message) -> None:
+            if msg["type"] == "http.response.start":
+                msg["headers"].append((b"X-Test", b"Set by middleware"))
+            await send(msg)
+
+        await self.app(scope, receive, modified_send)
+
+
+def assert_middleware_header_route(request: Request) -> Response:
+    assert request.scope["add_headers_middleware"] is True
+    return Response()
+
+
+mounted_routes_with_middleware = Starlette(
+    routes=[
+        Mount(
+            "/http",
+            routes=[
+                Route(
+                    "/",
+                    endpoint=assert_middleware_header_route,
+                    methods=["GET"],
+                    name="route",
+                ),
+            ],
+            middleware=[Middleware(AddHeadersMiddleware)],
+        ),
+        Route("/home", homepage),
+    ]
+)
+
+
+mounted_app_with_middleware = Starlette(
+    routes=[
+        Mount(
+            "/http",
+            app=Route(
+                "/",
+                endpoint=assert_middleware_header_route,
+                methods=["GET"],
+                name="route",
+            ),
+            middleware=[Middleware(AddHeadersMiddleware)],
+        ),
+        Route("/home", homepage),
+    ]
+)
+
+
+@pytest.mark.parametrize(
+    "app",
+    [
+        mounted_routes_with_middleware,
+        mounted_app_with_middleware,
+    ],
+)
+def test_mount_middleware(
+    test_client_factory: typing.Callable[..., TestClient],
+    app: Starlette,
+) -> None:
+    test_client = test_client_factory(app)
+
+    response = test_client.get("/home")
+    assert response.status_code == 200
+    assert "X-Test" not in response.headers
+
+    response = test_client.get("/http")
+    assert response.status_code == 200
+    assert response.headers["X-Test"] == "Set by middleware"
+
+
+def test_mount_routes_with_middleware_url_path_for() -> None:
+    """Checks that url_path_for still works with mounted routes with Middleware"""
+    assert mounted_routes_with_middleware.url_path_for("route") == "/http/"
+
+
+def test_mount_asgi_app_with_middleware_url_path_for() -> None:
+    """Mounted ASGI apps do not work with url path for,
+    middleware does not change this
+    """
+    with pytest.raises(NoMatchFound):
+        mounted_app_with_middleware.url_path_for("route")
+
+
+def test_add_route_to_app_after_mount(
+    test_client_factory: typing.Callable[..., TestClient],
+) -> None:
+    """Checks that Mount will pick up routes
+    added to the underlying app after it is mounted
+    """
+    inner_app = Router()
+    app = Mount("/http", app=inner_app)
+    inner_app.add_route(
+        "/inner",
+        endpoint=homepage,
+        methods=["GET"],
+    )
+    client = test_client_factory(app)
+    response = client.get("/http/inner")
+    assert response.status_code == 200
+
+
 def test_exception_on_mounted_apps(test_client_factory):
     def exc(request):
         raise Exception("Exc")
@@ -799,3 +1001,147 @@ def test_exception_on_mounted_apps(test_client_factory):
     with pytest.raises(Exception) as ctx:
         client.get("/sub/")
     assert str(ctx.value) == "Exc"
+
+
+def test_mounted_middleware_does_not_catch_exception(
+    test_client_factory: typing.Callable[..., TestClient],
+) -> None:
+    # https://github.com/encode/starlette/pull/1649#discussion_r960236107
+    def exc(request: Request) -> Response:
+        raise HTTPException(status_code=403, detail="auth")
+
+    class NamedMiddleware:
+        def __init__(self, app: ASGIApp, name: str) -> None:
+            self.app = app
+            self.name = name
+
+        async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+            async def modified_send(msg: Message) -> None:
+                if msg["type"] == "http.response.start":
+                    msg["headers"].append((f"X-{self.name}".encode(), b"true"))
+                await send(msg)
+
+            await self.app(scope, receive, modified_send)
+
+    app = Starlette(
+        routes=[
+            Mount(
+                "/mount",
+                routes=[
+                    Route("/err", exc),
+                    Route("/home", homepage),
+                ],
+                middleware=[Middleware(NamedMiddleware, name="Mounted")],
+            ),
+            Route("/err", exc),
+            Route("/home", homepage),
+        ],
+        middleware=[Middleware(NamedMiddleware, name="Outer")],
+    )
+
+    client = test_client_factory(app)
+
+    resp = client.get("/home")
+    assert resp.status_code == 200, resp.content
+    assert "X-Outer" in resp.headers
+
+    resp = client.get("/err")
+    assert resp.status_code == 403, resp.content
+    assert "X-Outer" in resp.headers
+
+    resp = client.get("/mount/home")
+    assert resp.status_code == 200, resp.content
+    assert "X-Mounted" in resp.headers
+
+    # this is the "surprising" behavior bit
+    # the middleware on the mount never runs because there
+    # is nothing to catch the HTTPException
+    # since Mount middlweare is not wrapped by ExceptionMiddleware
+    resp = client.get("/mount/err")
+    assert resp.status_code == 403, resp.content
+    assert "X-Mounted" not in resp.headers
+
+
+def test_route_repr() -> None:
+    route = Route("/welcome", endpoint=homepage)
+    assert (
+        repr(route)
+        == "Route(path='/welcome', name='homepage', methods=['GET', 'HEAD'])"
+    )
+
+
+def test_route_repr_without_methods() -> None:
+    route = Route("/welcome", endpoint=Endpoint, methods=None)
+    assert repr(route) == "Route(path='/welcome', name='Endpoint', methods=[])"
+
+
+def test_websocket_route_repr() -> None:
+    route = WebSocketRoute("/ws", endpoint=websocket_endpoint)
+    assert repr(route) == "WebSocketRoute(path='/ws', name='websocket_endpoint')"
+
+
+def test_mount_repr() -> None:
+    route = Mount(
+        "/app",
+        routes=[
+            Route("/", endpoint=homepage),
+        ],
+    )
+    # test for substring because repr(Router) returns unique object ID
+    assert repr(route).startswith("Mount(path='/app', name='', app=")
+
+
+def test_mount_named_repr() -> None:
+    route = Mount(
+        "/app",
+        name="app",
+        routes=[
+            Route("/", endpoint=homepage),
+        ],
+    )
+    # test for substring because repr(Router) returns unique object ID
+    assert repr(route).startswith("Mount(path='/app', name='app', app=")
+
+
+def test_host_repr() -> None:
+    route = Host(
+        "example.com",
+        app=Router(
+            [
+                Route("/", endpoint=homepage),
+            ]
+        ),
+    )
+    # test for substring because repr(Router) returns unique object ID
+    assert repr(route).startswith("Host(host='example.com', name='', app=")
+
+
+def test_host_named_repr() -> None:
+    route = Host(
+        "example.com",
+        name="app",
+        app=Router(
+            [
+                Route("/", endpoint=homepage),
+            ]
+        ),
+    )
+    # test for substring because repr(Router) returns unique object ID
+    assert repr(route).startswith("Host(host='example.com', name='app', app=")
+
+
+def test_decorator_deprecations() -> None:
+    router = Router()
+
+    with pytest.deprecated_call():
+        router.route("/")(homepage)
+
+    with pytest.deprecated_call():
+        router.websocket_route("/ws")(websocket_endpoint)
+
+    with pytest.deprecated_call():
+
+        async def startup() -> None:
+            ...  # pragma: nocover
+
+        router.on_event("startup")(startup)

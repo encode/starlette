@@ -6,10 +6,6 @@ or use regular non-async endpoints, and integrate with [SQLAlchemy](https://www.
 In this documentation we'll demonstrate how to integrate against [the `databases` package](https://github.com/encode/databases),
 which provides SQLAlchemy core support against a range of different database drivers.
 
-**Note**: Previous versions of Starlette included a built-in `DatabaseMiddleware`.
-This option is currently still available but should be considered as pending deprecation.
-It will be removed in a future release. The legacy documentation [is available here](https://github.com/encode/starlette/blob/0.10.2/docs/database.md).
-
 Here's a complete example, that includes table definitions, configuring a `database.Database`
 instance, and a couple of endpoints that interact with the database.
 
@@ -22,6 +18,8 @@ DATABASE_URL=sqlite:///test.db
 **app.py**
 
 ```python
+import contextlib
+
 import databases
 import sqlalchemy
 from starlette.applications import Starlette
@@ -48,6 +46,11 @@ notes = sqlalchemy.Table(
 
 database = databases.Database(DATABASE_URL)
 
+@contextlib.asynccontextmanager
+async def lifespan(app):
+    await database.connect()
+    yield
+    await database.disconnect()
 
 # Main application code.
 async def list_notes(request):
@@ -81,8 +84,7 @@ routes = [
 
 app = Starlette(
     routes=routes,
-    on_startup=[database.connect],
-    on_shutdown=[database.disconnect]
+    lifespan=lifespan,
 )
 ```
 

@@ -114,6 +114,7 @@ requests to `http` or `ws` will be redirected to the secure scheme instead.
 
 ```python
 from starlette.applications import Starlette
+from starlette.middleware import Middleware
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 
 routes = ...
@@ -179,6 +180,8 @@ The following arguments are supported:
 
 * `minimum_size` - Do not GZip responses that are smaller than this minimum size in bytes. Defaults to `500`.
 
+The middleware won't GZip responses that already have a `Content-Encoding` set, to prevent them from being encoded twice.
+
 ## BaseHTTPMiddleware
 
 An abstract class that allows you to write ASGI middleware against a request/response
@@ -190,7 +193,10 @@ To implement a middleware class using `BaseHTTPMiddleware`, you must override th
 `async def dispatch(request, call_next)` method.
 
 ```python
+from starlette.applications import Starlette
+from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
+
 
 class CustomHeaderMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
@@ -239,7 +245,6 @@ around explicitly, rather than mutating the middleware instance.
 
 Currently, the `BaseHTTPMiddleware` has some known limitations:
 
-- It's not possible to use `BackgroundTasks` with `BaseHTTPMiddleware`. Check [#1438](https://github.com/encode/starlette/issues/1438) for more details.
 - Using `BaseHTTPMiddleware` will prevent changes to [`contextlib.ContextVar`](https://docs.python.org/3/library/contextvars.html#contextvars.ContextVar)s from propagating upwards. That is, if you set a value for a `ContextVar` in your endpoint and try to read it from a middleware you will find that the value is not the same value you set in your endpoint (see [this test](https://github.com/encode/starlette/blob/621abc747a6604825190b93467918a0ec6456a24/tests/middleware/test_base.py#L192-L223) for an example of this behavior).
 
 To overcome these limitations, use [pure ASGI middleware](#pure-asgi-middleware), as shown below.
@@ -683,6 +688,41 @@ to use the `middleware=<List of Middleware instances>` style, as it will:
 * Ensure that everything remains wrapped in a single outermost `ServerErrorMiddleware`.
 * Preserves the top-level `app` instance.
 
+## Applying middleware to `Mount`s
+
+Middleware can also be added to `Mount`, which allows you to apply middleware to a single route, a group of routes or any mounted ASGI application:
+
+```python
+from starlette.applications import Starlette
+from starlette.middleware import Middleware
+from starlette.middleware.gzip import GZipMiddleware
+from starlette.routing import Mount, Route
+
+
+routes = [
+    Mount(
+        "/",
+        routes=[
+            Route(
+                "/example",
+                endpoint=...,
+            )
+        ],
+        middleware=[Middleware(GZipMiddleware)]
+    )
+]
+
+app = Starlette(routes=routes)
+```
+
+Note that middleware used in this way is *not* wrapped in exception handling middleware like the middleware applied to the `Starlette` application is.
+This is often not a problem because it only applies to middleware that inspect or modify the `Response`, and even then you probably don't want to apply this logic to error responses.
+If you do want to apply the middleware logic to error responses only on some routes you have a couple of options:
+
+* Add an `ExceptionMiddleware` onto the `Mount`
+* Add a `try/except` block to your middleware and return an error response from there
+* Split up marking and processing into two middlewares, one that gets put on `Mount` which marks the response as needing processing (for example by setting `scope["log-response"] = True`) and another applied to the `Starlette` application that does the heavy lifting.
+
 ## Third party middleware
 
 #### [asgi-auth-github](https://github.com/simonw/asgi-auth-github)
@@ -732,10 +772,6 @@ A middleware class for reading/generating request IDs and attaching them to appl
 #### [RollbarMiddleware](https://docs.rollbar.com/docs/starlette)
 
 A middleware class for logging exceptions, errors, and log messages to [Rollbar](https://www.rollbar.com).
-
-#### [SentryMiddleware](https://github.com/encode/sentry-asgi)
-
-A middleware class for logging exceptions to [Sentry](https://sentry.io/).
 
 #### [StarletteOpentracing](https://github.com/acidjunk/starlette-opentracing)
 

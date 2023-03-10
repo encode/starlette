@@ -1,6 +1,6 @@
 
 The test client allows you to make requests against your ASGI application,
-using the `requests` library.
+using the `httpx` library.
 
 ```python
 from starlette.responses import HTMLResponse
@@ -19,11 +19,11 @@ def test_app():
     assert response.status_code == 200
 ```
 
-The test client exposes the same interface as any other `requests` session.
+The test client exposes the same interface as any other `httpx` session.
 In particular, note that the calls to make a request are just standard
 function calls, not awaitables.
 
-You can use any of `requests` standard API, such as authentication, session
+You can use any of `httpx` standard API, such as authentication, session
 cookies handling, or file uploads.
 
 For example, to set headers on the TestClient you can do:
@@ -55,7 +55,7 @@ with open("example.txt", "rb") as f1:
         response = client.post("/form", files=files)
 ```
 
-For more information you can check the `requests` [documentation](https://requests.readthedocs.io/en/master/user/advanced/).
+For more information you can check the `httpx` [documentation](https://www.python-httpx.org/advanced/).
 
 By default the `TestClient` will raise any exceptions that occur in the
 application. Occasionally you might want to test the content of 500 error
@@ -64,10 +64,10 @@ case you should use `client = TestClient(app, raise_server_exceptions=False)`.
 
 !!! note
 
-    If you want the `TestClient` to run `lifespan` events (`on_startup`, `on_shutdown`, or `lifespan`),
-    you will need to use the `TestClient` as a context manager. Otherwise, the events
-    will not be triggered when the `TestClient` is instantiated. You can learn more about it
-    [here](/events/#running-event-handlers-in-tests).
+    If you want the `TestClient` to run the `lifespan` handler,
+    you will need to use the `TestClient` as a context manager. It will
+    not be triggered when the `TestClient` is instantiated. You can learn more about it
+    [here](/lifespan/#running-lifespan-in-tests).
 
 ### Selecting the Async backend
 
@@ -96,7 +96,7 @@ def test_app()
 
 You can also test websocket sessions with the test client.
 
-The `requests` library will be used to build the initial handshake, meaning you
+The `httpx` library will be used to build the initial handshake, meaning you
 can use the same authentication options and other headers between both http and
 websocket testing.
 
@@ -129,7 +129,7 @@ always raised by the test client.
 
 #### Establishing a test session
 
-* `.websocket_connect(url, subprotocols=None, **options)` - Takes the same set of arguments as `requests.get()`.
+* `.websocket_connect(url, subprotocols=None, **options)` - Takes the same set of arguments as `httpx.get()`.
 
 May raise `starlette.websockets.WebSocketDisconnect` if the application does not accept the websocket connection.
 
