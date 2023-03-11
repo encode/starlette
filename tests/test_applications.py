@@ -541,7 +541,7 @@ def test_lifespan_typing():
         pass
 
     @asynccontextmanager
-    async def lifespan(app: App) -> AsyncIterator[None]:
+    async def lifespan(app: App) -> AsyncIterator[None]:  # pragma: no cover
         yield
 
     App(lifespan=lifespan)
