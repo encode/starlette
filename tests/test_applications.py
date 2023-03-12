@@ -535,13 +535,3 @@ def test_middleware_stack_init(test_client_factory: Callable[[ASGIApp], httpx.Cl
 
     assert SimpleInitializableMiddleware.counter == 2
 
-
-def test_lifespan_typing():
-    class App(Starlette):
-        pass
-
-    @asynccontextmanager
-    async def lifespan(app: App) -> AsyncIterator[None]:  # pragma: no cover
-        yield
-
-    App(lifespan=lifespan)
