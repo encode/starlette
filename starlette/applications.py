@@ -11,6 +11,8 @@ from starlette.responses import Response
 from starlette.routing import BaseRoute, Router
 from starlette.types import ASGIApp, Lifespan, Receive, Scope, Send
 
+AppType = typing.TypeVar("AppType", bound="Starlette")
+
 
 class Starlette:
     """
@@ -257,6 +259,3 @@ class Starlette:
             return func
 
         return decorator
-
-
-AppType = typing.TypeVar("AppType", bound=Starlette)
