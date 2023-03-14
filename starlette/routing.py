@@ -13,6 +13,7 @@ from starlette._utils import is_async_callable
 from starlette.concurrency import run_in_threadpool
 from starlette.convertors import CONVERTOR_TYPES, Convertor
 from starlette.datastructures import URL, Headers, URLPath
+from starlette.events.context import AyncLifespanContextManager
 from starlette.exceptions import HTTPException
 from starlette.middleware import Middleware
 from starlette.requests import Request
@@ -588,12 +589,19 @@ class Router:
         self.on_startup = [] if on_startup is None else list(on_startup)
         self.on_shutdown = [] if on_shutdown is None else list(on_shutdown)
 
+        assert lifespan is None or (
+            on_startup is None and on_shutdown is None
+        ), "Use either 'lifespan' or 'on_startup'/'on_shutdown', not both."
+
         if on_startup or on_shutdown:
             warnings.warn(
                 "The on_startup and on_shutdown parameters are deprecated, and they "
                 "will be removed on version 1.0. Use the lifespan parameter instead. "
                 "See more about it on https://www.starlette.io/lifespan/.",
                 DeprecationWarning,
+            )
+            self.lifespan_context = self.handle_lifespan_events(
+                on_startup=on_startup, on_shutdown=on_shutdown, lifespan=lifespan
             )
 
         if lifespan is None:
@@ -619,6 +627,20 @@ class Router:
             )
         else:
             self.lifespan_context = lifespan
+
+    def handle_lifespan_events(
+        self,
+        on_startup: typing.Optional[typing.Sequence[typing.Callable]] = None,
+        on_shutdown: typing.Optional[typing.Sequence[typing.Callable]] = None,
+        lifespan: typing.Optional[Lifespan] = None,
+    ) -> typing.Any:
+        if on_startup or on_shutdown:
+            return AyncLifespanContextManager(
+                on_startup=on_startup, on_shutdown=on_shutdown
+            )
+        elif lifespan is not None:
+            return lifespan
+        return None
 
     async def not_found(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "websocket":
