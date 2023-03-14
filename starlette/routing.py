@@ -600,7 +600,7 @@ class Router:
                 "See more about it on https://www.starlette.io/lifespan/.",
                 DeprecationWarning,
             )
-            self.lifespan_context = self.handle_lifespan_events(
+            lifespan = self.handle_lifespan_events(
                 on_startup=on_startup, on_shutdown=on_shutdown, lifespan=lifespan
             )
 

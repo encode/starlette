@@ -23,7 +23,7 @@ class AyncLifespanContextManager:
     def __call__(self: _T, app: object) -> _T:
         return self
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> None:
         for handler in self.on_startup:
             if is_async_callable(handler):
                 await handler()
@@ -32,7 +32,7 @@ class AyncLifespanContextManager:
 
     async def __aexit__(
         self, scope: Scope, receive: Receive, send: Send, **kwargs: typing.Any
-    ):
+    ) -> None:
         for handler in self.on_shutdown:
             if is_async_callable(handler):
                 await handler()
