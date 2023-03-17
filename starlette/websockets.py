@@ -76,7 +76,7 @@ class WebSocket(HTTPConnection):
                     and message_type == "websocket.http.response.start"
                 ):
                     raise RuntimeError(
-                        'Expected ASGI message "websocket.connect", '
+                        'Expected ASGI message "websocket.accept", '
                         f"but got {message_type!r}"
                     )
             if message_type == "websocket.close":
