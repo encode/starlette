@@ -11,16 +11,6 @@ Here are some of those third party packages:
 
 ## Plugins
 
-## Starlette Bridge
-
-<a href="https://github.com/tarsil/starlette-bridge" target="_blank">GitHub</a> |
-<a href="https://starlette-bridge.tarsild.io/" target="_blank">Documentation</a>
-
-With the deprecation of `on_startup` and `on_shutdown`, Starlette Bridge makes sure you can still
-use the old ways of declaring events with a particularity that internally, in fact, creates the
-`lifespan` for you. This way backwards compatibility is assured for the existing packages out there
-while maintaining the integrity of the newly `lifespan` events of `Starlette`.
-
 ### Authlib
 
 <a href="https://github.com/lepture/Authlib" target="_blank">GitHub</a> |
@@ -156,6 +146,16 @@ Simple and extensible admin interface framework.
 Built with [Tabler](https://tabler.io/) and [Datatables](https://datatables.net/), it allows you 
 to quickly generate fully customizable admin interface for your models. You can export your data to many formats (*CSV*, *PDF*,
 *Excel*, etc), filter your data with complex query including `AND` and `OR` conditions,  upload files, ...
+
+## Starlette Bridge
+
+<a href="https://github.com/tarsil/starlette-bridge" target="_blank">GitHub</a> |
+<a href="https://starlette-bridge.tarsild.io/" target="_blank">Documentation</a>
+
+With the deprecation of `on_startup` and `on_shutdown`, Starlette Bridge makes sure you can still
+use the old ways of declaring events with a particularity that internally, in fact, creates the
+`lifespan` for you. This way backwards compatibility is assured for the existing packages out there
+while maintaining the integrity of the newly `lifespan` events of `Starlette`.
 
 ## Frameworks
 
