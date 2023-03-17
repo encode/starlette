@@ -82,8 +82,6 @@ class WebSocketReject(WebSocketDisconnect):
         self,
         status_code: int,
         body: bytes = b"",
-        code: int = 1000,
-        reason: typing.Optional[str] = None,
     ) -> None:
         super().__init__(code, reason)
         self.status_code = status_code
