@@ -78,14 +78,22 @@ class _Upgrade(Exception):
 
 
 class WebSocketReject(WebSocketDisconnect):
+    """
+    A special case of WebSocketDisconnect, raised in the TestClient if the
+    socket is closed before being accepted, either with a send_response()
+    or a websocket.close()
+    """
+
     def __init__(
         self,
-        status_code: int,
-        body: bytes = b"",
+        response_status: int,
+        response_body: bytes = b"",
+        close_code: int = 1000,
+        close_reason: typing.Optional[str] = None,
     ) -> None:
-        super().__init__(code, reason)
-        self.status_code = status_code
-        self.body = body
+        super().__init__(close_code, close_reason)
+        self.response_status = response_status
+        self.response_body = response_body
 
 
 class WebSocketTestSession:
@@ -175,7 +183,7 @@ class WebSocketTestSession:
             body.append(message["body"])
             if not message.get("more_body", False):
                 break
-        raise WebSocketReject(status_code=status_code, body=b"".join(body))
+        raise WebSocketReject(response_status=status_code, response_body=b"".join(body))
 
     def _raise_on_close(
         self, message: Message, reject: typing.Optional[bool] = None
@@ -186,10 +194,14 @@ class WebSocketTestSession:
                     message.get("code", 1000), message.get("reason", "")
                 )
             else:
+                # A webserver which gets a "close" before "accept"
+                # will return a 403 response.  It may or may not do anything
+                # with the close code and reason.  We store it in this exception
+                # for test introspection.
                 raise WebSocketReject(
-                    status_code=403,
-                    code=message.get("code", 1000),
-                    reason=message.get("reason", ""),
+                    response_status=403,
+                    close_code=message.get("code", 1000),
+                    close_reason=message.get("reason"),
                 )
 
     def send(self, message: Message) -> None:

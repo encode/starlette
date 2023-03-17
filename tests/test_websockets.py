@@ -301,7 +301,7 @@ def test_rejected_connection(test_client_factory: Callable[..., TestClient]):
         with client.websocket_connect("/"):
             pass  # pragma: no cover
     assert exc.value.code == status.WS_1001_GOING_AWAY
-    assert exc.value.status_code == 403
+    assert exc.value.response_status == 403
 
 
 def test_send_response(test_client_factory):
@@ -314,8 +314,8 @@ def test_send_response(test_client_factory):
     with pytest.raises(WebSocketReject) as exc:
         with client.websocket_connect("/"):
             pass  # pragma: nocover
-    assert exc.value.status_code == 404
-    assert exc.value.body == b"foo"
+    assert exc.value.response_status == 404
+    assert exc.value.response_body == b"foo"
 
 
 def test_send_response_unsupported(test_client_factory):
