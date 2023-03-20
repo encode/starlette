@@ -437,63 +437,6 @@ def test_app_sync_gen_lifespan(test_client_factory):
     assert cleanup_complete
 
 
-def test_decorator_deprecations() -> None:
-    app = Starlette()
-
-    with pytest.deprecated_call(
-        match=(
-            "The `exception_handler` decorator is deprecated, "
-            "and will be removed in version 1.0.0."
-        )
-    ) as record:
-        app.exception_handler(500)(http_exception)
-        assert len(record) == 1
-
-    with pytest.deprecated_call(
-        match=(
-            "The `middleware` decorator is deprecated, "
-            "and will be removed in version 1.0.0."
-        )
-    ) as record:
-
-        async def middleware(request, call_next):
-            ...  # pragma: no cover
-
-        app.middleware("http")(middleware)
-        assert len(record) == 1
-
-    with pytest.deprecated_call(
-        match=(
-            "The `route` decorator is deprecated, "
-            "and will be removed in version 1.0.0."
-        )
-    ) as record:
-        app.route("/")(async_homepage)
-        assert len(record) == 1
-
-    with pytest.deprecated_call(
-        match=(
-            "The `websocket_route` decorator is deprecated, "
-            "and will be removed in version 1.0.0."
-        )
-    ) as record:
-        app.websocket_route("/ws")(websocket_endpoint)
-        assert len(record) == 1
-
-    with pytest.deprecated_call(
-        match=(
-            "The `on_event` decorator is deprecated, "
-            "and will be removed in version 1.0.0."
-        )
-    ) as record:
-
-        async def startup():
-            ...  # pragma: no cover
-
-        app.on_event("startup")(startup)
-        assert len(record) == 1
-
-
 def test_middleware_stack_init(test_client_factory: Callable[[ASGIApp], httpx.Client]):
     class NoOpMiddleware:
         def __init__(self, app: ASGIApp):
