@@ -1,5 +1,4 @@
 import typing
-import warnings
 
 import anyio
 

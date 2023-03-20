@@ -1,5 +1,4 @@
 import typing
-import warnings
 
 from starlette.datastructures import State, URLPath
 from starlette.middleware import Middleware
