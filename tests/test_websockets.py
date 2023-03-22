@@ -279,24 +279,36 @@ async def test_client_disconnect_on_send():
 
 
 def test_application_close(test_client_factory: Callable[..., TestClient]):
+    close_msg: Message = {}
+
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
+        nonlocal close_msg
         websocket = WebSocket(scope, receive=receive, send=send)
         await websocket.accept()
         await websocket.close(status.WS_1001_GOING_AWAY)
+        close_msg = await websocket.receive()
 
     client = test_client_factory(app)
     with client.websocket_connect("/") as websocket:
         with pytest.raises(WebSocketDisconnect) as exc:
             websocket.receive_text()
-        assert exc.value.code == status.WS_1001_GOING_AWAY
+    assert exc.value.code == status.WS_1001_GOING_AWAY
+    assert close_msg == {
+        "type": "websocket.disconnect",
+        "code": status.WS_1001_GOING_AWAY,
+    }
 
 
 def test_rejected_connection(test_client_factory: Callable[..., TestClient]):
+    close_msg: Message = {}
+
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
+        nonlocal close_msg
         websocket = WebSocket(scope, receive=receive, send=send)
         msg = await websocket.receive()
         assert msg == {"type": "websocket.connect"}
         await websocket.close(status.WS_1001_GOING_AWAY)
+        close_msg = await websocket.receive()
 
     client = test_client_factory(app)
     with pytest.raises(WebSocketReject) as exc:
@@ -304,15 +316,23 @@ def test_rejected_connection(test_client_factory: Callable[..., TestClient]):
             pass  # pragma: no cover
     assert exc.value.code == status.WS_1001_GOING_AWAY
     assert exc.value.response_status == 403
+    assert close_msg == {
+        "type": "websocket.disconnect",
+        "code": status.WS_1006_ABNORMAL_CLOSURE,
+    }
 
 
 def test_send_response(test_client_factory):
+    close_msg: Message = {}
+
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
+        nonlocal close_msg
         websocket = WebSocket(scope, receive=receive, send=send)
         msg = await websocket.receive()
         assert msg == {"type": "websocket.connect"}
         response = Response(status_code=404, content="foo")
         await websocket.send_response(response)
+        close_msg = await websocket.receive()
 
     client = test_client_factory(app)
     with pytest.raises(WebSocketReject) as exc:
@@ -320,22 +340,34 @@ def test_send_response(test_client_factory):
             pass  # pragma: nocover
     assert exc.value.response_status == 404
     assert exc.value.response_body == b"foo"
+    assert close_msg == {
+        "type": "websocket.disconnect",
+        "code": status.WS_1006_ABNORMAL_CLOSURE,
+    }
 
 
 def test_send_response_unsupported(test_client_factory):
+    close_msg: Message = {}
+
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
+        nonlocal close_msg
         del scope["extensions"]["websocket.http.response"]
         websocket = WebSocket(scope, receive=receive, send=send)
         msg = await websocket.receive()
         assert msg == {"type": "websocket.connect"}
         response = Response(status_code=404, content="foo")
         await websocket.send_response(response)
+        close_msg = await websocket.receive()
 
     client = test_client_factory(app)
     with pytest.raises(WebSocketDisconnect) as exc:
         with client.websocket_connect("/"):
             pass  # pragma: nocover
     assert exc.value.code == status.WS_1008_POLICY_VIOLATION
+    assert close_msg == {
+        "type": "websocket.disconnect",
+        "code": status.WS_1006_ABNORMAL_CLOSURE,
+    }
 
 
 def test_send_response_invalid(test_client_factory):

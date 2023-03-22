@@ -30,6 +30,7 @@ class WebSocket(HTTPConnection):
         self._send = send
         self.client_state = WebSocketState.CONNECTING
         self.application_state = WebSocketState.CONNECTING
+        self.app_disconnect_msg: typing.Optional[Message] = None
 
     def _have_response_extension(self) -> bool:
         return "websocket.http.response" in self.scope.get("extensions", {})
@@ -38,6 +39,11 @@ class WebSocket(HTTPConnection):
         """
         Receive ASGI websocket messages, ensuring valid state transitions.
         """
+        if self.app_disconnect_msg is not None:
+            # return message which resulted from app disconnect
+            msg = self.app_disconnect_msg
+            self.app_disconnect_msg = None
+            return msg
         if self.client_state == WebSocketState.CONNECTING:
             message = await self._receive()
             message_type = message["type"]
@@ -58,6 +64,8 @@ class WebSocket(HTTPConnection):
                 )
             if message_type == "websocket.disconnect":
                 self.client_state = WebSocketState.DISCONNECTED
+                if "code" not in message:
+                    message["code"] = 1005  # websocket spec
             return message
         else:
             raise RuntimeError(
@@ -82,6 +90,8 @@ class WebSocket(HTTPConnection):
                     )
             if message_type == "websocket.close":
                 self.application_state = WebSocketState.DISCONNECTED
+                # no close frame is sent, then the default is 1006
+                self.app_disconnect_msg = {"type": "websocket.disconnect", "code": 1006}
             elif message_type == "websocket.http.response.start":
                 self.application_state = WebSocketState.RESPONSE
             else:
@@ -96,6 +106,10 @@ class WebSocket(HTTPConnection):
                 )
             if message_type == "websocket.close":
                 self.application_state = WebSocketState.DISCONNECTED
+                self.app_disconnect_msg = {
+                    "type": "websocket.disconnect",
+                    "code": message.get("code", 1000),
+                }
             try:
                 await self._send(message)
             except IOError:
@@ -110,6 +124,7 @@ class WebSocket(HTTPConnection):
                 )
             if not message.get("more_body", False):
                 self.application_state = WebSocketState.DISCONNECTED
+                self.app_disconnect_msg = {"type": "websocket.disconnect", "code": 1006}
             await self._send(message)
         else:
             raise RuntimeError('Cannot call "send" once a close message has been sent.')
