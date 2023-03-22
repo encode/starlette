@@ -294,6 +294,8 @@ def test_application_close(test_client_factory: Callable[..., TestClient]):
 def test_rejected_connection(test_client_factory: Callable[..., TestClient]):
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
+        msg = await websocket.receive()
+        assert msg == {"type": "websocket.connect"}
         await websocket.close(status.WS_1001_GOING_AWAY)
 
     client = test_client_factory(app)
@@ -307,6 +309,8 @@ def test_rejected_connection(test_client_factory: Callable[..., TestClient]):
 def test_send_response(test_client_factory):
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
+        msg = await websocket.receive()
+        assert msg == {"type": "websocket.connect"}
         response = Response(status_code=404, content="foo")
         await websocket.send_response(response)
 
@@ -322,6 +326,8 @@ def test_send_response_unsupported(test_client_factory):
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         del scope["extensions"]["websocket.http.response"]
         websocket = WebSocket(scope, receive=receive, send=send)
+        msg = await websocket.receive()
+        assert msg == {"type": "websocket.connect"}
         response = Response(status_code=404, content="foo")
         await websocket.send_response(response)
 
@@ -335,6 +341,8 @@ def test_send_response_unsupported(test_client_factory):
 def test_send_response_invalid(test_client_factory):
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
+        msg = await websocket.receive()
+        assert msg == {"type": "websocket.connect"}
         response = Response(status_code=404, content="foo")
         await websocket.send(
             {
