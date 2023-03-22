@@ -7,8 +7,7 @@ that is not committed to source control.
 **app.py**:
 
 ```python
-import databases
-
+from sqlalchemy import create_engine
 from starlette.applications import Starlette
 from starlette.config import Config
 from starlette.datastructures import CommaSeparatedStrings, Secret
@@ -17,11 +16,12 @@ from starlette.datastructures import CommaSeparatedStrings, Secret
 config = Config(".env")
 
 DEBUG = config('DEBUG', cast=bool, default=False)
-DATABASE_URL = config('DATABASE_URL', cast=databases.DatabaseURL)
+DATABASE_URL = config('DATABASE_URL')
 SECRET_KEY = config('SECRET_KEY', cast=Secret)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=CommaSeparatedStrings)
 
 app = Starlette(debug=DEBUG)
+engine = create_engine(DATABASE_URL)
 ...
 ```
 
@@ -145,7 +145,6 @@ application logic separated:
 **myproject/settings.py**:
 
 ```python
-import databases
 from starlette.config import Config
 from starlette.datastructures import Secret
 
@@ -155,9 +154,9 @@ DEBUG = config('DEBUG', cast=bool, default=False)
 TESTING = config('TESTING', cast=bool, default=False)
 SECRET_KEY = config('SECRET_KEY', cast=Secret)
 
-DATABASE_URL = config('DATABASE_URL', cast=databases.DatabaseURL)
+DATABASE_URL = config('DATABASE_URL')
 if TESTING:
-    DATABASE_URL = DATABASE_URL.replace(database='test_' + DATABASE_URL.database)
+    DATABASE_URL = 'test_' + DATABASE_URL
 ```
 
 **myproject/tables.py**:
@@ -225,13 +224,12 @@ def setup_test_database():
     """
     Create a clean test database every time the tests are run.
     """
-    url = str(settings.DATABASE_URL)
-    engine = create_engine(url)
-    assert not database_exists(url), 'Test database already exists. Aborting tests.'
-    create_database(url)             # Create the test database.
+    engine = create_engine(settings.DATABASE_URL)
+    assert not database_exists(settings.DATABASE_URL), 'Test database already exists. Aborting tests.'
+    create_database(settings.DATABASE_URL)             # Create the test database.
     metadata.create_all(engine)      # Create the tables.
     yield                            # Run the tests.
-    drop_database(url)               # Drop the test database.
+    drop_database(settings.DATABASE_URL)               # Drop the test database.
 
 
 @pytest.fixture()
