@@ -31,7 +31,7 @@ engine = create_engine(DATABASE_URL)
 # Don't commit this to source control.
 # Eg. Include ".env" in your `.gitignore` file.
 DEBUG=True
-DATABASE_URL=postgresql://localhost/myproject
+DATABASE_URL=postgresql://user:password@localhost:5432/database
 SECRET_KEY=43n080musdfjt54t-09sdgr
 ALLOWED_HOSTS=127.0.0.1, localhost
 ```
@@ -69,9 +69,7 @@ in their representations.
 ```python
 >>> from myproject import settings
 >>> settings.DATABASE_URL
-DatabaseURL('postgresql://admin:**********@192.168.0.8/my-application')
->>> str(settings.DATABASE_URL)
-'postgresql://admin:Fkjh348htGee4t3@192.168.0.8/my-application'
+'postgresql://user:password@localhost:5432/database'
 ```
 
 ## CommaSeparatedStrings
@@ -119,6 +117,7 @@ You can namespace the environment variables by setting `env_prefix` argument.
 
 ```python title="myproject/settings.py"
 import os
+
 from starlette.config import Config
 
 os.environ['APP_DEBUG'] = 'yes'
@@ -155,8 +154,6 @@ TESTING = config('TESTING', cast=bool, default=False)
 SECRET_KEY = config('SECRET_KEY', cast=Secret)
 
 DATABASE_URL = config('DATABASE_URL')
-if TESTING:
-    DATABASE_URL = 'test_' + DATABASE_URL
 ```
 
 **myproject/tables.py**:
@@ -179,6 +176,7 @@ from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.routing import Route
+
 from myproject import settings
 
 
@@ -226,10 +224,12 @@ def setup_test_database():
     """
     engine = create_engine(settings.DATABASE_URL)
     assert not database_exists(settings.DATABASE_URL), 'Test database already exists. Aborting tests.'
-    create_database(settings.DATABASE_URL)             # Create the test database.
-    metadata.create_all(engine)      # Create the tables.
-    yield                            # Run the tests.
-    drop_database(settings.DATABASE_URL)               # Drop the test database.
+    create_database(settings.DATABASE_URL)  # Create the test database.
+    metadata.create_all(engine)  # Create the tables.
+
+    yield  # Run the tests.
+
+    drop_database(settings.DATABASE_URL)  # Drop the test database.
 
 
 @pytest.fixture()
