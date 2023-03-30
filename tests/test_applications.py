@@ -1,6 +1,6 @@
 import os
 from contextlib import asynccontextmanager
-from typing import Any, AsyncIterator, Callable, Set
+from typing import Any, AsyncIterator, Callable, List, Set
 
 import anyio
 import httpx
@@ -553,22 +553,27 @@ def test_lifespan_app_subclass():
 def test_lifespan_modifies_exc_handlers(
     test_client_factory: Callable[[ASGIApp], httpx.Client]
 ):
+    calls: List[str] = []
+
     class NoOpMiddleware:
         def __init__(self, app: ASGIApp):
             self.app = app
 
         async def __call__(self, *args: Any):
+            calls.append("NoOpMiddleware")
             await self.app(*args)
 
     class SimpleInitializableMiddleware:
         counter = 0
 
-        def __init__(self, app: ASGIApp):
+        def __init__(self, app: ASGIApp, value: int):
             self.app = app
+            self.value = value
             instances.add(self)
             SimpleInitializableMiddleware.counter += 1
 
         async def __call__(self, *args: Any):
+            calls.append(f"SimpleInitializableMiddleware({self.value})")
             await self.app(*args)
 
     instances: Set[SimpleInitializableMiddleware] = set()
@@ -576,13 +581,14 @@ def test_lifespan_modifies_exc_handlers(
     @asynccontextmanager
     async def lifespan(app: Starlette) -> AsyncIterator[None]:
         app.add_middleware(
-            SimpleInitializableMiddleware
+            SimpleInitializableMiddleware,
+            value=2
         )  # should cause the stack to be re-built
         yield
 
     def get_app() -> ASGIApp:
         app = Starlette(lifespan=lifespan)
-        app.add_middleware(SimpleInitializableMiddleware)
+        app.add_middleware(SimpleInitializableMiddleware, value=1)
         app.add_middleware(NoOpMiddleware)
         return app
 
@@ -595,3 +601,4 @@ def test_lifespan_modifies_exc_handlers(
         client.get("/does-not-matter")
         assert len(instances) == 2
         assert SimpleInitializableMiddleware.counter == 2
+        assert calls == ["SimpleInitializableMiddleware(1)", "NoOpMiddleware", "SimpleInitializableMiddleware(2)"]
