@@ -137,7 +137,7 @@ class ServerErrorMiddleware:
     def __init__(
         self,
         app: ASGIApp,
-        handler: typing.Optional[typing.Callable[..., typing.Any]] = None,
+        handler: typing.Optional[typing.Callable] = None,
         debug: bool = False,
     ) -> None:
         self.app = app
