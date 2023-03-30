@@ -88,8 +88,9 @@ class Starlette:
         self.exception_handlers = (
             {} if exception_handlers is None else dict(exception_handlers)
         )
-        self._pending_exception_handlers = False
         self.user_middleware = [] if middleware is None else list(middleware)
+        self.middleware_stack: typing.Optional[ASGIApp] = None
+        self._pending_exception_handlers = False
         self._pending_user_middlewares = self.user_middleware.copy()
         # wrap ExceptionMiddleware in a proxy so that
         # we can re-build it when exception handlers get added
@@ -99,7 +100,6 @@ class Starlette:
 
         self._user_middleware_outer: _ASGIAppProxy | None = None
         self._user_middleware_inner = _ASGIAppProxy(self._exception_middleware.app)
-        self.middleware_stack: ASGIApp | None = None
 
     def build_middleware_stack(self) -> ASGIApp:
         debug = self.debug
