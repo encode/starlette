@@ -581,8 +581,7 @@ def test_lifespan_modifies_exc_handlers(
     @asynccontextmanager
     async def lifespan(app: Starlette) -> AsyncIterator[None]:
         app.add_middleware(
-            SimpleInitializableMiddleware,
-            value=2
+            SimpleInitializableMiddleware, value=2
         )  # should cause the stack to be re-built
         yield
 
@@ -601,4 +600,8 @@ def test_lifespan_modifies_exc_handlers(
         client.get("/does-not-matter")
         assert len(instances) == 2
         assert SimpleInitializableMiddleware.counter == 2
-        assert calls == ["SimpleInitializableMiddleware(1)", "NoOpMiddleware", "SimpleInitializableMiddleware(2)"]
+        assert calls == [
+            "SimpleInitializableMiddleware(1)",
+            "NoOpMiddleware",
+            "SimpleInitializableMiddleware(2)",
+        ]
