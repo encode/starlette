@@ -14,6 +14,18 @@ from starlette.types import ASGIApp, Lifespan, Receive, Scope, Send
 AppType = typing.TypeVar("AppType", bound="Starlette")
 
 
+class _ASGIAppProxy:
+    """A proxy into an ASGI app that we can re-assign to point to a new
+    app without modifying any references to the _ASGIAppProxy itself.
+    """
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        await self.app(scope, receive, send)
+
+
 class Starlette:
     """
     Creates an application instance.
@@ -76,8 +88,18 @@ class Starlette:
         self.exception_handlers = (
             {} if exception_handlers is None else dict(exception_handlers)
         )
+        self._pending_exception_handlers = False
         self.user_middleware = [] if middleware is None else list(middleware)
-        self.middleware_stack: typing.Optional[ASGIApp] = None
+        self._pending_user_middlewares = self.user_middleware.copy()
+        # wrap ExceptionMiddleware in a proxy so that
+        # we can re-build it when exception handlers get added
+        self._exception_middleware = _ASGIAppProxy(
+            ExceptionMiddleware(self.router, debug=self.debug)
+        )
+
+        self._user_middleware_outer: _ASGIAppProxy | None = None
+        self._user_middleware_inner = _ASGIAppProxy(self._exception_middleware.app)
+        self.middleware_stack: ASGIApp | None = None
 
     def build_middleware_stack(self) -> ASGIApp:
         debug = self.debug
@@ -92,20 +114,34 @@ class Starlette:
             else:
                 exception_handlers[key] = value
 
-        middleware = (
-            [Middleware(ServerErrorMiddleware, handler=error_handler, debug=debug)]
-            + self.user_middleware
-            + [
-                Middleware(
-                    ExceptionMiddleware, handlers=exception_handlers, debug=debug
-                )
-            ]
+        self._exception_middleware.app = ExceptionMiddleware(
+            self.router, handlers=exception_handlers, debug=debug
         )
+        self._pending_exception_handlers = False
 
-        app = self.router
-        for cls, options in reversed(middleware):
-            app = cls(app=app, **options)
-        return app
+        user_middleware = self._pending_user_middlewares.copy()
+        self._pending_user_middlewares.clear()
+
+        user_middleware_outer: ASGIApp
+        if user_middleware:
+            # build a new middleware chain that wraps self._exception_middleware
+            app: ASGIApp
+            app = new_user_middleware_inner = _ASGIAppProxy(self._exception_middleware)
+            for cls, options in reversed(user_middleware):
+                app = cls(app=app, **options)
+            # and set the .app for the previous innermost user middleware to point
+            # to this new chain
+            self._user_middleware_inner.app = app
+            # then replace our innermost user middleware
+            self._user_middleware_inner = new_user_middleware_inner
+
+            user_middleware_outer = self._user_middleware_outer or app
+        else:
+            user_middleware_outer = self._exception_middleware
+
+        return ServerErrorMiddleware(
+            app=user_middleware_outer, handler=error_handler, debug=debug
+        )
 
     @property
     def routes(self) -> typing.List[BaseRoute]:
@@ -117,8 +153,13 @@ class Starlette:
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         scope["app"] = self
-        if self.middleware_stack is None:
+        if (
+            self.middleware_stack is None
+            or self._pending_exception_handlers
+            or self._pending_user_middlewares
+        ):
             self.middleware_stack = self.build_middleware_stack()
+        assert self.middleware_stack is not None
         await self.middleware_stack(scope, receive, send)
 
     def on_event(self, event_type: str) -> typing.Callable:  # pragma: nocover
@@ -135,8 +176,7 @@ class Starlette:
         self.router.host(host, app=app, name=name)
 
     def add_middleware(self, middleware_class: type, **options: typing.Any) -> None:
-        if self.middleware_stack is not None:  # pragma: no cover
-            raise RuntimeError("Cannot add middleware after an application has started")
+        self._pending_user_middlewares.append(Middleware(middleware_class, **options))
         self.user_middleware.insert(0, Middleware(middleware_class, **options))
 
     def add_exception_handler(
@@ -144,6 +184,7 @@ class Starlette:
         exc_class_or_status_code: typing.Union[int, typing.Type[Exception]],
         handler: typing.Callable,
     ) -> None:  # pragma: no cover
+        self._pending_exception_handlers = True
         self.exception_handlers[exc_class_or_status_code] = handler
 
     def add_event_handler(

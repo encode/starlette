@@ -1,6 +1,6 @@
 import os
 from contextlib import asynccontextmanager
-from typing import Any, AsyncIterator, Callable
+from typing import Any, AsyncIterator, Callable, Set
 
 import anyio
 import httpx
@@ -548,3 +548,50 @@ def test_lifespan_app_subclass():
         yield
 
     App(lifespan=lifespan)
+
+
+def test_lifespan_modifies_exc_handlers(
+    test_client_factory: Callable[[ASGIApp], httpx.Client]
+):
+    class NoOpMiddleware:
+        def __init__(self, app: ASGIApp):
+            self.app = app
+
+        async def __call__(self, *args: Any):
+            await self.app(*args)
+
+    class SimpleInitializableMiddleware:
+        counter = 0
+
+        def __init__(self, app: ASGIApp):
+            self.app = app
+            instances.add(self)
+            SimpleInitializableMiddleware.counter += 1
+
+        async def __call__(self, *args: Any):
+            await self.app(*args)
+
+    instances: Set[SimpleInitializableMiddleware] = set()
+
+    @asynccontextmanager
+    async def lifespan(app: Starlette) -> AsyncIterator[None]:
+        app.add_middleware(
+            SimpleInitializableMiddleware
+        )  # should cause the stack to be re-built
+        yield
+
+    def get_app() -> ASGIApp:
+        app = Starlette(lifespan=lifespan)
+        app.add_middleware(SimpleInitializableMiddleware)
+        app.add_middleware(NoOpMiddleware)
+        return app
+
+    app = get_app()
+
+    with test_client_factory(app) as client:
+        assert len(instances) == 1
+        assert SimpleInitializableMiddleware.counter == 1
+        # next request rebuilds
+        client.get("/does-not-matter")
+        assert len(instances) == 2
+        assert SimpleInitializableMiddleware.counter == 2
