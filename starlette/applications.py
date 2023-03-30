@@ -159,7 +159,6 @@ class Starlette:
             or self._pending_user_middlewares
         ):
             self.middleware_stack = self.build_middleware_stack()
-        assert self.middleware_stack is not None
         await self.middleware_stack(scope, receive, send)
 
     def on_event(self, event_type: str) -> typing.Callable:  # pragma: nocover
