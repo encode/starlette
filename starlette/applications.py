@@ -98,7 +98,7 @@ class Starlette:
             ExceptionMiddleware(self.router, debug=self.debug)
         )
 
-        self._user_middleware_outer: _ASGIAppProxy | None = None
+        self._user_middleware_outer: typing.Optional[_ASGIAppProxy] = None
         self._user_middleware_inner = _ASGIAppProxy(self._exception_middleware.app)
 
     def build_middleware_stack(self) -> ASGIApp:
