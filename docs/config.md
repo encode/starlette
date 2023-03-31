@@ -63,15 +63,6 @@ Secret('**********')
 '98n349$%8b8-7yjn0n8y93T$23r'
 ```
 
-Similarly, the `URL` class will hide any password component
-in their representations.
-
-```python
->>> from myproject import settings
->>> settings.DATABASE_URL
-'postgresql://user:password@localhost:5432/database'
-```
-
 ## CommaSeparatedStrings
 
 For holding multiple inside a single config key, the `CommaSeparatedStrings`
