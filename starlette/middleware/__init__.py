@@ -1,10 +1,10 @@
 import typing
 
-from starlette.types import ASGIApp
+from starlette.types import MiddlewareType
 
 
 class Middleware:
-    def __init__(self, cls: typing.Type[ASGIApp], **options: typing.Any) -> None:
+    def __init__(self, cls: MiddlewareType, **options: typing.Any) -> None:
         self.cls = cls
         self.options = options
 

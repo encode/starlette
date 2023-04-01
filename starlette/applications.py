@@ -9,7 +9,7 @@ from starlette.middleware.exceptions import ExceptionMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import BaseRoute, Router
-from starlette.types import ASGIApp, Lifespan, Receive, Scope, Send
+from starlette.types import ASGIApp, Lifespan, MiddlewareType, Receive, Scope, Send
 
 AppType = typing.TypeVar("AppType", bound="Starlette")
 
@@ -135,7 +135,7 @@ class Starlette:
         self.router.host(host, app=app, name=name)
 
     def add_middleware(
-        self, middleware_class: typing.Type[ASGIApp], **options: typing.Any
+        self, middleware_class: MiddlewareType, **options: typing.Any
     ) -> None:  # pragma: no cover
         self.user_middleware.insert(0, Middleware(middleware_class, **options))
 

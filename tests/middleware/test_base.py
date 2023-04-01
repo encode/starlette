@@ -1,5 +1,4 @@
 import contextvars
-import typing
 from contextlib import AsyncExitStack
 
 import anyio
@@ -11,7 +10,7 @@ from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import PlainTextResponse, StreamingResponse
 from starlette.routing import Route, WebSocketRoute
-from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.types import ASGIApp, MiddlewareType, Receive, Scope, Send
 
 
 class CustomMiddleware(BaseHTTPMiddleware):
@@ -194,7 +193,7 @@ class CustomMiddlewareUsingBaseHTTPMiddleware(BaseHTTPMiddleware):
         ),
     ],
 )
-def test_contextvars(test_client_factory, middleware_cls: typing.Type[ASGIApp]):
+def test_contextvars(test_client_factory, middleware_cls: MiddlewareType):
     # this has to be an async endpoint because Starlette calls run_in_threadpool
     # on sync endpoints which has it's own set of peculiarities w.r.t propagating
     # contextvars (it propagates them forwards but not backwards)
