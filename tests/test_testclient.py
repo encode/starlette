@@ -226,6 +226,51 @@ def test_testclient_asgi3(test_client_factory):
     assert response.text == "Hello, world!"
 
 
+def test_testclient_duplicate_start(test_client_factory):
+    async def app(scope, receive, send):
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 200,
+                "headers": [[b"content-type", b"text/plain"]],
+            }
+        )
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 200,
+                "headers": [[b"content-type", b"text/plain"]],
+            }
+        )
+
+    client = test_client_factory(app)
+    with pytest.raises(AssertionError) as exc_info:
+        client.get("/")
+    assert 'multiple "http.response.start"' in str(exc_info.value)
+
+
+def test_testclient_duplicate_start_500(test_client_factory):
+    async def app(scope, receive, send):
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 200,
+                "headers": [[b"content-type", b"text/plain"]],
+            }
+        )
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 200,
+                "headers": [[b"content-type", b"text/plain"]],
+            }
+        )
+
+    client = test_client_factory(app, raise_server_exceptions=False)
+    response = client.get("/")
+    assert response.status_code == 500
+
+
 def test_websocket_blocking_receive(test_client_factory):
     def app(scope):
         async def respond(websocket):

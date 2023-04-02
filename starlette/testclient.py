@@ -268,6 +268,7 @@ class _TestClientTransport(httpx.BaseTransport):
         }
 
         request_complete = False
+        response_starting = False
         response_started = False
         response_complete: anyio.Event
         raw_kwargs: typing.Dict[str, typing.Any] = {"stream": io.BytesIO()}
@@ -303,25 +304,30 @@ class _TestClientTransport(httpx.BaseTransport):
             return {"type": "http.request", "body": body_bytes}
 
         async def send(message: Message) -> None:
-            nonlocal raw_kwargs, response_started, template, context
+            nonlocal raw_kwargs, response_starting, response_started, template, context
 
             if message["type"] == "http.response.start":
-                assert (
-                    not response_started
+                assert not (
+                    response_starting or response_started
                 ), 'Received multiple "http.response.start" messages.'
                 raw_kwargs["status_code"] = message["status"]
                 raw_kwargs["headers"] = [
                     (key.decode(), value.decode())
                     for key, value in message.get("headers", [])
                 ]
-                response_started = True
+                response_starting = True
             elif message["type"] == "http.response.body":
                 assert (
-                    response_started
+                    response_starting or response_started
                 ), 'Received "http.response.body" without "http.response.start".'
                 assert (
                     not response_complete.is_set()
                 ), 'Received "http.response.body" after response completed.'
+                # response is only considered started once we've received the first body
+                # chunk. This corresponds to ASGI requirement that the response may
+                # not be started until the first body chunk is received.
+                response_starting = False
+                response_started = True
                 body = message.get("body", b"")
                 more_body = message.get("more_body", False)
                 if request.method != "HEAD":
@@ -342,7 +348,9 @@ class _TestClientTransport(httpx.BaseTransport):
                 raise exc
 
         if self.raise_server_exceptions:
-            assert response_started, "TestClient did not receive any response."
+            assert (
+                response_starting or response_started
+            ), "TestClient did not receive any response."
         elif not response_started:
             raw_kwargs = {
                 "status_code": 500,
