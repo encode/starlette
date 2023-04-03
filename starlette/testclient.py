@@ -87,12 +87,14 @@ class WebSocketReject(WebSocketDisconnect):
     def __init__(
         self,
         response_status: int,
+        response_headers: typing.List[typing.Tuple[str, str]] = [],
         response_body: bytes = b"",
         close_code: int = 1000,
         close_reason: typing.Optional[str] = None,
     ) -> None:
         super().__init__(close_code, close_reason)
         self.response_status = response_status
+        self.response_headers = response_headers
         self.response_body = response_body
 
 
@@ -127,6 +129,7 @@ class WebSocketTestSession:
         except Exception:
             self.exit_stack.close()
             raise
+        assert message["type"] == "websocket.accept"
         self.accepted_subprotocol = message.get("subprotocol", None)
         self.extra_headers = message.get("headers", None)
         return self
@@ -176,6 +179,7 @@ class WebSocketTestSession:
 
     def _handle_response(self, message: Message) -> None:
         status_code: int = message["status"]
+        headers: typing.List[typing.Tuple[str, str]] = message["headers"]
         body = []
         while True:
             message = self.receive()
@@ -183,7 +187,11 @@ class WebSocketTestSession:
             body.append(message["body"])
             if not message.get("more_body", False):
                 break
-        raise WebSocketReject(response_status=status_code, response_body=b"".join(body))
+        raise WebSocketReject(
+            response_status=status_code,
+            response_headers=headers,
+            response_body=b"".join(body),
+        )
 
     def _raise_on_close(
         self, message: Message, reject: typing.Optional[bool] = None

@@ -346,6 +346,49 @@ def test_send_response(test_client_factory):
     }
 
 
+def test_send_response_multi(test_client_factory):
+    close_msg: Message = {}
+
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
+        nonlocal close_msg
+        websocket = WebSocket(scope, receive=receive, send=send)
+        msg = await websocket.receive()
+        assert msg == {"type": "websocket.connect"}
+        await websocket.send(
+            {
+                "type": "websocket.http.response.start",
+                "status": 404,
+                "headers": [(b"content-type", b"text/plain"), (b"foo", b"bar")],
+            }
+        )
+        await websocket.send(
+            {
+                "type": "websocket.http.response.body",
+                "body": b"hard",
+                "more_body": True,
+            }
+        )
+        await websocket.send(
+            {
+                "type": "websocket.http.response.body",
+                "body": b"body",
+            }
+        )
+        close_msg = await websocket.receive()
+
+    client = test_client_factory(app)
+    with pytest.raises(WebSocketReject) as exc:
+        with client.websocket_connect("/"):
+            pass  # pragma: nocover
+    assert exc.value.response_status == 404
+    assert exc.value.response_body == b"hardbody"
+    assert dict(exc.value.response_headers)[b"foo"] == b"bar"
+    assert close_msg == {
+        "type": "websocket.disconnect",
+        "code": status.WS_1006_ABNORMAL_CLOSURE,
+    }
+
+
 def test_send_response_unsupported(test_client_factory):
     close_msg: Message = {}
 
@@ -370,7 +413,7 @@ def test_send_response_unsupported(test_client_factory):
     }
 
 
-def test_send_response_invalid(test_client_factory):
+def test_send_response_duplicate_start(test_client_factory):
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         msg = await websocket.receive()
@@ -383,7 +426,13 @@ def test_send_response_invalid(test_client_factory):
                 "headers": response.raw_headers,
             }
         )
-        await websocket.close()
+        await websocket.send(
+            {
+                "type": "websocket.http.response.start",
+                "status": response.status_code,
+                "headers": response.raw_headers,
+            }
+        )
 
     client = test_client_factory(app)
     with pytest.raises(RuntimeError) as exc:
