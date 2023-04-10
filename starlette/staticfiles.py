@@ -146,17 +146,18 @@ class StaticFiles:
                 return self.file_response(full_path, stat_result, scope)
 
         if self.html:
-            # Check for '404.html' if we're in HTML mode.
-            full_path, stat_result = await anyio.to_thread.run_sync(
-                self.lookup_path, "404.html"
-            )
-            if stat_result and stat.S_ISREG(stat_result.st_mode):
-                return FileResponse(
-                    full_path,
-                    stat_result=stat_result,
-                    method=scope["method"],
-                    status_code=404,
+            # Check for '200.html' and '404.html' if we're in HTML mode.
+            for status in [200, 404]:
+                full_path, stat_result = await anyio.to_thread.run_sync(
+                    self.lookup_path, f"{status}.html"
                 )
+                if stat_result and stat.S_ISREG(stat_result.st_mode):
+                    return FileResponse(
+                        full_path,
+                        stat_result=stat_result,
+                        method=scope["method"],
+                        status_code=status,
+                    )
         raise HTTPException(status_code=404)
 
     def lookup_path(
