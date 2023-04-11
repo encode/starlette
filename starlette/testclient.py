@@ -87,7 +87,7 @@ class WebSocketReject(WebSocketDisconnect):
     def __init__(
         self,
         response_status: int,
-        response_headers: typing.List[typing.Tuple[str, str]] = [],
+        response_headers: typing.List[typing.Tuple[bytes, bytes]] = [],
         response_body: bytes = b"",
         close_code: int = 1000,
         close_reason: typing.Optional[str] = None,
@@ -179,7 +179,7 @@ class WebSocketTestSession:
 
     def _handle_response(self, message: Message) -> None:
         status_code: int = message["status"]
-        headers: typing.List[typing.Tuple[str, str]] = message["headers"]
+        headers: typing.List[typing.Tuple[bytes, bytes]] = message["headers"]
         body = []
         while True:
             message = self.receive()
