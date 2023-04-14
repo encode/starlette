@@ -32,6 +32,11 @@ Static files will respond with "404 Not found" or "405 Method not allowed"
 responses for requests which do not match. In HTML mode if `404.html` file
 exists it will be shown as 404 response.
 
+A `200.html` file may be used instead of the `404.html` file and will work the
+same, but returns a status code of "200 OK" instead of "404 Not found". Useful for
+single page apps and client-side routing deployed by frameworks such as Angular,
+React and Svelte.
+
 The `packages` option can be used to include "static" directories contained within
 a python package. The Python "bootstrap4" package is an example of this.
 
