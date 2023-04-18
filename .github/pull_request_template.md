@@ -1,5 +1,5 @@
 <!-- Thanks for contributing to Starlette! 💚
-Given this is a project maintained by volunteers, please read this template to not waste your time, or ours! 😚 -->
+Given this is a project maintained by volunteers, please read this template to not waste your time, or ours! 😁 -->
 
 # Summary
 
