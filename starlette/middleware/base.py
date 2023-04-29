@@ -3,7 +3,7 @@ import typing
 import anyio
 
 from starlette.background import BackgroundTask
-from starlette.requests import Request
+from starlette.requests import ClientDisconnect, Request
 from starlette.responses import ContentStream, Response, StreamingResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
@@ -12,6 +12,68 @@ DispatchFunction = typing.Callable[
     [Request, RequestResponseEndpoint], typing.Awaitable[Response]
 ]
 T = typing.TypeVar("T")
+
+
+class _CachedRequest(Request):
+    """
+    If the user calls Request.body() from their dispatch function
+    we cache the entire request body in memory and pass that to downstream middlewares,
+    but if they call Request.stream() then all we do is send an
+    empty body so that downstream things don't hang forever.
+    """
+
+    def __init__(self, *args: typing.Any, **kwargs: typing.Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._wrapped_rcv_disconnected = False
+        self._wrapped_rcv_consumed = False
+
+    async def wrapped_receive(self) -> Message:
+        wrapped_rcv_connected = not (
+            self._wrapped_rcv_disconnected or self._wrapped_rcv_consumed
+        )
+        if wrapped_rcv_connected:
+            if getattr(self, "_body", None) is not None:
+                # body() was called, we return it even if the client disconnected
+                self._wrapped_rcv_consumed = True
+                return {
+                    "type": "http.request",
+                    "body": self._body,
+                    "more_body": False,
+                }
+            elif self._stream_consumed:
+                # stream() was called to completion or client disconnected
+                self._wrapped_rcv_consumed = True
+                return {
+                    "type": "http.request",
+                    "body": b"",
+                    "more_body": False,
+                }
+            else:
+                # body() was never called and stream() wasn't consumed
+                stream = self.stream()
+                try:
+                    chunk = await stream.__anext__()
+                    self._wrapped_rcv_consumed = self._stream_consumed
+                    return {
+                        "type": "http.request",
+                        "body": chunk,
+                        "more_body": self._stream_consumed,
+                    }
+                except ClientDisconnect:
+                    self._wrapped_rcv_disconnected = True
+                    return {"type": "http.disconnect"}
+        # wrapped_rcv is either disconnected or consumed
+        if self._is_disconnected:
+            self._wrapped_rcv_disconnected = True
+            return {"type": "http.disconnect"}
+        # if we haven't received a disconnect yet we wait for it
+        msg = await self.receive()
+        if msg["type"] != "http.disconnect":  # pragma: no cover
+            raise RuntimeError(f"Unexpected message received: {msg['type']}")
+        # mark ourselves and upstream as disconnected
+        self._is_disconnected = True
+        self._wrapped_rcv_disconnected = True
+        return msg
 
 
 class BaseHTTPMiddleware:
@@ -26,6 +88,8 @@ class BaseHTTPMiddleware:
             await self.app(scope, receive, send)
             return
 
+        request = _CachedRequest(scope, receive)
+        wrapped_receive = request.wrapped_receive
         response_sent = anyio.Event()
 
         async def call_next(request: Request) -> Response:
@@ -44,7 +108,7 @@ class BaseHTTPMiddleware:
                         return result
 
                     task_group.start_soon(wrap, response_sent.wait)
-                    message = await wrap(request.receive)
+                    message = await wrap(wrapped_receive)
 
                 if response_sent.is_set():
                     return {"type": "http.disconnect"}
@@ -104,9 +168,8 @@ class BaseHTTPMiddleware:
             return response
 
         async with anyio.create_task_group() as task_group:
-            request = Request(scope, receive=receive)
             response = await self.dispatch_func(request, call_next)
-            await response(scope, receive, send)
+            await response(scope, wrapped_receive, send)
             response_sent.set()
 
     async def dispatch(

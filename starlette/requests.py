@@ -223,7 +223,7 @@ class Request(HTTPConnection):
                 body = message.get("body", b"")
                 if body:
                     yield body
-                if not message.get("more_body", False):
+                if self._stream_consumed:
                     break
             elif message["type"] == "http.disconnect":
                 self._is_disconnected = True
