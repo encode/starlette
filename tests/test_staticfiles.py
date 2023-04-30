@@ -338,20 +338,20 @@ def test_staticfiles_html_only_files(tmpdir, test_client_factory):
     assert response.text == "<h1>Hello</h1>"
 
 
-def test_staticfiles_html_200_html(tmpdir, test_client_factory):
-    path = os.path.join(tmpdir, "200.html")
-    with open(path, "w") as file:
-        file.write("<h1>Not found page without error</h1>")
-    path = os.path.join(tmpdir, "404.html")
-    with open(path, "w") as file:
-        file.write("<h1>Custom not found page</h1>")
-    path = os.path.join(tmpdir, "dir")
-    os.mkdir(path)
-    path = os.path.join(path, "index.html")
-    with open(path, "w") as file:
-        file.write("<h1>Hello</h1>")
+def test_staticfiles_html_200_html(tmp_path: pathlib.Path, test_client_factory):
+    path = tmp_path / "200.html"
+    path.write_text("<h1>Not found page without error</h1>")
 
-    app = StaticFiles(directory=tmpdir, html=True)
+    path = tmp_path / "404.html"
+    path.write_text("<h1>Custom not found page</h1>")
+
+    dir = tmp_path / "dir"
+    dir.mkdir()
+
+    path = dir / "index.html"
+    path.write_text("<h1>Hello</h1>")
+
+    app = StaticFiles(directory=tmp_path, html=True)
     client = test_client_factory(app)
 
     response = client.get("/dir/")
