@@ -1,6 +1,6 @@
 import contextvars
 from contextlib import AsyncExitStack
-from typing import AsyncGenerator, Callable
+from typing import AsyncGenerator, Callable, List
 
 import anyio
 import pytest
@@ -569,6 +569,59 @@ def test_read_request_stream_in_dispatch_after_app_calls_body(
     client: TestClient = test_client_factory(app)
     response = client.post("/", content=b"a")
     assert response.status_code == 200
+
+
+@pytest.mark.anyio
+async def test_read_request_stream_in_dispatch_wrapping_app_calls_body() -> None:
+    async def endpoint(scope: Scope, receive: Receive, send: Send) -> None:
+        request = Request(scope, receive)
+        async for chunk in request.stream():
+            assert chunk == b"2"
+            break
+        await Response()(scope, receive, send)
+
+    class ConsumingMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request: Request, call_next: RequestResponseEndpoint):
+            expected = b"1"
+            response: Response | None = None
+            async for chunk in request.stream():
+                assert chunk == expected
+                if expected == b"1":
+                    response = await call_next(request)
+                    expected = b"3"
+                else:
+                    break
+            assert response is not None
+            return response
+
+    async def rcv() -> AsyncGenerator[Message, None]:
+        yield {"type": "http.request", "body": b"1", "more_body": True}
+        yield {"type": "http.request", "body": b"2", "more_body": True}
+        yield {"type": "http.request", "body": b"3"}
+        await anyio.sleep(float("inf"))
+
+    sent: List[Message] = []
+
+    async def send(msg: Message) -> None:
+        sent.append(msg)
+
+    app: ASGIApp = endpoint
+    app = ConsumingMiddleware(app)
+
+    rcv_stream = rcv()
+
+    await app({"type": "http"}, rcv_stream.__anext__, send)
+
+    assert sent == [
+        {
+            "type": "http.response.start",
+            "status": 200,
+            "headers": [(b"content-length", b"0")],
+        },
+        {"type": "http.response.body", "body": b"", "more_body": False},
+    ]
+
+    await rcv_stream.aclose()
 
 
 def test_read_request_stream_in_dispatch_after_app_calls_body_with_middleware_calling_body_before_call_next(  # noqa: E501
