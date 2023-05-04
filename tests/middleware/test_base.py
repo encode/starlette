@@ -665,6 +665,44 @@ async def test_read_request_disconnected_client() -> None:
     await rcv.aclose()
 
 
+@pytest.mark.anyio
+async def test_read_request_disconnected_after_consuming_steam() -> None:
+    async def endpoint(scope: Scope, receive: Receive, send: Send) -> None:
+        msg = await receive()
+        assert msg.pop("more_body", False) is False
+        assert msg == {"type": "http.request", "body": b"hi"}
+        msg = await receive()
+        assert msg == {"type": "http.disconnect"}
+        await Response()(scope, receive, send)
+
+    class ConsumingMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request: Request, call_next: RequestResponseEndpoint):
+            await request.body()
+            disconnected = await request.is_disconnected()
+            assert disconnected is True
+            response = await call_next(request)
+            return response
+
+    scope = {"type": "http", "method": "POST", "path": "/"}
+
+    async def receive() -> AsyncGenerator[Message, None]:
+        yield {"type": "http.request", "body": b"hi"}
+        yield {"type": "http.disconnect"}
+        raise AssertionError("Should not be called, would hang")  # pragma: no cover
+
+    async def send(msg: Message):
+        if msg["type"] == "http.response.start":
+            assert msg["status"] == 200
+
+    app: ASGIApp = ConsumingMiddleware(endpoint)
+
+    rcv = receive()
+
+    await app(scope, rcv.__anext__, send)
+
+    await rcv.aclose()
+
+
 def test_downstream_middleware_modifies_receive(
     test_client_factory: Callable[[ASGIApp], TestClient]
 ) -> None:

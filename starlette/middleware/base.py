@@ -28,52 +28,64 @@ class _CachedRequest(Request):
         self._wrapped_rcv_consumed = False
 
     async def wrapped_receive(self) -> Message:
-        wrapped_rcv_connected = not (
-            self._wrapped_rcv_disconnected or self._wrapped_rcv_consumed
-        )
-        if wrapped_rcv_connected:
-            if getattr(self, "_body", None) is not None:
-                # body() was called, we return it even if the client disconnected
-                self._wrapped_rcv_consumed = True
-                return {
-                    "type": "http.request",
-                    "body": self._body,
-                    "more_body": False,
-                }
-            elif self._stream_consumed:
-                # stream() was called to completion or client disconnected
-                self._wrapped_rcv_consumed = True
-                return {
-                    "type": "http.request",
-                    "body": b"",
-                    "more_body": False,
-                }
-            else:
-                # body() was never called and stream() wasn't consumed
-                stream = self.stream()
-                try:
-                    chunk = await stream.__anext__()
-                    self._wrapped_rcv_consumed = self._stream_consumed
-                    return {
-                        "type": "http.request",
-                        "body": chunk,
-                        "more_body": self._stream_consumed,
-                    }
-                except ClientDisconnect:
-                    self._wrapped_rcv_disconnected = True
-                    return {"type": "http.disconnect"}
-        # wrapped_rcv is either disconnected or consumed
-        if self._is_disconnected:
-            self._wrapped_rcv_disconnected = True
+        # wrapped_rcv state 1: disconnected
+        if self._wrapped_rcv_disconnected:
+            # we've already sent a disconnect to the downstream app
+            # we don't need to wait to get another one
+            # (although most ASGI servers will just keep sending it)
             return {"type": "http.disconnect"}
-        # if we haven't received a disconnect yet we wait for it
-        msg = await self.receive()
-        if msg["type"] != "http.disconnect":  # pragma: no cover
-            raise RuntimeError(f"Unexpected message received: {msg['type']}")
-        # mark ourselves and upstream as disconnected
-        self._is_disconnected = True
-        self._wrapped_rcv_disconnected = True
-        return msg
+        # wrapped_rcv state 1: consumed but not yet disconnected
+        if self._wrapped_rcv_consumed:
+            # since the downstream app has consumed us all that is left
+            # is to send it a disconnect
+            if self._is_disconnected:
+                # the middleware has already seen the disconnect
+                # since we know the client is disconnected no need to wait
+                # for the message
+                self._wrapped_rcv_disconnected = True
+                return {"type": "http.disconnect"}
+            # we don't know yet if the client is disconnected or not
+            # so we'll wait until we get that message
+            msg = await self.receive()
+            if msg["type"] != "http.disconnect":  # pragma: no cover
+                # at this point a disconnect is all that we should be receiving
+                # if we get something else, things went wrong somewhere
+                raise RuntimeError(f"Unexpected message received: {msg['type']}")
+            return msg
+
+        # wrapped_rcv state 3: not yet consumed
+        if getattr(self, "_body", None) is not None:
+            # body() was called, we return it even if the client disconnected
+            self._wrapped_rcv_consumed = True
+            return {
+                "type": "http.request",
+                "body": self._body,
+                "more_body": False,
+            }
+        elif self._stream_consumed:
+            # stream() was called to completion
+            # return an empty body so that downstream apps don't hang
+            # waiting for a disconnect
+            self._wrapped_rcv_consumed = True
+            return {
+                "type": "http.request",
+                "body": b"",
+                "more_body": False,
+            }
+        else:
+            # body() was never called and stream() wasn't consumed
+            stream = self.stream()
+            try:
+                chunk = await stream.__anext__()
+                self._wrapped_rcv_consumed = self._stream_consumed
+                return {
+                    "type": "http.request",
+                    "body": chunk,
+                    "more_body": self._stream_consumed,
+                }
+            except ClientDisconnect:
+                self._wrapped_rcv_disconnected = True
+                return {"type": "http.disconnect"}
 
 
 class BaseHTTPMiddleware:
