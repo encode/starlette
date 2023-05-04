@@ -1,6 +1,6 @@
 import contextvars
 from contextlib import AsyncExitStack
-from typing import AsyncGenerator, Callable, List
+from typing import AsyncGenerator, Callable, List, Union
 
 import anyio
 import pytest
@@ -583,7 +583,7 @@ async def test_read_request_stream_in_dispatch_wrapping_app_calls_body() -> None
     class ConsumingMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request: Request, call_next: RequestResponseEndpoint):
             expected = b"1"
-            response: Response | None = None
+            response: Union[Response, None] = None
             async for chunk in request.stream():
                 assert chunk == expected
                 if expected == b"1":
