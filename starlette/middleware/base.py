@@ -26,6 +26,7 @@ class _CachedRequest(Request):
         super().__init__(scope, receive)
         self._wrapped_rcv_disconnected = False
         self._wrapped_rcv_consumed = False
+        self._wrapped_rc_stream = self.stream()
 
     async def wrapped_receive(self) -> Message:
         # wrapped_rcv state 1: disconnected
@@ -74,14 +75,14 @@ class _CachedRequest(Request):
             }
         else:
             # body() was never called and stream() wasn't consumed
-            stream = self.stream()
             try:
+                stream = self.stream()
                 chunk = await stream.__anext__()
                 self._wrapped_rcv_consumed = self._stream_consumed
                 return {
                     "type": "http.request",
                     "body": chunk,
-                    "more_body": self._stream_consumed,
+                    "more_body": not self._stream_consumed,
                 }
             except ClientDisconnect:
                 self._wrapped_rcv_disconnected = True
