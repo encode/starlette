@@ -22,8 +22,8 @@ class _CachedRequest(Request):
     empty body so that downstream things don't hang forever.
     """
 
-    def __init__(self, *args: typing.Any, **kwargs: typing.Any) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, scope: Scope, receive: Receive):
+        super().__init__(scope, receive)
         self._wrapped_rcv_disconnected = False
         self._wrapped_rcv_consumed = False
 
