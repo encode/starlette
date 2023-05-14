@@ -1,3 +1,14 @@
+## 0.27.0
+
+May 14, 2023
+
+### Added
+* Minify JSON websocket data via `send_json` https://github.com/encode/starlette/pull/2128
+
+### Fixed
+* Correct the RuntimeError message content in websockets https://github.com/encode/starlette/pull/2141
+* TBA
+
 ## 0.26.1
 
 March 13, 2023
