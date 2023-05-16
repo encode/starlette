@@ -1,6 +1,6 @@
 ## 0.27.0
 
-May 14, 2023
+May 16, 2023
 
 ### Added
 * Minify JSON websocket data via `send_json` https://github.com/encode/starlette/pull/2128
