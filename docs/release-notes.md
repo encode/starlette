@@ -2,7 +2,6 @@
 
 May 16, 2023
 
-
 This release fixes a path traversal vulnerability in StaticFiles affecting versions >= 0.13.5. You can view the full security advisory:
 https://github.com/encode/starlette/security/advisories/GHSA-v5gw-mw7f-84px
 
