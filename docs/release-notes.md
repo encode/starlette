@@ -7,7 +7,6 @@ May 14, 2023
 
 ### Fixed
 * Correct the RuntimeError message content in websockets https://github.com/encode/starlette/pull/2141
-* TBA
 
 ## 0.26.1
 
