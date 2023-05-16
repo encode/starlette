@@ -7,7 +7,7 @@ May 16, 2023
 
 ### Fixed
 * Replace `commonprefix` by `commonpath` on `StaticFiles` [1797de4](https://github.com/encode/starlette/commit/1797de464124b090f10cf570441e8292936d63e3).
-* Convert ImportErrors into ModuleNotFoundError [#2135].(https://github.com/encode/starlette/pull/2135)
+* Convert ImportErrors into ModuleNotFoundError [#2135](https://github.com/encode/starlette/pull/2135)
 * Correct the RuntimeError message content in websockets [#2141](https://github.com/encode/starlette/pull/2141).
 
 ## 0.26.1
