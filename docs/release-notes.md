@@ -2,6 +2,11 @@
 
 May 16, 2023
 
+### Security Patch
+
+This release fixes a path traversal vulnerability in StaticFiles affecting versions >= 0.13.5. You can view the full security advisory:
+https://github.com/encode/starlette/security/advisories/GHSA-v5gw-mw7f-84px
+
 ### Added
 * Minify JSON websocket data via `send_json` https://github.com/encode/starlette/pull/2128
 
