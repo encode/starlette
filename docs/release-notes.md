@@ -6,7 +6,9 @@ May 14, 2023
 * Minify JSON websocket data via `send_json` https://github.com/encode/starlette/pull/2128
 
 ### Fixed
-* Correct the RuntimeError message content in websockets https://github.com/encode/starlette/pull/2141
+* Replace `commonprefix` by `commonpath` on `StaticFiles` [1797de4](https://github.com/encode/starlette/commit/1797de464124b090f10cf570441e8292936d63e3).
+* Convert ImportErrors into ModuleNotFoundError [#2135].(https://github.com/encode/starlette/pull/2135)
+* Correct the RuntimeError message content in websockets [#2141](https://github.com/encode/starlette/pull/2141).
 
 ## 0.26.1
 
