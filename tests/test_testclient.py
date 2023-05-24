@@ -273,3 +273,38 @@ def test_query_params(test_client_factory, param: str):
     client = test_client_factory(app)
     response = client.get("/", params={"param": param})
     assert response.text == param
+
+
+@pytest.mark.parametrize(
+    "domain, ok",
+    [
+        ("testserver", True),
+        ("testserver.local", True),
+        ("localhost", False),
+        ("example.com", False),
+    ],
+)
+def test_domain_restricted_cookies(test_client_factory, monkeypatch, domain, ok):
+    """
+    Test that test client discards domain restricted cookies which do not match the
+    base_url of the testclient (`http://testserver` by default).
+
+    The domain `testserver.local` works because the Python http.cookiejar module derives
+    the "effective domain" by appending `.local` to non-dotted request domains
+    in accordance with RFC 2965.
+    """
+
+    async def app(scope, receive, send):
+        response = Response("Hello, world!", media_type="text/plain")
+        response.set_cookie(
+            "mycookie",
+            "myvalue",
+            path="/",
+            domain=domain,
+        )
+        await response(scope, receive, send)
+
+    client = test_client_factory(app)
+    response = client.get("/")
+    cookie_set = len(response.cookies) == 1
+    assert cookie_set == ok
