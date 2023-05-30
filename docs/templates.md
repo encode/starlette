@@ -24,8 +24,11 @@ routes = [
 app = Starlette(debug=True, routes=routes)
 ```
 
-Note that the incoming `request` instance must be included as part of the
-template context.
+Note that:
+
+* The incoming `request` instance must be included as part of the template context.
+
+* `directory=` can accept a sequence, e.g. `Jinja2Templates(directory=['templates', 'more_templates'])`.
 
 The Jinja2 template context will automatically include a `url_for` function,
 so we can correctly hyperlink to other pages within the application.

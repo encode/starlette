@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 import pytest
 
@@ -37,7 +38,7 @@ def test_template_response_requires_request(tmpdir):
 
 
 def test_calls_context_processors(tmp_path, test_client_factory):
-    path = tmp_path / "index.html"
+    path: Path = tmp_path / "index.html"
     path.write_text("<html>Hello {{ username }}</html>")
 
     async def homepage(request):
@@ -88,3 +89,44 @@ def test_template_with_middleware(tmpdir, test_client_factory):
     assert response.text == "<html>Hello, <a href='http://testserver/'>world</a></html>"
     assert response.template.name == "index.html"
     assert set(response.context.keys()) == {"request"}
+
+
+def test_templates_with_directories(tmp_path, test_client_factory):
+    dir_home: Path = tmp_path / "home"
+    dir_home.mkdir()
+    template = dir_home / "index.html"
+    with template.open("w") as file:
+        file.write("<html>Hello, <a href='{{ url_for('homepage') }}'>world</a></html>")
+
+    async def homepage(request):
+        return templates.TemplateResponse("index.html", {"request": request})
+
+    dir_A: Path = dir_home.parent / "A"
+    dir_A.mkdir()
+    template_A = dir_A / "template_A.html"
+    with template_A.open("w") as file:
+        file.write("<html>Hello, <a href='{{ url_for('get_A') }}'></a> A</html>")
+
+    async def get_A(request):
+        return templates.TemplateResponse("template_A.html", {"request": request})
+
+    app = Starlette(
+        debug=True,
+        routes=[Route("/", endpoint=homepage), Route("/A", endpoint=get_A)],
+    )
+    templates = Jinja2Templates(directory=[dir_home, dir_A])
+
+    assert dir_home.absolute() != dir_A.absolute()
+    assert not dir_home.is_relative_to(dir_A)
+    assert not dir_A.is_relative_to(dir_home)
+
+    client = test_client_factory(app)
+    response = client.get("/")
+    assert response.text == "<html>Hello, <a href='http://testserver/'>world</a></html>"
+    assert response.template.name == "index.html"
+    assert set(response.context.keys()) == {"request"}
+
+    response_A = client.get("/A")
+    assert response_A.text == "<html>Hello, <a href='http://testserver/A'></a> A</html>"
+    assert response_A.template.name == "template_A.html"
+    assert set(response_A.context.keys()) == {"request"}
