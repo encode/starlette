@@ -92,7 +92,7 @@ def test_template_with_middleware(tmpdir, test_client_factory):
 
 
 def test_templates_with_directories(tmp_path, test_client_factory):
-    dir_home: Path = tmp_path / "home"
+    dir_home: Path = tmp_path.resolve() / "home"
     dir_home.mkdir()
     template = dir_home / "index.html"
     with template.open("w") as file:
@@ -101,7 +101,7 @@ def test_templates_with_directories(tmp_path, test_client_factory):
     async def homepage(request):
         return templates.TemplateResponse("index.html", {"request": request})
 
-    dir_A: Path = dir_home.parent / "A"
+    dir_A: Path = dir_home.parent.resolve() / "A"
     dir_A.mkdir()
     template_A = dir_A / "template_A.html"
     with template_A.open("w") as file:
@@ -116,9 +116,11 @@ def test_templates_with_directories(tmp_path, test_client_factory):
     )
     templates = Jinja2Templates(directory=[dir_home, dir_A])
 
-    assert dir_home.absolute() != dir_A.absolute()
-    assert not dir_home.is_relative_to(dir_A)
-    assert not dir_A.is_relative_to(dir_home)
+    assert dir_home != dir_A
+    with pytest.raises(ValueError):
+        dir_home.relative_to(dir_A)
+    with pytest.raises(ValueError):
+        assert not dir_A.relative_to(dir_home)
 
     client = test_client_factory(app)
     response = client.get("/")
