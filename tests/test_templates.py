@@ -38,7 +38,7 @@ def test_template_response_requires_request(tmpdir):
 
 
 def test_calls_context_processors(tmp_path, test_client_factory):
-    path: Path = tmp_path / "index.html"
+    path = tmp_path / "index.html"
     path.write_text("<html>Hello {{ username }}</html>")
 
     async def homepage(request):
@@ -91,44 +91,36 @@ def test_template_with_middleware(tmpdir, test_client_factory):
     assert set(response.context.keys()) == {"request"}
 
 
-def test_templates_with_directories(tmp_path, test_client_factory):
-    dir_home: Path = tmp_path.resolve() / "home"
-    dir_home.mkdir()
-    template = dir_home / "index.html"
-    with template.open("w") as file:
-        file.write("<html>Hello, <a href='{{ url_for('homepage') }}'>world</a></html>")
+def test_templates_with_directories(tmp_path: Path, test_client_factory):
+    dir_a = tmp_path.resolve() / "a"
+    dir_a.mkdir()
+    template_a = dir_a / "template_a.html"
+    template_a.write_text("<html>Hello, <a href='{{ url_for('page_a') }}'></a> a</html>")
 
-    async def homepage(request):
-        return templates.TemplateResponse("index.html", {"request": request})
+    async def page_a(request):
+        return templates.TemplateResponse("template_a.html", {"request": request})
 
-    dir_A: Path = dir_home.parent.resolve() / "A"
-    dir_A.mkdir()
-    template_A = dir_A / "template_A.html"
-    with template_A.open("w") as file:
-        file.write("<html>Hello, <a href='{{ url_for('get_A') }}'></a> A</html>")
+    dir_b = tmp_path.resolve() / "b"
+    dir_b.mkdir()
+    template_b = dir_a / "template_b.html"
+    template_b.write_text("<html>Hello, <a href='{{ url_for('page_b') }}'></a> b</html>")
 
-    async def get_A(request):
-        return templates.TemplateResponse("template_A.html", {"request": request})
+    async def page_b(request):
+        return templates.TemplateResponse("template_b.html", {"request": request})
 
     app = Starlette(
         debug=True,
-        routes=[Route("/", endpoint=homepage), Route("/A", endpoint=get_A)],
+        routes=[Route("/a", endpoint=page_a), Route("/b", endpoint=page_b)],
     )
-    templates = Jinja2Templates(directory=[dir_home, dir_A])
-
-    assert dir_home != dir_A
-    with pytest.raises(ValueError):
-        dir_home.relative_to(dir_A)
-    with pytest.raises(ValueError):
-        assert not dir_A.relative_to(dir_home)
+    templates = Jinja2Templates(directory=[dir_a, dir_b])
 
     client = test_client_factory(app)
-    response = client.get("/")
-    assert response.text == "<html>Hello, <a href='http://testserver/'>world</a></html>"
-    assert response.template.name == "index.html"
+    response = client.get("/a")
+    assert response.text == "<html>Hello, <a href='http://testserver/a'></a> a</html>"
+    assert response.template.name == "template_a.html"
     assert set(response.context.keys()) == {"request"}
 
-    response_A = client.get("/A")
-    assert response_A.text == "<html>Hello, <a href='http://testserver/A'></a> A</html>"
-    assert response_A.template.name == "template_A.html"
-    assert set(response_A.context.keys()) == {"request"}
+    response = client.get("/b")
+    assert response.text == "<html>Hello, <a href='http://testserver/b'></a> b</html>"
+    assert response.template.name == "template_b.html"
+    assert set(response.context.keys()) == {"request"}
