@@ -1,5 +1,6 @@
 import os
 
+import jinja2
 import pytest
 
 from starlette.applications import Starlette
@@ -88,3 +89,30 @@ def test_template_with_middleware(tmpdir, test_client_factory):
     assert response.text == "<html>Hello, <a href='http://testserver/'>world</a></html>"
     assert response.template.name == "index.html"
     assert set(response.context.keys()) == {"request"}
+
+
+def test_templates_require_directory_or_environment():
+    with pytest.raises(
+        AssertionError, match="either 'directory' or 'env' arguments must be passed"
+    ):
+        Jinja2Templates()
+
+
+def test_templates_with_directory(tmpdir):
+    path = os.path.join(tmpdir, "index.html")
+    with open(path, "w") as file:
+        file.write("Hello")
+    templates = Jinja2Templates(directory=str(tmpdir))
+    template = templates.get_template("index.html")
+    assert template.render({}) == "Hello"
+
+
+def test_templates_with_environment(tmpdir):
+    path = os.path.join(tmpdir, "index.html")
+    with open(path, "w") as file:
+        file.write("Hello")
+
+    env = jinja2.Environment(loader=jinja2.FileSystemLoader(str(tmpdir)))
+    templates = Jinja2Templates(env=env)
+    template = templates.get_template("index.html")
+    assert template.render({}) == "Hello"

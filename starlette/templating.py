@@ -64,18 +64,22 @@ class Jinja2Templates:
 
     def __init__(
         self,
-        directory: typing.Union[str, PathLike],
+        directory: typing.Union[str, PathLike, None] = None,
         context_processors: typing.Optional[
             typing.List[typing.Callable[[Request], typing.Dict[str, typing.Any]]]
         ] = None,
-        **env_options: typing.Any,
+        env: typing.Optional[jinja2.Environment] = None,
     ) -> None:
         assert jinja2 is not None, "jinja2 must be installed to use Jinja2Templates"
-        self.env = self._create_env(directory, **env_options)
+        assert directory or env, "either 'directory' or 'env' arguments must be passed"
         self.context_processors = context_processors or []
+        if env:
+            self.env = env
+        else:
+            self.env = self._create_env(str(directory))
 
     def _create_env(
-        self, directory: typing.Union[str, PathLike], **env_options: typing.Any
+        self, directory: typing.Union[str, PathLike]
     ) -> "jinja2.Environment":
         @pass_context
         def url_for(context: dict, name: str, **path_params: typing.Any) -> URL:
@@ -83,10 +87,7 @@ class Jinja2Templates:
             return request.url_for(name, **path_params)
 
         loader = jinja2.FileSystemLoader(directory)
-        env_options.setdefault("loader", loader)
-        env_options.setdefault("autoescape", True)
-
-        env = jinja2.Environment(**env_options)
+        env = jinja2.Environment(loader=loader, autoescape=True)
         env.globals["url_for"] = url_for
         return env
 
