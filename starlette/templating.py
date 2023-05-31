@@ -73,10 +73,7 @@ class Jinja2Templates:
         assert jinja2 is not None, "jinja2 must be installed to use Jinja2Templates"
         assert directory or env, "either 'directory' or 'env' arguments must be passed"
         self.context_processors = context_processors or []
-        if env:
-            self.env = env
-        else:
-            self.env = self._create_env(str(directory))
+        self.env = env or self._create_env(str(directory))
 
     def _create_env(
         self, directory: typing.Union[str, PathLike]
