@@ -65,8 +65,8 @@ class WebSocket(HTTPConnection):
             message_type = message["type"]
             if message_type not in {"websocket.accept", "websocket.close"}:
                 raise RuntimeError(
-                    'Expected ASGI message "websocket.connect", '
-                    f"but got {message_type!r}"
+                    'Expected ASGI message "websocket.accept" or '
+                    f'"websocket.close", but got {message_type!r}'
                 )
             if message_type == "websocket.close":
                 self.application_state = WebSocketState.DISCONNECTED
@@ -168,7 +168,7 @@ class WebSocket(HTTPConnection):
     async def send_json(self, data: typing.Any, mode: str = "text") -> None:
         if mode not in {"text", "binary"}:
             raise RuntimeError('The "mode" argument should be "text" or "binary".')
-        text = json.dumps(data)
+        text = json.dumps(data, separators=(",", ":"))
         if mode == "text":
             await self.send({"type": "websocket.send", "text": text})
         else:
