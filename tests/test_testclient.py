@@ -295,7 +295,7 @@ def test_query_params(test_client_factory, param: str):
         ("example.com", False),
     ],
 )
-def test_domain_restricted_cookies(test_client_factory, monkeypatch, domain, ok):
+def test_domain_restricted_cookies(test_client_factory, domain, ok):
     """
     Test that test client discards domain restricted cookies which do not match the
     base_url of the testclient (`http://testserver` by default).
