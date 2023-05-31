@@ -95,15 +95,15 @@ def test_templates_with_directories(tmp_path: Path, test_client_factory):
     dir_a = tmp_path.resolve() / "a"
     dir_a.mkdir()
     template_a = dir_a / "template_a.html"
-    template_a.write_text("<html>Hello, <a href='{{ url_for('page_a') }}'></a> a</html>")
+    template_a.write_text("<html><a href='{{ url_for('page_a') }}'></a> a</html>")
 
     async def page_a(request):
         return templates.TemplateResponse("template_a.html", {"request": request})
 
     dir_b = tmp_path.resolve() / "b"
     dir_b.mkdir()
-    template_b = dir_a / "template_b.html"
-    template_b.write_text("<html>Hello, <a href='{{ url_for('page_b') }}'></a> b</html>")
+    template_b = dir_b / "template_b.html"
+    template_b.write_text("<html><a href='{{ url_for('page_b') }}'></a> b</html>")
 
     async def page_b(request):
         return templates.TemplateResponse("template_b.html", {"request": request})
@@ -116,11 +116,11 @@ def test_templates_with_directories(tmp_path: Path, test_client_factory):
 
     client = test_client_factory(app)
     response = client.get("/a")
-    assert response.text == "<html>Hello, <a href='http://testserver/a'></a> a</html>"
+    assert response.text == "<html><a href='http://testserver/a'></a> a</html>"
     assert response.template.name == "template_a.html"
     assert set(response.context.keys()) == {"request"}
 
     response = client.get("/b")
-    assert response.text == "<html>Hello, <a href='http://testserver/b'></a> b</html>"
+    assert response.text == "<html><a href='http://testserver/b'></a> b</html>"
     assert response.template.name == "template_b.html"
     assert set(response.context.keys()) == {"request"}
