@@ -1,6 +1,6 @@
 import contextvars
 from contextlib import AsyncExitStack
-from typing import AsyncGenerator, Callable, List, Union
+from typing import AsyncGenerator, Awaitable, Callable, List, Union
 
 import anyio
 import pytest
@@ -791,3 +791,44 @@ def test_downstream_middleware_modifies_receive(
 
     resp = client.post("/", content=b"foo ")
     assert resp.status_code == 200
+
+
+CallNext = Callable[[Request], Awaitable[Response]]
+
+
+def test_pr_1519_comment_1236166180_example() -> None:
+    """
+    https://github.com/encode/starlette/pull/1519#issuecomment-1236166180
+    """
+    bodies: List[bytes] = []
+
+    class LogRequestBodySize(BaseHTTPMiddleware):
+        async def dispatch(self, request: Request, call_next: CallNext) -> Response:
+            print(len(await request.body()))
+            return await call_next(request)
+
+    def replace_body_middleware(app: ASGIApp) -> ASGIApp:
+        async def wrapped_app(scope: Scope, receive: Receive, send: Send) -> None:
+            async def wrapped_rcv() -> Message:
+                msg = await receive()
+                msg["body"] += b"foo-"
+                return msg
+
+            await app(scope, wrapped_rcv, send)
+
+        return wrapped_app
+
+    async def endpoint(request: Request) -> Response:
+        body = await request.body()
+        bodies.append(body)
+        return Response()
+
+    app: ASGIApp = Starlette(routes=[Route("/", endpoint)])
+    app = replace_body_middleware(app)
+    app = LogRequestBodySize(app)
+
+    client = TestClient(app)
+    resp = client.get("/")
+    resp.raise_for_status()
+
+    assert bodies == [b"foo-"]
