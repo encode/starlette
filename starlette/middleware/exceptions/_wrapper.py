@@ -9,12 +9,12 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from starlette.websockets import WebSocket
 
 Handler = typing.Callable[..., typing.Any]
-ExcHandlers = typing.Dict[typing.Any, Handler]
+ExceptionHandlers = typing.Dict[typing.Any, Handler]
 StatusHandlers = typing.Dict[int, Handler]
 
 
 def _lookup_exception_handler(
-    exc_handlers: ExcHandlers, exc: Exception
+    exc_handlers: ExceptionHandlers, exc: Exception
 ) -> typing.Optional[Handler]:
     for cls in type(exc).__mro__:
         if cls in exc_handlers:
@@ -24,7 +24,7 @@ def _lookup_exception_handler(
 
 def wrap_app_handling_exceptions(
     app: ASGIApp,
-    exc_handlers: ExcHandlers,
+    exc_handlers: ExceptionHandlers,
     status_handlers: StatusHandlers,
     conn: typing.Union[Request, WebSocket],
 ) -> ASGIApp:

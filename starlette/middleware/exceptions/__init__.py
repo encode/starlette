@@ -2,7 +2,7 @@ import typing
 
 from starlette.exceptions import HTTPException, WebSocketException
 from starlette.middleware.exceptions._wrapper import (
-    ExcHandlers,
+    ExceptionHandlers,
     StatusHandlers,
     wrap_app_handling_exceptions,
 )
@@ -24,7 +24,7 @@ class ExceptionMiddleware:
         self.app = app
         self.debug = debug  # TODO: We ought to handle 404 cases if debug is set.
         self._status_handlers: StatusHandlers = {}
-        self._exception_handlers: ExcHandlers = {
+        self._exception_handlers: ExceptionHandlers = {
             HTTPException: self.http_exception,
             WebSocketException: self.websocket_exception,  # type: ignore[dict-item]
         }
