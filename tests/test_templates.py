@@ -138,7 +138,7 @@ def test_templates_with_directory(tmpdir):
     path = os.path.join(tmpdir, "index.html")
     with open(path, "w") as file:
         file.write("Hello")
-        
+
     templates = Jinja2Templates(directory=str(tmpdir))
     template = templates.get_template("index.html")
     assert template.render({}) == "Hello"

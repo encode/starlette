@@ -71,11 +71,12 @@ class Jinja2Templates:
             typing.List[typing.Callable[[Request], typing.Dict[str, typing.Any]]]
         ] = None,
         env: typing.Optional[jinja2.Environment] = None,
+        **env_options: typing.Any,
     ) -> None:
         assert jinja2 is not None, "jinja2 must be installed to use Jinja2Templates"
         assert directory or env, "either 'directory' or 'env' arguments must be passed"
         self.context_processors = context_processors or []
-        self.env = env or self._create_env(str(directory))
+        self.env = env or self._create_env(str(directory), **env_options)
 
     def _create_env(
         self,
@@ -92,7 +93,10 @@ class Jinja2Templates:
             return request.url_for(__name, **path_params)
 
         loader = jinja2.FileSystemLoader(directory)
-        env = jinja2.Environment(loader=loader, autoescape=True)
+        env_options.setdefault("loader", loader)
+        env_options.setdefault("autoescape", True)
+
+        env = jinja2.Environment(**env_options)
         env.globals["url_for"] = url_for
         return env
 
