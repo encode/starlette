@@ -811,7 +811,7 @@ def test_pr_1519_comment_1236166180_example() -> None:
         async def wrapped_app(scope: Scope, receive: Receive, send: Send) -> None:
             async def wrapped_rcv() -> Message:
                 msg = await receive()
-                msg["body"] += b"foo-"
+                msg["body"] += b"-foo"
                 return msg
 
             await app(scope, wrapped_rcv, send)
@@ -823,12 +823,12 @@ def test_pr_1519_comment_1236166180_example() -> None:
         bodies.append(body)
         return Response()
 
-    app: ASGIApp = Starlette(routes=[Route("/", endpoint)])
+    app: ASGIApp = Starlette(routes=[Route("/", endpoint, methods=["POST"])])
     app = replace_body_middleware(app)
     app = LogRequestBodySize(app)
 
     client = TestClient(app)
-    resp = client.get("/")
+    resp = client.post("/", content=b"Hello, World!")
     resp.raise_for_status()
 
-    assert bodies == [b"foo-"]
+    assert bodies == [b"Hello, World!-foo"]
