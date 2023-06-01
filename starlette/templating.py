@@ -1,4 +1,5 @@
 import typing
+import warnings
 from os import PathLike
 
 from starlette.background import BackgroundTask
@@ -73,6 +74,11 @@ class Jinja2Templates:
         env: typing.Optional[jinja2.Environment] = None,
         **env_options: typing.Any,
     ) -> None:
+        if env_options:
+            warnings.warn(
+                "Extra environment options are deprecated. Use a preconfigured jinja2.Environment instead.",  # noqa: E501
+                DeprecationWarning,
+            )
         assert jinja2 is not None, "jinja2 must be installed to use Jinja2Templates"
         assert directory or env, "either 'directory' or 'env' arguments must be passed"
         self.context_processors = context_processors or []

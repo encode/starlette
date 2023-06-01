@@ -153,3 +153,8 @@ def test_templates_with_environment(tmpdir):
     templates = Jinja2Templates(env=env)
     template = templates.get_template("index.html")
     assert template.render({}) == "Hello"
+
+
+def test_templates_with_environment_options_emit_warning(tmpdir):
+    with pytest.warns(DeprecationWarning):
+        Jinja2Templates(str(tmpdir), autoescape=True)
