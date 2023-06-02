@@ -198,14 +198,13 @@ def setup_test_database():
     """
     Create a clean test database every time the tests are run.
     """
-    engine = create_engine(settings.DATABASE_URL)
-    assert not database_exists(settings.DATABASE_URL), 'Test database already exists. Aborting tests.'
-    create_database(settings.DATABASE_URL)  # Create the test database.
-    metadata.create_all(engine)  # Create the tables.
-
-    yield  # Run the tests.
-
-    drop_database(settings.DATABASE_URL)  # Drop the test database.
+    url = settings.DATABASE_URL
+    engine = create_engine(url)
+    assert not database_exists(url), 'Test database already exists. Aborting tests.'
+    create_database(url)             # Create the test database.
+    metadata.create_all(engine)      # Create the tables.
+    yield                            # Run the tests.
+    drop_database(url)               # Drop the test database.
 
 
 @pytest.fixture()
