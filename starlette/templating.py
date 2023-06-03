@@ -71,7 +71,7 @@ class Jinja2Templates:
         context_processors: typing.Optional[
             typing.List[typing.Callable[[Request], typing.Dict[str, typing.Any]]]
         ] = None,
-        env: typing.Optional[jinja2.Environment] = None,
+        env: typing.Optional["jinja2.Environment"] = None,
         **env_options: typing.Any,
     ) -> None:
         if env_options:
