@@ -121,8 +121,8 @@ class StaticFiles:
             full_path, stat_result = await anyio.to_thread.run_sync(
                 self.lookup_path, path
             )
-        except PermissionError:
-            raise HTTPException(status_code=401)
+        except PermissionError as exc:
+            raise HTTPException(status_code=401) from exc
         except OSError:
             raise
 
@@ -207,10 +207,10 @@ class StaticFiles:
 
         try:
             stat_result = await anyio.to_thread.run_sync(os.stat, self.directory)
-        except FileNotFoundError:
+        except FileNotFoundError as exc:
             raise RuntimeError(
                 f"StaticFiles directory '{self.directory}' does not exist."
-            )
+            ) from exc
         if not (stat.S_ISDIR(stat_result.st_mode) or stat.S_ISLNK(stat_result.st_mode)):
             raise RuntimeError(
                 f"StaticFiles path '{self.directory}' is not a directory."

@@ -110,9 +110,9 @@ class WebSocketEndpoint:
 
             try:
                 return json.loads(text)
-            except json.decoder.JSONDecodeError:
+            except json.decoder.JSONDecodeError as exc:
                 await websocket.close(code=status.WS_1003_UNSUPPORTED_DATA)
-                raise RuntimeError("Malformed JSON data received.")
+                raise RuntimeError("Malformed JSON data received.") from exc
 
         assert (
             self.encoding is None

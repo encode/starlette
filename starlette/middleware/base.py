@@ -156,10 +156,10 @@ class BaseHTTPMiddleware:
                 info = message.get("info", None)
                 if message["type"] == "http.response.debug" and info is not None:
                     message = await recv_stream.receive()
-            except anyio.EndOfStream:
+            except anyio.EndOfStream as exc:
                 if app_exc is not None:
-                    raise app_exc
-                raise RuntimeError("No response returned.")
+                    raise app_exc from exc
+                raise RuntimeError("No response returned.") from exc
 
             assert message["type"] == "http.response.start"
 

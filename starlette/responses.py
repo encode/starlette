@@ -334,8 +334,8 @@ class FileResponse(Response):
             try:
                 stat_result = await anyio.to_thread.run_sync(os.stat, self.path)
                 self.set_stat_headers(stat_result)
-            except FileNotFoundError:
-                raise RuntimeError(f"File at path {self.path} does not exist.")
+            except FileNotFoundError as exc:
+                raise RuntimeError(f"File at path {self.path} does not exist.") from exc
             else:
                 mode = stat_result.st_mode
                 if not stat.S_ISREG(mode):

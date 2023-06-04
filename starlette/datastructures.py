@@ -700,9 +700,9 @@ class State:
     def __getattr__(self, key: typing.Any) -> typing.Any:
         try:
             return self._state[key]
-        except KeyError:
+        except KeyError as exc:
             message = "'{}' object has no attribute '{}'"
-            raise AttributeError(message.format(self.__class__.__name__, key))
+            raise AttributeError(message.format(self.__class__.__name__, key)) from exc
 
     def __delattr__(self, key: typing.Any) -> None:
         del self._state[key]

@@ -267,7 +267,7 @@ class Request(HTTPConnection):
                     self._form = await multipart_parser.parse()
                 except MultiPartException as exc:
                     if "app" in self.scope:
-                        raise HTTPException(status_code=400, detail=exc.message)
+                        raise HTTPException(status_code=400, detail=exc.message) from exc
                     raise exc
             elif content_type == b"application/x-www-form-urlencoded":
                 form_parser = FormParser(self.headers, self.stream())

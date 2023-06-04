@@ -30,8 +30,8 @@ class BasicAuth(AuthenticationBackend):
         try:
             scheme, credentials = auth.split()
             decoded = base64.b64decode(credentials).decode("ascii")
-        except (ValueError, UnicodeDecodeError, binascii.Error):
-            raise AuthenticationError("Invalid basic auth credentials")
+        except (ValueError, UnicodeDecodeError, binascii.Error) as exc:
+            raise AuthenticationError("Invalid basic auth credentials") from exc
 
         username, _, password = decoded.partition(":")
         return AuthCredentials(["authenticated"]), SimpleUser(username)

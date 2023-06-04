@@ -193,10 +193,10 @@ class MultiPartParser:
             self._current_part.field_name = _user_safe_decode(
                 options[b"name"], self._charset
             )
-        except KeyError:
+        except KeyError as exc:
             raise MultiPartException(
                 'The Content-Disposition header field "name" must be ' "provided."
-            )
+            ) from exc
         if b"filename" in options:
             self._current_files += 1
             if self._current_files > self.max_files:
@@ -232,8 +232,8 @@ class MultiPartParser:
         self._charset = charset
         try:
             boundary = params[b"boundary"]
-        except KeyError:
-            raise MultiPartException("Missing boundary in multipart.")
+        except KeyError as exc:
+            raise MultiPartException("Missing boundary in multipart.") from exc
 
         # Callbacks dictionary.
         callbacks = {
