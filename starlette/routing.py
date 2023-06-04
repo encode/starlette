@@ -672,6 +672,7 @@ class Router:
         """
         started = False
         app: typing.Any = scope.get("app")
+        await receive()
         try:
             async with self.lifespan_context(app) as maybe_state:
                 if maybe_state is not None:
@@ -682,6 +683,7 @@ class Router:
                     scope["state"].update(maybe_state)
                 await send({"type": "lifespan.startup.complete"})
                 started = True
+                await receive()
         except BaseException:
             exc_text = traceback.format_exc()
             if started:
