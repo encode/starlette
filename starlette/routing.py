@@ -683,7 +683,6 @@ class Router:
                     scope["state"].update(maybe_state)
                 await send({"type": "lifespan.startup.complete"})
                 started = True
-                await receive()
         except BaseException:
             exc_text = traceback.format_exc()
             if started:
@@ -698,12 +697,14 @@ class Router:
         """
         The main entry point to the Router class.
         """
-        assert scope["type"] in ("http", "websocket", "lifespan")
+        assert "type" in scope
+        entry = scope["type"].split(".")[0]
+        assert entry in ("http", "websocket", "lifespan")
 
         if "router" not in scope:
             scope["router"] = self
 
-        if scope["type"] == "lifespan":
+        if entry == "lifespan":
             await self.lifespan(scope, receive, send)
             return
 
