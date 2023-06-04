@@ -1,3 +1,6 @@
+### Added
+* Preserve causing exceptions when throwing another one (example: `raise FooException("Foo happened!") from exc`)
+
 ## 0.27.0
 
 May 16, 2023
