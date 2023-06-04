@@ -1,3 +1,49 @@
+## 0.27.0
+
+May 16, 2023
+
+This release fixes a path traversal vulnerability in `StaticFiles`. You can view the full security advisory:
+https://github.com/encode/starlette/security/advisories/GHSA-v5gw-mw7f-84px
+
+### Added
+* Minify JSON websocket data via `send_json` https://github.com/encode/starlette/pull/2128
+
+### Fixed
+* Replace `commonprefix` by `commonpath` on `StaticFiles` [1797de4](https://github.com/encode/starlette/commit/1797de464124b090f10cf570441e8292936d63e3).
+* Convert ImportErrors into ModuleNotFoundError [#2135](https://github.com/encode/starlette/pull/2135).
+* Correct the RuntimeError message content in websockets [#2141](https://github.com/encode/starlette/pull/2141).
+
+## 0.26.1
+
+March 13, 2023
+
+### Fixed
+* Fix typing of Lifespan to allow subclasses of Starlette [#2077](https://github.com/encode/starlette/pull/2077).
+
+## 0.26.0.post1
+
+March 9, 2023
+
+### Fixed
+* Replace reference from Events to Lifespan on the mkdocs.yml [#2072](https://github.com/encode/starlette/pull/2072).
+
+## 0.26.0
+
+March 9, 2023
+
+### Added
+* Support [lifespan state](/lifespan/) [#2060](https://github.com/encode/starlette/pull/2060),
+  [#2065](https://github.com/encode/starlette/pull/2065) and [#2064](https://github.com/encode/starlette/pull/2064).
+
+### Changed
+* Change `url_for` signature to return a `URL` instance [#1385](https://github.com/encode/starlette/pull/1385).
+
+### Fixed
+* Allow "name" argument on `url_for()` and `url_path_for()` [#2050](https://github.com/encode/starlette/pull/2050).
+
+### Deprecated
+* Deprecate `on_startup` and `on_shutdown` events [#2070](https://github.com/encode/starlette/pull/2070).
+
 ## 0.25.0
 
 February 14, 2023

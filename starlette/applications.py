@@ -12,6 +12,8 @@ from starlette.routing import BaseRoute, Router
 from starlette.types import ASGIApp, Lifespan, Receive, Scope, Send
 from starlette.websockets import WebSocket
 
+AppType = typing.TypeVar("AppType", bound="Starlette")
+
 
 class Starlette:
     """
@@ -39,10 +41,13 @@ class Starlette:
     * **on_shutdown** - A list of callables to run on application shutdown.
     Shutdown handler callables do not take any arguments, and may be be either
     standard functions, or async functions.
+    * **lifespan** - A lifespan context function, which can be used to perform
+    startup and shutdown tasks. This is a newer style that replaces the
+    `on_startup` and `on_shutdown` handlers. Use one or the other, not both.
     """
 
     def __init__(
-        self,
+        self: "AppType",
         debug: bool = False,
         routes: typing.Optional[typing.Sequence[BaseRoute]] = None,
         middleware: typing.Optional[typing.Sequence[Middleware]] = None,
@@ -63,7 +68,7 @@ class Starlette:
         ] = None,
         on_startup: typing.Optional[typing.Sequence[typing.Callable]] = None,
         on_shutdown: typing.Optional[typing.Sequence[typing.Callable]] = None,
-        lifespan: typing.Optional[Lifespan] = None,
+        lifespan: typing.Optional[Lifespan["AppType"]] = None,
     ) -> None:
         # The lifespan context function is a newer style that replaces
         # on_startup / on_shutdown handlers. Use one or the other, not both.

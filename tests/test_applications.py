@@ -1,6 +1,6 @@
 import os
 from contextlib import asynccontextmanager
-from typing import Any, Callable
+from typing import Any, AsyncIterator, Callable
 
 import anyio
 import httpx
@@ -345,10 +345,13 @@ def test_app_add_event_handler(test_client_factory):
         nonlocal cleanup_complete
         cleanup_complete = True
 
-    app = Starlette(
-        on_startup=[run_startup],
-        on_shutdown=[run_cleanup],
-    )
+    with pytest.deprecated_call(
+        match="The on_startup and on_shutdown parameters are deprecated"
+    ):
+        app = Starlette(
+            on_startup=[run_startup],
+            on_shutdown=[run_cleanup],
+        )
 
     assert not startup_complete
     assert not cleanup_complete
@@ -531,3 +534,17 @@ def test_middleware_stack_init(test_client_factory: Callable[[ASGIApp], httpx.Cl
     test_client_factory(app).get("/foo")
 
     assert SimpleInitializableMiddleware.counter == 2
+
+
+def test_lifespan_app_subclass():
+    # This test exists to make sure that subclasses of Starlette
+    # (like FastAPI) are compatible with the types hints for Lifespan
+
+    class App(Starlette):
+        pass
+
+    @asynccontextmanager
+    async def lifespan(app: App) -> AsyncIterator[None]:  # pragma: no cover
+        yield
+
+    App(lifespan=lifespan)

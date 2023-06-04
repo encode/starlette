@@ -17,7 +17,7 @@ from starlette.exceptions import HTTPException
 from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, RedirectResponse
-from starlette.types import ASGIApp, Lifespan, Receive, Scope, Send, StatelessLifespan
+from starlette.types import ASGIApp, Lifespan, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketClose
 
 
@@ -558,25 +558,17 @@ def _wrap_gen_lifespan_context(
     return wrapper
 
 
-_TDefaultLifespan = typing.TypeVar("_TDefaultLifespan", bound="_DefaultLifespan")
-
-
 class _DefaultLifespan:
     def __init__(self, router: "Router"):
         self._router = router
 
     async def __aenter__(self) -> None:
-        await self._router.startup(state=self._state)
+        await self._router.startup()
 
     async def __aexit__(self, *exc_info: object) -> None:
-        await self._router.shutdown(state=self._state)
+        await self._router.shutdown()
 
-    def __call__(
-        self: _TDefaultLifespan,
-        app: object,
-        state: typing.Optional[typing.Dict[str, typing.Any]],
-    ) -> _TDefaultLifespan:
-        self._state = state
+    def __call__(self: _T, app: object) -> _T:
         return self
 
 
@@ -588,7 +580,9 @@ class Router:
         default: typing.Optional[ASGIApp] = None,
         on_startup: typing.Optional[typing.Sequence[typing.Callable]] = None,
         on_shutdown: typing.Optional[typing.Sequence[typing.Callable]] = None,
-        lifespan: typing.Optional[Lifespan] = None,
+        # the generic to Lifespan[AppType] is the type of the top level application
+        # which the router cannot know statically, so we use typing.Any
+        lifespan: typing.Optional[Lifespan[typing.Any]] = None,
     ) -> None:
         self.routes = [] if routes is None else list(routes)
         self.redirect_slashes = redirect_slashes
@@ -596,8 +590,17 @@ class Router:
         self.on_startup = [] if on_startup is None else list(on_startup)
         self.on_shutdown = [] if on_shutdown is None else list(on_shutdown)
 
+        if on_startup or on_shutdown:
+            warnings.warn(
+                "The on_startup and on_shutdown parameters are deprecated, and they "
+                "will be removed on version 1.0. Use the lifespan parameter instead. "
+                "See more about it on https://www.starlette.io/lifespan/.",
+                DeprecationWarning,
+            )
+
         if lifespan is None:
             self.lifespan_context: Lifespan = _DefaultLifespan(self)
+
         elif inspect.isasyncgenfunction(lifespan):
             warnings.warn(
                 "async generator function lifespans are deprecated, "
@@ -642,31 +645,21 @@ class Router:
                 pass
         raise NoMatchFound(__name, path_params)
 
-    async def startup(
-        self, state: typing.Optional[typing.Dict[str, typing.Any]]
-    ) -> None:
+    async def startup(self) -> None:
         """
         Run any `.on_startup` event handlers.
         """
         for handler in self.on_startup:
-            sig = inspect.signature(handler)
-            if len(sig.parameters) == 1 and state is not None:
-                handler = functools.partial(handler, state)
             if is_async_callable(handler):
                 await handler()
             else:
                 handler()
 
-    async def shutdown(
-        self, state: typing.Optional[typing.Dict[str, typing.Any]]
-    ) -> None:
+    async def shutdown(self) -> None:
         """
         Run any `.on_shutdown` event handlers.
         """
         for handler in self.on_shutdown:
-            sig = inspect.signature(handler)
-            if len(sig.parameters) == 1 and state is not None:
-                handler = functools.partial(handler, state)
             if is_async_callable(handler):
                 await handler()
             else:
@@ -678,24 +671,16 @@ class Router:
         startup and shutdown events.
         """
         started = False
-        app = scope.get("app")
-        state = scope.get("state")
+        app: typing.Any = scope.get("app")
         await receive()
-        lifespan_needs_state = (
-            len(inspect.signature(self.lifespan_context).parameters) == 2
-        )
-        server_supports_state = state is not None
-        if lifespan_needs_state and not server_supports_state:
-            raise RuntimeError(
-                'The server does not support "state" in the lifespan scope.'
-            )
         try:
-            lifespan_context: Lifespan
-            if lifespan_needs_state:
-                lifespan_context = functools.partial(self.lifespan_context, state=state)
-            else:
-                lifespan_context = typing.cast(StatelessLifespan, self.lifespan_context)
-            async with lifespan_context(app):
+            async with self.lifespan_context(app) as maybe_state:
+                if maybe_state is not None:
+                    if "state" not in scope:
+                        raise RuntimeError(
+                            'The server does not support "state" in the lifespan scope.'
+                        )
+                    scope["state"].update(maybe_state)
                 await send({"type": "lifespan.startup.complete"})
                 started = True
                 await receive()
@@ -866,7 +851,7 @@ class Router:
     def on_event(self, event_type: str) -> typing.Callable:
         warnings.warn(
             "The `on_event` decorator is deprecated, and will be removed in version 1.0.0. "  # noqa: E501
-            "Refer to https://www.starlette.io/events/#registering-events for recommended approach.",  # noqa: E501
+            "Refer to https://www.starlette.io/lifespan/ for recommended approach.",
             DeprecationWarning,
         )
 
