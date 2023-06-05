@@ -61,7 +61,7 @@ templates.env.filters['marked'] = marked_filter
 
 ## Using custom jinja2.Environment instance
 
-Starlette also accepts a preconfigured `jinja2.Environment` instance. 
+Starlette also accepts a preconfigured [`jinja2.Environment`](https://jinja.palletsprojects.com/en/3.0.x/api/#api) instance. 
 
 
 ```python
