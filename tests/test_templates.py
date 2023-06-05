@@ -131,7 +131,7 @@ def test_templates_require_directory_or_environment():
     with pytest.raises(
         AssertionError, match="either 'directory' or 'env' arguments must be passed"
     ):
-        Jinja2Templates()
+        Jinja2Templates()  # type: ignore[call-overload]
 
 
 def test_templates_with_directory(tmpdir):

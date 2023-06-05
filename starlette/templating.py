@@ -63,11 +63,39 @@ class Jinja2Templates:
     return templates.TemplateResponse("index.html", {"request": request})
     """
 
+    @typing.overload
+    def __init__(
+        self,
+        directory: typing.Union[
+            str,
+            PathLike,
+            typing.Sequence[typing.Union[str, PathLike]],
+        ],
+        *,
+        context_processors: typing.Optional[
+            typing.List[typing.Callable[[Request], typing.Dict[str, typing.Any]]]
+        ] = None,
+        **env_options: typing.Any,
+    ) -> None:
+        ...
+
+    @typing.overload
+    def __init__(
+        self,
+        *,
+        env: "jinja2.Environment",
+        context_processors: typing.Optional[
+            typing.List[typing.Callable[[Request], typing.Dict[str, typing.Any]]]
+        ] = None,
+    ) -> None:
+        ...
+
     def __init__(
         self,
         directory: typing.Union[
             str, PathLike, typing.Sequence[typing.Union[str, PathLike]], None
         ] = None,
+        *,
         context_processors: typing.Optional[
             typing.List[typing.Callable[[Request], typing.Dict[str, typing.Any]]]
         ] = None,
