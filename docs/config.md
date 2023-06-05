@@ -1,7 +1,7 @@
 Starlette encourages a strict separation of configuration from code,
 following [the twelve-factor pattern][twelve-factor].
 
-Configuration should be stored in environment variables, or in a ".env" file
+Configuration should be stored in environment variables, or in a `.env` file
 that is not committed to source control.
 
 ```python title="app.py"
@@ -37,7 +37,7 @@ ALLOWED_HOSTS=127.0.0.1, localhost
 The order in which configuration values are read is:
 
 * From an environment variable.
-* From the ".env" file.
+* From the `.env` file.
 * The default value given in `config`.
 
 If none of those match, then `config(...)` will raise an error.
@@ -75,6 +75,13 @@ CommaSeparatedStrings(['127.0.0.1', 'localhost'])
 >>> print(settings.ALLOWED_HOSTS[0])
 '127.0.0.1'
 ```
+
+!!! tip
+
+    You can use `DatabaseURL` from `databases`
+    package [here](https://github.com/encode/databases/blob/ab5eb718a78a27afe18775754e9c0fa2ad9cd211/databases/core.py#L420)
+    to store database URLs and avoid leaking them in the logs.
+
 
 ## Reading or modifying the environment
 
