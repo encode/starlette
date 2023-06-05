@@ -59,6 +59,12 @@ Secret('**********')
 '98n349$%8b8-7yjn0n8y93T$23r'
 ```
 
+!!! tip
+
+    You can use `DatabaseURL` from `databases`
+    package [here](https://github.com/encode/databases/blob/ab5eb718a78a27afe18775754e9c0fa2ad9cd211/databases/core.py#L420)
+    to store database URLs and avoid leaking them in the logs.
+
 ## CommaSeparatedStrings
 
 For holding multiple inside a single config key, the `CommaSeparatedStrings`
@@ -75,13 +81,6 @@ CommaSeparatedStrings(['127.0.0.1', 'localhost'])
 >>> print(settings.ALLOWED_HOSTS[0])
 '127.0.0.1'
 ```
-
-!!! tip
-
-    You can use `DatabaseURL` from `databases`
-    package [here](https://github.com/encode/databases/blob/ab5eb718a78a27afe18775754e9c0fa2ad9cd211/databases/core.py#L420)
-    to store database URLs and avoid leaking them in the logs.
-
 
 ## Reading or modifying the environment
 
