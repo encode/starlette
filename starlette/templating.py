@@ -64,7 +64,9 @@ class Jinja2Templates:
 
     def __init__(
         self,
-        directory: typing.Union[str, PathLike],
+        directory: typing.Union[
+            str, PathLike, typing.Sequence[typing.Union[str, PathLike]]
+        ],
         context_processors: typing.Optional[
             typing.List[typing.Callable[[Request], typing.Dict[str, typing.Any]]]
         ] = None,
@@ -75,12 +77,18 @@ class Jinja2Templates:
         self.context_processors = context_processors or []
 
     def _create_env(
-        self, directory: typing.Union[str, PathLike], **env_options: typing.Any
+        self,
+        directory: typing.Union[
+            str, PathLike, typing.Sequence[typing.Union[str, PathLike]]
+        ],
+        **env_options: typing.Any,
     ) -> "jinja2.Environment":
         @pass_context
-        def url_for(context: dict, name: str, **path_params: typing.Any) -> URL:
+        # TODO: Make `__name` a positional-only argument when we drop Python 3.7
+        # support.
+        def url_for(context: dict, __name: str, **path_params: typing.Any) -> URL:
             request = context["request"]
-            return request.url_for(name, **path_params)
+            return request.url_for(__name, **path_params)
 
         loader = jinja2.FileSystemLoader(directory)
         env_options.setdefault("loader", loader)
