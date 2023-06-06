@@ -1,9 +1,14 @@
 ## 0.28.0
 
-June 5, 2023
+June 6, 2023
+
+### Changed
+* Reuse Request's body buffer for call_next in BaseHTTPMiddleware [#1692](https://github.com/encode/starlette/pull/1692).
+
+### Added
+* Add `env` parameter to `Jinja2Templates`, and deprecate `**env_options` [#2159](https://github.com/encode/starlette/pull/2159).
 
 ### Fixed
-* Reuse Request's body buffer for call_next in BaseHTTPMiddleware [#1692](https://github.com/encode/starlette/pull/1692).
 * Allow "name" argument on `templates url_for()` [#2127](https://github.com/encode/starlette/pull/2127).
 
 ## 0.27.0
