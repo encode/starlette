@@ -17,7 +17,7 @@ from starlette.exceptions import HTTPException
 from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, RedirectResponse
-from starlette.types import ASGIApp, Lifespan, Receive, Scope, Send
+from starlette.types import ASGIApp, Lifespan, Message, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketClose
 
 
@@ -205,12 +205,14 @@ class Route(BaseRoute):
         methods: typing.Optional[typing.List[str]] = None,
         name: typing.Optional[str] = None,
         include_in_schema: bool = True,
+        request_max_size: typing.Optional[int] = None,
     ) -> None:
         assert path.startswith("/"), "Routed paths must start with '/'"
         self.path = path
         self.endpoint = endpoint
         self.name = get_name(endpoint) if name is None else name
         self.include_in_schema = include_in_schema
+        self.request_max_size = request_max_size
 
         endpoint_handler = endpoint
         while isinstance(endpoint_handler, functools.partial):
@@ -273,7 +275,25 @@ class Route(BaseRoute):
                 )
             await response(scope, receive, send)
         else:
-            await self.app(scope, receive, send)
+            bytes_read = 0
+            max_body_size = self.request_max_size or scope.get("request_max_size")
+
+            async def receive_wrapper() -> Message:
+                nonlocal bytes_read
+                message = await receive()
+                if message["type"] != "http.request" or max_body_size is None:
+                    return message
+
+                body = message.get("body", b"")
+                bytes_read += len(body)
+                if bytes_read > max_body_size:
+                    raise HTTPException(
+                        status_code=413, detail="Request Entity Too Large"
+                    )
+
+                return message
+
+            await self.app(scope, receive_wrapper, send)
 
     def __eq__(self, other: typing.Any) -> bool:
         return (

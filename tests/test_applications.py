@@ -207,6 +207,26 @@ def test_500(test_client_factory):
     assert response.json() == {"detail": "Server Error"}
 
 
+def test_413(test_client_factory):
+    async def read_view(request):
+        content = await request.body()
+        return JSONResponse(content.decode())
+
+    app = Starlette(
+        request_max_size=10,  # 10 bytes
+        routes=[Route("/", endpoint=read_view, methods=["POST"])],
+    )
+
+    client = test_client_factory(app, raise_server_exceptions=True)
+    response = client.post("/", data=b"youshallnotpass")
+    assert response.status_code == 413
+    assert response.text == "Request Entity Too Large"
+
+    response = client.post("/", data=b"ok")
+    assert response.status_code == 200
+    assert response.text == '"ok"'
+
+
 def test_websocket_raise_websocket_exception(client):
     with client.websocket_connect("/ws-raise-websocket") as session:
         response = session.receive()

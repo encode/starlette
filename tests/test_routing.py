@@ -1125,3 +1125,40 @@ def test_decorator_deprecations() -> None:
             ...  # pragma: nocover
 
         router.on_event("startup")(startup)
+
+
+def test_request_body_size_limit(test_client_factory):
+    async def read_view(request):
+        content = await request.body()
+        return JSONResponse(content.decode())
+
+    app = Starlette(
+        routes=[Route("/", endpoint=read_view, methods=["POST"], request_max_size=10)],
+    )
+
+    client = test_client_factory(app, raise_server_exceptions=True)
+    response = client.post("/", data=b"youshallnotpass")
+    assert response.status_code == 413
+    assert response.text == "Request Entity Too Large"
+
+    response = client.post("/", data=b"ok")
+    assert response.status_code == 200
+    assert response.text == '"ok"'
+
+
+def test_request_body_size_limit_route_has_higher_precedense(test_client_factory):
+    async def read_view(request):
+        content = await request.body()
+        return JSONResponse(content.decode())
+
+    app = Starlette(
+        request_max_size=5,
+        routes=[Route("/", endpoint=read_view, methods=["POST"], request_max_size=24)],
+    )
+
+    # app caps at 5 bytes, route has 24 byte limit
+    # payload of size 12 bytes should pass
+    client = test_client_factory(app, raise_server_exceptions=True)
+    response = client.post("/", data=b"youshallpass")  # 12 bytes
+    assert response.status_code == 200
+    assert response.text == '"youshallpass"'

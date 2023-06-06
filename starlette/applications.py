@@ -61,6 +61,7 @@ class Starlette:
         on_startup: typing.Optional[typing.Sequence[typing.Callable]] = None,
         on_shutdown: typing.Optional[typing.Sequence[typing.Callable]] = None,
         lifespan: typing.Optional[Lifespan["AppType"]] = None,
+        request_max_size: int = 2621440,  # 2.5mb
     ) -> None:
         # The lifespan context function is a newer style that replaces
         # on_startup / on_shutdown handlers. Use one or the other, not both.
@@ -78,6 +79,7 @@ class Starlette:
         )
         self.user_middleware = [] if middleware is None else list(middleware)
         self.middleware_stack: typing.Optional[ASGIApp] = None
+        self.request_max_size = request_max_size
 
     def build_middleware_stack(self) -> ASGIApp:
         debug = self.debug
@@ -117,6 +119,7 @@ class Starlette:
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         scope["app"] = self
+        scope["request_max_size"] = self.request_max_size
         if self.middleware_stack is None:
             self.middleware_stack = self.build_middleware_stack()
         await self.middleware_stack(scope, receive, send)
