@@ -104,20 +104,11 @@ it will be handled by the `handle_error` function, but at that point, the respon
 the response created by `handle_error` will be discarded. In case the error happens before the response was sent, then
 it will use the response object - in the above example, the returned `JSONResponse`.
 
-In order to deal with this behaviour correctly, the middleware stack of a
-`Starlette` application is configured like this:
-
-* `ServerErrorMiddleware` - Returns 500 responses when server errors occur.
-* Installed middleware
-* `ExceptionMiddleware` - Deals with handled exceptions, and returns responses.
-* Router
-* Endpoints
-
 ## HTTPException
 
 The `HTTPException` class provides a base class that you can use for any
-handled exceptions. The `ExceptionMiddleware` implementation defaults to
-returning plain-text HTTP responses for any `HTTPException`.
+handled exceptions. By default, a plain-text HTTP response is returned
+for `HTTPException`s raised.
 
 * `HTTPException(status_code, detail=None, headers=None)`
 
