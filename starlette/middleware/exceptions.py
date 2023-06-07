@@ -1,11 +1,11 @@
 import typing
 
-from starlette.exceptions import HTTPException, WebSocketException
-from starlette.middleware.exceptions._wrapper import (
+from starlette._exception_handler import (
     ExceptionHandlers,
     StatusHandlers,
     wrap_app_handling_exceptions,
 )
+from starlette.exceptions import HTTPException, WebSocketException
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, Response
 from starlette.types import ASGIApp, Receive, Scope, Send
