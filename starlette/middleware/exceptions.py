@@ -59,9 +59,7 @@ class ExceptionMiddleware:
         else:
             conn = WebSocket(scope, receive, send)
 
-        await wrap_app_handling_exceptions(
-            self.app, self._exception_handlers, self._status_handlers, conn
-        )(scope, receive, send)
+        await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
 
     def http_exception(self, request: Request, exc: Exception) -> Response:
         assert isinstance(exc, HTTPException)

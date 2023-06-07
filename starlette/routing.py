@@ -71,14 +71,7 @@ def request_response(func: typing.Callable) -> ASGIApp:
                 response = await run_in_threadpool(func, request)
             await response(scope, receive, send)
 
-        try:
-            exception_handlers, status_handlers = scope["starlette.exception_handlers"]
-        except KeyError:
-            exception_handlers, status_handlers = {}, {}
-
-        await wrap_app_handling_exceptions(
-            app, exception_handlers, status_handlers, request
-        )(scope, receive, send)
+        await wrap_app_handling_exceptions(app, request)(scope, receive, send)
 
     return app
 
@@ -95,17 +88,7 @@ def websocket_session(func: typing.Callable) -> ASGIApp:
         async def app(scope: Scope, receive: Receive, send: Send) -> None:
             await func(session)
 
-        try:
-            exception_handlers, status_handlers = scope["starlette.exception_handlers"]
-        except KeyError:
-            exception_handlers, status_handlers = {}, {}
-
-        await wrap_app_handling_exceptions(
-            app,
-            exception_handlers,
-            status_handlers,
-            session,
-        )(scope, receive, send)
+        await wrap_app_handling_exceptions(app, session)(scope, receive, send)
 
     return app
 

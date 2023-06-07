@@ -23,11 +23,15 @@ def _lookup_exception_handler(
 
 
 def wrap_app_handling_exceptions(
-    app: ASGIApp,
-    exc_handlers: ExceptionHandlers,
-    status_handlers: StatusHandlers,
-    conn: typing.Union[Request, WebSocket],
+    app: ASGIApp, conn: typing.Union[Request, WebSocket]
 ) -> ASGIApp:
+    exception_handlers: ExceptionHandlers
+    status_handlers: StatusHandlers
+    try:
+        exception_handlers, status_handlers = conn.scope["starlette.exception_handlers"]
+    except KeyError:
+        exception_handlers, status_handlers = {}, {}
+
     async def wrapped_app(scope: Scope, receive: Receive, send: Send) -> None:
         response_started = False
 
@@ -47,7 +51,7 @@ def wrap_app_handling_exceptions(
                 handler = status_handlers.get(exc.status_code)
 
             if handler is None:
-                handler = _lookup_exception_handler(exc_handlers, exc)
+                handler = _lookup_exception_handler(exception_handlers, exc)
 
             if handler is None:
                 raise exc
