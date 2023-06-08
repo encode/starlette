@@ -123,9 +123,7 @@ class Jinja2Templates:
         **env_options: typing.Any,
     ) -> "jinja2.Environment":
         @pass_context
-        # TODO: Make `__name` a positional-only argument when we drop Python 3.7
-        # support.
-        def url_for(context: dict, __name: str, **path_params: typing.Any) -> URL:
+        def url_for(context: dict, /, __name: str, **path_params: typing.Any) -> URL:
             request = context["request"]
             return request.url_for(__name, **path_params)
 
