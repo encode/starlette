@@ -223,7 +223,7 @@ class Secret:
         return bool(self._value)
 
 
-class CommaSeparatedStrings(Sequence):
+class CommaSeparatedStrings(Sequence[str]):
     def __init__(self, value: typing.Union[str, typing.Sequence[str]]):
         if isinstance(value, str):
             splitter = shlex(value, posix=True)
@@ -269,7 +269,7 @@ class ImmutableMultiDict(typing.Mapping[_KeyType, _CovariantValueType]):
         if kwargs:
             value = (
                 ImmutableMultiDict(value).multi_items()
-                + ImmutableMultiDict(kwargs).multi_items()  # type: ignore[operator]
+                + ImmutableMultiDict(kwargs).multi_items()
             )
 
         if not value:
@@ -341,12 +341,12 @@ class MultiDict(ImmutableMultiDict[typing.Any, typing.Any]):
         self._list = [(k, v) for k, v in self._list if k != key]
         return self._dict.pop(key, default)
 
-    def popitem(self) -> typing.Tuple:
+    def popitem(self) -> typing.Tuple[typing.Any, typing.Any]:
         key, value = self._dict.popitem()
         self._list = [(k, v) for k, v in self._list if k != key]
         return key, value
 
-    def poplist(self, key: typing.Any) -> typing.List:
+    def poplist(self, key: typing.Any) -> typing.List[typing.Any]:
         values = [v for k, v in self._list if k == key]
         self.pop(key)
         return values
@@ -362,7 +362,7 @@ class MultiDict(ImmutableMultiDict[typing.Any, typing.Any]):
 
         return self[key]
 
-    def setlist(self, key: typing.Any, values: typing.List) -> None:
+    def setlist(self, key: typing.Any, values: typing.List[typing.Any]) -> None:
         if not values:
             self.pop(key, None)
         else:
@@ -378,7 +378,7 @@ class MultiDict(ImmutableMultiDict[typing.Any, typing.Any]):
         self,
         *args: typing.Union[
             "MultiDict",
-            typing.Mapping,
+            typing.Mapping[typing.Any, typing.Any],
             typing.List[typing.Tuple[typing.Any, typing.Any]],
         ],
         **kwargs: typing.Any,
@@ -397,8 +397,8 @@ class QueryParams(ImmutableMultiDict[str, str]):
     def __init__(
         self,
         *args: typing.Union[
-            "ImmutableMultiDict",
-            typing.Mapping,
+            "ImmutableMultiDict[typing.Any, typing.Any]",
+            typing.Mapping[typing.Any, typing.Any],
             typing.List[typing.Tuple[typing.Any, typing.Any]],
             str,
             bytes,
