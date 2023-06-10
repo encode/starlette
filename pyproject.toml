@@ -58,13 +58,12 @@ select = ["E", "F", "I"]
 combine-as-imports = true
 
 [tool.mypy]
-disallow_untyped_defs = true
+strict = true
 ignore_missing_imports = true
-show_error_codes = true
 
 [[tool.mypy.overrides]]
 module = "starlette.testclient.*"
-no_implicit_optional = false
+implicit_optional = true
 
 [[tool.mypy.overrides]]
 module = "tests.*"

@@ -12,8 +12,8 @@ class EnvironError(Exception):
     pass
 
 
-class Environ(MutableMapping):
-    def __init__(self, environ: typing.MutableMapping = os.environ):
+class Environ(MutableMapping[typing.Any, typing.Any]):
+    def __init__(self, environ: typing.MutableMapping[typing.Any, typing.Any] = os.environ):
         self._environ = environ
         self._has_been_read: typing.Set[typing.Any] = set()
 
@@ -37,7 +37,7 @@ class Environ(MutableMapping):
             )
         self._environ.__delitem__(key)
 
-    def __iter__(self) -> typing.Iterator:
+    def __iter__(self) -> typing.Iterator[typing.Any]:
         return iter(self._environ)
 
     def __len__(self) -> int:
@@ -94,7 +94,7 @@ class Config:
     def __call__(
         self,
         key: str,
-        cast: typing.Optional[typing.Callable] = None,
+        cast: typing.Optional[typing.Callable[[typing.Any], typing.Any]] = None,
         default: typing.Any = undefined,
     ) -> typing.Any:
         return self.get(key, cast, default)
@@ -102,7 +102,7 @@ class Config:
     def get(
         self,
         key: str,
-        cast: typing.Optional[typing.Callable] = None,
+        cast: typing.Optional[typing.Callable[[typing.Any], typing.Any]] = None,
         default: typing.Any = undefined,
     ) -> typing.Any:
         key = self.env_prefix + key
@@ -129,7 +129,7 @@ class Config:
         return file_values
 
     def _perform_cast(
-        self, key: str, value: typing.Any, cast: typing.Optional[typing.Callable] = None
+        self, key: str, value: typing.Any, cast: typing.Optional[typing.Callable[[typing.Any], typing.Any]] = None
     ) -> typing.Any:
         if cast is None or value is None:
             return value
