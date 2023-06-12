@@ -4,7 +4,7 @@ import typing
 
 from starlette.requests import Request
 from starlette.responses import Response
-from starlette.routing import BaseRoute, Mount, Route
+from starlette.routing import BaseRoute, Host, Mount, Route
 
 try:
     import yaml
@@ -55,6 +55,18 @@ class BaseSchemaGenerator:
                 sub_endpoints = [
                     EndpointInfo(
                         path="".join((path, sub_endpoint.path)),
+                        http_method=sub_endpoint.http_method,
+                        func=sub_endpoint.func,
+                    )
+                    for sub_endpoint in self.get_endpoints(routes)
+                ]
+                endpoints_info.extend(sub_endpoints)
+
+            elif isinstance(route, Host):
+                routes = route.routes or []
+                sub_endpoints = [
+                    EndpointInfo(
+                        path=sub_endpoint.path,
                         http_method=sub_endpoint.http_method,
                         func=sub_endpoint.func,
                     )
