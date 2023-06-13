@@ -50,10 +50,11 @@ class BaseSchemaGenerator:
 
         for route in routes:
             if isinstance(route, (Mount, Host)):
-                path = ""
+                routes = route.routes or []
                 if isinstance(route, Mount):
                     path = self._remove_converter(route.path)
-                routes = route.routes or []  # type: ignore
+                else:
+                    path = ""
                 sub_endpoints = [
                     EndpointInfo(
                         path="".join((path, sub_endpoint.path)),

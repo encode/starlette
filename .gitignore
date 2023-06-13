@@ -11,4 +11,3 @@ venv*/
 .python-version
 build/
 dist/
-env*/
