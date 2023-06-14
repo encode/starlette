@@ -34,9 +34,13 @@ class GZipResponder:
         self.initial_message: Message = {}
         self.started = False
         self.content_encoding_set = False
+        self.compresslevel = compresslevel
+
+    def _init_gzip_buffer(self):
+        # Only initialize these when going to definitely need.
         self.gzip_buffer = io.BytesIO()
         self.gzip_file = gzip.GzipFile(
-            mode="wb", fileobj=self.gzip_buffer, compresslevel=compresslevel
+            mode="wb", fileobj=self.gzip_buffer, compresslevel=self.compresslevel
         )
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -66,6 +70,7 @@ class GZipResponder:
                 await self.send(message)
             elif not more_body:
                 # Standard GZip response.
+                self._init_gzip_buffer()
                 self.gzip_file.write(body)
                 self.gzip_file.close()
                 body = self.gzip_buffer.getvalue()
@@ -85,6 +90,7 @@ class GZipResponder:
                 headers.add_vary_header("Accept-Encoding")
                 del headers["Content-Length"]
 
+                self._init_gzip_buffer()
                 self.gzip_file.write(body)
                 message["body"] = self.gzip_buffer.getvalue()
                 self.gzip_buffer.seek(0)
