@@ -36,7 +36,7 @@ class GZipResponder:
         self.content_encoding_set = False
         self.compresslevel = compresslevel
 
-    def _init_gzip_buffer(self):
+    def _init_gzip_buffer(self) -> None:
         # Only initialize these when going to definitely need.
         self.gzip_buffer = io.BytesIO()
         self.gzip_file = gzip.GzipFile(
