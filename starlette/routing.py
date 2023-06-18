@@ -751,15 +751,16 @@ class Router:
                 name=route.name,
             )
 
-    def _merge_router_events(self, router: "Router") -> None:
-        for handler in router.on_startup:
-            self.add_event_handler("startup", handler)
-        for handler in router.on_shutdown:
-            self.add_event_handler("shutdown", handler)
-        self.lifespan_context = _merge_lifespan_context(
-            self.lifespan_context,
-            router.lifespan_context,
-        )
+    def _merge_router_events(self, router: typing.Optional["Router"]) -> None:
+        if router is not None:
+            for handler in router.on_startup:
+                self.add_event_handler("startup", handler)
+            for handler in router.on_shutdown:
+                self.add_event_handler("shutdown", handler)
+            self.lifespan_context = _merge_lifespan_context(
+                self.lifespan_context,
+                router.lifespan_context,
+            )
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         """
@@ -820,8 +821,7 @@ class Router:
         self, path: str, app: ASGIApp, name: typing.Optional[str] = None
     ) -> None:  # pragma: nocover
         route = Mount(path, app=app, name=name)
-        if getattr(app, "router", None) is not None:
-            self._merge_router_events(app.router)
+        self._merge_router_events(getattr(app, "router", None))
         self.routes.append(route)
 
     def host(
