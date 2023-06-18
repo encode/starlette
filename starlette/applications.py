@@ -237,6 +237,21 @@ class Starlette:
 
         return decorator
 
+    def include_router(
+        self,
+        router: Router,
+        *,
+        prefix: str = "",
+        include_in_schema: bool = True,
+        **kwargs: typing.Any,  # arguments to extend by inherits
+    ) -> None:
+        self.router.include_router(
+            router,
+            prefix=prefix,
+            include_in_schema=include_in_schema,
+            **kwargs,
+        )
+
     def middleware(self, middleware_type: str) -> typing.Callable:
         """
         We no longer document this decorator style API, and its usage is discouraged.

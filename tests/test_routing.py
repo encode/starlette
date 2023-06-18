@@ -1121,3 +1121,118 @@ def test_decorator_deprecations() -> None:
             ...  # pragma: nocover
 
         router.on_event("startup")(startup)
+
+
+def test_include_router() -> None:
+    base_router = Router()
+
+    nested_router = Router(
+        routes=[
+            Route("/home", endpoint=homepage, include_in_schema=True),
+            WebSocketRoute("/ws", endpoint=ws_helloworld)
+        ]
+    )
+    
+    base_router.include_router(nested_router, prefix="/nested", include_in_schema=False)
+
+    route1 = base_router.routes[0]
+    assert isinstance(route1, Route)
+    assert route1.path == "/nested/home"
+    assert route1.include_in_schema is False
+
+    route2 = base_router.routes[1]
+    assert isinstance(route2, WebSocketRoute)
+    assert route2.path == "/nested/ws"
+
+
+def test_router_nested_lifespan_state() -> None:
+    @contextlib.asynccontextmanager
+    async def lifespan(app: Starlette) -> typing.AsyncGenerator[None, None]:
+        app.state.app_startup = True
+        yield {"app": True}
+        app.state.app_shutdown = True
+
+    @contextlib.asynccontextmanager
+    async def router_lifespan(app: Starlette) -> typing.AsyncGenerator[None, None]:
+        app.state.router_startup = True
+        yield {"router": True}
+        app.state.router_shutdown = True
+
+    @contextlib.asynccontextmanager
+    async def subrouter_lifespan(app: Starlette) -> typing.AsyncGenerator[None, None]:
+        app.state.sub_router_startup = True
+        yield {"sub_router": True}
+        app.state.sub_router_shutdown = True
+
+    sub_router = Router(lifespan=subrouter_lifespan)
+
+    router = Router(lifespan=router_lifespan)
+    router.include_router(sub_router)
+
+    app = Starlette(lifespan=lifespan)
+    app.include_router(router)
+
+    with TestClient(app):
+        assert app.state.app_startup is True
+        assert app.state.router_startup is True
+        assert app.state.sub_router_startup is True
+
+    assert app.state.app_startup is True
+    assert app.state.router_startup is True
+    assert app.state.sub_router_startup is True
+    assert app.state.app_shutdown is True
+    assert app.state.router_shutdown is True
+    assert app.state.sub_router_shutdown is True
+
+
+def test_router_events() -> None:
+    app = Starlette()
+
+    with pytest.warns(DeprecationWarning):
+        @app.on_event("startup")
+        def app_startup() -> None:
+            app.state.app_startup = True
+
+    with pytest.warns(DeprecationWarning):
+        @app.on_event("shutdown")
+        def app_shutdown() -> None:
+            app.state.app_shutdown = True
+
+    router = Router()
+
+    with pytest.warns(DeprecationWarning):
+        @router.on_event("startup")
+        def router_startup() -> None:
+            app.state.router_startup = True
+
+    with pytest.warns(DeprecationWarning):
+        @router.on_event("shutdown")
+        def router_shutdown() -> None:
+            app.state.router_shutdown = True
+
+    sub_router = Router()
+
+    with pytest.warns(DeprecationWarning):
+        @sub_router.on_event("startup")
+        def sub_router_startup() -> None:
+            app.state.sub_router_startup = True
+
+    with pytest.warns(DeprecationWarning):
+        @sub_router.on_event("shutdown")
+        def sub_router_shutdown() -> None:
+            app.state.sub_router_shutdown = True
+
+    router.include_router(sub_router)
+    app.include_router(router)
+
+    with TestClient(app):
+        assert app.state.app_startup is True
+        assert app.state.router_startup is True
+        assert app.state.sub_router_startup is True
+
+    assert app.state.app_startup is True
+    assert app.state.router_startup is True
+    assert app.state.sub_router_startup is True
+    assert app.state.app_shutdown is True
+    assert app.state.router_shutdown is True
+    assert app.state.sub_router_shutdown is True

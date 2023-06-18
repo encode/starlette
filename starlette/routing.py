@@ -18,7 +18,7 @@ from starlette.exceptions import HTTPException
 from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, RedirectResponse
-from starlette.types import ASGIApp, Lifespan, Receive, Scope, Send
+from starlette.types import AppType, ASGIApp, Lifespan, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketClose
 
 
@@ -703,6 +703,64 @@ class Router:
         else:
             await send({"type": "lifespan.shutdown.complete"})
 
+    def include_router(
+        self,
+        router: "Router",
+        *,
+        prefix: str = "",
+        include_in_schema: bool = True,
+        **kwargs: typing.Any,  # arguments to extend by inherits
+    ) -> None:
+        if prefix:
+            assert prefix.startswith("/"), "A path prefix must start with '/'"
+            assert not prefix.endswith(
+                "/"
+            ), "A path prefix must not end with '/', as the routes will start with '/'"
+
+        for route in router.routes:
+            self._mv_router_route(
+                route=route,
+                prefix=prefix,
+                include_in_schema=include_in_schema,
+                **kwargs,
+            )
+
+        self._merge_router_events(router)
+
+    def _mv_router_route(
+        self,
+        route: BaseRoute,
+        *,
+        prefix: str = "",
+        include_in_schema: bool = True,
+        **kwargs: typing.Any,  # arguments to extend by inherits
+    ) -> None:
+        if isinstance(route, Route):
+            methods = list(route.methods or [])
+            self.add_route(
+                prefix + route.path,
+                route.endpoint,
+                methods=methods,
+                include_in_schema=route.include_in_schema and include_in_schema,
+                name=route.name,
+            )
+        elif isinstance(route, WebSocketRoute):
+            self.add_websocket_route(
+                prefix + route.path,
+                route.endpoint,
+                name=route.name,
+            )
+
+    def _merge_router_events(self, router: "Router") -> None:
+        for handler in router.on_startup:
+            self.add_event_handler("startup", handler)
+        for handler in router.on_shutdown:
+            self.add_event_handler("shutdown", handler)
+        self.lifespan_context = _merge_lifespan_context(
+            self.lifespan_context,
+            router.lifespan_context,
+        )
+
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         """
         The main entry point to the Router class.
@@ -869,3 +927,17 @@ class Router:
             return func
 
         return decorator
+
+
+def _merge_lifespan_context(
+    original_context: Lifespan[typing.Any], nested_context: Lifespan[typing.Any]
+) -> Lifespan[typing.Any]:
+    @asynccontextmanager
+    async def merged_lifespan(
+        app: AppType,
+    ) -> typing.AsyncIterator[typing.Mapping[str, typing.Any]]:
+        async with original_context(app) as maybe_self_context:
+            async with nested_context(app) as maybe_nested_context:
+                yield {**(maybe_self_context or {}), **(maybe_nested_context or {})}
+
+    return merged_lifespan
