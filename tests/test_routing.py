@@ -1147,19 +1147,19 @@ def test_include_router() -> None:
 
 def test_router_nested_lifespan_state() -> None:
     @contextlib.asynccontextmanager
-    async def lifespan(app: Starlette) -> typing.AsyncGenerator[None, None]:
+    async def lifespan(app: Starlette):
         app.state.app_startup = True
         yield {"app": True}
         app.state.app_shutdown = True
 
     @contextlib.asynccontextmanager
-    async def router_lifespan(app: Starlette) -> typing.AsyncGenerator[None, None]:
+    async def router_lifespan(app: Starlette):
         app.state.router_startup = True
         yield {"router": True}
         app.state.router_shutdown = True
 
     @contextlib.asynccontextmanager
-    async def subrouter_lifespan(app: Starlette) -> typing.AsyncGenerator[None, None]:
+    async def subrouter_lifespan(app: Starlette):
         app.state.sub_router_startup = True
         yield {"sub_router": True}
         app.state.sub_router_shutdown = True
