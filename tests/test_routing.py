@@ -1129,10 +1129,10 @@ def test_include_router() -> None:
     nested_router = Router(
         routes=[
             Route("/home", endpoint=homepage, include_in_schema=True),
-            WebSocketRoute("/ws", endpoint=ws_helloworld)
+            WebSocketRoute("/ws", endpoint=ws_helloworld),
         ]
     )
-    
+
     base_router.include_router(nested_router, prefix="/nested", include_in_schema=False)
 
     route1 = base_router.routes[0]
@@ -1189,11 +1189,13 @@ def test_router_events() -> None:
     app = Starlette()
 
     with pytest.warns(DeprecationWarning):
+
         @app.on_event("startup")
         def app_startup() -> None:
             app.state.app_startup = True
 
     with pytest.warns(DeprecationWarning):
+
         @app.on_event("shutdown")
         def app_shutdown() -> None:
             app.state.app_shutdown = True
@@ -1201,11 +1203,13 @@ def test_router_events() -> None:
     router = Router()
 
     with pytest.warns(DeprecationWarning):
+
         @router.on_event("startup")
         def router_startup() -> None:
             app.state.router_startup = True
 
     with pytest.warns(DeprecationWarning):
+
         @router.on_event("shutdown")
         def router_shutdown() -> None:
             app.state.router_shutdown = True
@@ -1213,11 +1217,13 @@ def test_router_events() -> None:
     sub_router = Router()
 
     with pytest.warns(DeprecationWarning):
+
         @sub_router.on_event("startup")
         def sub_router_startup() -> None:
             app.state.sub_router_startup = True
 
     with pytest.warns(DeprecationWarning):
+
         @sub_router.on_event("shutdown")
         def sub_router_shutdown() -> None:
             app.state.sub_router_shutdown = True
