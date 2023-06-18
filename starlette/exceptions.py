@@ -12,12 +12,15 @@ class HTTPException(Exception):
         detail: typing.Optional[str] = None,
         headers: typing.Optional[dict] = None,
     ) -> None:
+        super().__init__()
         if detail is None:
             detail = http.HTTPStatus(status_code).phrase
         self.status_code = status_code
         self.detail = detail
         self.headers = headers
-        super().__init__(detail)
+
+    def __str__(self) -> str:
+        return f"{self.status_code}: {self.detail}"
 
     def __repr__(self) -> str:
         class_name = self.__class__.__name__
@@ -26,9 +29,12 @@ class HTTPException(Exception):
 
 class WebSocketException(Exception):
     def __init__(self, code: int, reason: typing.Optional[str] = None) -> None:
+        super().__init__()
         self.code = code
         self.reason = reason or ""
-        super().__init__(self.reason)
+
+    def __str__(self) -> str:
+        return f"{self.code}: {self.reason}"
 
     def __repr__(self) -> str:
         class_name = self.__class__.__name__

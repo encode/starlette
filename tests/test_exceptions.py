@@ -145,17 +145,23 @@ def test_force_500_response(test_client_factory):
     assert response.text == ""
 
 
-def test_http_str_and_repr():
-    exception = HTTPException(404)
+def test_http_str():
+    code = 404
+    exception = HTTPException(code)
     should_detail = http.HTTPStatus(exception.status_code).phrase
-    assert str(exception) == should_detail
-    assert repr(exception) == (
-        f"HTTPException(status_code=404, detail='{should_detail}')"
-    )
+    assert str(exception) == f"{code}: {should_detail}"
     detail = "Not Found: foo"
-    exception = HTTPException(status_code=404, detail=detail)
-    assert str(exception) == detail
-    assert repr(exception) == (f"HTTPException(status_code=404, detail='{detail}')")
+    kwargs_exception = HTTPException(status_code=404, detail=detail)
+    assert str(kwargs_exception) == f"{code}: {detail}"
+
+
+def test_http_repr():
+    assert repr(HTTPException(404)) == (
+        "HTTPException(status_code=404, detail='Not Found')"
+    )
+    assert repr(HTTPException(404, detail="Not Found: foo")) == (
+        "HTTPException(status_code=404, detail='Not Found: foo')"
+    )
 
     class CustomHTTPException(HTTPException):
         pass
@@ -165,11 +171,17 @@ def test_http_str_and_repr():
     )
 
 
-def test_websocket_str_and_repr():
+def test_websocket_str():
+    code = 1008
     reason = "Policy Violation"
-    exception = WebSocketException(code=1008, reason=reason)
-    assert str(exception) == reason
-    assert repr(exception) == (f"WebSocketException(code=1008, reason='{reason}')")
+    exception = WebSocketException(code, reason)
+    assert str(exception) == f"{code}: {reason}"
+
+
+def test_websocket_repr():
+    assert repr(WebSocketException(1008, reason="Policy Violation")) == (
+        "WebSocketException(code=1008, reason='Policy Violation')"
+    )
 
     class CustomWebSocketException(WebSocketException):
         pass
