@@ -820,7 +820,8 @@ class Router:
         self, path: str, app: ASGIApp, name: typing.Optional[str] = None
     ) -> None:  # pragma: nocover
         route = Mount(path, app=app, name=name)
-        self._merge_router_events(app.router)
+        if getattr(app, "router", None) is not None:
+            self._merge_router_events(app.router)
         self.routes.append(route)
 
     def host(

@@ -1164,7 +1164,13 @@ def test_router_nested_lifespan_state() -> None:
         yield {"sub_router": True}
         app.state.sub_router_shutdown = True
 
-    sub_router = Router(lifespan=subrouter_lifespan)
+    def main(request: Request):
+        assert request.state.app
+        assert request.state.router
+        assert request.state.sub_router
+        return JSONResponse({"message": "Hello World"})
+
+    sub_router = Router(lifespan=subrouter_lifespan, routes=[Route("/", endpoint=main)])
 
     router = Router(lifespan=router_lifespan)
     router.include_router(sub_router)
@@ -1172,10 +1178,14 @@ def test_router_nested_lifespan_state() -> None:
     app = Starlette(lifespan=lifespan)
     app.include_router(router)
 
-    with TestClient(app):
+    with TestClient(app) as client:
         assert app.state.app_startup is True
         assert app.state.router_startup is True
         assert app.state.sub_router_startup is True
+
+        response = client.get("/")
+        assert response.status_code == 200, response.text
+        assert response.json() == {"message": "Hello World"}
 
     assert app.state.app_startup is True
     assert app.state.router_startup is True
