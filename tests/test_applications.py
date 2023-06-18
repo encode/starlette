@@ -15,6 +15,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.responses import JSONResponse, PlainTextResponse
 from starlette.routing import Host, Mount, Route, Router, WebSocketRoute
 from starlette.staticfiles import StaticFiles
+from starlette.testclient import TestClient
 from starlette.types import ASGIApp
 from starlette.websockets import WebSocket
 
@@ -279,6 +280,41 @@ def test_app_mount(tmpdir, test_client_factory):
     response = client.post("/static/example.txt")
     assert response.status_code == 405
     assert response.text == "Method Not Allowed"
+
+
+def test_app_mount_events():
+    app = Starlette()
+    nested_app = Starlette()
+
+    with pytest.warns(DeprecationWarning):
+
+        @nested_app.on_event("startup")
+        async def startup():
+            app.state.nested_started = True
+
+    app.mount(path="/", app=nested_app)
+
+    with TestClient(app):
+        assert app.state.nested_started is True
+
+
+def test_app_mount_lifespan():
+    app = Starlette()
+
+    @asynccontextmanager
+    async def lifespan(app: Starlette):
+        app.state.nested_started = True
+        yield {"router": True}
+        app.state.nested_shutdown = True
+
+    nested_app = Starlette(lifespan=lifespan)
+    app.mount(path="/", app=nested_app)
+
+    with TestClient(app):
+        assert app.state.nested_started is True
+
+    assert app.state.nested_started is True
+    assert app.state.nested_shutdown is True
 
 
 def test_app_debug(test_client_factory):
