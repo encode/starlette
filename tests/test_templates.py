@@ -129,7 +129,8 @@ def test_templates_with_directories(tmp_path: Path, test_client_factory):
 
 def test_templates_require_directory_or_environment():
     with pytest.raises(
-        AssertionError, match="either 'directory' or 'env' arguments must be passed"
+        RuntimeError,
+        match="Either 'directory' or 'env' must be passed to Jinja2Templates",
     ):
         Jinja2Templates()  # type: ignore[call-overload]
 
@@ -153,8 +154,3 @@ def test_templates_with_environment(tmpdir):
     templates = Jinja2Templates(env=env)
     template = templates.get_template("index.html")
     assert template.render({}) == "Hello"
-
-
-def test_templates_with_environment_options_emit_warning(tmpdir):
-    with pytest.warns(DeprecationWarning):
-        Jinja2Templates(str(tmpdir), autoescape=True)

@@ -1,5 +1,4 @@
 import typing
-import warnings
 from os import PathLike
 
 from starlette.background import BackgroundTask
@@ -20,7 +19,11 @@ try:
     else:  # pragma: nocover
         pass_context = jinja2.contextfunction  # type: ignore[attr-defined]
 except ModuleNotFoundError:  # pragma: nocover
-    jinja2 = None  # type: ignore[assignment]
+    raise RuntimeError(
+        "Jinja2Templates requires the jinja2 package to be installed.\n"
+        "You can install this with:\n"
+        "    $ pip install jinja2\n"
+    )
 
 
 class _TemplateResponse(Response):
@@ -75,7 +78,6 @@ class Jinja2Templates:
         context_processors: typing.Optional[
             typing.List[typing.Callable[[Request], typing.Dict[str, typing.Any]]]
         ] = None,
-        **env_options: typing.Any,
     ) -> None:
         ...
 
@@ -93,34 +95,29 @@ class Jinja2Templates:
     def __init__(
         self,
         directory: typing.Union[
-            str, PathLike, typing.Sequence[typing.Union[str, PathLike]], None
+            str, PathLike[str], typing.Sequence[typing.Union[str, PathLike[str]]], None
         ] = None,
         *,
         context_processors: typing.Optional[
             typing.List[typing.Callable[[Request], typing.Dict[str, typing.Any]]]
         ] = None,
         env: typing.Optional["jinja2.Environment"] = None,
-        **env_options: typing.Any,
     ) -> None:
-        if env_options:
-            warnings.warn(
-                "Extra environment options are deprecated. Use a preconfigured jinja2.Environment instead.",  # noqa: E501
-                DeprecationWarning,
-            )
-        assert jinja2 is not None, "jinja2 must be installed to use Jinja2Templates"
-        assert directory or env, "either 'directory' or 'env' arguments must be passed"
         self.context_processors = context_processors or []
         if directory is not None:
-            self.env = self._create_env(directory, **env_options)
+            self.env = self._create_env(directory)
         elif env is not None:
             self.env = env
+        else:
+            raise RuntimeError(
+                "Either 'directory' or 'env' must be passed to Jinja2Templates"
+            )
 
     def _create_env(
         self,
         directory: typing.Union[
-            str, PathLike, typing.Sequence[typing.Union[str, PathLike]]
+            str, PathLike[str], typing.Sequence[typing.Union[str, PathLike[str]]]
         ],
-        **env_options: typing.Any,
     ) -> "jinja2.Environment":
         @pass_context
         # TODO: Make `__name` a positional-only argument when we drop Python 3.7
@@ -130,10 +127,7 @@ class Jinja2Templates:
             return request.url_for(__name, **path_params)
 
         loader = jinja2.FileSystemLoader(directory)
-        env_options.setdefault("loader", loader)
-        env_options.setdefault("autoescape", True)
-
-        env = jinja2.Environment(**env_options)
+        env = jinja2.Environment(loader=loader, autoescape=True)
         env.globals["url_for"] = url_for
         return env
 
