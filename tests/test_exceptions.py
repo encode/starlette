@@ -172,19 +172,6 @@ def test_websocket_repr():
     )
 
 
-def test_exception_middleware_deprecation() -> None:
-    # this test should be removed once the deprecation shim is removed
-    with pytest.warns(DeprecationWarning):
-        from starlette.exceptions import ExceptionMiddleware  # noqa: F401
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
-        import starlette.exceptions
-
-    with pytest.warns(DeprecationWarning):
-        starlette.exceptions.ExceptionMiddleware
-
-
 def test_request_in_app_and_handler_is_the_same_object(client) -> None:
     response = client.post("/consume_body_in_endpoint_and_handler", content=b"Hello!")
     assert response.status_code == 422
