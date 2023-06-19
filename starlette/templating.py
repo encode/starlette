@@ -21,7 +21,7 @@ try:
 except ModuleNotFoundError:  # pragma: nocover
     raise RuntimeError(
         "Jinja2Templates requires the jinja2 package to be installed.\n"
-        "You can install this with:\n"
+        "You can install it with:\n"
         "    $ pip install jinja2\n"
     )
 
@@ -95,7 +95,7 @@ class Jinja2Templates:
     def __init__(
         self,
         directory: typing.Union[
-            str, PathLike[str], typing.Sequence[typing.Union[str, PathLike[str]]], None
+            str, PathLike, typing.Sequence[typing.Union[str, PathLike]], None
         ] = None,
         *,
         context_processors: typing.Optional[
@@ -116,7 +116,7 @@ class Jinja2Templates:
     def _create_env(
         self,
         directory: typing.Union[
-            str, PathLike[str], typing.Sequence[typing.Union[str, PathLike[str]]]
+            str, PathLike, typing.Sequence[typing.Union[str, PathLike]]
         ],
     ) -> "jinja2.Environment":
         @pass_context
