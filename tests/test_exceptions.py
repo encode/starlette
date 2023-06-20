@@ -146,13 +146,9 @@ def test_force_500_response(test_client_factory):
 
 
 def test_http_str():
-    code = 404
-    exception = HTTPException(code)
-    should_detail = http.HTTPStatus(exception.status_code).phrase
-    assert str(exception) == f"{code}: {should_detail}"
-    detail = "Not Found: foo"
-    kwargs_exception = HTTPException(status_code=404, detail=detail)
-    assert str(kwargs_exception) == f"{code}: {detail}"
+    assert str(HTTPException(status_code=404)) == "404: Not Found"
+    assert str(HTTPException(404, "Not Found: foo")) == "404: Not Found: foo"
+    assert str(HTTPException(404, headers={"key": "value"})) == "404: Not Found"
 
 
 def test_http_repr():
@@ -172,10 +168,8 @@ def test_http_repr():
 
 
 def test_websocket_str():
-    code = 1008
-    reason = "Policy Violation"
-    exception = WebSocketException(code, reason)
-    assert str(exception) == f"{code}: {reason}"
+    assert str(WebSocketException(1008)) == "1008: "
+    assert str(WebSocketException(1008, "Policy Violation")) == "1008: Policy Violation"
 
 
 def test_websocket_repr():

@@ -12,7 +12,6 @@ class HTTPException(Exception):
         detail: typing.Optional[str] = None,
         headers: typing.Optional[dict] = None,
     ) -> None:
-        super().__init__()
         if detail is None:
             detail = http.HTTPStatus(status_code).phrase
         self.status_code = status_code
@@ -29,7 +28,6 @@ class HTTPException(Exception):
 
 class WebSocketException(Exception):
     def __init__(self, code: int, reason: typing.Optional[str] = None) -> None:
-        super().__init__()
         self.code = code
         self.reason = reason or ""
 
