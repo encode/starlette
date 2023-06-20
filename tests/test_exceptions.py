@@ -1,4 +1,3 @@
-import http
 import warnings
 
 import pytest
