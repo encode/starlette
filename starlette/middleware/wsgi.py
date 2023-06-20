@@ -132,7 +132,11 @@ class WSGIResponder:
                 },
             )
 
-    def wsgi(self, environ: typing.Dict[str, typing.Any], start_response: typing.Callable[..., typing.Any]) -> None:
+    def wsgi(
+        self,
+        environ: typing.Dict[str, typing.Any],
+        start_response: typing.Callable[..., typing.Any],
+    ) -> None:
         for chunk in self.app(environ, start_response):
             anyio.from_thread.run(
                 self.stream_send.send,

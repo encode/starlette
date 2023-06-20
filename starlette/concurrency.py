@@ -16,7 +16,11 @@ P = ParamSpec("P")
 _CoroutineAny = typing.Coroutine[typing.Any, typing.Any, typing.Any]
 
 
-async def run_until_first_complete(*args: typing.Tuple[typing.Callable[..., _CoroutineAny], typing.Dict[str, typing.Any]]) -> None:
+async def run_until_first_complete(
+    *args: typing.Tuple[
+        typing.Callable[..., _CoroutineAny], typing.Dict[str, typing.Any]
+    ]
+) -> None:
     warnings.warn(
         "run_until_first_complete is deprecated "
         "and will be removed in a future version.",

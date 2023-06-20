@@ -13,7 +13,9 @@ class EnvironError(Exception):
 
 
 class Environ(MutableMapping[typing.Any, typing.Any]):
-    def __init__(self, environ: typing.MutableMapping[typing.Any, typing.Any] = os.environ):
+    def __init__(
+        self, environ: typing.MutableMapping[typing.Any, typing.Any] = os.environ
+    ):
         self._environ = environ
         self._has_been_read: typing.Set[typing.Any] = set()
 
@@ -129,7 +131,10 @@ class Config:
         return file_values
 
     def _perform_cast(
-        self, key: str, value: typing.Any, cast: typing.Optional[typing.Callable[[typing.Any], typing.Any]] = None
+        self,
+        key: str,
+        value: typing.Any,
+        cast: typing.Optional[typing.Callable[[typing.Any], typing.Any]] = None,
     ) -> typing.Any:
         if cast is None or value is None:
             return value
