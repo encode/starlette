@@ -818,9 +818,7 @@ class Router:
         methods: typing.Optional[typing.List[str]] = None,
         name: typing.Optional[str] = None,
         include_in_schema: bool = True,
-    ) -> typing.Callable[
-        [typing.Callable[..., typing.Any]], typing.Callable[..., typing.Any]
-    ]:
+    ) -> typing.Callable:  # type: ignore[type-arg]
         """
         We no longer document this decorator style API, and its usage is discouraged.
         Instead you should use the following approach:
@@ -834,9 +832,7 @@ class Router:
             DeprecationWarning,
         )
 
-        def decorator(
-            func: typing.Callable[..., typing.Any]
-        ) -> typing.Callable[..., typing.Any]:
+        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]
             self.add_route(
                 path,
                 func,
@@ -850,9 +846,7 @@ class Router:
 
     def websocket_route(
         self, path: str, name: typing.Optional[str] = None
-    ) -> typing.Callable[
-        [typing.Callable[..., typing.Any]], typing.Callable[..., typing.Any]
-    ]:
+    ) -> typing.Callable:  # type: ignore[type-arg]
         """
         We no longer document this decorator style API, and its usage is discouraged.
         Instead you should use the following approach:
@@ -866,9 +860,7 @@ class Router:
             DeprecationWarning,
         )
 
-        def decorator(
-            func: typing.Callable[..., typing.Any]
-        ) -> typing.Callable[..., typing.Any]:
+        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]
             self.add_websocket_route(path, func, name=name)
             return func
 
@@ -884,20 +876,14 @@ class Router:
         else:
             self.on_shutdown.append(func)
 
-    def on_event(
-        self, event_type: str
-    ) -> typing.Callable[
-        [typing.Callable[[], typing.Any]], typing.Callable[[], typing.Any]
-    ]:
+    def on_event(self, event_type: str) -> typing.Callable:  # type: ignore[type-arg]
         warnings.warn(
             "The `on_event` decorator is deprecated, and will be removed in version 1.0.0. "  # noqa: E501
             "Refer to https://www.starlette.io/lifespan/ for recommended approach.",
             DeprecationWarning,
         )
 
-        def decorator(
-            func: typing.Callable[[], typing.Any]
-        ) -> typing.Callable[[], typing.Any]:
+        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]
             self.add_event_handler(event_type, func)
             return func
 

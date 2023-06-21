@@ -58,8 +58,12 @@ class Starlette:
                 ],
             ]
         ] = None,
-        on_startup: typing.Optional[typing.Sequence[typing.Callable]] = None,
-        on_shutdown: typing.Optional[typing.Sequence[typing.Callable]] = None,
+        on_startup: typing.Optional[
+            typing.Sequence[typing.Callable[[], typing.Any]]
+        ] = None,
+        on_shutdown: typing.Optional[
+            typing.Sequence[typing.Callable[[], typing.Any]]
+        ] = None,
         lifespan: typing.Optional[Lifespan["AppType"]] = None,
     ) -> None:
         # The lifespan context function is a newer style that replaces
@@ -120,7 +124,9 @@ class Starlette:
             self.middleware_stack = self.build_middleware_stack()
         await self.middleware_stack(scope, receive, send)
 
-    def on_event(self, event_type: str) -> typing.Callable:  # pragma: nocover
+    def on_event(
+        self, event_type: str
+    ) -> typing.Callable:  # pragma: nocover  # type: ignore[type-arg]
         return self.router.on_event(event_type)
 
     def mount(
@@ -169,14 +175,14 @@ class Starlette:
 
     def exception_handler(
         self, exc_class_or_status_code: typing.Union[int, typing.Type[Exception]]
-    ) -> typing.Callable:
+    ) -> typing.Callable:  # type: ignore[type-arg]
         warnings.warn(
             "The `exception_handler` decorator is deprecated, and will be removed in version 1.0.0. "  # noqa: E501
             "Refer to https://www.starlette.io/exceptions/ for the recommended approach.",  # noqa: E501
             DeprecationWarning,
         )
 
-        def decorator(func: typing.Callable) -> typing.Callable:
+        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]
             self.add_exception_handler(exc_class_or_status_code, func)
             return func
 
@@ -188,7 +194,7 @@ class Starlette:
         methods: typing.Optional[typing.List[str]] = None,
         name: typing.Optional[str] = None,
         include_in_schema: bool = True,
-    ) -> typing.Callable:
+    ) -> typing.Callable:  # type: ignore[type-arg]
         """
         We no longer document this decorator style API, and its usage is discouraged.
         Instead you should use the following approach:
@@ -202,7 +208,7 @@ class Starlette:
             DeprecationWarning,
         )
 
-        def decorator(func: typing.Callable) -> typing.Callable:
+        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]
             self.router.add_route(
                 path,
                 func,
@@ -216,7 +222,7 @@ class Starlette:
 
     def websocket_route(
         self, path: str, name: typing.Optional[str] = None
-    ) -> typing.Callable:
+    ) -> typing.Callable:  # type: ignore[type-arg]
         """
         We no longer document this decorator style API, and its usage is discouraged.
         Instead you should use the following approach:
@@ -230,13 +236,13 @@ class Starlette:
             DeprecationWarning,
         )
 
-        def decorator(func: typing.Callable) -> typing.Callable:
+        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]
             self.router.add_websocket_route(path, func, name=name)
             return func
 
         return decorator
 
-    def middleware(self, middleware_type: str) -> typing.Callable:
+    def middleware(self, middleware_type: str) -> typing.Callable:  # type: ignore[type-arg]
         """
         We no longer document this decorator style API, and its usage is discouraged.
         Instead you should use the following approach:
@@ -253,7 +259,7 @@ class Starlette:
             middleware_type == "http"
         ), 'Currently only middleware("http") is supported.'
 
-        def decorator(func: typing.Callable) -> typing.Callable:
+        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]
             self.add_middleware(BaseHTTPMiddleware, dispatch=func)
             return func
 
