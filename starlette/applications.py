@@ -119,7 +119,7 @@ class Starlette:
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         scope["app"] = self
-        scope["request_max_size"] = self.request_max_size
+        scope["starlette.request_max_size"] = self.request_max_size
         if self.middleware_stack is None:
             self.middleware_stack = self.build_middleware_stack()
         await self.middleware_stack(scope, receive, send)

@@ -276,7 +276,9 @@ class Route(BaseRoute):
             await response(scope, receive, send)
         else:
             bytes_read = 0
-            max_body_size = self.request_max_size or scope.get("request_max_size")
+            max_body_size = self.request_max_size or scope.get(
+                "starlette.request_max_size"
+            )
 
             async def receive_wrapper() -> Message:
                 nonlocal bytes_read
