@@ -142,17 +142,16 @@ class Jinja2Templates:
 
     def TemplateResponse(
         self,
+        request: Request,
         name: str,
-        context: dict,
+        context: typing.Optional[dict] = None,
         status_code: int = 200,
         headers: typing.Optional[typing.Mapping[str, str]] = None,
         media_type: typing.Optional[str] = None,
         background: typing.Optional[BackgroundTask] = None,
     ) -> _TemplateResponse:
-        if "request" not in context:
-            raise ValueError('context must include a "request" key')
-
-        request = typing.cast(Request, context["request"])
+        context = context or {}
+        context.setdefault("request", request)
         for context_processor in self.context_processors:
             context.update(context_processor(request))
 

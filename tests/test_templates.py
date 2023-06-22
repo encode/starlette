@@ -17,7 +17,7 @@ def test_templates(tmpdir, test_client_factory):
         file.write("<html>Hello, <a href='{{ url_for('homepage') }}'>world</a></html>")
 
     async def homepage(request):
-        return templates.TemplateResponse("index.html", {"request": request})
+        return templates.TemplateResponse(request, "index.html")
 
     app = Starlette(
         debug=True,
@@ -32,18 +32,12 @@ def test_templates(tmpdir, test_client_factory):
     assert set(response.context.keys()) == {"request"}
 
 
-def test_template_response_requires_request(tmpdir):
-    templates = Jinja2Templates(str(tmpdir))
-    with pytest.raises(ValueError):
-        templates.TemplateResponse("", {})
-
-
 def test_calls_context_processors(tmp_path, test_client_factory):
     path = tmp_path / "index.html"
     path.write_text("<html>Hello {{ username }}</html>")
 
     async def homepage(request):
-        return templates.TemplateResponse("index.html", {"request": request})
+        return templates.TemplateResponse(request, "index.html")
 
     def hello_world_processor(request):
         return {"username": "World"}
@@ -72,7 +66,7 @@ def test_template_with_middleware(tmpdir, test_client_factory):
         file.write("<html>Hello, <a href='{{ url_for('homepage') }}'>world</a></html>")
 
     async def homepage(request):
-        return templates.TemplateResponse("index.html", {"request": request})
+        return templates.TemplateResponse(request, "index.html")
 
     class CustomMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request, call_next):
@@ -99,7 +93,7 @@ def test_templates_with_directories(tmp_path: Path, test_client_factory):
     template_a.write_text("<html><a href='{{ url_for('page_a') }}'></a> a</html>")
 
     async def page_a(request):
-        return templates.TemplateResponse("template_a.html", {"request": request})
+        return templates.TemplateResponse(request, "template_a.html")
 
     dir_b = tmp_path.resolve() / "b"
     dir_b.mkdir()
@@ -107,7 +101,7 @@ def test_templates_with_directories(tmp_path: Path, test_client_factory):
     template_b.write_text("<html><a href='{{ url_for('page_b') }}'></a> b</html>")
 
     async def page_b(request):
-        return templates.TemplateResponse("template_b.html", {"request": request})
+        return templates.TemplateResponse(request, "template_b.html")
 
     app = Starlette(
         debug=True,
