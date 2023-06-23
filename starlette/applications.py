@@ -41,7 +41,9 @@ class Starlette:
     standard functions, or async functions.
     * **lifespan** - A lifespan context function, which can be used to perform
     startup and shutdown tasks. This is a newer style that replaces the
-    `on_startup` and `on_shutdown` handlers. Use one or the other, not both.
+    `on_startup` and `on_shutdown` handlers. Use one or the other, not both. If
+    both lifespan and on_startup/on_shutdown are used, only lifespan would be
+    used.
     """
 
     def __init__(
