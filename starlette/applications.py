@@ -9,7 +9,7 @@ from starlette.middleware.exceptions import ExceptionMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import BaseRoute, Router
-from starlette.types import ASGIApp, Lifespan, Receive, Scope, Send, ExceptionHandler
+from starlette.types import ASGIApp, ExceptionHandler, Lifespan, Receive, Scope, Send
 
 AppType = typing.TypeVar("AppType", bound="Starlette")
 
@@ -166,7 +166,10 @@ class Starlette:
         )
 
     def add_websocket_route(
-        self, path: str, route: typing.Callable[..., typing.Any], name: typing.Optional[str] = None
+        self,
+        path: str,
+        route: typing.Callable[..., typing.Any],
+        name: typing.Optional[str] = None,
     ) -> None:  # pragma: no cover
         self.router.add_websocket_route(path, route, name=name)
 
@@ -179,7 +182,7 @@ class Starlette:
             DeprecationWarning,
         )
 
-        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]
+        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]  # noqa: E501
             self.add_exception_handler(exc_class_or_status_code, func)
             return func
 
@@ -205,7 +208,7 @@ class Starlette:
             DeprecationWarning,
         )
 
-        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]
+        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]  # noqa: E501
             self.router.add_route(
                 path,
                 func,
@@ -233,13 +236,13 @@ class Starlette:
             DeprecationWarning,
         )
 
-        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]
+        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]  # noqa: E501
             self.router.add_websocket_route(path, func, name=name)
             return func
 
         return decorator
 
-    def middleware(self, middleware_type: str) -> typing.Callable:  # type: ignore[type-arg]
+    def middleware(self, middleware_type: str) -> typing.Callable:  # type: ignore[type-arg]  # noqa: E501
         """
         We no longer document this decorator style API, and its usage is discouraged.
         Instead you should use the following approach:
@@ -256,7 +259,7 @@ class Starlette:
             middleware_type == "http"
         ), 'Currently only middleware("http") is supported.'
 
-        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]
+        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]  # noqa: E501
             self.add_middleware(BaseHTTPMiddleware, dispatch=func)
             return func
 

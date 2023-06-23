@@ -19,4 +19,6 @@ StatefulLifespan = typing.Callable[
 ]
 Lifespan = typing.Union[StatelessLifespan[AppType], StatefulLifespan[AppType]]
 
-ExceptionHandler = typing.Callable[[Request, Exception], typing.Union[Response, typing.Awaitable[Response]]]
+ExceptionHandler = typing.Callable[
+    [Request, Exception], typing.Union[Response, typing.Awaitable[Response]]
+]

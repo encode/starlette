@@ -832,7 +832,7 @@ class Router:
             DeprecationWarning,
         )
 
-        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]
+        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]  # noqa: E501
             self.add_route(
                 path,
                 func,
@@ -860,7 +860,7 @@ class Router:
             DeprecationWarning,
         )
 
-        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]
+        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]  # noqa: E501
             self.add_websocket_route(path, func, name=name)
             return func
 
@@ -883,7 +883,7 @@ class Router:
             DeprecationWarning,
         )
 
-        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]
+        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]  # noqa: E501
             self.add_event_handler(event_type, func)
             return func
 
