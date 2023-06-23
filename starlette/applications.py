@@ -9,7 +9,7 @@ from starlette.middleware.exceptions import ExceptionMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import BaseRoute, Router
-from starlette.types import ASGIApp, Lifespan, Receive, Scope, Send
+from starlette.types import ASGIApp, Lifespan, Receive, Scope, Send, ExceptionHandler
 
 AppType = typing.TypeVar("AppType", bound="Starlette")
 
@@ -52,10 +52,7 @@ class Starlette:
         exception_handlers: typing.Optional[
             typing.Mapping[
                 typing.Any,
-                typing.Callable[
-                    [Request, Exception],
-                    typing.Union[Response, typing.Awaitable[Response]],
-                ],
+                ExceptionHandler,
             ]
         ] = None,
         on_startup: typing.Optional[
@@ -126,7 +123,7 @@ class Starlette:
 
     def on_event(
         self, event_type: str
-    ) -> typing.Callable:  # pragma: nocover  # type: ignore[type-arg]
+    ) -> typing.Callable:  # type: ignore[type-arg]  # pragma: nocover
         return self.router.on_event(event_type)
 
     def mount(
@@ -147,19 +144,19 @@ class Starlette:
     def add_exception_handler(
         self,
         exc_class_or_status_code: typing.Union[int, typing.Type[Exception]],
-        handler: typing.Callable,
+        handler: ExceptionHandler,
     ) -> None:  # pragma: no cover
         self.exception_handlers[exc_class_or_status_code] = handler
 
     def add_event_handler(
-        self, event_type: str, func: typing.Callable
+        self, event_type: str, func: typing.Callable  # type: ignore[type-arg]
     ) -> None:  # pragma: no cover
         self.router.add_event_handler(event_type, func)
 
     def add_route(
         self,
         path: str,
-        route: typing.Callable,
+        route: typing.Callable[..., typing.Any],
         methods: typing.Optional[typing.List[str]] = None,
         name: typing.Optional[str] = None,
         include_in_schema: bool = True,
@@ -169,7 +166,7 @@ class Starlette:
         )
 
     def add_websocket_route(
-        self, path: str, route: typing.Callable, name: typing.Optional[str] = None
+        self, path: str, route: typing.Callable[..., typing.Any], name: typing.Optional[str] = None
     ) -> None:  # pragma: no cover
         self.router.add_websocket_route(path, route, name=name)
 

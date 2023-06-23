@@ -1,5 +1,8 @@
 import typing
 
+from .requests import Request
+from .responses import Response
+
 AppType = typing.TypeVar("AppType")
 
 Scope = typing.MutableMapping[str, typing.Any]
@@ -15,3 +18,5 @@ StatefulLifespan = typing.Callable[
     [AppType], typing.AsyncContextManager[typing.Mapping[str, typing.Any]]
 ]
 Lifespan = typing.Union[StatelessLifespan[AppType], StatefulLifespan[AppType]]
+
+ExceptionHandler = typing.Callable[[Request, Exception], typing.Union[Response, typing.Awaitable[Response]]]
