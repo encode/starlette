@@ -610,6 +610,12 @@ class Router:
         if lifespan is None:
             self.lifespan_context: Lifespan = _DefaultLifespan(self)
 
+        if (on_startup or on_shutdown) and lifespan is not None:
+            warnings.warn(
+                "Lifespan cannot be used together with on_startup, on_shutdown.  The "
+                "on_startup, on_shutdown parameters will be ignored!"
+            )
+
         elif inspect.isasyncgenfunction(lifespan):
             warnings.warn(
                 "async generator function lifespans are deprecated, "
