@@ -608,8 +608,9 @@ class Router:
             )
             if lifespan:
                 warnings.warn(
-                    "The `lifespan` parameter cannot be used with `on_startup` or `on_shutdown`. "
-                    "Both `on_startup` and `on_shutdown` will be ignored."
+                    "The `lifespan` parameter cannot be used with `on_startup` or "
+                    "`on_shutdown`. Both `on_startup` and `on_shutdown` will be "
+                    "ignored."
                 )
 
         if lifespan is None:
