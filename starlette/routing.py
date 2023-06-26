@@ -606,15 +606,14 @@ class Router:
                 "See more about it on https://www.starlette.io/lifespan/.",
                 DeprecationWarning,
             )
+            if lifespan:
+                warnings.warn(
+                    "The `lifespan` parameter cannot be used with `on_startup` or `on_shutdown`. "
+                    "Both `on_startup` and `on_shutdown` will be ignored."
+                )
 
         if lifespan is None:
             self.lifespan_context: Lifespan = _DefaultLifespan(self)
-
-        if (on_startup or on_shutdown) and lifespan is not None:
-            warnings.warn(
-                "Lifespan cannot be used together with on_startup, on_shutdown.  The "
-                "on_startup, on_shutdown parameters will be ignored!"
-            )
 
         elif inspect.isasyncgenfunction(lifespan):
             warnings.warn(
