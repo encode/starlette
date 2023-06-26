@@ -664,7 +664,10 @@ def test_lifespan_with_on_events():
 
     with pytest.warns(
         UserWarning,
-        match="The `lifespan` parameter cannot be used with `on_startup` or `on_shutdown`.",
+        match=(
+            "The `lifespan` parameter cannot be used with `on_startup` or "
+            "`on_shutdown`."
+        ),
     ):
         Router(
             on_startup=[run_startup],
