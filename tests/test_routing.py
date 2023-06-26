@@ -648,6 +648,31 @@ def test_lifespan_async(test_client_factory):
     assert shutdown_complete
 
 
+def test_lifespan_with_on_events():
+    @contextlib.asynccontextmanager
+    async def lifespan(app):
+        yield {"foo": "bar"}
+
+    def run_startup():
+        pass
+
+    def run_shutdown():
+        pass
+
+    def hello_world(request):
+        return PlainTextResponse("hello, world")
+
+    with pytest.warns(
+        UserWarning, match="Lifespan cannot be used together with on_startup"
+    ):
+        Router(
+            on_startup=[run_startup],
+            on_shutdown=[run_shutdown],
+            lifespan=lifespan,
+            routes=[Route("/", hello_world)],
+        )
+
+
 def test_lifespan_sync(test_client_factory):
     startup_complete = False
     shutdown_complete = False
