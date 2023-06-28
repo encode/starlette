@@ -163,7 +163,7 @@ def test_templates_with_kwargs_only(tmpdir, test_client_factory):
         file.write("value: {{ a }}")
     templates = Jinja2Templates(directory=str(tmpdir))
 
-    spy = mock.AsyncMock()
+    spy = mock.MagicMock()
 
     def page(request):
         return templates.TemplateResponse(
@@ -240,7 +240,7 @@ def test_templates_warns_when_first_argument_isnot_request(tmpdir, test_client_f
         file.write("value: {{ a }}")
     templates = Jinja2Templates(directory=str(tmpdir))
 
-    spy = mock.AsyncMock()
+    spy = mock.MagicMock()
 
     def page(request):
         return templates.TemplateResponse(
@@ -271,7 +271,7 @@ def test_templates_when_first_argument_is_request(tmpdir, test_client_factory):
         file.write("value: {{ a }}")
     templates = Jinja2Templates(directory=str(tmpdir))
 
-    spy = mock.AsyncMock()
+    spy = mock.MagicMock()
 
     def page(request):
         return templates.TemplateResponse(
