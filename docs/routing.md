@@ -331,3 +331,12 @@ The `endpoint` argument can be one of:
 
 * An async function, which accepts a single `websocket` argument.
 * A class that implements the ASGI interface, such as Starlette's [WebSocketEndpoint](endpoints.md#websocketendpoint).
+
+
+## Request body size limit
+
+Pass `request_max_size` to override application-wide request body limit for a particulal route:
+
+```python
+Route('/', homepage, request_max_size=1024**8), # 8mb
+```
