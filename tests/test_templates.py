@@ -264,7 +264,7 @@ def test_templates_warns_when_first_argument_isnot_request(tmpdir, test_client_f
     spy.assert_called()
 
 
-def test_templates_warns_when_first_argument_is_request(tmpdir, test_client_factory):
+def test_templates_when_first_argument_is_request(tmpdir, test_client_factory):
     # MAINTAINERS: remove after 1.0
     path = os.path.join(tmpdir, "index.html")
     with open(path, "w") as file:
