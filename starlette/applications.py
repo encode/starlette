@@ -42,6 +42,7 @@ class Starlette:
     * **lifespan** - A lifespan context function, which can be used to perform
     startup and shutdown tasks. This is a newer style that replaces the
     `on_startup` and `on_shutdown` handlers. Use one or the other, not both.
+    * **request_max_size** - Integer (in bytes) that sets the maximum request body size. 
     """
 
     def __init__(
