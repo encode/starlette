@@ -648,16 +648,16 @@ def test_lifespan_async(test_client_factory):
     assert shutdown_complete
 
 
-def test_lifespan_with_on_events(test_client_factory):
+def test_lifespan_with_on_events(test_client_factory: typing.Callable[..., TestClient]):
     lifespan_called = False
     startup_called = False
     shutdown_called = False
 
     @contextlib.asynccontextmanager
-    async def lifespan(app):
+    async def lifespan(app: Starlette):
         nonlocal lifespan_called
         lifespan_called = True
-        yield {"foo": "bar"}
+        yield
 
     # We do not expected, neither of run_startup nor run_shutdown to be called
     # we thus mark them as #pragma: no cover, to fulfill test coverage
@@ -669,28 +669,26 @@ def test_lifespan_with_on_events(test_client_factory):
         nonlocal shutdown_called
         shutdown_called = True
 
-    def hello_world(request):
-        return PlainTextResponse("hello, world")
-
     with pytest.warns(
         UserWarning,
         match=(
-            "The `lifespan` parameter cannot be used with `on_startup` or "
-            "`on_shutdown`."
+            "The `lifespan` parameter cannot be used with `on_startup` or `on_shutdown`."  # noqa: E501
         ),
     ):
         app = Router(
-            on_startup=[run_startup],
-            on_shutdown=[run_shutdown],
-            lifespan=lifespan,
-            routes=[Route("/", hello_world)],
+            on_startup=[run_startup], on_shutdown=[run_shutdown], lifespan=lifespan
         )
+
+        assert not lifespan_called
         assert not startup_called
         assert not shutdown_called
-        with test_client_factory(app) as client:
-            assert lifespan_called
-            assert not startup_called
-            client.get("/")
+
+        # Triggers the lifespan events
+        with test_client_factory(app):
+            ...
+
+        assert lifespan_called
+        assert not startup_called
         assert not shutdown_called
 
 
