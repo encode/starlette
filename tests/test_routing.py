@@ -648,16 +648,10 @@ def test_lifespan_async(test_client_factory):
     assert shutdown_complete
 
 
-def test_lifespan_with_on_events():
+def test_lifespan_with_on_events(test_client_factory):
     @contextlib.asynccontextmanager
     async def lifespan(app):
         yield {"foo": "bar"}
-
-    def run_startup():
-        pass
-
-    def run_shutdown():
-        pass
 
     def hello_world(request):
         return PlainTextResponse("hello, world")
@@ -669,12 +663,15 @@ def test_lifespan_with_on_events():
             "`on_shutdown`."
         ),
     ):
-        Router(
-            on_startup=[run_startup],
-            on_shutdown=[run_shutdown],
+        app = Router(
+            on_startup=[lambda _: True],
+            on_shutdown=[lambda _: True],
             lifespan=lifespan,
             routes=[Route("/", hello_world)],
         )
+        client = test_client_factory(app)
+        response = client.get("/")
+        assert response.status_code == 200, response.content
 
 
 def test_lifespan_sync(test_client_factory):
