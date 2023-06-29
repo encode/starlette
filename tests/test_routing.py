@@ -649,9 +649,25 @@ def test_lifespan_async(test_client_factory):
 
 
 def test_lifespan_with_on_events(test_client_factory):
+    lifespan_called = False
+    startup_called = False
+    shutdown_called = False
+
     @contextlib.asynccontextmanager
     async def lifespan(app):
+        nonlocal lifespan_called
+        lifespan_called = True
         yield {"foo": "bar"}
+
+    # We do not expected, neither of run_startup nor run_shutdown to be called
+    # we thus mark them as #pragma: no cover, to fulfill test coverage
+    def run_startup():  # pragma: no cover
+        nonlocal startup_called
+        startup_called = True
+
+    def run_shutdown():  # pragma: no cover
+        nonlocal shutdown_called
+        shutdown_called = True
 
     def hello_world(request):
         return PlainTextResponse("hello, world")
@@ -664,14 +680,18 @@ def test_lifespan_with_on_events(test_client_factory):
         ),
     ):
         app = Router(
-            on_startup=[lambda _: True],
-            on_shutdown=[lambda _: True],
+            on_startup=[run_startup],
+            on_shutdown=[run_shutdown],
             lifespan=lifespan,
             routes=[Route("/", hello_world)],
         )
-        client = test_client_factory(app)
-        response = client.get("/")
-        assert response.status_code == 200, response.content
+        assert not startup_called
+        assert not shutdown_called
+        with test_client_factory(app) as client:
+            assert lifespan_called
+            assert not startup_called
+            client.get("/")
+        assert not shutdown_called
 
 
 def test_lifespan_sync(test_client_factory):
