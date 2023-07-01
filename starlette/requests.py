@@ -147,7 +147,7 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
         assert (
             "session" in self.scope
         ), "SessionMiddleware must be installed to access request.session"
-        return typing.cast(typing.Dict[str, typing.Any], self.scope["session"])
+        return self.scope["session"]  # type: ignore[no-any-return]
 
     @property
     def auth(self) -> typing.Any:

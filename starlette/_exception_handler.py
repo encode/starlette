@@ -5,17 +5,17 @@ from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import Response
-from starlette.types import ASGIApp, Message, Receive, Scope, Send
+from starlette.types import ASGIApp, Message, Receive, Scope, Send, ExceptionHandler
 from starlette.websockets import WebSocket
 
-Handler = typing.Callable[..., typing.Any]
-ExceptionHandlers = typing.Dict[typing.Any, Handler]
-StatusHandlers = typing.Dict[int, Handler]
+AnyExceptionHandler = typing.Callable[..., typing.Any]
+ExceptionHandlers = typing.Dict[typing.Any, ExceptionHandler]
+StatusHandlers = typing.Dict[int, AnyExceptionHandler]
 
 
 def _lookup_exception_handler(
     exc_handlers: ExceptionHandlers, exc: Exception
-) -> typing.Optional[Handler]:
+) -> typing.Optional[AnyExceptionHandler]:
     for cls in type(exc).__mro__:
         if cls in exc_handlers:
             return exc_handlers[cls]

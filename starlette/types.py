@@ -1,7 +1,7 @@
 import typing
 
-from .requests import Request
-from .responses import Response
+from starlette.requests import Request
+from starlette.responses import Response
 
 AppType = typing.TypeVar("AppType")
 
