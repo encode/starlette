@@ -1,3 +1,14 @@
+## 0.29.0
+
+July 7, 2023
+
+### Added
+
+* Add `follow_redirects` parameter to `TestClient` [#2207](https://github.com/encode/starlette/pull/2207).
+* Add `__str__` to `HTTPException` and `WebSocketException` [#2181](https://github.com/encode/starlette/pull/2181).
+* Warn users when using `lifespan` together with `on_startup`/`on_shutdown` [#2193](https://github.com/encode/starlette/pull/2193).
+* Collect routes from `Host` to generate the OpenAPI schema [#2183](https://github.com/encode/starlette/pull/2183).
+
 ## 0.28.0
 
 June 7, 2023
