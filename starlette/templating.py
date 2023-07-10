@@ -206,7 +206,7 @@ class Jinja2Templates:
             if "request" not in kwargs:
                 warnings.warn(
                     "The `TemplateResponse` now requires the `request` argument.\n"
-                    'Replace `TemplateResponse(name, {"context": context})` by `TemplateResponse(request, name)`.",  # noqa: E501 
+                    'Replace `TemplateResponse(name, {"context": context})` by `TemplateResponse(request, name)`.',  # noqa: E501
                     DeprecationWarning,
                 )
                 if "request" not in kwargs.get("context", {}):

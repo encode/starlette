@@ -193,7 +193,7 @@ def test_templates_with_kwargs_only_requires_request_in_context(tmpdir):
     templates = Jinja2Templates(directory=str(tmpdir))
     with pytest.warns(
         DeprecationWarning,
-        match="TemplateResponse requires `request` keyword argument.",
+        match="requires the `request` argument",
     ):
         with pytest.raises(ValueError):
             templates.TemplateResponse(name="index.html", context={"a": "b"})
@@ -220,7 +220,7 @@ def test_templates_with_kwargs_only_warns_when_no_request_keyword(
 
     with pytest.warns(
         DeprecationWarning,
-        match="TemplateResponse requires `request` keyword argument.",
+        match="requires the `request` argument",
     ):
         client.get("/")
 
