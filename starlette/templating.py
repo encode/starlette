@@ -193,7 +193,7 @@ class Jinja2Templates:
             else:  # the first argument is a request instance (new style)
                 request = args[0]
                 name = args[1] if len(args) > 1 else kwargs["name"]
-                context = args[2] if len(args) > 2 else kwargs.get("context")
+                context = args[2] if len(args) > 2 else kwargs.get("context", {})
                 status_code = (
                     args[3] if len(args) > 3 else kwargs.get("status_code", 200)
                 )
@@ -217,7 +217,6 @@ class Jinja2Templates:
             media_type = kwargs.get("media_type")
             background = kwargs.get("background")
 
-        context = context or {}
         context.setdefault("request", request)
         for context_processor in self.context_processors:
             context.update(context_processor(request))
