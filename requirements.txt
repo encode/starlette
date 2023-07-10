@@ -3,11 +3,11 @@
 
 # Testing
 black==23.3.0
-coverage==7.2.5
+coverage==7.2.7
 importlib-metadata==6.6.0
-mypy==1.3.0
-ruff==0.0.263
-typing_extensions==4.5.0
+mypy==1.4.1
+ruff==0.0.275
+typing_extensions==4.7.0
 types-contextvars==2.4.7.2
 types-PyYAML==6.0.12.10
 types-dataclasses==0.6.6
@@ -16,7 +16,7 @@ trio==0.21.0
 
 # Documentation
 mkdocs==1.4.3
-mkdocs-material==9.1.15
+mkdocs-material==9.1.17
 mkautodoc==0.2.0
 
 # Packaging
