@@ -174,7 +174,9 @@ class Jinja2Templates:
                 args[0], str
             ):  # the first argument is template name (old style)
                 warnings.warn(
-                    "Argument 1 of TemplateResponse must be a Request instance.",
+                    "The `name` is not the first parameter anymore. "
+                    "The first parameter should be the `Request` instance.\n"
+                    'Replace `TemplateResponse(name, {"request": request})` by `TemplateResponse(request, name)`.',  # noqa: E501
                     DeprecationWarning,
                 )
 
