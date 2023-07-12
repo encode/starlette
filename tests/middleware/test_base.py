@@ -1,4 +1,5 @@
 import contextvars
+import sys
 from contextlib import AsyncExitStack
 from typing import AsyncGenerator, Awaitable, Callable, List, Union
 
@@ -14,6 +15,9 @@ from starlette.responses import PlainTextResponse, Response, StreamingResponse
 from starlette.routing import Route, WebSocketRoute
 from starlette.testclient import TestClient
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
+
+if sys.version_info < (3, 11):
+    from exceptiongroup import ExceptionGroup
 
 
 class CustomMiddleware(BaseHTTPMiddleware):

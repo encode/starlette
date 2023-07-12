@@ -4,6 +4,9 @@ import pytest
 
 from starlette.middleware.wsgi import WSGIMiddleware, build_environ
 
+if sys.version_info < (3, 11):
+    from exceptiongroup import ExceptionGroup
+
 
 def hello_world(environ, start_response):
     status = "200 OK"
