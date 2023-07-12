@@ -74,16 +74,26 @@ def test_custom_middleware(test_client_factory):
     response = client.get("/")
     assert response.headers["Custom-Header"] == "Example"
 
-    with pytest.raises(Exception) as ctx:
+    with pytest.raises(ExceptionGroup) as ctx:
         response = client.get("/exc")
-    assert str(ctx.value) == "Exc"
+    assert len(ctx.value.exceptions) == 1
+    assert str(ctx.value.exceptions[0]) == "Exc"
 
-    with pytest.raises(Exception) as ctx:
+    with pytest.raises(ExceptionGroup) as ctx:
         response = client.get("/exc-stream")
-    assert str(ctx.value) == "Faulty Stream"
+    exc = ctx.value
+    while isinstance(exc, ExceptionGroup):
+        assert len(exc.exceptions) == 1
+        exc = exc.exceptions[0]
+    assert str(exc) == "Faulty Stream"
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(ExceptionGroup) as ctx:
         response = client.get("/no-response")
+    exc = ctx.value
+    while isinstance(exc, ExceptionGroup):
+        assert len(exc.exceptions) == 1
+        exc = exc.exceptions[0]
+    assert isinstance(exc, RuntimeError)
 
     with client.websocket_connect("/ws") as session:
         text = session.receive_text()

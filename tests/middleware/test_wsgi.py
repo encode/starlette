@@ -66,8 +66,11 @@ def test_wsgi_exception(test_client_factory):
     # The HTTP protocol implementations would catch this error and return 500.
     app = WSGIMiddleware(raise_exception)
     client = test_client_factory(app)
-    with pytest.raises(RuntimeError):
+    with pytest.raises(ExceptionGroup) as exc:
         client.get("/")
+
+    assert len(exc.value.exceptions) == 1
+    assert isinstance(exc.value.exceptions[0], RuntimeError)
 
 
 def test_wsgi_exc_info(test_client_factory):
