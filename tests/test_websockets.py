@@ -179,7 +179,9 @@ def test_websocket_iter_json(test_client_factory):
 
 
 def test_websocket_concurrency_pattern(test_client_factory):
-    stream_send, stream_receive = anyio.create_memory_object_stream[MutableMapping[str, Any]]()
+    stream_send, stream_receive = anyio.create_memory_object_stream[
+        MutableMapping[str, Any]
+    ]()
 
     async def reader(websocket):
         async with stream_send:
