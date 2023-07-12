@@ -269,7 +269,7 @@ async def test_run_background_tasks_even_if_client_disconnects():
 async def test_do_not_block_on_background_tasks():
     request_body_sent = False
     response_complete = anyio.Event()
-    events: List[str | Message] = []
+    events: List[Union[str, Message]] = []
 
     async def sleep_and_set():
         events.append("Background task started")
