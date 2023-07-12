@@ -107,7 +107,8 @@ class BaseHTTPMiddleware:
 
         async def call_next(request: Request) -> Response:
             app_exc: typing.Optional[Exception] = None
-            send_stream, recv_stream = anyio.create_memory_object_stream()
+            send_stream, recv_stream = anyio.create_memory_object_stream[
+                typing.MutableMapping[str, typing.Any]]()
 
             async def receive_or_disconnect() -> Message:
                 if response_sent.is_set():

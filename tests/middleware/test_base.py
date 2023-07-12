@@ -85,7 +85,7 @@ def test_custom_middleware(test_client_factory):
 
     with pytest.raises(ExceptionGroup) as ctx:
         response = client.get("/exc-stream")
-    exc = ctx.value
+    exc: Exception = ctx.value
     while isinstance(exc, ExceptionGroup):
         assert len(exc.exceptions) == 1
         exc = exc.exceptions[0]

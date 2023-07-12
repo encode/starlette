@@ -77,7 +77,8 @@ class WSGIResponder:
         self.scope = scope
         self.status = None
         self.response_headers = None
-        self.stream_send, self.stream_receive = anyio.create_memory_object_stream(
+        self.stream_send, self.stream_receive = anyio.create_memory_object_stream[
+            typing.MutableMapping[str, typing.Any]](
             math.inf
         )
         self.response_started = False

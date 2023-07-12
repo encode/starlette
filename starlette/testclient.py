@@ -738,10 +738,12 @@ class TestClient(httpx.Client):
                 self.portal = None
 
             self.stream_send = StapledObjectStream(
-                *anyio.create_memory_object_stream(math.inf)
+                *anyio.create_memory_object_stream[
+                    typing.Optional[typing.MutableMapping[str, typing.Any]]](math.inf)
             )
             self.stream_receive = StapledObjectStream(
-                *anyio.create_memory_object_stream(math.inf)
+                *anyio.create_memory_object_stream[
+                    typing.MutableMapping[str, typing.Any]](math.inf)
             )
             self.task = portal.start_task_soon(self.lifespan)
             portal.call(self.wait_startup)
