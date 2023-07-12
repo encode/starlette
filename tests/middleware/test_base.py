@@ -276,7 +276,6 @@ async def test_do_not_block_on_background_tasks():
         await anyio.sleep(0.1)
         events.append("Background task finished")
 
-
     async def endpoint_with_background_task(_):
         return PlainTextResponse(
             content="Hello", background=BackgroundTask(sleep_and_set)
