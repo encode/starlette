@@ -4,7 +4,7 @@ import pytest
 
 from starlette.middleware.wsgi import WSGIMiddleware, build_environ
 
-if sys.version_info < (3, 11):
+if sys.version_info < (3, 11):  # pragma: no cover
     from exceptiongroup import ExceptionGroup
 
 
