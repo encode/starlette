@@ -1,10 +1,10 @@
 import contextvars
-import sys
 from contextlib import AsyncExitStack
 from typing import AsyncGenerator, Awaitable, Callable, List, Union
 
 import anyio
 import pytest
+from exceptiongroup import ExceptionGroup, catch
 
 from starlette.applications import Starlette
 from starlette.background import BackgroundTask
@@ -15,9 +15,6 @@ from starlette.responses import PlainTextResponse, Response, StreamingResponse
 from starlette.routing import Route, WebSocketRoute
 from starlette.testclient import TestClient
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
-
-if sys.version_info < (3, 11):
-    from exceptiongroup import ExceptionGroup
 
 
 class CustomMiddleware(BaseHTTPMiddleware):
@@ -219,12 +216,23 @@ def test_contextvars(test_client_factory, middleware_cls: type):
         ctxvar.set("set by endpoint")
         return PlainTextResponse("Homepage")
 
+    def handle_assertion_error(eg):
+        if middleware_cls is CustomMiddlewareUsingBaseHTTPMiddleware:
+            pytest.xfail(
+                "BaseHTTPMiddleware creates a TaskGroup which copies the context"
+                "and erases any changes to it made within the TaskGroup"
+            )
+
+        raise
+
     app = Starlette(
         middleware=[Middleware(middleware_cls)], routes=[Route("/", homepage)]
     )
 
     client = test_client_factory(app)
-    response = client.get("/")
+    with catch({AssertionError: handle_assertion_error}):
+        response = client.get("/")
+
     assert response.status_code == 200, response.content
 
 
