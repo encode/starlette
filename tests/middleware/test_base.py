@@ -4,7 +4,6 @@ from typing import AsyncGenerator, Awaitable, Callable, List, Union
 
 import anyio
 import pytest
-from exceptiongroup import ExceptionGroup, catch
 
 from starlette.applications import Starlette
 from starlette.background import BackgroundTask
@@ -15,6 +14,7 @@ from starlette.responses import PlainTextResponse, Response, StreamingResponse
 from starlette.routing import Route, WebSocketRoute
 from starlette.testclient import TestClient
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
+from ..exc_converter import convert_excgroups
 
 
 class CustomMiddleware(BaseHTTPMiddleware):
@@ -75,26 +75,16 @@ def test_custom_middleware(test_client_factory):
     response = client.get("/")
     assert response.headers["Custom-Header"] == "Example"
 
-    with pytest.raises(ExceptionGroup) as ctx:
+    with pytest.raises(Exception) as ctx, convert_excgroups():
         response = client.get("/exc")
-    assert len(ctx.value.exceptions) == 1
-    assert str(ctx.value.exceptions[0]) == "Exc"
+    assert str(ctx.value) == "Exc"
 
-    with pytest.raises(ExceptionGroup) as ctx:
+    with pytest.raises(Exception) as ctx, convert_excgroups():
         response = client.get("/exc-stream")
-    exc: Exception = ctx.value
-    while isinstance(exc, ExceptionGroup):
-        assert len(exc.exceptions) == 1
-        exc = exc.exceptions[0]
-    assert str(exc) == "Faulty Stream"
+    assert str(ctx.value) == "Faulty Stream"
 
-    with pytest.raises(ExceptionGroup) as ctx:
+    with pytest.raises(RuntimeError), convert_excgroups():
         response = client.get("/no-response")
-    exc = ctx.value
-    while isinstance(exc, ExceptionGroup):
-        assert len(exc.exceptions) == 1
-        exc = exc.exceptions[0]
-    assert isinstance(exc, RuntimeError)
 
     with client.websocket_connect("/ws") as session:
         text = session.receive_text()
@@ -216,21 +206,12 @@ def test_contextvars(test_client_factory, middleware_cls: type):
         ctxvar.set("set by endpoint")
         return PlainTextResponse("Homepage")
 
-    def handle_assertion_error(eg):
-        if middleware_cls is CustomMiddlewareUsingBaseHTTPMiddleware:
-            pytest.xfail(
-                "BaseHTTPMiddleware creates a TaskGroup which copies the context"
-                "and erases any changes to it made within the TaskGroup"
-            )
-
-        raise  # pragma: no cover
-
     app = Starlette(
         middleware=[Middleware(middleware_cls)], routes=[Route("/", homepage)]
     )
 
     client = test_client_factory(app)
-    with catch({AssertionError: handle_assertion_error}):
+    with convert_excgroups():
         response = client.get("/")
 
     assert response.status_code == 200, response.content
