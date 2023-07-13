@@ -223,7 +223,7 @@ def test_contextvars(test_client_factory, middleware_cls: type):
                 "and erases any changes to it made within the TaskGroup"
             )
 
-        raise
+        raise  # pragma: no cover
 
     app = Starlette(
         middleware=[Middleware(middleware_cls)], routes=[Route("/", homepage)]
