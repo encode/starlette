@@ -1,6 +1,6 @@
 ## 0.29.0
 
-July 7, 2023
+July 13, 2023
 
 ### Added
 
@@ -8,6 +8,11 @@ July 7, 2023
 * Add `__str__` to `HTTPException` and `WebSocketException` [#2181](https://github.com/encode/starlette/pull/2181).
 * Warn users when using `lifespan` together with `on_startup`/`on_shutdown` [#2193](https://github.com/encode/starlette/pull/2193).
 * Collect routes from `Host` to generate the OpenAPI schema [#2183](https://github.com/encode/starlette/pull/2183).
+* Add `request` argument to `TemplateResponse` [#2191](https://github.com/encode/starlette/pull/2191).
+
+### Fixed
+
+* Stop `body_stream` in case `more_body=False` on `BaseHTTPMiddleware` [#2194](https://github.com/encode/starlette/pull/2194).
 
 ## 0.28.0
 
