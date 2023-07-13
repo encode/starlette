@@ -12,6 +12,7 @@ from urllib.parse import unquote, urljoin
 
 import anyio
 import anyio.from_thread
+from anyio.abc import ObjectStream
 from anyio.streams.stapled import StapledObjectStream
 
 from starlette._utils import is_async_callable
@@ -737,16 +738,12 @@ class TestClient(httpx.Client):
             def reset_portal() -> None:
                 self.portal = None
 
-            self.stream_send = StapledObjectStream(
-                *anyio.create_memory_object_stream[
-                    typing.Optional[typing.MutableMapping[str, typing.Any]]
-                ](math.inf)
-            )
-            self.stream_receive = StapledObjectStream(
-                *anyio.create_memory_object_stream[
-                    typing.MutableMapping[str, typing.Any]
-                ](math.inf)
-            )
+            self.stream_send: ObjectStream[
+                typing.Optional[typing.MutableMapping[str, typing.Any]]
+            ] = StapledObjectStream(*anyio.create_memory_object_stream(math.inf))
+            self.stream_receive: ObjectStream[
+                typing.MutableMapping[str, typing.Any]
+            ] = StapledObjectStream(*anyio.create_memory_object_stream(math.inf))
             self.task = portal.start_task_soon(self.lifespan)
             portal.call(self.wait_startup)
 

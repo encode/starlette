@@ -1,6 +1,7 @@
 import typing
 
 import anyio
+from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 
 from starlette.background import BackgroundTask
 from starlette.requests import ClientDisconnect, Request
@@ -107,9 +108,11 @@ class BaseHTTPMiddleware:
 
         async def call_next(request: Request) -> Response:
             app_exc: typing.Optional[Exception] = None
-            send_stream, recv_stream = anyio.create_memory_object_stream[
+            send_stream: MemoryObjectSendStream[typing.MutableMapping[str, typing.Any]]
+            recv_stream: MemoryObjectReceiveStream[
                 typing.MutableMapping[str, typing.Any]
-            ]()
+            ]
+            send_stream, recv_stream = anyio.create_memory_object_stream()
 
             async def receive_or_disconnect() -> Message:
                 if response_sent.is_set():

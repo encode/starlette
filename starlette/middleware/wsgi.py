@@ -5,6 +5,7 @@ import typing
 import warnings
 
 import anyio
+from anyio.abc import ObjectReceiveStream, ObjectSendStream
 
 from starlette.types import Receive, Scope, Send
 
@@ -72,14 +73,17 @@ class WSGIMiddleware:
 
 
 class WSGIResponder:
+    stream_send: ObjectSendStream[typing.MutableMapping[str, typing.Any]]
+    stream_receive: ObjectReceiveStream[typing.MutableMapping[str, typing.Any]]
+
     def __init__(self, app: typing.Callable, scope: Scope) -> None:
         self.app = app
         self.scope = scope
         self.status = None
         self.response_headers = None
-        self.stream_send, self.stream_receive = anyio.create_memory_object_stream[
-            typing.MutableMapping[str, typing.Any]
-        ](math.inf)
+        self.stream_send, self.stream_receive = anyio.create_memory_object_stream(
+            math.inf
+        )
         self.response_started = False
         self.exc_info: typing.Any = None
 
