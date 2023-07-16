@@ -374,7 +374,7 @@ class TestClient(httpx.Client):
         root_path: str = "",
         backend: str = "asyncio",
         backend_options: typing.Optional[typing.Dict[str, typing.Any]] = None,
-        cookies: httpx._client.CookieTypes = None,
+        cookies: httpx._types.CookieTypes = None,
         headers: typing.Dict[str, str] = None,
         follow_redirects: bool = True,
     ) -> None:
@@ -459,7 +459,7 @@ class TestClient(httpx.Client):
         follow_redirects: typing.Optional[bool] = None,
         allow_redirects: typing.Optional[bool] = None,
         timeout: typing.Union[
-            httpx._client.TimeoutTypes, httpx._client.UseClientDefault
+            httpx._types.TimeoutTypes, httpx._client.UseClientDefault
         ] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[typing.Dict[str, typing.Any]] = None,
     ) -> httpx.Response:
@@ -494,7 +494,7 @@ class TestClient(httpx.Client):
         follow_redirects: typing.Optional[bool] = None,
         allow_redirects: typing.Optional[bool] = None,
         timeout: typing.Union[
-            httpx._client.TimeoutTypes, httpx._client.UseClientDefault
+            httpx._types.TimeoutTypes, httpx._client.UseClientDefault
         ] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[typing.Dict[str, typing.Any]] = None,
     ) -> httpx.Response:
@@ -523,7 +523,7 @@ class TestClient(httpx.Client):
         follow_redirects: typing.Optional[bool] = None,
         allow_redirects: typing.Optional[bool] = None,
         timeout: typing.Union[
-            httpx._client.TimeoutTypes, httpx._client.UseClientDefault
+            httpx._types.TimeoutTypes, httpx._client.UseClientDefault
         ] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[typing.Dict[str, typing.Any]] = None,
     ) -> httpx.Response:
@@ -552,7 +552,7 @@ class TestClient(httpx.Client):
         follow_redirects: typing.Optional[bool] = None,
         allow_redirects: typing.Optional[bool] = None,
         timeout: typing.Union[
-            httpx._client.TimeoutTypes, httpx._client.UseClientDefault
+            httpx._types.TimeoutTypes, httpx._client.UseClientDefault
         ] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[typing.Dict[str, typing.Any]] = None,
     ) -> httpx.Response:
@@ -585,7 +585,7 @@ class TestClient(httpx.Client):
         follow_redirects: typing.Optional[bool] = None,
         allow_redirects: typing.Optional[bool] = None,
         timeout: typing.Union[
-            httpx._client.TimeoutTypes, httpx._client.UseClientDefault
+            httpx._types.TimeoutTypes, httpx._client.UseClientDefault
         ] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[typing.Dict[str, typing.Any]] = None,
     ) -> httpx.Response:
@@ -622,7 +622,7 @@ class TestClient(httpx.Client):
         follow_redirects: typing.Optional[bool] = None,
         allow_redirects: typing.Optional[bool] = None,
         timeout: typing.Union[
-            httpx._client.TimeoutTypes, httpx._client.UseClientDefault
+            httpx._types.TimeoutTypes, httpx._client.UseClientDefault
         ] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[typing.Dict[str, typing.Any]] = None,
     ) -> httpx.Response:
@@ -659,7 +659,7 @@ class TestClient(httpx.Client):
         follow_redirects: typing.Optional[bool] = None,
         allow_redirects: typing.Optional[bool] = None,
         timeout: typing.Union[
-            httpx._client.TimeoutTypes, httpx._client.UseClientDefault
+            httpx._types.TimeoutTypes, httpx._client.UseClientDefault
         ] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[typing.Dict[str, typing.Any]] = None,
     ) -> httpx.Response:
@@ -692,7 +692,7 @@ class TestClient(httpx.Client):
         follow_redirects: typing.Optional[bool] = None,
         allow_redirects: typing.Optional[bool] = None,
         timeout: typing.Union[
-            httpx._client.TimeoutTypes, httpx._client.UseClientDefault
+            httpx._types.TimeoutTypes, httpx._client.UseClientDefault
         ] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[typing.Dict[str, typing.Any]] = None,
     ) -> httpx.Response:
