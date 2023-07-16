@@ -1,7 +1,8 @@
 import typing
 
-from starlette.requests import Request
-from starlette.responses import Response
+if typing.TYPE_CHECKING:
+    from starlette.requests import Request
+    from starlette.responses import Response
 
 AppType = typing.TypeVar("AppType")
 
@@ -20,5 +21,5 @@ StatefulLifespan = typing.Callable[
 Lifespan = typing.Union[StatelessLifespan[AppType], StatefulLifespan[AppType]]
 
 ExceptionHandler = typing.Callable[
-    [Request, Exception], typing.Union[Response, typing.Awaitable[Response]]
+    ["Request", Exception], typing.Union["Response", typing.Awaitable["Response"]]
 ]
