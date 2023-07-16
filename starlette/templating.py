@@ -115,7 +115,12 @@ class Jinja2Templates:
         **env_options: typing.Any,
     ) -> "jinja2.Environment":
         @pass_context
-        def url_for(context: typing.Dict[str, typing.Any], name: str, /, **path_params: typing.Any) -> URL:
+        def url_for(
+            context: typing.Dict[str, typing.Any],
+            name: str,
+            /,
+            **path_params: typing.Any,
+        ) -> URL:
             request = context["request"]
             return request.url_for(name, **path_params)
 
