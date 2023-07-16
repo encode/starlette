@@ -121,7 +121,7 @@ class Jinja2Templates:
             /,
             **path_params: typing.Any,
         ) -> URL:
-            request = context["request"]
+            request: Request = context["request"]
             return request.url_for(name, **path_params)
 
         loader = jinja2.FileSystemLoader(directory)
