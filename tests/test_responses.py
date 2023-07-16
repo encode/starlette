@@ -344,7 +344,9 @@ def test_expires_on_set_cookie(test_client_factory, monkeypatch, expires):
 
     client = test_client_factory(app)
     response = client.get("/")
-    cookie: "SimpleCookie[typing.Any]" = SimpleCookie(response.headers.get("set-cookie"))
+    cookie: "SimpleCookie[typing.Any]" = SimpleCookie(
+        response.headers.get("set-cookie")
+    )
     assert cookie["mycookie"]["expires"] == "Thu, 22 Jan 2037 12:00:10 GMT"
 
 
