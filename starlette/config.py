@@ -12,7 +12,7 @@ class EnvironError(Exception):
     pass
 
 
-class Environ(MutableMapping[typing.Any, typing.Any]):
+class Environ(typing.MutableMapping[typing.Any, typing.Any]):
     def __init__(
         self, environ: typing.MutableMapping[typing.Any, typing.Any] = os.environ
     ):
