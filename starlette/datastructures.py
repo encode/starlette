@@ -1,5 +1,4 @@
 import typing
-from collections.abc import Sequence
 from shlex import shlex
 from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit
 
@@ -223,7 +222,7 @@ class Secret:
         return bool(self._value)
 
 
-class CommaSeparatedStrings(Sequence[str]):
+class CommaSeparatedStrings(typing.Sequence[str]):
     def __init__(self, value: typing.Union[str, typing.Sequence[str]]):
         if isinstance(value, str):
             splitter = shlex(value, posix=True)
