@@ -66,6 +66,9 @@ python_version = "3.8"
 module = "starlette.testclient.*"
 implicit_optional = true
 
+# Overrides only apply to modules and doesn't work for tests
+# (see https://github.com/python/mypy/issues/10045). In the
+# meanwhile, a separate mypy run is made (see 'check' script).
 [[tool.mypy.overrides]]
 module = "tests.*"
 disallow_untyped_defs = false

@@ -4,14 +4,14 @@ export PREFIX=""
 if [ -d 'venv' ] ; then
     export PREFIX="venv/bin/"
 fi
-export ALL_FILES="starlette tests"
-export SOURCE_FILES="starlette"
-export TESTS_FILES="tests"
+export SOURCE_FILES="starlette tests"
 
 set -x
 
 ./scripts/sync-version
-${PREFIX}black --check --diff $ALL_FILES
-${PREFIX}mypy $SOURCE_FILES
-${PREFIX}mypy $TESTS_FILES --disable-error-code no-untyped-def --disable-error-code no-untyped-call
-${PREFIX}ruff check $ALL_FILES
+${PREFIX}black --check --diff $SOURCE_FILES
+# TODO: Use `[[tool.mypy.overrides]]` on the `pyproject.toml` when the mypy issue is solved:
+# github.com/python/mypy/issues/10045. Check github.com/encode/starlette/pull/2180 for more info.
+${PREFIX}mypy starlette
+${PREFIX}mypy tests --disable-error-code no-untyped-def --disable-error-code no-untyped-call
+${PREFIX}ruff check $SOURCE_FILES
