@@ -123,8 +123,8 @@ class StaticFiles:
             )
         except PermissionError:
             raise HTTPException(status_code=401)
-        except OSError:
-            raise
+        except OSError as e:
+            raise HTTPException(status_code=400) from e
 
         if stat_result and stat.S_ISREG(stat_result.st_mode):
             # We have a static file to serve.
