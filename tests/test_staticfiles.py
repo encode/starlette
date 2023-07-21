@@ -548,3 +548,12 @@ def test_staticfiles_avoids_path_traversal(tmp_path: Path):
 
     assert exc_info.value.status_code == 404
     assert exc_info.value.detail == "Not Found"
+
+def test_staticfiles_with_too_large_filename_returns_400(tmpdir, test_client_factory):
+    routes = [Mount("/", app=StaticFiles(directory=tmpdir), name="static")]
+    app = Starlette(routes=routes)
+    client = test_client_factory(app)
+
+    response = client.get(f"/{'a' * 256}")
+    assert response.status_code == 400
+    assert response.text == "Bad Request"
