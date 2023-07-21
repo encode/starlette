@@ -3,6 +3,7 @@ import typing
 if typing.TYPE_CHECKING:
     from starlette.requests import Request
     from starlette.responses import Response
+    from starlette.websockets import WebSocket
 
 AppType = typing.TypeVar("AppType")
 
@@ -20,6 +21,9 @@ StatefulLifespan = typing.Callable[
 ]
 Lifespan = typing.Union[StatelessLifespan[AppType], StatefulLifespan[AppType]]
 
-ExceptionHandler = typing.Callable[
-    ["Request", Exception], typing.Union["Response", typing.Awaitable["Response"]]
+ExceptionHandler = typing.Union[
+    typing.Callable[
+        ["Request", Exception], typing.Union["Response", typing.Awaitable["Response"]]
+    ],
+    typing.Callable[["WebSocket", Exception], None],
 ]
