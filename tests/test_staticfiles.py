@@ -429,9 +429,7 @@ def test_staticfiles_access_file_as_dir_returns_404(tmpdir, test_client_factory)
     assert response.text == "Not Found"
 
 
-def test_staticfiles_os_error_returns_400(
-    tmpdir, test_client_factory, monkeypatch
-):
+def test_staticfiles_os_error_returns_400(tmpdir, test_client_factory, monkeypatch):
     def mock_timeout(*args, **kwargs):
         raise TimeoutError
 
