@@ -11,18 +11,18 @@ class EnvironError(Exception):
     pass
 
 
-class Environ(typing.MutableMapping[typing.Any, typing.Any]):
+class Environ(typing.MutableMapping[str, str]):
     def __init__(
-        self, environ: typing.MutableMapping[typing.Any, typing.Any] = os.environ
+        self, environ: typing.MutableMapping[str, str] = os.environ
     ):
         self._environ = environ
-        self._has_been_read: typing.Set[typing.Any] = set()
+        self._has_been_read: typing.Set[str] = set()
 
-    def __getitem__(self, key: typing.Any) -> typing.Any:
+    def __getitem__(self, key: str) -> str:
         self._has_been_read.add(key)
         return self._environ.__getitem__(key)
 
-    def __setitem__(self, key: typing.Any, value: typing.Any) -> None:
+    def __setitem__(self, key: str, value: str) -> None:
         if key in self._has_been_read:
             raise EnvironError(
                 f"Attempting to set environ['{key}'], but the value has already been "
@@ -30,7 +30,7 @@ class Environ(typing.MutableMapping[typing.Any, typing.Any]):
             )
         self._environ.__setitem__(key, value)
 
-    def __delitem__(self, key: typing.Any) -> None:
+    def __delitem__(self, key: str) -> None:
         if key in self._has_been_read:
             raise EnvironError(
                 f"Attempting to delete environ['{key}'], but the value has already "
@@ -38,7 +38,7 @@ class Environ(typing.MutableMapping[typing.Any, typing.Any]):
             )
         self._environ.__delitem__(key)
 
-    def __iter__(self) -> typing.Iterator[typing.Any]:
+    def __iter__(self) -> typing.Iterator[str]:
         return iter(self._environ)
 
     def __len__(self) -> int:
