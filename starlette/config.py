@@ -12,9 +12,7 @@ class EnvironError(Exception):
 
 
 class Environ(typing.MutableMapping[str, str]):
-    def __init__(
-        self, environ: typing.MutableMapping[str, str] = os.environ
-    ):
+    def __init__(self, environ: typing.MutableMapping[str, str] = os.environ):
         self._environ = environ
         self._has_been_read: typing.Set[str] = set()
 
