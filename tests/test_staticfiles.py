@@ -429,7 +429,7 @@ def test_staticfiles_access_file_as_dir_returns_404(tmpdir, test_client_factory)
     assert response.text == "Not Found"
 
 
-def test_staticfiles_unhandled_os_error_returns_500(
+def test_staticfiles_os_error_returns_400(
     tmpdir, test_client_factory, monkeypatch
 ):
     def mock_timeout(*args, **kwargs):
@@ -446,8 +446,8 @@ def test_staticfiles_unhandled_os_error_returns_500(
     monkeypatch.setattr("starlette.staticfiles.StaticFiles.lookup_path", mock_timeout)
 
     response = client.get("/example.txt")
-    assert response.status_code == 500
-    assert response.text == "Internal Server Error"
+    assert response.status_code == 400
+    assert response.text == "Bad Request"
 
 
 def test_staticfiles_follows_symlinks(tmpdir, test_client_factory):
