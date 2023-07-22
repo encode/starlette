@@ -1,3 +1,4 @@
+import sys
 import typing
 from contextlib import contextmanager
 
@@ -8,6 +9,9 @@ from starlette.background import BackgroundTask
 from starlette.requests import ClientDisconnect, Request
 from starlette.responses import ContentStream, Response, StreamingResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
+
+if sys.version_info < (3, 11):  # pragma: no cover
+    from exceptiongroup import BaseExceptionGroup
 
 RequestResponseEndpoint = typing.Callable[[Request], typing.Awaitable[Response]]
 DispatchFunction = typing.Callable[
