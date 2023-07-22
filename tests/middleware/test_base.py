@@ -15,8 +15,6 @@ from starlette.routing import Route, WebSocketRoute
 from starlette.testclient import TestClient
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from ..exc_converter import convert_excgroups
-
 
 class CustomMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
@@ -76,15 +74,15 @@ def test_custom_middleware(test_client_factory):
     response = client.get("/")
     assert response.headers["Custom-Header"] == "Example"
 
-    with pytest.raises(Exception) as ctx, convert_excgroups():
+    with pytest.raises(Exception) as ctx:
         response = client.get("/exc")
     assert str(ctx.value) == "Exc"
 
-    with pytest.raises(Exception) as ctx, convert_excgroups():
+    with pytest.raises(Exception) as ctx:
         response = client.get("/exc-stream")
     assert str(ctx.value) == "Faulty Stream"
 
-    with pytest.raises(RuntimeError), convert_excgroups():
+    with pytest.raises(RuntimeError):
         response = client.get("/no-response")
 
     with client.websocket_connect("/ws") as session:
@@ -212,9 +210,7 @@ def test_contextvars(test_client_factory, middleware_cls: type):
     )
 
     client = test_client_factory(app)
-    with convert_excgroups():
-        response = client.get("/")
-
+    response = client.get("/")
     assert response.status_code == 200, response.content
 
 

@@ -3,6 +3,7 @@ import typing
 import anyio
 from anyio.abc import ObjectReceiveStream, ObjectSendStream
 
+from starlette._exception_handler import convert_excgroups
 from starlette.background import BackgroundTask
 from starlette.requests import ClientDisconnect, Request
 from starlette.responses import ContentStream, Response, StreamingResponse
@@ -185,10 +186,11 @@ class BaseHTTPMiddleware:
             response.raw_headers = message["headers"]
             return response
 
-        async with anyio.create_task_group() as task_group:
-            response = await self.dispatch_func(request, call_next)
-            await response(scope, wrapped_receive, send)
-            response_sent.set()
+        with convert_excgroups():
+            async with anyio.create_task_group() as task_group:
+                response = await self.dispatch_func(request, call_next)
+                await response(scope, wrapped_receive, send)
+                response_sent.set()
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint

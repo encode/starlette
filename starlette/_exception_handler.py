@@ -1,4 +1,5 @@
 import typing
+from contextlib import contextmanager
 
 from starlette._utils import is_async_callable
 from starlette.concurrency import run_in_threadpool
@@ -74,3 +75,14 @@ def wrap_app_handling_exceptions(
                     await run_in_threadpool(handler, conn, exc)
 
     return wrapped_app
+
+
+@contextmanager
+def convert_excgroups() -> typing.Generator[None, None, None]:
+    try:
+        yield
+    except BaseException as exc:
+        while isinstance(exc, BaseExceptionGroup) and len(exc.exceptions) == 1:
+            exc = exc.exceptions[0]
+
+        raise exc

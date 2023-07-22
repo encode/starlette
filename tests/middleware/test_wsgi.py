@@ -2,9 +2,8 @@ import sys
 
 import pytest
 
+from starlette._exception_handler import convert_excgroups
 from starlette.middleware.wsgi import WSGIMiddleware, build_environ
-
-from ..exc_converter import convert_excgroups
 
 
 def hello_world(environ, start_response):
