@@ -1,4 +1,5 @@
 import datetime as dt
+import json
 import os
 import time
 from http.cookies import SimpleCookie
@@ -48,6 +49,20 @@ def test_json_none_response(test_client_factory):
     response = client.get("/")
     assert response.json() is None
     assert response.content == b"null"
+
+
+def test_json_response_with_custom_encoder(test_client_factory):
+    class DummyEncoder(json.JSONEncoder):
+        def default(self, value):
+            return value.isoformat()
+
+    async def app(scope, receive, send):
+        response = JSONResponse(dt.datetime(2023, 1, 1, 0, 0, 0), encoder=DummyEncoder)
+        await response(scope, receive, send)
+
+    client = test_client_factory(app)
+    response = client.get("/")
+    assert response.content == b'"2023-01-01T00:00:00"'
 
 
 def test_redirect_response(test_client_factory):

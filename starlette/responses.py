@@ -174,7 +174,9 @@ class JSONResponse(Response):
         headers: typing.Optional[typing.Mapping[str, str]] = None,
         media_type: typing.Optional[str] = None,
         background: typing.Optional[BackgroundTask] = None,
+        encoder: typing.Optional[typing.Type[json.JSONEncoder]] = None,
     ) -> None:
+        self.encoder = encoder
         super().__init__(content, status_code, headers, media_type, background)
 
     def render(self, content: typing.Any) -> bytes:
@@ -184,6 +186,7 @@ class JSONResponse(Response):
             allow_nan=False,
             indent=None,
             separators=(",", ":"),
+            cls=self.encoder,
         ).encode("utf-8")
 
 

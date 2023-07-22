@@ -116,6 +116,33 @@ In general you *probably* want to stick with `JSONResponse` by default unless
 you are micro-optimising a particular endpoint or need to serialize non-standard
 object types.
 
+
+#### Custom JSON encoders
+
+If you need to encode custom data types, you can use a custom JSON encoder.
+
+For example, if you want to automatically serialize `datetime.datetime` instances to strings:
+
+```python
+import datetime
+import json
+
+from starlette.responses import JSONResponse
+
+
+class MyJSONEncoder(json.JSONEncoder):
+    def default(self, value):
+        if isinstance(value, datetime.datetime):
+            return value.isoformat()
+        ...
+
+async def app(scope, receive, send):
+    assert scope['type'] == 'http'
+    response = JSONResponse({'now': datetime.datetime.now()}, encoder=MyJSONEncoder)
+    await response(scope, receive, send)
+```
+
+
 ### RedirectResponse
 
 Returns an HTTP redirect. Uses a 307 status code by default.
