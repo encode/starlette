@@ -8,14 +8,13 @@ from starlette.responses import Response
 from starlette.types import ASGIApp, ExceptionHandler, Message, Receive, Scope, Send
 from starlette.websockets import WebSocket
 
-AnyExceptionHandler = typing.Callable[..., typing.Any]
 ExceptionHandlers = typing.Dict[typing.Any, ExceptionHandler]
-StatusHandlers = typing.Dict[int, AnyExceptionHandler]
+StatusHandlers = typing.Dict[int, ExceptionHandler]
 
 
 def _lookup_exception_handler(
     exc_handlers: ExceptionHandlers, exc: Exception
-) -> typing.Optional[AnyExceptionHandler]:
+) -> typing.Optional[ExceptionHandler]:
     for cls in type(exc).__mro__:
         if cls in exc_handlers:
             return exc_handlers[cls]
@@ -65,7 +64,9 @@ def wrap_app_handling_exceptions(
                 if is_async_callable(handler):
                     response = await handler(conn, exc)
                 else:
-                    response = await run_in_threadpool(handler, conn, exc)
+                    response = await run_in_threadpool(
+                        handler, conn, exc  # type: ignore[arg-type]
+                    )
                 await response(scope, receive, sender)
             elif scope["type"] == "websocket":
                 if is_async_callable(handler):

@@ -50,10 +50,7 @@ class Starlette:
         routes: typing.Optional[typing.Sequence[BaseRoute]] = None,
         middleware: typing.Optional[typing.Sequence[Middleware]] = None,
         exception_handlers: typing.Optional[
-            typing.Mapping[
-                typing.Any,
-                ExceptionHandler,
-            ]
+            typing.Mapping[typing.Any, ExceptionHandler]
         ] = None,
         on_startup: typing.Optional[
             typing.Sequence[typing.Callable[[], typing.Any]]

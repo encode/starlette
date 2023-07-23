@@ -21,9 +21,10 @@ StatefulLifespan = typing.Callable[
 ]
 Lifespan = typing.Union[StatelessLifespan[AppType], StatefulLifespan[AppType]]
 
-ExceptionHandler = typing.Union[
-    typing.Callable[
-        ["Request", Exception], typing.Union["Response", typing.Awaitable["Response"]]
-    ],
-    typing.Callable[["WebSocket", Exception], None],
+HTTPExceptionHandler = typing.Callable[
+    ["Request", Exception], typing.Union["Response", typing.Awaitable["Response"]]
 ]
+WebSocketExceptionHandler = typing.Callable[
+    ["WebSocket", Exception], typing.Awaitable[None]
+]
+ExceptionHandler = typing.Union[HTTPExceptionHandler, WebSocketExceptionHandler]

@@ -18,7 +18,9 @@ try:
     def md5_hexdigest(
         data: bytes, *, usedforsecurity: bool = True
     ) -> str:  # pragma: no cover
-        return hashlib.md5(data, usedforsecurity=usedforsecurity).hexdigest()  # type: ignore[call-arg]  # noqa: E501
+        return hashlib.md5(  # type: ignore[call-arg]
+            data, usedforsecurity=usedforsecurity
+        ).hexdigest()
 
 except TypeError:  # pragma: no cover
 
