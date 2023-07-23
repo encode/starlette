@@ -10,6 +10,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import BaseRoute, Router
 from starlette.types import ASGIApp, ExceptionHandler, Lifespan, Receive, Scope, Send
+from starlette.websockets import WebSocket
 
 AppType = typing.TypeVar("AppType", bound="Starlette")
 
@@ -153,7 +154,7 @@ class Starlette:
     def add_route(
         self,
         path: str,
-        route: typing.Callable[..., typing.Any],
+        route: typing.Callable[[Request], typing.Any],
         methods: typing.Optional[typing.List[str]] = None,
         name: typing.Optional[str] = None,
         include_in_schema: bool = True,
@@ -165,7 +166,7 @@ class Starlette:
     def add_websocket_route(
         self,
         path: str,
-        route: typing.Callable[..., typing.Any],
+        route: typing.Callable[[WebSocket], typing.Any],
         name: typing.Optional[str] = None,
     ) -> None:  # pragma: no cover
         self.router.add_websocket_route(path, route, name=name)

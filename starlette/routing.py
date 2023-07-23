@@ -789,7 +789,7 @@ class Router:
     def add_route(
         self,
         path: str,
-        endpoint: typing.Callable[..., typing.Any],
+        endpoint: typing.Callable[[Request], typing.Any],
         methods: typing.Optional[typing.List[str]] = None,
         name: typing.Optional[str] = None,
         include_in_schema: bool = True,
@@ -806,7 +806,7 @@ class Router:
     def add_websocket_route(
         self,
         path: str,
-        endpoint: typing.Callable[..., typing.Any],
+        endpoint: typing.Callable[[WebSocket], typing.Any],
         name: typing.Optional[str] = None,
     ) -> None:  # pragma: no cover
         route = WebSocketRoute(path, endpoint=endpoint, name=name)
