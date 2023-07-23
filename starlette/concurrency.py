@@ -24,7 +24,7 @@ async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -
             task_group.start_soon(run, functools.partial(func, **kwargs))
 
 
-# TODO: We should use `ParamSpec`, but mypy doesn't support it yet.
+# TODO: We should use `ParamSpec` here, but mypy doesn't support it yet.
 # Check https://github.com/python/mypy/issues/12278 for more details.
 async def run_in_threadpool(
     func: typing.Callable[..., T], *args: typing.Any, **kwargs: typing.Any

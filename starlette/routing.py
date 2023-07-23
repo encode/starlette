@@ -17,7 +17,7 @@ from starlette.datastructures import URL, Headers, URLPath
 from starlette.exceptions import HTTPException
 from starlette.middleware import Middleware
 from starlette.requests import Request
-from starlette.responses import PlainTextResponse, RedirectResponse
+from starlette.responses import PlainTextResponse, RedirectResponse, Response
 from starlette.types import ASGIApp, Lifespan, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketClose
 
@@ -54,18 +54,19 @@ def iscoroutinefunction_or_partial(obj: typing.Any) -> bool:  # pragma: no cover
     return inspect.iscoroutinefunction(obj)
 
 
-def request_response(func: typing.Callable[[Request], typing.Any]) -> ASGIApp:
+def request_response(
+    func: typing.Callable[[Request], typing.Union[typing.Awaitable[Response], Response]]
+) -> ASGIApp:
     """
     Takes a function or coroutine `func(request) -> response`,
     and returns an ASGI application.
     """
-    is_coroutine = is_async_callable(func)
 
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive, send)
 
         async def app(scope: Scope, receive: Receive, send: Send) -> None:
-            if is_coroutine:
+            if is_async_callable(func):
                 response = await func(request)
             else:
                 response = await run_in_threadpool(func, request)

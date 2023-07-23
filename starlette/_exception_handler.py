@@ -4,7 +4,6 @@ from starlette._utils import is_async_callable
 from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
-from starlette.responses import Response
 from starlette.types import ASGIApp, ExceptionHandler, Message, Receive, Scope, Send
 from starlette.websockets import WebSocket
 
@@ -60,13 +59,10 @@ def wrap_app_handling_exceptions(
                 raise RuntimeError(msg) from exc
 
             if scope["type"] == "http":
-                response: Response
                 if is_async_callable(handler):
                     response = await handler(conn, exc)
                 else:
-                    response = await run_in_threadpool(
-                        handler, conn, exc  # type: ignore[arg-type]
-                    )
+                    response = await run_in_threadpool(handler, conn, exc)
                 await response(scope, receive, sender)
             elif scope["type"] == "websocket":
                 if is_async_callable(handler):
