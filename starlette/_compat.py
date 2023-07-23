@@ -13,12 +13,12 @@ try:
     # check if the Python version supports the parameter
     # using usedforsecurity=False to avoid an exception on FIPS systems
     # that reject usedforsecurity=True
-    hashlib.md5(b"data", usedforsecurity=False)  # type: ignore[call-arg]
+    hashlib.md5(b"data", usedforsecurity=False)
 
     def md5_hexdigest(
         data: bytes, *, usedforsecurity: bool = True
     ) -> str:  # pragma: no cover
-        return hashlib.md5(  # type: ignore[call-arg]
+        return hashlib.md5(
             data, usedforsecurity=usedforsecurity
         ).hexdigest()
 
