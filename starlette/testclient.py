@@ -223,7 +223,10 @@ class _TestClientTransport(httpx.BaseTransport):
             headers = [(b"host", (f"{host}:{port}").encode())]
 
         # Include other request headers.
-        headers += [(key, value) for _, key, value in request.headers.raw]
+        headers += [
+            (key.lower().encode(), value.encode())
+            for key, value in request.headers.multi_items()
+        ]
 
         scope: typing.Dict[str, typing.Any]
 
