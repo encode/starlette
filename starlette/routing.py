@@ -77,7 +77,9 @@ def request_response(
     return app
 
 
-def websocket_session(func: typing.Callable[[WebSocket], typing.Any]) -> ASGIApp:
+def websocket_session(
+    func: typing.Callable[[WebSocket], typing.Awaitable[None]]
+) -> ASGIApp:
     """
     Takes a coroutine `func(session)`, and returns an ASGI application.
     """
@@ -790,7 +792,9 @@ class Router:
     def add_route(
         self,
         path: str,
-        endpoint: typing.Callable[[Request], typing.Any],
+        endpoint: typing.Callable[
+            [Request], typing.Union[typing.Awaitable[Response], Response]
+        ],
         methods: typing.Optional[typing.List[str]] = None,
         name: typing.Optional[str] = None,
         include_in_schema: bool = True,
@@ -807,7 +811,7 @@ class Router:
     def add_websocket_route(
         self,
         path: str,
-        endpoint: typing.Callable[[WebSocket], typing.Any],
+        endpoint: typing.Callable[[WebSocket], typing.Awaitable[None]],
         name: typing.Optional[str] = None,
     ) -> None:  # pragma: no cover
         route = WebSocketRoute(path, endpoint=endpoint, name=name)
