@@ -5,7 +5,7 @@ import typing
 
 if sys.version_info >= (3, 10):  # pragma: no cover
     from typing import TypeGuard
-else:
+else:  # pragma: no cover
     from typing_extensions import TypeGuard
 
 AnyAwaitableCallable = typing.Callable[..., typing.Awaitable[typing.Any]]
