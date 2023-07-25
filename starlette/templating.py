@@ -115,6 +115,8 @@ class Jinja2Templates:
         elif env is not None:
             self.env = env
 
+        self._setup_env_defaults(self.env)
+
     def _create_env(
         self,
         directory: typing.Union[
@@ -122,18 +124,19 @@ class Jinja2Templates:
         ],
         **env_options: typing.Any,
     ) -> "jinja2.Environment":
+        loader = jinja2.FileSystemLoader(directory)
+        env_options.setdefault("loader", loader)
+        env_options.setdefault("autoescape", True)
+
+        return jinja2.Environment(**env_options)
+
+    def _setup_env_defaults(self, env: "jinja2.Environment") -> None:
         @pass_context
         def url_for(context: dict, name: str, /, **path_params: typing.Any) -> URL:
             request = context["request"]
             return request.url_for(name, **path_params)
 
-        loader = jinja2.FileSystemLoader(directory)
-        env_options.setdefault("loader", loader)
-        env_options.setdefault("autoescape", True)
-
-        env = jinja2.Environment(**env_options)
         env.globals["url_for"] = url_for
-        return env
 
     def get_template(self, name: str) -> "jinja2.Template":
         return self.env.get_template(name)
