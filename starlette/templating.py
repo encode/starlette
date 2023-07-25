@@ -136,7 +136,7 @@ class Jinja2Templates:
             request = context["request"]
             return request.url_for(name, **path_params)
 
-        env.globals["url_for"] = url_for
+        env.globals.setdefault("url_for", url_for)
 
     def get_template(self, name: str) -> "jinja2.Template":
         return self.env.get_template(name)
