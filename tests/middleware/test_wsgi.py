@@ -1,11 +1,16 @@
 import sys
+from contextlib import suppress
 
 import pytest
 
 from starlette.middleware.wsgi import WSGIMiddleware, build_environ
 
+INSTALLED_EXCEPTION_GROUP = False
 if sys.version_info < (3, 11):  # pragma: no cover
-    from exceptiongroup import ExceptionGroup
+    with suppress(ModuleNotFoundError):
+        from exceptiongroup import ExceptionGroup
+
+        INSTALLED_EXCEPTION_GROUP = True
 
 
 def hello_world(environ, start_response):
@@ -64,6 +69,10 @@ def test_wsgi_post(test_client_factory):
     assert response.text == '{"example": 123}'
 
 
+@pytest.mark.skipif(
+    sys.version_info < (3, 11) and not INSTALLED_EXCEPTION_GROUP,
+    reason="exceptiongroup not installed",
+)
 def test_wsgi_exception(test_client_factory):
     # Note that we're testing the WSGI app directly here.
     # The HTTP protocol implementations would catch this error and return 500.

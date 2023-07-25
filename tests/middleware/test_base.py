@@ -1,6 +1,7 @@
 import contextvars
-from contextlib import AsyncExitStack
-from typing import AsyncGenerator, Awaitable, Callable, List, Union
+import sys
+from contextlib import AsyncExitStack, contextmanager, suppress
+from typing import AsyncGenerator, Awaitable, Callable, Generator, List, Union
 
 import anyio
 import pytest
@@ -14,6 +15,26 @@ from starlette.responses import PlainTextResponse, Response, StreamingResponse
 from starlette.routing import Route, WebSocketRoute
 from starlette.testclient import TestClient
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
+
+INSTALLED_EXCEPTION_GROUP = False
+if sys.version_info < (3, 11):  # pragma: no cover
+    with suppress(ModuleNotFoundError):
+        from exceptiongroup import BaseExceptionGroup
+
+        INSTALLED_EXCEPTION_GROUP = True
+
+
+@contextmanager
+def convert_exc_groups() -> Generator[None, None, None]:
+    if sys.version_info < (3, 11) and not INSTALLED_EXCEPTION_GROUP:
+        pytest.skip("exceptiongroup not installed")  # pragma: no cover
+    try:
+        yield
+    except BaseException as exc:
+        while isinstance(exc, BaseExceptionGroup) and len(exc.exceptions) == 1:
+            exc = exc.exceptions[0]
+
+        raise exc
 
 
 class CustomMiddleware(BaseHTTPMiddleware):
@@ -69,21 +90,21 @@ app = Starlette(
 )
 
 
-def test_custom_middleware(test_client_factory):
+def test_custom_middleware(test_client_factory: Callable[[ASGIApp], TestClient]):
     client = test_client_factory(app)
     response = client.get("/")
     assert response.headers["Custom-Header"] == "Example"
 
-    with pytest.raises(Exception) as ctx:
-        response = client.get("/exc")
+    with pytest.raises(Exception) as ctx, convert_exc_groups():
+        client.get("/exc")
     assert str(ctx.value) == "Exc"
 
-    with pytest.raises(Exception) as ctx:
-        response = client.get("/exc-stream")
+    with pytest.raises(Exception) as ctx, convert_exc_groups():
+        client.get("/exc-stream")
     assert str(ctx.value) == "Faulty Stream"
 
-    with pytest.raises(RuntimeError):
-        response = client.get("/no-response")
+    with pytest.raises(RuntimeError), convert_exc_groups():
+        client.get("/no-response")
 
     with client.websocket_connect("/ws") as session:
         text = session.receive_text()
@@ -210,7 +231,8 @@ def test_contextvars(test_client_factory, middleware_cls: type):
     )
 
     client = test_client_factory(app)
-    response = client.get("/")
+    with convert_exc_groups():
+        response = client.get("/")
     assert response.status_code == 200, response.content
 
 
