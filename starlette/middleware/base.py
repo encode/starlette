@@ -10,8 +10,12 @@ from starlette.requests import ClientDisconnect, Request
 from starlette.responses import ContentStream, Response, StreamingResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+has_exceptiongroups = True
 if sys.version_info < (3, 11):  # pragma: no cover
-    from exceptiongroup import BaseExceptionGroup
+    try:
+        from exceptiongroup import BaseExceptionGroup
+    except ImportError:
+        has_exceptiongroups = False
 
 RequestResponseEndpoint = typing.Callable[[Request], typing.Awaitable[Response]]
 DispatchFunction = typing.Callable[
@@ -25,8 +29,9 @@ def _convert_excgroups() -> typing.Generator[None, None, None]:
     try:
         yield
     except BaseException as exc:
-        while isinstance(exc, BaseExceptionGroup) and len(exc.exceptions) == 1:
-            exc = exc.exceptions[0]
+        if has_exceptiongroups:
+            while isinstance(exc, BaseExceptionGroup) and len(exc.exceptions) == 1:
+                exc = exc.exceptions[0]
 
         raise exc
 
