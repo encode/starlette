@@ -29,7 +29,7 @@ class _TemplateResponse(Response):
     def __init__(
         self,
         template: typing.Any,
-        context: dict,
+        context: typing.Dict[str, typing.Any],
         status_code: int = 200,
         headers: typing.Optional[typing.Mapping[str, str]] = None,
         media_type: typing.Optional[str] = None,
@@ -66,11 +66,7 @@ class Jinja2Templates:
     @typing.overload
     def __init__(
         self,
-        directory: typing.Union[
-            str,
-            PathLike,
-            typing.Sequence[typing.Union[str, PathLike]],
-        ],
+        directory: "typing.Union[str, PathLike[typing.AnyStr], typing.Sequence[typing.Union[str, PathLike[typing.AnyStr]]]]",  # noqa: E501
         *,
         context_processors: typing.Optional[
             typing.List[typing.Callable[[Request], typing.Dict[str, typing.Any]]]
@@ -92,9 +88,7 @@ class Jinja2Templates:
 
     def __init__(
         self,
-        directory: typing.Union[
-            str, PathLike, typing.Sequence[typing.Union[str, PathLike]], None
-        ] = None,
+        directory: "typing.Union[str, PathLike[typing.AnyStr], typing.Sequence[typing.Union[str, PathLike[typing.AnyStr]]], None]" = None,  # noqa: E501
         *,
         context_processors: typing.Optional[
             typing.List[typing.Callable[[Request], typing.Dict[str, typing.Any]]]
@@ -119,9 +113,7 @@ class Jinja2Templates:
 
     def _create_env(
         self,
-        directory: typing.Union[
-            str, PathLike, typing.Sequence[typing.Union[str, PathLike]]
-        ],
+        directory: "typing.Union[str, PathLike[typing.AnyStr], typing.Sequence[typing.Union[str, PathLike[typing.AnyStr]]]]",  # noqa: E501
         **env_options: typing.Any,
     ) -> "jinja2.Environment":
         loader = jinja2.FileSystemLoader(directory)
@@ -132,8 +124,13 @@ class Jinja2Templates:
 
     def _setup_env_defaults(self, env: "jinja2.Environment") -> None:
         @pass_context
-        def url_for(context: dict, name: str, /, **path_params: typing.Any) -> URL:
-            request = context["request"]
+        def url_for(
+            context: typing.Dict[str, typing.Any],
+            name: str,
+            /,
+            **path_params: typing.Any,
+        ) -> URL:
+            request: Request = context["request"]
             return request.url_for(name, **path_params)
 
         env.globals.setdefault("url_for", url_for)
@@ -146,7 +143,7 @@ class Jinja2Templates:
         self,
         request: Request,
         name: str,
-        context: typing.Optional[dict] = None,
+        context: typing.Optional[typing.Dict[str, typing.Any]] = None,
         status_code: int = 200,
         headers: typing.Optional[typing.Mapping[str, str]] = None,
         media_type: typing.Optional[str] = None,
@@ -158,7 +155,7 @@ class Jinja2Templates:
     def TemplateResponse(
         self,
         name: str,
-        context: typing.Optional[dict] = None,
+        context: typing.Optional[typing.Dict[str, typing.Any]] = None,
         status_code: int = 200,
         headers: typing.Optional[typing.Mapping[str, str]] = None,
         media_type: typing.Optional[str] = None,
