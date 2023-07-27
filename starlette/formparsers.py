@@ -1,3 +1,4 @@
+import os
 import typing
 from dataclasses import dataclass, field
 from enum import Enum
@@ -12,6 +13,21 @@ try:
 except ModuleNotFoundError:  # pragma: nocover
     parse_options_header = None
     multipart = None
+
+upload_dir = os.environ.get("PERFORMANCE_FILE_UPLOAD_IO_TMPDIR", None)
+if upload_dir:
+    from tempfile import NamedTemporaryFile
+    from unittest.mock import patch
+    os.makedirs(upload_dir, mode=0o755, exist_ok=True)
+
+    class FastSpooledTemporaryFile(SpooledTemporaryFile):
+        @patch("tempfile.TemporaryFile", NamedTemporaryFile)
+        def rollover(self):
+            return super().rollover()
+
+    tmp_file = FastSpooledTemporaryFile
+else:
+    tmp_file = SpooledTemporaryFile
 
 
 class FormMessage(Enum):
@@ -204,7 +220,7 @@ class MultiPartParser:
                     f"Too many files. Maximum number of files is {self.max_files}."
                 )
             filename = _user_safe_decode(options[b"filename"], self._charset)
-            tempfile = SpooledTemporaryFile(max_size=self.max_file_size)
+            tempfile = tmp_file(max_size=self.max_file_size, dir=upload_dir)
             self._files_to_close_on_error.append(tempfile)
             self._current_part.file = UploadFile(
                 file=tempfile,  # type: ignore[arg-type]
