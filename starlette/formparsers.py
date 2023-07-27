@@ -25,6 +25,12 @@ if upload_dir:
         def rollover(self):
             return super().rollover()
 
+        def save_to(self, path):
+            self.rollover()
+            self._file._closer.delete = self._file.delete = False
+            self.close()
+            os.rename(self.name, path)
+
     tmp_file = FastSpooledTemporaryFile
 else:
     tmp_file = SpooledTemporaryFile
