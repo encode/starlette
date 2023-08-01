@@ -16,7 +16,7 @@ trio==0.22.1
 anyio@git+https://github.com/agronholm/anyio.git
 
 # Documentation
-mkdocs==1.4.3
+mkdocs==1.5.1
 mkdocs-material==9.1.17
 mkautodoc==0.2.0
 
