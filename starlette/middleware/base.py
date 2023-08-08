@@ -1,15 +1,13 @@
-import sys
 import typing
-from contextlib import contextmanager
 
 import anyio
 from anyio.abc import ObjectReceiveStream, ObjectSendStream
 
+from starlette._utils import collapse_excgroups
 from starlette.background import BackgroundTask
 from starlette.requests import ClientDisconnect, Request
 from starlette.responses import ContentStream, Response, StreamingResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
-from starlette._utils import collapse_excgroups
 
 RequestResponseEndpoint = typing.Callable[[Request], typing.Awaitable[Response]]
 DispatchFunction = typing.Callable[
