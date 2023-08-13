@@ -388,7 +388,7 @@ class MultiDict(ImmutableMultiDict[typing.Any, typing.Any]):
         self._dict.update(value)
 
 
-class QueryParams(ImmutableMultiDict[str, str]):
+class QueryParams(ImmutableMultiDict[str, typing.Union[str, typing.List[str]]]):
     """
     An immutable multidict.
     """
@@ -426,11 +426,11 @@ class QueryParams(ImmutableMultiDict[str, str]):
             # An array may be represented as repeated keys in query params.
             # If a value is already present for a key, append to what is
             # already there rather than overwriting it.
-            existing_v = self._dict.get(k)
+            existing_v = self._dict[k]
             if isinstance(existing_v, list):
                 existing_v.append(v)
             else:
-                self._dict[k] = [self._dict[k], v]
+                self._dict[k] = [existing_v, v]
 
     def __str__(self) -> str:
         return urlencode(self._list)
