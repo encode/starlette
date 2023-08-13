@@ -417,7 +417,20 @@ class QueryParams(ImmutableMultiDict[str, str]):
         else:
             super().__init__(*args, **kwargs)  # type: ignore[arg-type]
         self._list = [(str(k), str(v)) for k, v in self._list]
-        self._dict = {str(k): str(v) for k, v in self._dict.items()}
+
+        self._dict = {}
+        for k, v in self._list:
+            if k not in self._dict:
+                self._dict[k] = v
+                continue
+            # An array may be represented as repeated keys in query params.
+            # If a value is already present for a key, append to what is
+            # already there rather than overwriting it.
+            existing_v = self._dict.get(k)
+            if isinstance(existing_v, list):
+                existing_v.append(v)
+            else:
+                self._dict[k] = [self._dict[k], v]
 
     def __str__(self) -> str:
         return urlencode(self._list)
