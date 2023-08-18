@@ -1,3 +1,9 @@
+## 0.31.1
+
+### Fixed
+
+* Revert upgrade to AnyIO 4.0+ [#2246](https://github.com/encode/starlette/pull/2246)
+
 ## 0.31.0
 
 July 24, 2023
