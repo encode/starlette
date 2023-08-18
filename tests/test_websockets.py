@@ -1,9 +1,7 @@
 import sys
-from typing import Any, MutableMapping
 
 import anyio
 import pytest
-from anyio.abc import ObjectReceiveStream, ObjectSendStream
 
 from starlette import status
 from starlette.types import Receive, Scope, Send
@@ -180,8 +178,6 @@ def test_websocket_iter_json(test_client_factory):
 
 
 def test_websocket_concurrency_pattern(test_client_factory):
-    stream_send: ObjectSendStream[MutableMapping[str, Any]]
-    stream_receive: ObjectReceiveStream[MutableMapping[str, Any]]
     stream_send, stream_receive = anyio.create_memory_object_stream()
 
     async def reader(websocket):
