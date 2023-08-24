@@ -83,6 +83,6 @@ def collapse_excgroups() -> typing.Generator[None, None, None]:
     except BaseException as exc:
         if has_exceptiongroups:
             while isinstance(exc, BaseExceptionGroup) and len(exc.exceptions) == 1:
-                exc = exc.exceptions[0]
+                exc = exc.exceptions[0]  # pragma: no cover
 
         raise exc
