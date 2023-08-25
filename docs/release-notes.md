@@ -1,5 +1,7 @@
 ## 0.31.1
 
+August 26, 2023
+
 ### Fixed
 
 * Fix import error when `exceptiongroup` isn't available [#2231](https://github.com/encode/starlette/pull/2231).
