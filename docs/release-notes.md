@@ -2,7 +2,8 @@
 
 ### Fixed
 
-* Revert upgrade to AnyIO 4.0+ [#2246](https://github.com/encode/starlette/pull/2246)
+* Fix import error when `exceptiongroup` isn't available [#2231](https://github.com/encode/starlette/pull/2231).
+* Set `url_for` global for custom Jinja environments [#2230](https://github.com/encode/starlette/pull/2230).
 
 ## 0.31.0
 
