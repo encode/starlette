@@ -1,8 +1,8 @@
 import typing
 from datetime import datetime, timezone
 
-from jose import jwt
-from jose.exceptions import JWTError
+import jwt
+from jwt.exceptions import InvalidTokenError
 
 from starlette.datastructures import MutableHeaders, Secret
 from starlette.requests import HTTPConnection
@@ -46,11 +46,9 @@ class JwtSessionMiddleware:
         if self.session_cookie in connection.cookies:
             data = connection.cookies[self.session_cookie]
             try:
-                print(data)
                 scope["session"] = self.decode(data)
                 initial_session_was_empty = False
-            except JWTError as ex:
-                print(ex)
+            except InvalidTokenError:
                 scope["session"] = {}
         else:
             scope["session"] = {}

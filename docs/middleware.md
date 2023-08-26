@@ -122,7 +122,7 @@ The following arguments are supported:
 * `same_site` - SameSite flag prevents the browser from sending session cookie along with cross-site requests. Defaults to `'lax'`.
 * `https_only` - Indicate that Secure flag should be set (can be used with HTTPS only). Defaults to `False`.
 
-In order to use this middleware, you will need to install python-jose ~= 3.3.
+In order to use this middleware, you will need to install PyJWT ~= 2.8.
 
 ## HTTPSRedirectMiddleware
 
