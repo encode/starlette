@@ -107,6 +107,23 @@ The following arguments are supported:
 * `same_site` - SameSite flag prevents the browser from sending session cookie along with cross-site requests. Defaults to `'lax'`.
 * `https_only` - Indicate that Secure flag should be set (can be used with HTTPS only). Defaults to `False`.
 
+## JwtSessionMiddleware
+
+Adds JWT cookie-based HTTP sessions. Session information is readable but not modifiable.
+
+Access or modify the session data using the `request.session` dictionary interface.
+
+The following arguments are supported:
+
+* `key` - The key that is used to sign and verify the JWT.
+* `session_cookie` - The name of the session cookie. Defaults to "session".
+* `algorithm` - The algorithm used to sign and verify the JWS payload. Defaults to "HS256".
+* `path` - The path for the session cookie. Defaults to "/".
+* `same_site` - SameSite flag prevents the browser from sending session cookie along with cross-site requests. Defaults to `'lax'`.
+* `https_only` - Indicate that Secure flag should be set (can be used with HTTPS only). Defaults to `False`.
+
+In order to use this middleware, you will need to install python-jose ~= 3.3.
+
 ## HTTPSRedirectMiddleware
 
 Enforces that all incoming requests must either be `https` or `wss`. Any incoming
