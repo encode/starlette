@@ -489,9 +489,12 @@ class Host(BaseRoute):
         if scope["type"] in ("http", "websocket"):
             headers = Headers(scope=scope)
             host = headers.get("host", "").split(":")[0]
-            match = self.host_regex.match(host)
-            if match:
-                matched_params = match.groupdict()
+            host_match = self.host_regex.match(host)
+            path_match = self.routes == [] or any(
+                [route.matches(scope)[0] == Match.FULL for route in self.routes]
+            )
+            if host_match and path_match:
+                matched_params = host_match.groupdict()
                 for key, value in matched_params.items():
                     matched_params[key] = self.param_convertors[key].convert(value)
                 path_params = dict(scope.get("path_params", {}))

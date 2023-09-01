@@ -1159,3 +1159,36 @@ def test_decorator_deprecations() -> None:
             ...  # pragma: nocover
 
         router.on_event("startup")(startup)
+
+
+def host_endpoint(request):
+    name = request.path_params["name"]
+    return JSONResponse({"name": name})
+
+
+host_based_router = Router(
+    routes=[
+        Host(
+            "example.org",
+            app=Router([Route("/foo/{name}", host_endpoint, name="foo")]),
+        ),
+        Host(
+            "example.org",
+            app=Router([Route("/bar/{name}", host_endpoint, name="bar")]),
+        ),
+    ],
+)
+
+
+def test_host_based_routing(test_client_factory):
+    client = test_client_factory(host_based_router, base_url="https://example.org/")
+
+    response = client.get("/foo/foo")
+    assert response.status_code == 200
+    assert response.json() == {"name": "foo"}
+
+    client = test_client_factory(host_based_router, base_url="https://example.org/")
+
+    response = client.get("/bar/bar")
+    assert response.status_code == 200
+    assert response.json() == {"name": "bar"}
