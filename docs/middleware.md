@@ -115,7 +115,7 @@ from starlette.middleware.sessions import SessionMiddleware
 routes = ...
 
 middleware = [
-    Middleware(SessionMiddleware, https_only=True)
+    Middleware(SessionMiddleware, secret_key="R4ND0M_S3CR3T_K3Y", https_only=True)
 ]
 
 app = Starlette(routes=routes, middleware=middleware)
