@@ -1170,11 +1170,11 @@ host_based_router = Router(
     routes=[
         Host(
             "example.org",
-            app=Router([Route("/foo/{name}", host_endpoint, name="foo")]),
+            app=Router([Route("/foo/{name}", host_endpoint)]),
         ),
         Host(
             "example.org",
-            app=Router([Route("/bar/{name}", host_endpoint, name="bar")]),
+            app=Router([Route("/bar/{name}", host_endpoint)]),
         ),
     ],
 )
