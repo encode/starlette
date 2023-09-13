@@ -1,4 +1,3 @@
-
 Starlette includes several middleware classes for adding behavior that is applied across
 your entire application. These are all implemented as standard ASGI
 middleware classes, and can be applied either to Starlette or to any other ASGI application.
@@ -32,19 +31,19 @@ app = Starlette(routes=routes, middleware=middleware)
 Every Starlette application automatically includes two pieces of middleware
 by default:
 
-* `ServerErrorMiddleware` - Ensures that application exceptions may return a custom 500 page, or display an application traceback in DEBUG mode. This is *always* the outermost middleware layer.
-* `ExceptionMiddleware` - Adds exception handlers, so that particular types of expected exception cases can be associated with handler functions. For example raising `HTTPException(status_code=404)` within an endpoint will end up rendering a custom 404 page.
+- `ServerErrorMiddleware` - Ensures that application exceptions may return a custom 500 page, or display an application traceback in DEBUG mode. This is _always_ the outermost middleware layer.
+- `ExceptionMiddleware` - Adds exception handlers, so that particular types of expected exception cases can be associated with handler functions. For example raising `HTTPException(status_code=404)` within an endpoint will end up rendering a custom 404 page.
 
 Middleware is evaluated from top-to-bottom, so the flow of execution in our example
 application would look like this:
 
-* Middleware
-    * `ServerErrorMiddleware`
-    * `TrustedHostMiddleware`
-    * `HTTPSRedirectMiddleware`
-    * `ExceptionMiddleware`
-* Routing
-* Endpoint
+- Middleware
+  - `ServerErrorMiddleware`
+  - `TrustedHostMiddleware`
+  - `HTTPSRedirectMiddleware`
+  - `ExceptionMiddleware`
+- Routing
+- Endpoint
 
 The following middleware implementations are available in the Starlette package:
 
@@ -72,13 +71,13 @@ app = Starlette(routes=routes, middleware=middleware)
 
 The following arguments are supported:
 
-* `allow_origins` - A list of origins that should be permitted to make cross-origin requests. eg. `['https://example.org', 'https://www.example.org']`. You can use `['*']` to allow any origin.
-* `allow_origin_regex` - A regex string to match against origins that should be permitted to make cross-origin requests. eg. `'https://.*\.example\.org'`.
-* `allow_methods` - A list of HTTP methods that should be allowed for cross-origin requests. Defaults to `['GET']`. You can use `['*']` to allow all standard methods.
-* `allow_headers` - A list of HTTP request headers that should be supported for cross-origin requests. Defaults to `[]`. You can use `['*']` to allow all headers. The `Accept`, `Accept-Language`, `Content-Language` and `Content-Type` headers are always allowed for CORS requests.
-* `allow_credentials` - Indicate that cookies should be supported for cross-origin requests. Defaults to `False`.
-* `expose_headers` - Indicate any response headers that should be made accessible to the browser. Defaults to `[]`.
-* `max_age` - Sets a maximum time in seconds for browsers to cache CORS responses. Defaults to `600`.
+- `allow_origins` - A list of origins that should be permitted to make cross-origin requests. eg. `['https://example.org', 'https://www.example.org']`. You can use `['*']` to allow any origin.
+- `allow_origin_regex` - A regex string to match against origins that should be permitted to make cross-origin requests. eg. `'https://.*\.example\.org'`.
+- `allow_methods` - A list of HTTP methods that should be allowed for cross-origin requests. Defaults to `['GET']`. You can use `['*']` to allow all standard methods.
+- `allow_headers` - A list of HTTP request headers that should be supported for cross-origin requests. Defaults to `[]`. You can use `['*']` to allow all headers. The `Accept`, `Accept-Language`, `Content-Language` and `Content-Type` headers are always allowed for CORS requests.
+- `allow_credentials` - Indicate that cookies should be supported for cross-origin requests. Defaults to `False`.
+- `expose_headers` - Indicate any response headers that should be made accessible to the browser. Defaults to `[]`.
+- `max_age` - Sets a maximum time in seconds for browsers to cache CORS responses. Defaults to `600`.
 
 The middleware responds to two particular types of HTTP request...
 
@@ -101,11 +100,12 @@ Access or modify the session data using the `request.session` dictionary interfa
 
 The following arguments are supported:
 
-* `secret_key` - Should be a random string.
-* `session_cookie` - Defaults to "session".
-* `max_age` - Session expiry time in seconds. Defaults to 2 weeks. If set to `None` then the cookie will last as long as the browser session.
-* `same_site` - SameSite flag prevents the browser from sending session cookie along with cross-site requests. Defaults to `'lax'`.
-* `https_only` - Indicate that Secure flag should be set (can be used with HTTPS only). Defaults to `False`.
+- `secret_key` - Should be a random string.
+- `session_cookie` - Defaults to "session".
+- `max_age` - Session expiry time in seconds. Defaults to 2 weeks. If set to `None` then the cookie will last as long as the browser session.
+- `same_site` - SameSite flag prevents the browser from sending session cookie along with cross-site requests. Defaults to `'lax'`.
+- `https_only` - Indicate that Secure flag should be set (can be used with HTTPS only). Defaults to `False`.
+- `domain` - Domain of the cookie used to share cookie between subdomains or cross-domains. The browser defaults the domain to the same host that set the cookie, excluding subdomains ([refrence](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#domain_attribute)).
 
 ## HTTPSRedirectMiddleware
 
@@ -149,9 +149,9 @@ app = Starlette(routes=routes, middleware=middleware)
 
 The following arguments are supported:
 
-* `allowed_hosts` - A list of domain names that should be allowed as hostnames. Wildcard
-domains such as `*.example.com` are supported for matching subdomains. To allow any
-hostname either use `allowed_hosts=["*"]` or omit the middleware.
+- `allowed_hosts` - A list of domain names that should be allowed as hostnames. Wildcard
+  domains such as `*.example.com` are supported for matching subdomains. To allow any
+  hostname either use `allowed_hosts=["*"]` or omit the middleware.
 
 If an incoming request does not validate correctly then a 400 response will be sent.
 
@@ -178,7 +178,7 @@ app = Starlette(routes=routes, middleware=middleware)
 
 The following arguments are supported:
 
-* `minimum_size` - Do not GZip responses that are smaller than this minimum size in bytes. Defaults to `500`.
+- `minimum_size` - Do not GZip responses that are smaller than this minimum size in bytes. Defaults to `500`.
 
 The middleware won't GZip responses that already have a `Content-Encoding` set, to prevent them from being encoded twice.
 
@@ -289,11 +289,11 @@ def asgi_middleware():
 
 In any case, ASGI middleware must be callables that accept three arguments: `scope`, `receive`, and `send`.
 
-* `scope` is a dict holding information about the connection, where `scope["type"]` may be:
-    * [`"http"`](https://asgi.readthedocs.io/en/latest/specs/www.html#http-connection-scope): for HTTP requests.
-    * [`"websocket"`](https://asgi.readthedocs.io/en/latest/specs/www.html#websocket-connection-scope): for WebSocket connections.
-    * [`"lifespan"`](https://asgi.readthedocs.io/en/latest/specs/lifespan.html#scope): for ASGI lifespan messages.
-* `receive` and `send` can be used to exchange ASGI event messages with the ASGI server — more on this below. The type and contents of these messages depend on the scope type. Learn more in the [ASGI specification](https://asgi.readthedocs.io/en/latest/specs/index.html).
+- `scope` is a dict holding information about the connection, where `scope["type"]` may be:
+  - [`"http"`](https://asgi.readthedocs.io/en/latest/specs/www.html#http-connection-scope): for HTTP requests.
+  - [`"websocket"`](https://asgi.readthedocs.io/en/latest/specs/www.html#websocket-connection-scope): for WebSocket connections.
+  - [`"lifespan"`](https://asgi.readthedocs.io/en/latest/specs/lifespan.html#scope): for ASGI lifespan messages.
+- `receive` and `send` can be used to exchange ASGI event messages with the ASGI server — more on this below. The type and contents of these messages depend on the scope type. Learn more in the [ASGI specification](https://asgi.readthedocs.io/en/latest/specs/index.html).
 
 ### Using pure ASGI middleware
 
@@ -320,7 +320,7 @@ See also [Using middleware](#using-middleware).
 
 There are two ways of annotating a middleware: using Starlette itself or [`asgiref`](https://github.com/django/asgiref).
 
-* Using Starlette: for most common use cases.
+- Using Starlette: for most common use cases.
 
 ```python
 from starlette.types import ASGIApp, Message, Scope, Receive, Send
@@ -341,7 +341,7 @@ class ASGIMiddleware:
         await self.app(scope, receive, send_wrapper)
 ```
 
-* Using [`asgiref`](https://github.com/django/asgiref): for more rigorous type hinting.
+- Using [`asgiref`](https://github.com/django/asgiref): for more rigorous type hinting.
 
 ```python
 from asgiref.typing import ASGI3Application, ASGIReceiveCallable, ASGISendCallable, Scope
@@ -465,7 +465,6 @@ middleware = [
 app = Starlette(routes=routes, middleware=middleware)
 ```
 
-
 #### Inspecting or modifying the request
 
 Request information can be accessed or changed by manipulating the `scope`. For a full example of this pattern, see Uvicorn's [`ProxyHeadersMiddleware`](https://github.com/encode/uvicorn/blob/fd4386fefb8fe8a4568831a7d8b2930d5fb61455/uvicorn/middleware/proxy_headers.py) which inspects and tweaks the `scope` when serving behind a frontend proxy.
@@ -571,7 +570,7 @@ import time
 class MonitoringMiddleware:
     def __init__(self, app):
         self.app = app
-    
+
     async def __call__(self, scope, receive, send):
         start = time.time()
         try:
@@ -685,8 +684,8 @@ app = TrustedHostMiddleware(app, allowed_hosts=['example.com'])
 You can do this with a Starlette application instance too, but it is preferable
 to use the `middleware=<List of Middleware instances>` style, as it will:
 
-* Ensure that everything remains wrapped in a single outermost `ServerErrorMiddleware`.
-* Preserves the top-level `app` instance.
+- Ensure that everything remains wrapped in a single outermost `ServerErrorMiddleware`.
+- Preserves the top-level `app` instance.
 
 ## Applying middleware to `Mount`s
 
@@ -715,13 +714,13 @@ routes = [
 app = Starlette(routes=routes)
 ```
 
-Note that middleware used in this way is *not* wrapped in exception handling middleware like the middleware applied to the `Starlette` application is.
+Note that middleware used in this way is _not_ wrapped in exception handling middleware like the middleware applied to the `Starlette` application is.
 This is often not a problem because it only applies to middleware that inspect or modify the `Response`, and even then you probably don't want to apply this logic to error responses.
 If you do want to apply the middleware logic to error responses only on some routes you have a couple of options:
 
-* Add an `ExceptionMiddleware` onto the `Mount`
-* Add a `try/except` block to your middleware and return an error response from there
-* Split up marking and processing into two middlewares, one that gets put on `Mount` which marks the response as needing processing (for example by setting `scope["log-response"] = True`) and another applied to the `Starlette` application that does the heavy lifting.
+- Add an `ExceptionMiddleware` onto the `Mount`
+- Add a `try/except` block to your middleware and return an error response from there
+- Split up marking and processing into two middlewares, one that gets put on `Mount` which marks the response as needing processing (for example by setting `scope["log-response"] = True`) and another applied to the `Starlette` application that does the heavy lifting.
 
 ## Third party middleware
 
@@ -786,7 +785,7 @@ extra support for existing cookie-based middleware.
 #### [TimingMiddleware](https://github.com/steinnes/timing-asgi)
 
 A middleware class to emit timing information (cpu and wall time) for each request which
-passes through it.  Includes examples for how to emit these timings as statsd metrics.
+passes through it. Includes examples for how to emit these timings as statsd metrics.
 
 #### [WSGIMiddleware](https://github.com/abersheeran/a2wsgi)
 
