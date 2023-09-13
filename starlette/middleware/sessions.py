@@ -20,7 +20,7 @@ class SessionMiddleware:
         path: str = "/",
         same_site: typing.Literal["lax", "strict", "none"] = "lax",
         https_only: bool = False,
-        domain: str = None,
+        domain: str = "",
     ) -> None:
         self.app = app
         self.signer = itsdangerous.TimestampSigner(str(secret_key))
