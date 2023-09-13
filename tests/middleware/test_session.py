@@ -199,3 +199,4 @@ def test_domain_cookie(test_client_factory):
     client.cookies.delete("session")
     response = client.get("/view_session")
     assert response.json() == {"session": {}}
+    
