@@ -47,6 +47,7 @@ nav:
   - Exceptions: 'exceptions.md'
   - Configuration: 'config.md'
   - Test Client: 'testclient.md'
+  - Sync Threadpools: 'threadpools.md'
   - Third Party Packages: 'third-party-packages.md'
   - Contributing: 'contributing.md'
   - Release Notes: 'release-notes.md'
