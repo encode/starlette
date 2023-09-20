@@ -2,8 +2,7 @@ Starlette supports both `async` and `sync` routes and background tasks.
 The sync part is running inside a threadpool by using [`AnyIO`](https://github.com/agronholm/anyio).
 
 The `AnyIO` library by default starts a threadpool with a fixed number of threads, which works for most cases.
-But since the threadpool is shared by both routes and background tasks,
-it might be useful to control the number of threads.
+But since the threadpool is shared by both incoming requests, background tasks, and any other AnyIO thread pool usage it might be useful to control the number of threads.
 
 
 ```py
