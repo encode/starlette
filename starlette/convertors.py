@@ -38,6 +38,16 @@ class PathConvertor(Convertor[str]):
         return str(value)
 
 
+class MountPathConvertor(Convertor[str]):
+    regex = ".+"
+
+    def convert(self, value: str) -> str:
+        return str(value)
+
+    def to_string(self, value: str) -> str:
+        return str(value)
+
+
 class IntegerConvertor(Convertor[int]):
     regex = "[0-9]+"
 
@@ -77,6 +87,7 @@ class UUIDConvertor(Convertor[uuid.UUID]):
 CONVERTOR_TYPES: typing.Dict[str, Convertor[typing.Any]] = {
     "str": StringConvertor(),
     "path": PathConvertor(),
+    "mountpath": MountPathConvertor(),
     "int": IntegerConvertor(),
     "float": FloatConvertor(),
     "uuid": UUIDConvertor(),

@@ -285,6 +285,10 @@ class Route(BaseRoute):
                 )
             await response(scope, receive, send)
         else:
+            # Update the scope path to match what Uvicorn expects. Uvicorn can then log the
+            # actual full path and not only the route path.
+            # Also, why is the 500 error class of Uvicorn used for 200 responses?
+            scope["path"] = scope["root_path"] + scope["path"]
             await self.app(scope, receive, send)
 
     def __eq__(self, other: typing.Any) -> bool:
@@ -391,9 +395,15 @@ class Mount(BaseRoute):
             for cls, options in reversed(middleware):
                 self.app = cls(app=self.app, **options)
         self.name = name
-        self.path_regex, self.path_format, self.param_convertors = compile_path(
-            self.path + "/{path:path}"
-        )
+
+        if self.path == "":
+            self.path_regex, self.path_format, self.param_convertors = compile_path(
+                self.path = "/"
+            )
+        else:
+            self.path_regex, self.path_format, self.param_convertors = compile_path(
+                self.path + "/{path:mountpath}"
+            )
 
     @property
     def routes(self) -> typing.List[BaseRoute]:
