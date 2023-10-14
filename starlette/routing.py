@@ -285,8 +285,8 @@ class Route(BaseRoute):
                 )
             await response(scope, receive, send)
         else:
-            # Update the scope path to match what Uvicorn expects. Uvicorn can then log the
-            # actual full path and not only the route path.
+            # Update the scope path to match what Uvicorn expects. Uvicorn can then
+            # log the actual full path and not only the route path.
             # Also, why is the 500 error class of Uvicorn used for 200 responses?
             scope["path"] = scope["root_path"] + scope["path"]
             await self.app(scope, receive, send)
