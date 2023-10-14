@@ -398,7 +398,7 @@ class Mount(BaseRoute):
 
         if self.path == "":
             self.path_regex, self.path_format, self.param_convertors = compile_path(
-                self.path = "/"
+                self.path + "/"
             )
         else:
             self.path_regex, self.path_format, self.param_convertors = compile_path(
