@@ -571,7 +571,7 @@ import time
 class MonitoringMiddleware:
     def __init__(self, app):
         self.app = app
-    
+
     async def __call__(self, scope, receive, send):
         start = time.time()
         try:
@@ -724,6 +724,11 @@ If you do want to apply the middleware logic to error responses only on some rou
 * Split up marking and processing into two middlewares, one that gets put on `Mount` which marks the response as needing processing (for example by setting `scope["log-response"] = True`) and another applied to the `Starlette` application that does the heavy lifting.
 
 ## Third party middleware
+
+#### [ApitallyMiddleware](https://github.com/apitally/python-client)
+
+Middleware for sending request and response metadata to [Apitally](https://apitally.io) for traffic, error and response time monitoring.
+Also provides API key authentication, with API keys and permissions managed via a simple UI in Apitally.
 
 #### [asgi-auth-github](https://github.com/simonw/asgi-auth-github)
 
