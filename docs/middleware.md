@@ -725,11 +725,6 @@ If you do want to apply the middleware logic to error responses only on some rou
 
 ## Third party middleware
 
-#### [ApitallyMiddleware](https://github.com/apitally/python-client)
-
-Middleware for sending request and response metadata to [Apitally](https://apitally.io) for traffic, error and response time monitoring.
-Also provides API key authentication, with API keys and permissions managed via a simple UI in Apitally.
-
 #### [asgi-auth-github](https://github.com/simonw/asgi-auth-github)
 
 This middleware adds authentication to any ASGI application, requiring users to sign in
