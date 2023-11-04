@@ -2,7 +2,7 @@
 
 ### Added
 
-* Send reason on WebSocketDisconnect [#2309](https:://github.com/encode/starlette/pull/2309).
+* Send `reason` on `WebSocketDisconnect` [#2309](https:://github.com/encode/starlette/pull/2309).
 * Add `domain` parameter to `SessionMiddleware` [#2280](https:://github.com/encode/starlette/pull/2280).
 
 ### Changed
