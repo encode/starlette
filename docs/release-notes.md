@@ -1,9 +1,17 @@
+## 0.32.0.post1
+
+### Fixed
+
+* Revert mkdocs-material from 9.1.17 to 9.4.7 [#2326](https://github.com/encode/starlette/pull/2326).
+
 ## 0.32.0
+
+November 4, 2023
 
 ### Added
 
-* Send `reason` on `WebSocketDisconnect` [#2309](https:://github.com/encode/starlette/pull/2309).
-* Add `domain` parameter to `SessionMiddleware` [#2280](https:://github.com/encode/starlette/pull/2280).
+* Send `reason` on `WebSocketDisconnect` [#2309](https://github.com/encode/starlette/pull/2309).
+* Add `domain` parameter to `SessionMiddleware` [#2280](https://github.com/encode/starlette/pull/2280).
 
 ### Changed
 
