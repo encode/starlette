@@ -1,5 +1,7 @@
 ## 0.32.0.post1
 
+November 5, 2023
+
 ### Fixed
 
 * Revert mkdocs-material from 9.1.17 to 9.4.7 [#2326](https://github.com/encode/starlette/pull/2326).
