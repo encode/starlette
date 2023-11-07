@@ -156,25 +156,27 @@ class WebSocketTestSession:
     def close(self, code: int = 1000, reason: typing.Union[str, None] = None) -> None:
         self.send({"type": "websocket.disconnect", "code": code, "reason": reason})
 
-    def receive(self) -> Message:
-        message = self._send_queue.get()
+    def receive(self, timeout: typing.Optional[float] = None) -> Message:
+        message = self._send_queue.get(timeout=timeout)
         if isinstance(message, BaseException):
             raise message
         return message
 
-    def receive_text(self) -> str:
-        message = self.receive()
+    def receive_text(self, timeout: typing.Optional[float] = None) -> str:
+        message = self.receive(timeout=timeout)
         self._raise_on_close(message)
         return typing.cast(str, message["text"])
 
-    def receive_bytes(self) -> bytes:
-        message = self.receive()
+    def receive_bytes(self, timeout: typing.Optional[float] = None) -> bytes:
+        message = self.receive(timeout=timeout)
         self._raise_on_close(message)
         return typing.cast(bytes, message["bytes"])
 
-    def receive_json(self, mode: str = "text") -> typing.Any:
+    def receive_json(
+        self, mode: str = "text", timeout: typing.Optional[float] = None
+    ) -> typing.Any:
         assert mode in ["text", "binary"]
-        message = self.receive()
+        message = self.receive(timeout=timeout)
         self._raise_on_close(message)
         if mode == "text":
             text = message["text"]

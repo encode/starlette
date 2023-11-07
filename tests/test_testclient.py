@@ -2,6 +2,7 @@ import itertools
 import sys
 from asyncio import current_task as asyncio_current_task
 from contextlib import asynccontextmanager
+from queue import Empty
 from typing import Callable
 
 import anyio
@@ -252,6 +253,20 @@ def test_websocket_blocking_receive(test_client_factory):
     with client.websocket_connect("/") as websocket:
         data = websocket.receive_json()
         assert data == {"message": "test"}
+
+
+def test_websocket_timeout_receive(test_client_factory):
+    def app(scope):
+        async def asgi(receive, send):
+            websocket = WebSocket(scope, receive=receive, send=send)
+            await websocket.accept()
+
+        return asgi
+
+    client = test_client_factory(app)
+    with client.websocket_connect("/") as websocket:
+        with pytest.raises(Empty):
+            websocket.receive_json(timeout=1.0)
 
 
 def test_client(test_client_factory):
