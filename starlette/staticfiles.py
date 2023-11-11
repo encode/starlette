@@ -1,5 +1,6 @@
 import importlib.util
 import os
+import re
 import stat
 import typing
 from email.utils import parsedate
@@ -12,6 +13,7 @@ from starlette.responses import FileResponse, RedirectResponse, Response
 from starlette.types import Receive, Scope, Send
 
 PathLike = typing.Union[str, "os.PathLike[str]"]
+ETAG_PATTERN = re.compile(r'(?:(W/)?("[^"]*")|(^\*$))')
 
 
 class NotModifiedResponse(Response):
@@ -226,8 +228,9 @@ class StaticFiles:
         try:
             if_none_match = request_headers["if-none-match"]
             etag = response_headers["etag"]
-            if if_none_match == etag:
-                return True
+            for match in ETAG_PATTERN.finditer(if_none_match):
+                if match.groups()[1] == etag:
+                    return True
         except KeyError:
             pass
 
