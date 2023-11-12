@@ -1,5 +1,7 @@
 import re
 
+import pytest
+
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
@@ -51,6 +53,14 @@ def test_session(test_client_factory):
 
     response = client.post("/clear_session")
     assert response.json() == {"session": {}}
+
+    response = client.get("/view_session")
+    assert response.json() == {"session": {}}
+
+    # check allow_path_regex
+    with pytest.raises(AssertionError):
+        response = client.post("/skipped_path", json={"some": "skipped-data"})
+        pass  # pragma: nocover
 
     response = client.get("/view_session")
     assert response.json() == {"session": {}}

@@ -1,4 +1,5 @@
 import json
+import re
 import typing
 from base64 import b64decode, b64encode
 
@@ -21,6 +22,7 @@ class SessionMiddleware:
         same_site: typing.Literal["lax", "strict", "none"] = "lax",
         https_only: bool = False,
         domain: typing.Optional[str] = None,
+        allow_path_regex: typing.Optional[str] = None,
     ) -> None:
         self.app = app
         self.signer = itsdangerous.TimestampSigner(str(secret_key))
@@ -32,9 +34,18 @@ class SessionMiddleware:
             self.security_flags += "; secure"
         if domain is not None:
             self.security_flags += f"; domain={domain}"
+        compiled_allow_path_regex = None
+        if allow_path_regex is not None:
+            compiled_allow_path_regex = re.compile(allow_path_regex)
+        self.allow_path_regex = compiled_allow_path_regex
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] not in ("http", "websocket"):  # pragma: no cover
+            await self.app(scope, receive, send)
+            return
+        if self.allow_path_regex is not None and self.allow_path_regex.match(
+            scope["path"]
+        ):
             await self.app(scope, receive, send)
             return
 
