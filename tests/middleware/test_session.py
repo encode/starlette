@@ -30,9 +30,16 @@ def test_session(test_client_factory):
         routes=[
             Route("/view_session", endpoint=view_session),
             Route("/update_session", endpoint=update_session, methods=["POST"]),
+            Route("/skipped_path", endpoint=update_session, methods=["POST"]),
             Route("/clear_session", endpoint=clear_session, methods=["POST"]),
         ],
-        middleware=[Middleware(SessionMiddleware, secret_key="example")],
+        middleware=[
+            Middleware(
+                SessionMiddleware,
+                secret_key="example",
+                allow_path_regex=r"^/skipped_path$",
+            )
+        ],
     )
     client = test_client_factory(app)
 

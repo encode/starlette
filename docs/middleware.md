@@ -107,7 +107,7 @@ The following arguments are supported:
 * `same_site` - SameSite flag prevents the browser from sending session cookie along with cross-site requests. Defaults to `'lax'`.
 * `https_only` - Indicate that Secure flag should be set (can be used with HTTPS only). Defaults to `False`.
 * `domain` - Domain of the cookie used to share cookie between subdomains or cross-domains. The browser defaults the domain to the same host that set the cookie, excluding subdomains [refrence](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#domain_attribute).
-
+* `allow_path_regex`: A regex string to match against paths that should be permitted to use sessions. eg. `'/api/.*'`. Defaults to `None` (all routes).
 
 ## HTTPSRedirectMiddleware
 
