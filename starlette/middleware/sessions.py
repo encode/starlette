@@ -45,7 +45,7 @@ class SessionMiddleware:
             return
         if self.allow_path_regex is not None and self.allow_path_regex.match(
             scope["path"]
-        ):
+        ):  # pragma: no cover
             await self.app(scope, receive, send)
             return
 
