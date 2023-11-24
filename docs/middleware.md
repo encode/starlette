@@ -106,8 +106,7 @@ The following arguments are supported:
 * `max_age` - Session expiry time in seconds. Defaults to 2 weeks. If set to `None` then the cookie will last as long as the browser session.
 * `same_site` - SameSite flag prevents the browser from sending session cookie along with cross-site requests. Defaults to `'lax'`.
 * `https_only` - Indicate that Secure flag should be set (can be used with HTTPS only). Defaults to `False`.
-* `domain` - Domain of the cookie used to share cookie between subdomains or cross-domains. The browser defaults the domain to the same host that set the cookie, excluding subdomains [refrence](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#domain_attribute). 
-
+* `domain` - Domain of the cookie used to share cookie between subdomains or cross-domains. The browser defaults the domain to the same host that set the cookie, excluding subdomains [refrence](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#domain_attribute).
 
 ## HTTPSRedirectMiddleware
 
@@ -183,6 +182,31 @@ The following arguments are supported:
 * `minimum_size` - Do not GZip responses that are smaller than this minimum size in bytes. Defaults to `500`.
 
 The middleware won't GZip responses that already have a `Content-Encoding` set, to prevent them from being encoded twice.
+
+## LimitRequestMiddleware
+
+Limits the body size of incoming requests. If the incoming request has a body
+larger than the limit, then a `413 Content Too Large` response will be sent.
+
+```python
+from starlette.applications import Starlette
+from starlette.middleware import Middleware
+from starlette.middleware.limits import LimitRequestMiddleware
+
+
+routes = ...
+
+middleware = [
+    Middleware(LimitRequestMiddleware, max_body_size=1024)
+]
+
+app = Starlette(routes=routes, middleware=middleware)
+```
+
+The following arguments are supported:
+
+* `max_body_size` - Send a "413 - Content Too Large" on requests that surpass the maximum allowed body size.
+  Defaults to `2.5 * 1024 * 1024` bytes (2.5MB).
 
 ## BaseHTTPMiddleware
 
@@ -573,7 +597,7 @@ import time
 class MonitoringMiddleware:
     def __init__(self, app):
         self.app = app
-    
+
     async def __call__(self, scope, receive, send):
         start = time.time()
         try:
