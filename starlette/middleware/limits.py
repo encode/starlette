@@ -11,7 +11,7 @@ class ContentTooLarge(Exception):
         self.max_body_size = max_body_size
 
 
-class LimitRequestSizeMiddleware:
+class LimitRequestMiddleware:
     def __init__(
         self, app: ASGIApp, max_body_size: int = DEFAULT_MAX_BODY_SIZE
     ) -> None:

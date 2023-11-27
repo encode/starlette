@@ -4,7 +4,7 @@ import pytest
 
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
-from starlette.middleware.limits import ContentTooLarge, LimitRequestSizeMiddleware
+from starlette.middleware.limits import ContentTooLarge, LimitRequestMiddleware
 from starlette.requests import Request
 from starlette.routing import Route
 from starlette.testclient import TestClient
@@ -24,7 +24,7 @@ async def echo_app(scope: Scope, receive: Receive, send: Send) -> None:
             break
 
 
-app = LimitRequestSizeMiddleware(echo_app, max_body_size=1024)
+app = LimitRequestMiddleware(echo_app, max_body_size=1024)
 
 
 def test_no_op(test_client_factory: Callable[..., TestClient]) -> None:
@@ -81,7 +81,7 @@ def test_content_too_large_on_starlette(
 
     app = Starlette(
         routes=[Route("/", read_body_endpoint, methods=["POST"])],
-        middleware=[Middleware(LimitRequestSizeMiddleware, max_body_size=1024)],
+        middleware=[Middleware(LimitRequestMiddleware, max_body_size=1024)],
     )
     client = test_client_factory(app)
 
