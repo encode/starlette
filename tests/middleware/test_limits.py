@@ -4,7 +4,7 @@ import pytest
 
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
-from starlette.middleware.limits import ContentTooLarge, LimitRequestMiddleware
+from starlette.middleware.limits import ContentTooLarge, LimitRequestSizeMiddleware
 from starlette.requests import Request
 from starlette.routing import Route
 from starlette.testclient import TestClient
@@ -24,7 +24,7 @@ async def echo_app(scope: Scope, receive: Receive, send: Send) -> None:
             break
 
 
-app = LimitRequestMiddleware(echo_app, max_body_size=1024)
+app = LimitRequestSizeMiddleware(echo_app, max_body_size=1024)
 
 
 def test_no_op(test_client_factory: Callable[..., TestClient]) -> None:
@@ -81,10 +81,20 @@ def test_content_too_large_on_starlette(
 
     app = Starlette(
         routes=[Route("/", read_body_endpoint, methods=["POST"])],
-        middleware=[Middleware(LimitRequestMiddleware, max_body_size=1024)],
+        middleware=[Middleware(LimitRequestSizeMiddleware, max_body_size=1024)],
     )
     client = test_client_factory(app)
 
     response = client.post("/", content=[b"X" * 1024, b"X"])
+    assert response.status_code == 413
+    assert response.text == "Content Too Large"
+
+
+def test_content_too_large_and_content_length_mismatch(
+    test_client_factory: Callable[..., TestClient]
+) -> None:
+    client = test_client_factory(app)
+
+    response = client.post("/", content="X" * 1025, headers={"Content-Length": "1024"})
     assert response.status_code == 413
     assert response.text == "Content Too Large"
