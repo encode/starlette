@@ -4,9 +4,10 @@ import pytest
 
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
-from starlette.middleware.limits import ContentTooLarge, LimitRequestMiddleware
+from starlette.middleware.limits import ContentTooLarge, LimitBodySizeMiddleware
 from starlette.requests import Request
-from starlette.routing import Route
+from starlette.responses import Response
+from starlette.routing import Mount, Route
 from starlette.testclient import TestClient
 from starlette.types import Message, Receive, Scope, Send
 
@@ -24,7 +25,7 @@ async def echo_app(scope: Scope, receive: Receive, send: Send) -> None:
             break
 
 
-app = LimitRequestMiddleware(echo_app, max_body_size=1024)
+app = LimitBodySizeMiddleware(echo_app, max_body_size=1024)
 
 
 def test_no_op(test_client_factory: Callable[..., TestClient]) -> None:
@@ -73,17 +74,25 @@ async def test_content_too_large_on_started_response() -> None:
     await rcv.aclose()
 
 
+async def read_body_endpoint(request: Request) -> Response:
+    body = b""
+    async for chunk in request.stream():
+        body += chunk
+    return Response(content=body)
+
+
 def test_content_too_large_on_starlette(
     test_client_factory: Callable[..., TestClient]
 ) -> None:
-    async def read_body_endpoint(request: Request) -> None:
-        await request.body()
-
     app = Starlette(
         routes=[Route("/", read_body_endpoint, methods=["POST"])],
-        middleware=[Middleware(LimitRequestMiddleware, max_body_size=1024)],
+        middleware=[Middleware(LimitBodySizeMiddleware, max_body_size=1024)],
     )
     client = test_client_factory(app)
+
+    response = client.post("/", content=b"X" * 1024)
+    assert response.status_code == 200
+    assert response.text == "X" * 1024
 
     response = client.post("/", content=[b"X" * 1024, b"X"])
     assert response.status_code == 413
@@ -98,3 +107,54 @@ def test_content_too_large_and_content_length_mismatch(
     response = client.post("/", content="X" * 1025, headers={"Content-Length": "1024"})
     assert response.status_code == 413
     assert response.text == "Content Too Large"
+
+
+def test_inner_middleware_overrides_outer_middleware(
+    test_client_factory: Callable[..., TestClient]
+) -> None:
+    outer_app = LimitBodySizeMiddleware(
+        LimitBodySizeMiddleware(
+            echo_app,
+            max_body_size=2048,
+        ),
+        max_body_size=1024,
+    )
+
+    client = test_client_factory(outer_app)
+
+    response = client.post("/", content="X" * 2049)
+    assert response.status_code == 413
+    assert response.text == "Content Too Large"
+
+    response = client.post("/", content="X" * 2048)
+    assert response.status_code == 200
+    assert response.text == "X" * 2048
+
+
+def test_multiple_middleware_on_starlette(
+    test_client_factory: Callable[..., TestClient]
+) -> None:
+    app = Starlette(
+        routes=[
+            Route("/outer", read_body_endpoint, methods=["POST"]),
+            Mount(
+                "/inner",
+                routes=[Route("/", read_body_endpoint, methods=["POST"])],
+                middleware=[Middleware(LimitBodySizeMiddleware, max_body_size=2048)],
+            ),
+        ],
+        middleware=[Middleware(LimitBodySizeMiddleware, max_body_size=1024)],
+    )
+    client = test_client_factory(app)
+
+    # response = client.post("/outer", content="X" * 1025)
+    # assert response.status_code == 413
+    # assert response.text == "Content Too Large"
+
+    # response = client.post("/outer", content="X" * 1025)
+    # assert response.status_code == 413
+    # assert response.text == "Content Too Large"
+
+    response = client.post("/inner", content="X" * 1025)
+    assert response.status_code == 200
+    assert response.text == "X" * 1025

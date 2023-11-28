@@ -183,7 +183,7 @@ The following arguments are supported:
 
 The middleware won't GZip responses that already have a `Content-Encoding` set, to prevent them from being encoded twice.
 
-## LimitRequestMiddleware
+## LimitBodySizeMiddleware
 
 Limits the body size of incoming requests. If the incoming request has a body
 larger than the limit, then a `413 Content Too Large` response will be sent.
@@ -191,13 +191,13 @@ larger than the limit, then a `413 Content Too Large` response will be sent.
 ```python
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
-from starlette.middleware.limits import LimitRequestMiddleware
+from starlette.middleware.limits import LimitBodySizeMiddleware
 
 
 routes = ...
 
 middleware = [
-    Middleware(LimitRequestMiddleware, max_body_size=1024)
+    Middleware(LimitBodySizeMiddleware, max_body_size=1024)
 ]
 
 app = Starlette(routes=routes, middleware=middleware)
