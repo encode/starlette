@@ -1,6 +1,5 @@
 """Middleware that limits the body size of incoming requests."""
 from starlette.datastructures import Headers
-from starlette.exceptions import HTTPException
 from starlette.responses import PlainTextResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
@@ -10,10 +9,9 @@ MAX_BODY_SIZE_KEY = "starlette.max_body_size"
 _content_too_large_app = PlainTextResponse("Content Too Large", status_code=413)
 
 
-class ContentTooLarge(HTTPException):
+class ContentTooLarge(Exception):
     def __init__(self, max_body_size: int) -> None:
         self.max_body_size = max_body_size
-        super().__init__(detail="Content Too Large", status_code=413)
 
 
 class LimitBodySizeMiddleware:
@@ -63,6 +61,5 @@ class LimitBodySizeMiddleware:
             # NOTE: If response has already started, we can't return a 413, because the
             #   headers have already been sent.
             if not response_started:
-                if "app" not in scope:
-                    return await _content_too_large_app(scope, receive, send)
+                return await _content_too_large_app(scope, receive, send)
             raise exc
