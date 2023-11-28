@@ -147,14 +147,18 @@ def test_multiple_middleware_on_starlette(
     )
     client = test_client_factory(app)
 
-    # response = client.post("/outer", content="X" * 1025)
-    # assert response.status_code == 413
-    # assert response.text == "Content Too Large"
-
-    # response = client.post("/outer", content="X" * 1025)
-    # assert response.status_code == 413
-    # assert response.text == "Content Too Large"
-
-    response = client.post("/inner", content="X" * 1025)
+    response = client.post("/outer", content="X" * 1024)
     assert response.status_code == 200
-    assert response.text == "X" * 1025
+    assert response.text == "X" * 1024
+
+    response = client.post("/outer", content="X" * 1025)
+    assert response.status_code == 413
+    assert response.text == "Content Too Large"
+
+    response = client.post("/inner", content="X" * 2048)
+    assert response.status_code == 200
+    assert response.text == "X" * 2048
+
+    response = client.post("/inner", content="X" * 2049)
+    assert response.status_code == 413
+    assert response.text == "Content Too Large"
