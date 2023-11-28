@@ -6,8 +6,6 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 DEFAULT_MAX_BODY_SIZE = 2_621_440  # 2.5MB
 MAX_BODY_SIZE_KEY = "starlette.max_body_size"
 
-_content_too_large_app = PlainTextResponse("Content Too Large", status_code=413)
-
 
 class ContentTooLarge(Exception):
     def __init__(self, max_body_size: int) -> None:
@@ -61,5 +59,6 @@ class LimitBodySizeMiddleware:
             # NOTE: If response has already started, we can't return a 413, because the
             #   headers have already been sent.
             if not response_started:
-                return await _content_too_large_app(scope, receive, send)
+                response = PlainTextResponse("Content Too Large", status_code=413)
+                return await response(scope, receive, send)
             raise exc
