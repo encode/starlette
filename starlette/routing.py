@@ -252,7 +252,11 @@ class Route(BaseRoute):
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] == "http":
-            match = self.path_regex.match(scope["path"])
+            root_path = scope.get("current_root_path", scope.get("root_path", ""))
+            path = scope.get(
+                "current_path", re.sub(r"^" + root_path, "", scope["path"])
+            )
+            match = self.path_regex.match(path)
             if match:
                 matched_params = match.groupdict()
                 for key, value in matched_params.items():
@@ -339,7 +343,11 @@ class WebSocketRoute(BaseRoute):
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] == "websocket":
-            match = self.path_regex.match(scope["path"])
+            root_path = scope.get("current_root_path", scope.get("root_path", ""))
+            path = scope.get(
+                "current_path", re.sub(r"^" + root_path, "", scope["path"])
+            )
+            match = self.path_regex.match(path)
             if match:
                 matched_params = match.groupdict()
                 for key, value in matched_params.items():
@@ -412,21 +420,23 @@ class Mount(BaseRoute):
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
         if scope["type"] in ("http", "websocket"):
             path = scope["path"]
-            match = self.path_regex.match(path)
+            root_path = scope.get("current_root_path", scope.get("root_path", ""))
+            current_path = scope.get("current_path", re.sub(r"^" + root_path, "", path))
+            match = self.path_regex.match(current_path)
             if match:
                 matched_params = match.groupdict()
                 for key, value in matched_params.items():
                     matched_params[key] = self.param_convertors[key].convert(value)
                 remaining_path = "/" + matched_params.pop("path")
-                matched_path = path[: -len(remaining_path)]
+                matched_path = current_path[: -len(remaining_path)]
                 path_params = dict(scope.get("path_params", {}))
                 path_params.update(matched_params)
                 root_path = scope.get("root_path", "")
                 child_scope = {
                     "path_params": path_params,
                     "app_root_path": scope.get("app_root_path", root_path),
-                    "root_path": root_path + matched_path,
-                    "path": remaining_path,
+                    "current_root_path": root_path + matched_path,
+                    "current_path": remaining_path,
                     "endpoint": self.app,
                 }
                 return Match.FULL, child_scope
@@ -767,15 +777,21 @@ class Router:
             await partial.handle(scope, receive, send)
             return
 
-        if scope["type"] == "http" and self.redirect_slashes and scope["path"] != "/":
+        root_path = scope.get("current_root_path", scope.get("root_path", ""))
+        path = scope.get("current_path", re.sub(r"^" + root_path, "", scope["path"]))
+        print(root_path, path)
+        if scope["type"] == "http" and self.redirect_slashes and path != "/":
             redirect_scope = dict(scope)
-            if scope["path"].endswith("/"):
+            if path.endswith("/"):
+                redirect_scope["current_path"] = path.rstrip("/")
                 redirect_scope["path"] = redirect_scope["path"].rstrip("/")
             else:
+                redirect_scope["current_path"] = path + "/"
                 redirect_scope["path"] = redirect_scope["path"] + "/"
 
             for route in self.routes:
                 match, child_scope = route.matches(redirect_scope)
+                print(match, child_scope)
                 if match != Match.NONE:
                     redirect_url = URL(scope=redirect_scope)
                     response = RedirectResponse(url=str(redirect_url))
