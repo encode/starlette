@@ -4,12 +4,12 @@ import pytest
 
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
-from starlette.middleware.limits import ContentTooLarge, LimitBodySizeMiddleware
+from starlette.middleware.limits import ContentTooLarge, LimitBodySizeMiddleware, SetBodySizeLimit
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import Mount, Route
 from starlette.testclient import TestClient
-from starlette.types import Message, Receive, Scope, Send
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
 async def echo_app(scope: Scope, receive: Receive, send: Send) -> None:
@@ -25,7 +25,7 @@ async def echo_app(scope: Scope, receive: Receive, send: Send) -> None:
             break
 
 
-app = LimitBodySizeMiddleware(echo_app, max_body_size=1024)
+app = SetBodySizeLimit(LimitBodySizeMiddleware(echo_app), max_body_size=1024)
 
 
 def test_no_op(test_client_factory: Callable[..., TestClient]) -> None:
@@ -85,7 +85,7 @@ def test_content_too_large_on_starlette(
     test_client_factory: Callable[..., TestClient]
 ) -> None:
     app = Starlette(
-        routes=[Route("/", read_body_endpoint, methods=["POST"])],
+        routes=[Mount("/", routes=[Route("/", read_body_endpoint, methods=["POST"])], middleware=[Middleware(LimitBodySizeMiddleware)])],
         middleware=[Middleware(LimitBodySizeMiddleware, max_body_size=1024)],
     )
     client = test_client_factory(app)
@@ -112,10 +112,20 @@ def test_content_too_large_and_content_length_mismatch(
 def test_inner_middleware_overrides_outer_middleware(
     test_client_factory: Callable[..., TestClient]
 ) -> None:
-    outer_app = LimitBodySizeMiddleware(
-        LimitBodySizeMiddleware(
-            echo_app,
-            max_body_size=2048,
+    class CopyScopeMiddleware:
+        def __init__(self, app: ASGIApp) -> None:
+            self.app = app
+
+        async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+            scope = dict(scope)
+            await self.app(scope, receive, send)
+
+    outer_app = SetBodySizeLimit(
+        CopyScopeMiddleware(
+            SetBodySizeLimit(
+                LimitBodySizeMiddleware(echo_app),
+                max_body_size=2048,
+            )
         ),
         max_body_size=1024,
     )
