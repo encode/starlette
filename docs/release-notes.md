@@ -1,3 +1,11 @@
+## 0.33.0
+
+November 30, 2023
+
+### Added
+
+* Add `middleware` to `Route` [#2349](https://github.com/encode/starlette/pull/2349).
+
 ## 0.32.0.post1
 
 November 5, 2023
