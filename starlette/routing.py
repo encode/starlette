@@ -779,7 +779,6 @@ class Router:
 
         root_path = scope.get("current_root_path", scope.get("root_path", ""))
         path = scope.get("current_path", re.sub(r"^" + root_path, "", scope["path"]))
-        print(root_path, path)
         if scope["type"] == "http" and self.redirect_slashes and path != "/":
             redirect_scope = dict(scope)
             if path.endswith("/"):
@@ -791,7 +790,6 @@ class Router:
 
             for route in self.routes:
                 match, child_scope = route.matches(redirect_scope)
-                print(match, child_scope)
                 if match != Match.NONE:
                     redirect_url = URL(scope=redirect_scope)
                     response = RedirectResponse(url=str(redirect_url))
