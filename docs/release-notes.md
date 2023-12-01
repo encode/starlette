@@ -1,6 +1,6 @@
 ## 0.33.0
 
-November 30, 2023
+December 1, 2023
 
 ### Added
 
