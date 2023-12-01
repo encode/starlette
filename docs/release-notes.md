@@ -4,7 +4,7 @@ November 30, 2023
 
 ### Added
 
-* Add `middleware` to `Route` [#2349](https://github.com/encode/starlette/pull/2349).
+* Add `middleware` per `Route`/`WebSocketRoute` [#2349](https://github.com/encode/starlette/pull/2349).
 * Add `middleware` per `Router` [#2351](https://github.com/encode/starlette/pull/2351).
 
 ## Fixed
