@@ -7,7 +7,7 @@ December 1, 2023
 * Add `middleware` per `Route`/`WebSocketRoute` [#2349](https://github.com/encode/starlette/pull/2349).
 * Add `middleware` per `Router` [#2351](https://github.com/encode/starlette/pull/2351).
 
-## Fixed
+### Fixed
 
 * Do not overwrite `"path"` and `"root_path"` scope keys [#2352](https://github.com/encode/starlette/pull/2352).
 * Set `ensure_ascii=False` on `json.dumps()` for `WebSocket.send_json()` [#2341](https://github.com/encode/starlette/pull/2341).
