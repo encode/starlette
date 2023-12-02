@@ -147,7 +147,7 @@ class WebSocketTestSession:
 
     def send_json(self, data: typing.Any, mode: str = "text") -> None:
         assert mode in ["text", "binary"]
-        text = json.dumps(data, separators=(",", ":"))
+        text = json.dumps(data, separators=(",", ":"), ensure_ascii=False)
         if mode == "text":
             self.send({"type": "websocket.receive", "text": text})
         else:
@@ -710,7 +710,7 @@ class TestClient(httpx.Client):
 
     def websocket_connect(
         self, url: str, subprotocols: typing.Sequence[str] = None, **kwargs: typing.Any
-    ) -> typing.Any:
+    ) -> "WebSocketTestSession":
         url = urljoin("ws://testserver", url)
         headers = kwargs.get("headers", {})
         headers.setdefault("connection", "upgrade")

@@ -2,10 +2,10 @@
 -e .[full]
 
 # Testing
-coverage==7.3.1
+coverage==7.3.2
 importlib-metadata==6.8.0
 mypy==1.5.1
-ruff==0.1.4
+ruff==0.1.6
 typing_extensions==4.8.0
 types-contextvars==2.4.7.3
 types-PyYAML==6.0.12.12
