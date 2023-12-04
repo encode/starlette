@@ -13,7 +13,6 @@ from starlette.responses import FileResponse, RedirectResponse, Response
 from starlette.types import Receive, Scope, Send
 
 PathLike = typing.Union[str, "os.PathLike[str]"]
-ETAG_PATTERN = re.compile(r'(?:(W/)?("[^"]*")|(^\*$))')
 
 
 class NotModifiedResponse(Response):
@@ -230,9 +229,8 @@ class StaticFiles:
         try:
             if_none_match = request_headers["if-none-match"]
             etag = response_headers["etag"]
-            for match in ETAG_PATTERN.finditer(if_none_match):
-                if match.groups()[1] == etag:
-                    return True
+            if etag in [text.strip(" W/") for text in if_none_match.split(",")]:
+                return True
         except KeyError:
             pass
 
