@@ -380,7 +380,10 @@ async def test_upload_file_repr():
 async def test_upload_file_repr_headers():
     stream = io.BytesIO(b"data")
     file = UploadFile(filename="file", file=stream, headers=Headers({"foo": "bar"}))
-    assert repr(file) == "UploadFile(filename='file', size=None, headers=Headers({'foo': 'bar'}))"
+    assert (
+        repr(file)
+        == "UploadFile(filename='file', size=None, headers=Headers({'foo': 'bar'}))"
+    )
 
 
 def test_multidict():
