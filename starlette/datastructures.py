@@ -483,8 +483,12 @@ class UploadFile:
             await run_in_threadpool(self.file.close)
 
     def __repr__(self) -> str:
-        class_name = self.__class__.__name__
-        return f"{class_name}(filename={self.filename!r}, size={self.size!r}, headers={self.headers!r})"
+        return (
+            f"{self.__class__.__name__}("
+            f"filename={self.filename!r}, "
+            f"size={self.size!r}, "
+            f"headers={self.headers!r})"
+        )
 
 
 class FormData(ImmutableMultiDict[str, typing.Union[UploadFile, str]]):
