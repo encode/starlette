@@ -220,7 +220,7 @@ class StreamingResponse(Response):
         media_type: typing.Optional[str] = None,
         background: typing.Optional[BackgroundTask] = None,
     ) -> None:
-        if isinstance(content, typing.AsyncIterable):
+        if isinstance(content, typing.AsyncIterator):
             self.body_iterator = content
         else:
             self.body_iterator = iterate_in_threadpool(content)
