@@ -436,6 +436,7 @@ class Mount(BaseRoute):
                     "route_root_path": root_path + matched_path,
                     "route_path": remaining_path,
                     "endpoint": self.app,
+                    "root_path": root_path + matched_path,
                 }
                 return Match.FULL, child_scope
         return Match.NONE, {}
