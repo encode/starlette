@@ -204,8 +204,8 @@ class RedirectResponse(Response):
 
 
 Content = typing.Union[str, bytes]
-SyncContentStream = typing.Iterator[Content]
-AsyncContentStream = typing.AsyncIterator[Content]
+SyncContentStream = typing.Iterable[Content]
+AsyncContentStream = typing.AsyncIterable[Content]
 ContentStream = typing.Union[AsyncContentStream, SyncContentStream]
 
 
@@ -220,7 +220,7 @@ class StreamingResponse(Response):
         media_type: typing.Optional[str] = None,
         background: typing.Optional[BackgroundTask] = None,
     ) -> None:
-        if isinstance(content, typing.AsyncIterator):
+        if isinstance(content, typing.AsyncIterable):
             self.body_iterator = content
         else:
             self.body_iterator = iterate_in_threadpool(content)

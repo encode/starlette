@@ -55,8 +55,8 @@ def _next(iterator: typing.Iterator[T]) -> T:
 
 
 async def iterate_in_threadpool(
-    iterator: typing.Iterator[T],
-) -> typing.AsyncIterator[T]:
+    iterator: typing.Iterable[T],
+) -> typing.AsyncIterable[T]:
     while True:
         try:
             yield await anyio.to_thread.run_sync(_next, iterator)
