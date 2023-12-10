@@ -2,6 +2,7 @@ import datetime as dt
 import os
 import time
 from http.cookies import SimpleCookie
+from pathlib import Path
 
 import anyio
 import pytest
@@ -202,7 +203,7 @@ def test_response_phrase(test_client_factory):
     assert response.reason_phrase == ""
 
 
-def test_file_response(tmpdir, test_client_factory):
+def test_file_response(tmpdir, test_client_factory: typing.Callable[..., TestClient]):
     path = os.path.join(tmpdir, "xyz")
     content = b"<file content>" * 1000
     with open(path, "wb") as file:
@@ -242,6 +243,27 @@ def test_file_response(tmpdir, test_client_factory):
     assert "last-modified" in response.headers
     assert "etag" in response.headers
     assert filled_by_bg_task == "6, 7, 8, 9"
+
+
+def test_file_response_on_head_method(
+    tmpdir: Path, test_client_factory: typing.Callable[..., TestClient]
+):
+    path = os.path.join(tmpdir, "xyz")
+    content = b"<file content>" * 1000
+    with open(path, "wb") as file:
+        file.write(content)
+
+    app = FileResponse(path=path, filename="example.png")
+    client = test_client_factory(app)
+    response = client.head("/")
+    expected_disposition = 'attachment; filename="example.png"'
+    assert response.status_code == status.HTTP_200_OK
+    assert response.content == b""
+    assert response.headers["content-type"] == "image/png"
+    assert response.headers["content-disposition"] == expected_disposition
+    assert "content-length" in response.headers
+    assert "last-modified" in response.headers
+    assert "etag" in response.headers
 
 
 def test_file_response_with_directory_raises_error(tmpdir, test_client_factory):
