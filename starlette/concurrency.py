@@ -45,8 +45,8 @@ def _next(iterator: typing.Iterator[T]) -> T:
     # exception type.
     try:
         return next(iterator)
-    except StopIteration:
-        raise _StopIteration
+    except StopIteration as exc:
+        raise _StopIteration from exc
 
 
 async def iterate_in_threadpool(
