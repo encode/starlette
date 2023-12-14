@@ -8,6 +8,7 @@ import pytest
 from starlette.applications import Starlette
 from starlette.background import BackgroundTask
 from starlette.middleware import Middleware
+from starlette.middleware.background import BackgroundTaskMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, Response, StreamingResponse
@@ -871,6 +872,57 @@ def test_downstream_middleware_modifies_receive(
 
     resp = client.post("/", content=b"foo ")
     assert resp.status_code == 200
+
+
+@pytest.mark.anyio
+async def test_background_tasks_client_disconnect() -> None:
+    # test for https://github.com/encode/starlette/issues/1438
+    container: List[str] = []
+
+    disconnected = anyio.Event()
+
+    async def slow_background() -> None:
+        # small delay to give BaseHTTPMiddleware a chance to cancel us
+        # this is required to make the test fail prior to fixing the issue
+        # so do not be surprised if you remove it and the test still passes
+        await anyio.sleep(0.1)
+        container.append("called")
+
+    app: ASGIApp
+    app = PlainTextResponse("hi!", background=BackgroundTask(slow_background))
+
+    async def dispatch(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        return await call_next(request)
+
+    app = BaseHTTPMiddleware(app, dispatch=dispatch)
+
+    app = BackgroundTaskMiddleware(app)
+
+    async def recv_gen() -> AsyncGenerator[Message, None]:
+        yield {"type": "http.request"}
+        await disconnected.wait()
+        while True:
+            yield {"type": "http.disconnect"}
+
+    async def send_gen() -> AsyncGenerator[None, Message]:
+        while True:
+            msg = yield
+            if msg["type"] == "http.response.body" and not msg.get("more_body", False):
+                disconnected.set()
+
+    scope = {"type": "http", "method": "GET", "path": "/"}
+
+    async with AsyncExitStack() as stack:
+        recv = recv_gen()
+        stack.push_async_callback(recv.aclose)
+        send = send_gen()
+        stack.push_async_callback(send.aclose)
+        await send.__anext__()
+        await app(scope, recv.__aiter__().__anext__, send.asend)
+
+    assert container == ["called"]
 
 
 CallNext = Callable[[Request], Awaitable[Response]]
