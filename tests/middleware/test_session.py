@@ -130,7 +130,7 @@ def test_session_cookie_subpath(test_client_factory):
     )
     app = Starlette(routes=[Mount("/second_app", app=second_app)])
     client = test_client_factory(app, base_url="http://testserver/second_app")
-    response = client.post("/second_app/update_session", json={"some": "data"})
+    response = client.post("/update_session", json={"some": "data"})
     assert response.status_code == 200
     cookie = response.headers["set-cookie"]
     cookie_path_match = re.search(r"; path=(\S+);", cookie)
@@ -174,6 +174,30 @@ def test_session_cookie(test_client_factory):
     # check cookie max-age
     set_cookie = response.headers["set-cookie"]
     assert "Max-Age" not in set_cookie
+
+    client.cookies.delete("session")
+    response = client.get("/view_session")
+    assert response.json() == {"session": {}}
+
+
+def test_domain_cookie(test_client_factory):
+    app = Starlette(
+        routes=[
+            Route("/view_session", endpoint=view_session),
+            Route("/update_session", endpoint=update_session, methods=["POST"]),
+        ],
+        middleware=[
+            Middleware(SessionMiddleware, secret_key="example", domain=".example.com")
+        ],
+    )
+    client: TestClient = test_client_factory(app)
+
+    response = client.post("/update_session", json={"some": "data"})
+    assert response.json() == {"session": {"some": "data"}}
+
+    # check cookie max-age
+    set_cookie = response.headers["set-cookie"]
+    assert "domain=.example.com" in set_cookie
 
     client.cookies.delete("session")
     response = client.get("/view_session")

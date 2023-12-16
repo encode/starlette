@@ -369,6 +369,23 @@ def test_formdata():
     assert FormData({"a": "123", "b": "789"}) != {"a": "123", "b": "789"}
 
 
+@pytest.mark.anyio
+async def test_upload_file_repr():
+    stream = io.BytesIO(b"data")
+    file = UploadFile(filename="file", file=stream, size=4)
+    assert repr(file) == "UploadFile(filename='file', size=4, headers=Headers({}))"
+
+
+@pytest.mark.anyio
+async def test_upload_file_repr_headers():
+    stream = io.BytesIO(b"data")
+    file = UploadFile(filename="file", file=stream, headers=Headers({"foo": "bar"}))
+    assert (
+        repr(file)
+        == "UploadFile(filename='file', size=None, headers=Headers({'foo': 'bar'}))"
+    )
+
+
 def test_multidict():
     q = MultiDict([("a", "123"), ("a", "456"), ("b", "789")])
     assert "a" in q
@@ -386,9 +403,6 @@ def test_multidict():
     assert dict(q) == {"a": "456", "b": "789"}
     assert str(q) == "MultiDict([('a', '123'), ('a', '456'), ('b', '789')])"
     assert repr(q) == "MultiDict([('a', '123'), ('a', '456'), ('b', '789')])"
-    assert MultiDict({"a": "123", "b": "456"}) == MultiDict(
-        [("a", "123"), ("b", "456")]
-    )
     assert MultiDict({"a": "123", "b": "456"}) == MultiDict(
         [("a", "123"), ("b", "456")]
     )
@@ -450,7 +464,7 @@ def test_multidict():
     q = MultiDict([("a", "123"), ("b", "456")])
     q.update({"a": "789"})
     assert q.getlist("a") == ["789"]
-    q == MultiDict([("a", "789"), ("b", "456")])
+    assert q == MultiDict([("a", "789"), ("b", "456")])
 
     q = MultiDict([("a", "123"), ("b", "456")])
     q.update(q)

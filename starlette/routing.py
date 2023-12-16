@@ -217,6 +217,7 @@ class Route(BaseRoute):
         methods: typing.Optional[typing.List[str]] = None,
         name: typing.Optional[str] = None,
         include_in_schema: bool = True,
+        middleware: typing.Optional[typing.Sequence[Middleware]] = None,
     ) -> None:
         assert path.startswith("/"), "Routed paths must start with '/'"
         self.path = path
@@ -236,6 +237,10 @@ class Route(BaseRoute):
             # Endpoint is a class. Treat it as ASGI.
             self.app = endpoint
 
+        if middleware is not None:
+            for cls, options in reversed(middleware):
+                self.app = cls(app=self.app, **options)
+
         if methods is None:
             self.methods = None
         else:
@@ -246,8 +251,11 @@ class Route(BaseRoute):
         self.path_regex, self.path_format, self.param_convertors = compile_path(path)
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
+        path_params: "typing.Dict[str, typing.Any]"
         if scope["type"] == "http":
-            match = self.path_regex.match(scope["path"])
+            root_path = scope.get("route_root_path", scope.get("root_path", ""))
+            path = scope.get("route_path", re.sub(r"^" + root_path, "", scope["path"]))
+            match = self.path_regex.match(path)
             if match:
                 matched_params = match.groupdict()
                 for key, value in matched_params.items():
@@ -309,6 +317,7 @@ class WebSocketRoute(BaseRoute):
         endpoint: typing.Callable[..., typing.Any],
         *,
         name: typing.Optional[str] = None,
+        middleware: typing.Optional[typing.Sequence[Middleware]] = None,
     ) -> None:
         assert path.startswith("/"), "Routed paths must start with '/'"
         self.path = path
@@ -325,11 +334,18 @@ class WebSocketRoute(BaseRoute):
             # Endpoint is a class. Treat it as ASGI.
             self.app = endpoint
 
+        if middleware is not None:
+            for cls, options in reversed(middleware):
+                self.app = cls(app=self.app, **options)
+
         self.path_regex, self.path_format, self.param_convertors = compile_path(path)
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
+        path_params: "typing.Dict[str, typing.Any]"
         if scope["type"] == "websocket":
-            match = self.path_regex.match(scope["path"])
+            root_path = scope.get("route_root_path", scope.get("root_path", ""))
+            path = scope.get("route_path", re.sub(r"^" + root_path, "", scope["path"]))
+            match = self.path_regex.match(path)
             if match:
                 matched_params = match.groupdict()
                 for key, value in matched_params.items():
@@ -400,23 +416,25 @@ class Mount(BaseRoute):
         return getattr(self._base_app, "routes", [])
 
     def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
+        path_params: "typing.Dict[str, typing.Any]"
         if scope["type"] in ("http", "websocket"):
             path = scope["path"]
-            match = self.path_regex.match(path)
+            root_path = scope.get("route_root_path", scope.get("root_path", ""))
+            route_path = scope.get("route_path", re.sub(r"^" + root_path, "", path))
+            match = self.path_regex.match(route_path)
             if match:
                 matched_params = match.groupdict()
                 for key, value in matched_params.items():
                     matched_params[key] = self.param_convertors[key].convert(value)
                 remaining_path = "/" + matched_params.pop("path")
-                matched_path = path[: -len(remaining_path)]
+                matched_path = route_path[: -len(remaining_path)]
                 path_params = dict(scope.get("path_params", {}))
                 path_params.update(matched_params)
                 root_path = scope.get("root_path", "")
                 child_scope = {
                     "path_params": path_params,
-                    "app_root_path": scope.get("app_root_path", root_path),
-                    "root_path": root_path + matched_path,
-                    "path": remaining_path,
+                    "route_root_path": root_path + matched_path,
+                    "route_path": remaining_path,
                     "endpoint": self.app,
                 }
                 return Match.FULL, child_scope
@@ -565,7 +583,7 @@ class _AsyncLiftContextManager(typing.AsyncContextManager[_T]):
 def _wrap_gen_lifespan_context(
     lifespan_context: typing.Callable[
         [typing.Any], typing.Generator[typing.Any, typing.Any, typing.Any]
-    ]
+    ],
 ) -> typing.Callable[[typing.Any], typing.AsyncContextManager[typing.Any]]:
     cmgr = contextlib.contextmanager(lifespan_context)
 
@@ -605,6 +623,8 @@ class Router:
         # the generic to Lifespan[AppType] is the type of the top level application
         # which the router cannot know statically, so we use typing.Any
         lifespan: typing.Optional[Lifespan[typing.Any]] = None,
+        *,
+        middleware: typing.Optional[typing.Sequence[Middleware]] = None,
     ) -> None:
         self.routes = [] if routes is None else list(routes)
         self.redirect_slashes = redirect_slashes
@@ -649,6 +669,11 @@ class Router:
             )
         else:
             self.lifespan_context = lifespan
+
+        self.middleware_stack = self.app
+        if middleware:
+            for cls, options in reversed(middleware):
+                self.middleware_stack = cls(self.middleware_stack, **options)
 
     async def not_found(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "websocket":
@@ -726,6 +751,9 @@ class Router:
         """
         The main entry point to the Router class.
         """
+        await self.middleware_stack(scope, receive, send)
+
+    async def app(self, scope: Scope, receive: Receive, send: Send) -> None:
         assert scope["type"] in ("http", "websocket", "lifespan")
 
         if "router" not in scope:
@@ -757,11 +785,15 @@ class Router:
             await partial.handle(scope, receive, send)
             return
 
-        if scope["type"] == "http" and self.redirect_slashes and scope["path"] != "/":
+        root_path = scope.get("route_root_path", scope.get("root_path", ""))
+        path = scope.get("route_path", re.sub(r"^" + root_path, "", scope["path"]))
+        if scope["type"] == "http" and self.redirect_slashes and path != "/":
             redirect_scope = dict(scope)
-            if scope["path"].endswith("/"):
+            if path.endswith("/"):
+                redirect_scope["route_path"] = path.rstrip("/")
                 redirect_scope["path"] = redirect_scope["path"].rstrip("/")
             else:
+                redirect_scope["route_path"] = path + "/"
                 redirect_scope["path"] = redirect_scope["path"] + "/"
 
             for route in self.routes:

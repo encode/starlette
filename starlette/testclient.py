@@ -147,14 +147,14 @@ class WebSocketTestSession:
 
     def send_json(self, data: typing.Any, mode: str = "text") -> None:
         assert mode in ["text", "binary"]
-        text = json.dumps(data, separators=(",", ":"))
+        text = json.dumps(data, separators=(",", ":"), ensure_ascii=False)
         if mode == "text":
             self.send({"type": "websocket.receive", "text": text})
         else:
             self.send({"type": "websocket.receive", "bytes": text.encode("utf-8")})
 
-    def close(self, code: int = 1000) -> None:
-        self.send({"type": "websocket.disconnect", "code": code})
+    def close(self, code: int = 1000, reason: typing.Union[str, None] = None) -> None:
+        self.send({"type": "websocket.disconnect", "code": code, "reason": reason})
 
     def receive(self) -> Message:
         message = self._send_queue.get()
@@ -463,7 +463,7 @@ class TestClient(httpx.Client):
         ] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[typing.Dict[str, typing.Any]] = None,
     ) -> httpx.Response:
-        url = self.base_url.join(url)
+        url = self._merge_url(url)
         redirect = self._choose_redirect_arg(follow_redirects, allow_redirects)
         return super().request(
             method,
@@ -710,7 +710,7 @@ class TestClient(httpx.Client):
 
     def websocket_connect(
         self, url: str, subprotocols: typing.Sequence[str] = None, **kwargs: typing.Any
-    ) -> typing.Any:
+    ) -> "WebSocketTestSession":
         url = urljoin("ws://testserver", url)
         headers = kwargs.get("headers", {})
         headers.setdefault("connection", "upgrade")

@@ -1,3 +1,48 @@
+## 0.33.0
+
+December 1, 2023
+
+### Added
+
+* Add `middleware` per `Route`/`WebSocketRoute` [#2349](https://github.com/encode/starlette/pull/2349).
+* Add `middleware` per `Router` [#2351](https://github.com/encode/starlette/pull/2351).
+
+### Fixed
+
+* Do not overwrite `"path"` and `"root_path"` scope keys [#2352](https://github.com/encode/starlette/pull/2352).
+* Set `ensure_ascii=False` on `json.dumps()` for `WebSocket.send_json()` [#2341](https://github.com/encode/starlette/pull/2341).
+
+## 0.32.0.post1
+
+November 5, 2023
+
+### Fixed
+
+* Revert mkdocs-material from 9.1.17 to 9.4.7 [#2326](https://github.com/encode/starlette/pull/2326).
+
+## 0.32.0
+
+November 4, 2023
+
+### Added
+
+* Send `reason` on `WebSocketDisconnect` [#2309](https://github.com/encode/starlette/pull/2309).
+* Add `domain` parameter to `SessionMiddleware` [#2280](https://github.com/encode/starlette/pull/2280).
+
+### Changed
+
+* Inherit from `HTMLResponse` instead of `Response` on `_TemplateResponse` [#2274](https://github.com/encode/starlette/pull/2274).
+* Restore the `Response.render` type annotation to its pre-0.31.0 state [#2264](https://github.com/encode/starlette/pull/2264).
+
+## 0.31.1
+
+August 26, 2023
+
+### Fixed
+
+* Fix import error when `exceptiongroup` isn't available [#2231](https://github.com/encode/starlette/pull/2231).
+* Set `url_for` global for custom Jinja environments [#2230](https://github.com/encode/starlette/pull/2230).
+
 ## 0.31.0
 
 July 24, 2023
