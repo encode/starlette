@@ -1,7 +1,9 @@
 import typing
 
 import anyio
+from anyio.abc import ObjectReceiveStream, ObjectSendStream
 
+from starlette._utils import collapse_excgroups
 from starlette.background import BackgroundTask
 from starlette.requests import ClientDisconnect, Request
 from starlette.responses import ContentStream, Response, StreamingResponse
@@ -107,6 +109,8 @@ class BaseHTTPMiddleware:
 
         async def call_next(request: Request) -> Response:
             app_exc: typing.Optional[Exception] = None
+            send_stream: ObjectSendStream[typing.MutableMapping[str, typing.Any]]
+            recv_stream: ObjectReceiveStream[typing.MutableMapping[str, typing.Any]]
             send_stream, recv_stream = anyio.create_memory_object_stream()
 
             async def receive_or_disconnect() -> Message:
@@ -170,6 +174,8 @@ class BaseHTTPMiddleware:
                         body = message.get("body", b"")
                         if body:
                             yield body
+                        if not message.get("more_body", False):
+                            break
 
                 if app_exc is not None:
                     raise app_exc
@@ -180,10 +186,11 @@ class BaseHTTPMiddleware:
             response.raw_headers = message["headers"]
             return response
 
-        async with anyio.create_task_group() as task_group:
-            response = await self.dispatch_func(request, call_next)
-            await response(scope, wrapped_receive, send)
-            response_sent.set()
+        with collapse_excgroups():
+            async with anyio.create_task_group() as task_group:
+                response = await self.dispatch_func(request, call_next)
+                await response(scope, wrapped_receive, send)
+                response_sent.set()
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint

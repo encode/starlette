@@ -1,9 +1,12 @@
 import sys
+from typing import Any, Callable, MutableMapping
 
 import anyio
 import pytest
+from anyio.abc import ObjectReceiveStream, ObjectSendStream
 
 from starlette import status
+from starlette.testclient import TestClient
 from starlette.types import Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketDisconnect, WebSocketState
 
@@ -34,6 +37,24 @@ def test_websocket_binary_json(test_client_factory):
         websocket.send_json({"test": "data"}, mode="binary")
         data = websocket.receive_json(mode="binary")
         assert data == {"test": "data"}
+
+
+def test_websocket_ensure_unicode_on_send_json(
+    test_client_factory: Callable[..., TestClient]
+):
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
+        websocket = WebSocket(scope, receive=receive, send=send)
+
+        await websocket.accept()
+        message = await websocket.receive_json(mode="text")
+        await websocket.send_json(message, mode="text")
+        await websocket.close()
+
+    client = test_client_factory(app)
+    with client.websocket_connect("/123?a=abc") as websocket:
+        websocket.send_json({"test": "数据"}, mode="text")
+        data = websocket.receive_text()
+        assert data == '{"test":"数据"}'
 
 
 def test_websocket_query_params(test_client_factory):
@@ -178,6 +199,8 @@ def test_websocket_iter_json(test_client_factory):
 
 
 def test_websocket_concurrency_pattern(test_client_factory):
+    stream_send: ObjectSendStream[MutableMapping[str, Any]]
+    stream_receive: ObjectReceiveStream[MutableMapping[str, Any]]
     stream_send, stream_receive = anyio.create_memory_object_stream()
 
     async def reader(websocket):
@@ -205,22 +228,25 @@ def test_websocket_concurrency_pattern(test_client_factory):
         assert data == {"hello": "world"}
 
 
-def test_client_close(test_client_factory):
+def test_client_close(test_client_factory: Callable[..., TestClient]):
     close_code = None
+    close_reason = None
 
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
-        nonlocal close_code
+        nonlocal close_code, close_reason
         websocket = WebSocket(scope, receive=receive, send=send)
         await websocket.accept()
         try:
             await websocket.receive_text()
         except WebSocketDisconnect as exc:
             close_code = exc.code
+            close_reason = exc.reason
 
     client = test_client_factory(app)
     with client.websocket_connect("/") as websocket:
-        websocket.close(code=status.WS_1001_GOING_AWAY)
+        websocket.close(code=status.WS_1001_GOING_AWAY, reason="Going Away")
     assert close_code == status.WS_1001_GOING_AWAY
+    assert close_reason == "Going Away"
 
 
 def test_application_close(test_client_factory):

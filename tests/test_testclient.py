@@ -2,6 +2,7 @@ import itertools
 import sys
 from asyncio import current_task as asyncio_current_task
 from contextlib import asynccontextmanager
+from typing import Callable
 
 import anyio
 import pytest
@@ -10,7 +11,8 @@ import trio.lowlevel
 
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
-from starlette.responses import JSONResponse, Response
+from starlette.requests import Request
+from starlette.responses import JSONResponse, RedirectResponse, Response
 from starlette.routing import Route
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocket, WebSocketDisconnect
@@ -319,3 +321,46 @@ def test_domain_restricted_cookies(test_client_factory, domain, ok):
     response = client.get("/")
     cookie_set = len(response.cookies) == 1
     assert cookie_set == ok
+
+
+def test_forward_follow_redirects(test_client_factory):
+    async def app(scope, receive, send):
+        if "/ok" in scope["path"]:
+            response = Response("ok")
+        else:
+            response = RedirectResponse("/ok")
+        await response(scope, receive, send)
+
+    client = test_client_factory(app, follow_redirects=True)
+    response = client.get("/")
+    assert response.status_code == 200
+
+
+def test_forward_nofollow_redirects(test_client_factory):
+    async def app(scope, receive, send):
+        response = RedirectResponse("/ok")
+        await response(scope, receive, send)
+
+    client = test_client_factory(app, follow_redirects=False)
+    response = client.get("/")
+    assert response.status_code == 307
+
+
+def test_with_duplicate_headers(test_client_factory: Callable[[Starlette], TestClient]):
+    def homepage(request: Request) -> JSONResponse:
+        return JSONResponse({"x-token": request.headers.getlist("x-token")})
+
+    app = Starlette(routes=[Route("/", endpoint=homepage)])
+    client = test_client_factory(app)
+    response = client.get("/", headers=[("x-token", "foo"), ("x-token", "bar")])
+    assert response.json() == {"x-token": ["foo", "bar"]}
+
+
+def test_merge_url(test_client_factory: Callable[..., TestClient]):
+    def homepage(request: Request) -> Response:
+        return Response(request.url.path)
+
+    app = Starlette(routes=[Route("/api/v1/bar", endpoint=homepage)])
+    client = test_client_factory(app, base_url="http://testserver/api/v1/")
+    response = client.get("/bar")
+    assert response.text == "/api/v1/bar"

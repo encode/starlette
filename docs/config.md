@@ -4,7 +4,7 @@ following [the twelve-factor pattern][twelve-factor].
 Configuration should be stored in environment variables, or in a `.env` file
 that is not committed to source control.
 
-```python title="app.py"
+```python title="main.py"
 from sqlalchemy import create_engine
 from starlette.applications import Starlette
 from starlette.config import Config

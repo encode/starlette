@@ -1,10 +1,12 @@
 import importlib.util
 import os
+import re
 import stat
 import typing
 from email.utils import parsedate
 
 import anyio
+import anyio.to_thread
 
 from starlette.datastructures import URL, Headers
 from starlette.exceptions import HTTPException
@@ -108,7 +110,9 @@ class StaticFiles:
         Given the ASGI scope, return the `path` string to serve up,
         with OS specific path separators, and any '..', '.' components removed.
         """
-        return os.path.normpath(os.path.join(*scope["path"].split("/")))
+        root_path = scope.get("route_root_path", scope.get("root_path", ""))
+        path = scope.get("route_path", re.sub(r"^" + root_path, "", scope["path"]))
+        return os.path.normpath(os.path.join(*path.split("/")))  # type: ignore[no-any-return]  # noqa: E501
 
     async def get_response(self, path: str, scope: Scope) -> Response:
         """
@@ -151,12 +155,7 @@ class StaticFiles:
                 self.lookup_path, "404.html"
             )
             if stat_result and stat.S_ISREG(stat_result.st_mode):
-                return FileResponse(
-                    full_path,
-                    stat_result=stat_result,
-                    method=scope["method"],
-                    status_code=404,
-                )
+                return FileResponse(full_path, stat_result=stat_result, status_code=404)
         raise HTTPException(status_code=404)
 
     def lookup_path(
@@ -226,7 +225,7 @@ class StaticFiles:
         try:
             if_none_match = request_headers["if-none-match"]
             etag = response_headers["etag"]
-            if if_none_match == etag:
+            if etag in [tag.strip(" W/") for tag in if_none_match.split(",")]:
                 return True
         except KeyError:
             pass

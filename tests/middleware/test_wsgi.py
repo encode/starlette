@@ -2,6 +2,7 @@ import sys
 
 import pytest
 
+from starlette._utils import collapse_excgroups
 from starlette.middleware.wsgi import WSGIMiddleware, build_environ
 
 
@@ -66,7 +67,7 @@ def test_wsgi_exception(test_client_factory):
     # The HTTP protocol implementations would catch this error and return 500.
     app = WSGIMiddleware(raise_exception)
     client = test_client_factory(app)
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError), collapse_excgroups():
         client.get("/")
 
 

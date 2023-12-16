@@ -4,7 +4,6 @@ import io
 import json
 import math
 import queue
-import sys
 import typing
 import warnings
 from concurrent.futures import Future
@@ -13,18 +12,21 @@ from urllib.parse import unquote, urljoin
 
 import anyio
 import anyio.from_thread
-import httpx
+from anyio.abc import ObjectReceiveStream, ObjectSendStream
 from anyio.streams.stapled import StapledObjectStream
 
 from starlette._utils import is_async_callable
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from starlette.websockets import WebSocketDisconnect
 
-if sys.version_info >= (3, 8):  # pragma: no cover
-    from typing import TypedDict
-else:  # pragma: no cover
-    from typing_extensions import TypedDict
-
+try:
+    import httpx
+except ModuleNotFoundError:  # pragma: no cover
+    raise RuntimeError(
+        "The starlette.testclient module requires the httpx package to be installed.\n"
+        "You can install this with:\n"
+        "    $ pip install httpx\n"
+    )
 _PortalFactoryType = typing.Callable[
     [], typing.ContextManager[anyio.abc.BlockingPortal]
 ]
@@ -56,7 +58,7 @@ class _WrapASGI2:
         await instance(receive, send)
 
 
-class _AsyncBackend(TypedDict):
+class _AsyncBackend(typing.TypedDict):
     backend: str
     backend_options: typing.Dict[str, typing.Any]
 
@@ -77,8 +79,8 @@ class WebSocketTestSession:
         self.scope = scope
         self.accepted_subprotocol = None
         self.portal_factory = portal_factory
-        self._receive_queue: "queue.Queue[typing.Any]" = queue.Queue()
-        self._send_queue: "queue.Queue[typing.Any]" = queue.Queue()
+        self._receive_queue: "queue.Queue[Message]" = queue.Queue()
+        self._send_queue: "queue.Queue[Message | BaseException]" = queue.Queue()
         self.extra_headers = None
 
     def __enter__(self) -> "WebSocketTestSession":
@@ -145,14 +147,14 @@ class WebSocketTestSession:
 
     def send_json(self, data: typing.Any, mode: str = "text") -> None:
         assert mode in ["text", "binary"]
-        text = json.dumps(data, separators=(",", ":"))
+        text = json.dumps(data, separators=(",", ":"), ensure_ascii=False)
         if mode == "text":
             self.send({"type": "websocket.receive", "text": text})
         else:
             self.send({"type": "websocket.receive", "bytes": text.encode("utf-8")})
 
-    def close(self, code: int = 1000) -> None:
-        self.send({"type": "websocket.disconnect", "code": code})
+    def close(self, code: int = 1000, reason: typing.Union[str, None] = None) -> None:
+        self.send({"type": "websocket.disconnect", "code": code, "reason": reason})
 
     def receive(self) -> Message:
         message = self._send_queue.get()
@@ -163,12 +165,12 @@ class WebSocketTestSession:
     def receive_text(self) -> str:
         message = self.receive()
         self._raise_on_close(message)
-        return message["text"]
+        return typing.cast(str, message["text"])
 
     def receive_bytes(self) -> bytes:
         message = self.receive()
         self._raise_on_close(message)
-        return message["bytes"]
+        return typing.cast(bytes, message["bytes"])
 
     def receive_json(self, mode: str = "text") -> typing.Any:
         assert mode in ["text", "binary"]
@@ -224,7 +226,7 @@ class _TestClientTransport(httpx.BaseTransport):
         # Include other request headers.
         headers += [
             (key.lower().encode(), value.encode())
-            for key, value in request.headers.items()
+            for key, value in request.headers.multi_items()
         ]
 
         scope: typing.Dict[str, typing.Any]
@@ -372,8 +374,9 @@ class TestClient(httpx.Client):
         root_path: str = "",
         backend: str = "asyncio",
         backend_options: typing.Optional[typing.Dict[str, typing.Any]] = None,
-        cookies: httpx._client.CookieTypes = None,
+        cookies: httpx._types.CookieTypes = None,
         headers: typing.Dict[str, str] = None,
+        follow_redirects: bool = True,
     ) -> None:
         self.async_backend = _AsyncBackend(
             backend=backend, backend_options=backend_options or {}
@@ -401,7 +404,7 @@ class TestClient(httpx.Client):
             base_url=base_url,
             headers=headers,
             transport=transport,
-            follow_redirects=True,
+            follow_redirects=follow_redirects,
             cookies=cookies,
         )
 
@@ -456,17 +459,17 @@ class TestClient(httpx.Client):
         follow_redirects: typing.Optional[bool] = None,
         allow_redirects: typing.Optional[bool] = None,
         timeout: typing.Union[
-            httpx._client.TimeoutTypes, httpx._client.UseClientDefault
+            httpx._types.TimeoutTypes, httpx._client.UseClientDefault
         ] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[typing.Dict[str, typing.Any]] = None,
     ) -> httpx.Response:
-        url = self.base_url.join(url)
+        url = self._merge_url(url)
         redirect = self._choose_redirect_arg(follow_redirects, allow_redirects)
         return super().request(
             method,
             url,
             content=content,
-            data=data,  # type: ignore[arg-type]
+            data=data,
             files=files,
             json=json,
             params=params,
@@ -491,7 +494,7 @@ class TestClient(httpx.Client):
         follow_redirects: typing.Optional[bool] = None,
         allow_redirects: typing.Optional[bool] = None,
         timeout: typing.Union[
-            httpx._client.TimeoutTypes, httpx._client.UseClientDefault
+            httpx._types.TimeoutTypes, httpx._client.UseClientDefault
         ] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[typing.Dict[str, typing.Any]] = None,
     ) -> httpx.Response:
@@ -520,7 +523,7 @@ class TestClient(httpx.Client):
         follow_redirects: typing.Optional[bool] = None,
         allow_redirects: typing.Optional[bool] = None,
         timeout: typing.Union[
-            httpx._client.TimeoutTypes, httpx._client.UseClientDefault
+            httpx._types.TimeoutTypes, httpx._client.UseClientDefault
         ] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[typing.Dict[str, typing.Any]] = None,
     ) -> httpx.Response:
@@ -549,7 +552,7 @@ class TestClient(httpx.Client):
         follow_redirects: typing.Optional[bool] = None,
         allow_redirects: typing.Optional[bool] = None,
         timeout: typing.Union[
-            httpx._client.TimeoutTypes, httpx._client.UseClientDefault
+            httpx._types.TimeoutTypes, httpx._client.UseClientDefault
         ] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[typing.Dict[str, typing.Any]] = None,
     ) -> httpx.Response:
@@ -582,7 +585,7 @@ class TestClient(httpx.Client):
         follow_redirects: typing.Optional[bool] = None,
         allow_redirects: typing.Optional[bool] = None,
         timeout: typing.Union[
-            httpx._client.TimeoutTypes, httpx._client.UseClientDefault
+            httpx._types.TimeoutTypes, httpx._client.UseClientDefault
         ] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[typing.Dict[str, typing.Any]] = None,
     ) -> httpx.Response:
@@ -590,7 +593,7 @@ class TestClient(httpx.Client):
         return super().post(
             url,
             content=content,
-            data=data,  # type: ignore[arg-type]
+            data=data,
             files=files,
             json=json,
             params=params,
@@ -619,7 +622,7 @@ class TestClient(httpx.Client):
         follow_redirects: typing.Optional[bool] = None,
         allow_redirects: typing.Optional[bool] = None,
         timeout: typing.Union[
-            httpx._client.TimeoutTypes, httpx._client.UseClientDefault
+            httpx._types.TimeoutTypes, httpx._client.UseClientDefault
         ] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[typing.Dict[str, typing.Any]] = None,
     ) -> httpx.Response:
@@ -627,7 +630,7 @@ class TestClient(httpx.Client):
         return super().put(
             url,
             content=content,
-            data=data,  # type: ignore[arg-type]
+            data=data,
             files=files,
             json=json,
             params=params,
@@ -656,7 +659,7 @@ class TestClient(httpx.Client):
         follow_redirects: typing.Optional[bool] = None,
         allow_redirects: typing.Optional[bool] = None,
         timeout: typing.Union[
-            httpx._client.TimeoutTypes, httpx._client.UseClientDefault
+            httpx._types.TimeoutTypes, httpx._client.UseClientDefault
         ] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[typing.Dict[str, typing.Any]] = None,
     ) -> httpx.Response:
@@ -664,7 +667,7 @@ class TestClient(httpx.Client):
         return super().patch(
             url,
             content=content,
-            data=data,  # type: ignore[arg-type]
+            data=data,
             files=files,
             json=json,
             params=params,
@@ -689,7 +692,7 @@ class TestClient(httpx.Client):
         follow_redirects: typing.Optional[bool] = None,
         allow_redirects: typing.Optional[bool] = None,
         timeout: typing.Union[
-            httpx._client.TimeoutTypes, httpx._client.UseClientDefault
+            httpx._types.TimeoutTypes, httpx._client.UseClientDefault
         ] = httpx._client.USE_CLIENT_DEFAULT,
         extensions: typing.Optional[typing.Dict[str, typing.Any]] = None,
     ) -> httpx.Response:
@@ -707,7 +710,7 @@ class TestClient(httpx.Client):
 
     def websocket_connect(
         self, url: str, subprotocols: typing.Sequence[str] = None, **kwargs: typing.Any
-    ) -> typing.Any:
+    ) -> "WebSocketTestSession":
         url = urljoin("ws://testserver", url)
         headers = kwargs.get("headers", {})
         headers.setdefault("connection", "upgrade")
@@ -735,12 +738,18 @@ class TestClient(httpx.Client):
             def reset_portal() -> None:
                 self.portal = None
 
-            self.stream_send = StapledObjectStream(
-                *anyio.create_memory_object_stream(math.inf)
-            )
-            self.stream_receive = StapledObjectStream(
-                *anyio.create_memory_object_stream(math.inf)
-            )
+            send1: ObjectSendStream[
+                typing.Optional[typing.MutableMapping[str, typing.Any]]
+            ]
+            receive1: ObjectReceiveStream[
+                typing.Optional[typing.MutableMapping[str, typing.Any]]
+            ]
+            send2: ObjectSendStream[typing.MutableMapping[str, typing.Any]]
+            receive2: ObjectReceiveStream[typing.MutableMapping[str, typing.Any]]
+            send1, receive1 = anyio.create_memory_object_stream(math.inf)
+            send2, receive2 = anyio.create_memory_object_stream(math.inf)
+            self.stream_send = StapledObjectStream(send1, receive1)
+            self.stream_receive = StapledObjectStream(send2, receive2)
             self.task = portal.start_task_soon(self.lifespan)
             portal.call(self.wait_startup)
 

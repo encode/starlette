@@ -2,15 +2,35 @@ import asyncio
 import functools
 import sys
 import typing
-from types import TracebackType
+from contextlib import contextmanager
 
-if sys.version_info < (3, 8):  # pragma: no cover
-    from typing_extensions import Protocol
+if sys.version_info >= (3, 10):  # pragma: no cover
+    from typing import TypeGuard
 else:  # pragma: no cover
-    from typing import Protocol
+    from typing_extensions import TypeGuard
+
+has_exceptiongroups = True
+if sys.version_info < (3, 11):  # pragma: no cover
+    try:
+        from exceptiongroup import BaseExceptionGroup
+    except ImportError:
+        has_exceptiongroups = False
+
+T = typing.TypeVar("T")
+AwaitableCallable = typing.Callable[..., typing.Awaitable[T]]
 
 
-def is_async_callable(obj: typing.Any) -> bool:
+@typing.overload
+def is_async_callable(obj: AwaitableCallable[T]) -> TypeGuard[AwaitableCallable[T]]:
+    ...
+
+
+@typing.overload
+def is_async_callable(obj: typing.Any) -> TypeGuard[AwaitableCallable[typing.Any]]:
+    ...
+
+
+def is_async_callable(obj: typing.Any) -> typing.Any:
     while isinstance(obj, functools.partial):
         obj = obj.func
 
@@ -22,31 +42,13 @@ def is_async_callable(obj: typing.Any) -> bool:
 T_co = typing.TypeVar("T_co", covariant=True)
 
 
-# TODO: once 3.8 is the minimum supported version (27 Jun 2023)
-# this can just become
-# class AwaitableOrContextManager(
-#     typing.Awaitable[T_co],
-#     typing.AsyncContextManager[T_co],
-#     typing.Protocol[T_co],
-# ):
-#     pass
-class AwaitableOrContextManager(Protocol[T_co]):
-    def __await__(self) -> typing.Generator[typing.Any, None, T_co]:
-        ...  # pragma: no cover
-
-    async def __aenter__(self) -> T_co:
-        ...  # pragma: no cover
-
-    async def __aexit__(
-        self,
-        __exc_type: typing.Optional[typing.Type[BaseException]],
-        __exc_value: typing.Optional[BaseException],
-        __traceback: typing.Optional[TracebackType],
-    ) -> typing.Union[bool, None]:
-        ...  # pragma: no cover
+class AwaitableOrContextManager(
+    typing.Awaitable[T_co], typing.AsyncContextManager[T_co], typing.Protocol[T_co]
+):
+    ...
 
 
-class SupportsAsyncClose(Protocol):
+class SupportsAsyncClose(typing.Protocol):
     async def close(self) -> None:
         ...  # pragma: no cover
 
@@ -72,3 +74,15 @@ class AwaitableOrContextManagerWrapper(typing.Generic[SupportsAsyncCloseType]):
     async def __aexit__(self, *args: typing.Any) -> typing.Union[None, bool]:
         await self.entered.close()
         return None
+
+
+@contextmanager
+def collapse_excgroups() -> typing.Generator[None, None, None]:
+    try:
+        yield
+    except BaseException as exc:
+        if has_exceptiongroups:
+            while isinstance(exc, BaseExceptionGroup) and len(exc.exceptions) == 1:
+                exc = exc.exceptions[0]  # pragma: no cover
+
+        raise exc

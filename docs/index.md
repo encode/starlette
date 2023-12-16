@@ -38,7 +38,7 @@ It is production-ready, and gives you the following:
 
 ## Requirements
 
-Python 3.7+ (For Python 3.6 support, install version 0.19.1)
+Python 3.8+
 
 ## Installation
 
@@ -133,7 +133,7 @@ in isolation.
 [httpx]: https://www.python-httpx.org/
 [jinja2]: https://jinja.palletsprojects.com/
 [python-multipart]: https://andrew-d.github.io/python-multipart/
-[itsdangerous]: https://pythonhosted.org/itsdangerous/
+[itsdangerous]: https://itsdangerous.palletsprojects.com/
 [sqlalchemy]: https://www.sqlalchemy.org
 [pyyaml]: https://pyyaml.org/wiki/PyYAMLDocumentation
 [techempower]: https://www.techempower.com/benchmarks/#hw=ph&test=fortune&l=zijzen-sf

@@ -101,9 +101,7 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
             base_url_scope = dict(self.scope)
             base_url_scope["path"] = "/"
             base_url_scope["query_string"] = b""
-            base_url_scope["root_path"] = base_url_scope.get(
-                "app_root_path", base_url_scope.get("root_path", "")
-            )
+            base_url_scope["root_path"] = base_url_scope.get("root_path", "")
             self._base_url = URL(scope=base_url_scope)
         return self._base_url
 
@@ -147,7 +145,7 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
         assert (
             "session" in self.scope
         ), "SessionMiddleware must be installed to access request.session"
-        return self.scope["session"]
+        return self.scope["session"]  # type: ignore[no-any-return]
 
     @property
     def auth(self) -> typing.Any:
@@ -173,9 +171,9 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
             self._state = State(self.scope["state"])
         return self._state
 
-    def url_for(self, __name: str, **path_params: typing.Any) -> URL:
+    def url_for(self, name: str, /, **path_params: typing.Any) -> URL:
         router: Router = self.scope["router"]
-        url_path = router.url_path_for(__name, **path_params)
+        url_path = router.url_path_for(name, **path_params)
         return url_path.make_absolute_url(base_url=self.base_url)
 
 
@@ -203,7 +201,7 @@ class Request(HTTPConnection):
 
     @property
     def method(self) -> str:
-        return self.scope["method"]
+        return typing.cast(str, self.scope["method"])
 
     @property
     def receive(self) -> Receive:

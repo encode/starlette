@@ -1,13 +1,7 @@
 import contextlib
 import functools
-import sys
 import typing
 import uuid
-
-if sys.version_info < (3, 8):
-    from typing_extensions import TypedDict  # pragma: no cover
-else:
-    from typing import TypedDict  # pragma: no cover
 
 import pytest
 
@@ -165,7 +159,7 @@ app = Router(
 
 
 @pytest.fixture
-def client(test_client_factory):
+def client(test_client_factory: typing.Callable[..., TestClient]):
     with test_client_factory(app) as client:
         yield client
 
@@ -176,7 +170,7 @@ def client(test_client_factory):
     r":UserWarning"
     r":charset_normalizer.api"
 )
-def test_router(client):
+def test_router(client: TestClient):
     response = client.get("/")
     assert response.status_code == 200
     assert response.text == "Hello, world"
@@ -332,6 +326,26 @@ def test_router_add_websocket_route(client):
     with client.websocket_connect("/ws/test") as session:
         text = session.receive_text()
         assert text == "Hello, test!"
+
+
+def test_router_middleware(test_client_factory: typing.Callable[..., TestClient]):
+    class CustomMiddleware:
+        def __init__(self, app: ASGIApp) -> None:
+            self.app = app
+
+        async def __call__(self, scope: Scope, receive: Receive, send: Send):
+            response = PlainTextResponse("OK")
+            await response(scope, receive, send)
+
+    app = Router(
+        routes=[Route("/", homepage)],
+        middleware=[Middleware(CustomMiddleware)],
+    )
+
+    client = test_client_factory(app)
+    response = client.get("/")
+    assert response.status_code == 200
+    assert response.text == "OK"
 
 
 def http_endpoint(request):
@@ -648,6 +662,50 @@ def test_lifespan_async(test_client_factory):
     assert shutdown_complete
 
 
+def test_lifespan_with_on_events(test_client_factory: typing.Callable[..., TestClient]):
+    lifespan_called = False
+    startup_called = False
+    shutdown_called = False
+
+    @contextlib.asynccontextmanager
+    async def lifespan(app: Starlette):
+        nonlocal lifespan_called
+        lifespan_called = True
+        yield
+
+    # We do not expected, neither of run_startup nor run_shutdown to be called
+    # we thus mark them as #pragma: no cover, to fulfill test coverage
+    def run_startup():  # pragma: no cover
+        nonlocal startup_called
+        startup_called = True
+
+    def run_shutdown():  # pragma: no cover
+        nonlocal shutdown_called
+        shutdown_called = True
+
+    with pytest.warns(
+        UserWarning,
+        match=(
+            "The `lifespan` parameter cannot be used with `on_startup` or `on_shutdown`."  # noqa: E501
+        ),
+    ):
+        app = Router(
+            on_startup=[run_startup], on_shutdown=[run_shutdown], lifespan=lifespan
+        )
+
+        assert not lifespan_called
+        assert not startup_called
+        assert not shutdown_called
+
+        # Triggers the lifespan events
+        with test_client_factory(app):
+            ...
+
+        assert lifespan_called
+        assert not startup_called
+        assert not shutdown_called
+
+
 def test_lifespan_sync(test_client_factory):
     startup_complete = False
     shutdown_complete = False
@@ -707,7 +765,7 @@ def test_lifespan_state_async_cm(test_client_factory):
     startup_complete = False
     shutdown_complete = False
 
-    class State(TypedDict):
+    class State(typing.TypedDict):
         count: int
         items: typing.List[int]
 
@@ -857,7 +915,7 @@ class Endpoint:
         pytest.param(lambda request: ..., "<lambda>", id="lambda"),
     ],
 )
-def test_route_name(endpoint: typing.Callable, expected_name: str):
+def test_route_name(endpoint: typing.Callable[..., typing.Any], expected_name: str):
     assert Route(path="/", endpoint=endpoint).name == expected_name
 
 
@@ -880,6 +938,18 @@ def assert_middleware_header_route(request: Request) -> Response:
     assert request.scope["add_headers_middleware"] is True
     return Response()
 
+
+route_with_middleware = Starlette(
+    routes=[
+        Route(
+            "/http",
+            endpoint=assert_middleware_header_route,
+            methods=["GET"],
+            middleware=[Middleware(AddHeadersMiddleware)],
+        ),
+        Route("/home", homepage),
+    ]
+)
 
 mounted_routes_with_middleware = Starlette(
     routes=[
@@ -922,9 +992,10 @@ mounted_app_with_middleware = Starlette(
     [
         mounted_routes_with_middleware,
         mounted_app_with_middleware,
+        route_with_middleware,
     ],
 )
-def test_mount_middleware(
+def test_base_route_middleware(
     test_client_factory: typing.Callable[..., TestClient],
     app: Starlette,
 ) -> None:
@@ -1033,13 +1104,47 @@ def test_mounted_middleware_does_not_catch_exception(
     assert resp.status_code == 200, resp.content
     assert "X-Mounted" in resp.headers
 
-    # this is the "surprising" behavior bit
-    # the middleware on the mount never runs because there
-    # is nothing to catch the HTTPException
-    # since Mount middlweare is not wrapped by ExceptionMiddleware
     resp = client.get("/mount/err")
     assert resp.status_code == 403, resp.content
-    assert "X-Mounted" not in resp.headers
+    assert "X-Mounted" in resp.headers
+
+
+def test_websocket_route_middleware(
+    test_client_factory: typing.Callable[..., TestClient]
+):
+    async def websocket_endpoint(session: WebSocket):
+        await session.accept()
+        await session.send_text("Hello, world!")
+        await session.close()
+
+    class WebsocketMiddleware:
+        def __init__(self, app: ASGIApp) -> None:
+            self.app = app
+
+        async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+            async def modified_send(msg: Message) -> None:
+                if msg["type"] == "websocket.accept":
+                    msg["headers"].append((b"X-Test", b"Set by middleware"))
+                await send(msg)
+
+            await self.app(scope, receive, modified_send)
+
+    app = Starlette(
+        routes=[
+            WebSocketRoute(
+                "/ws",
+                endpoint=websocket_endpoint,
+                middleware=[Middleware(WebsocketMiddleware)],
+            )
+        ]
+    )
+
+    client = test_client_factory(app)
+
+    with client.websocket_connect("/ws") as websocket:
+        text = websocket.receive_text()
+        assert text == "Hello, world!"
+        assert websocket.extra_headers == [(b"X-Test", b"Set by middleware")]
 
 
 def test_route_repr() -> None:
@@ -1125,3 +1230,57 @@ def test_decorator_deprecations() -> None:
             ...  # pragma: nocover
 
         router.on_event("startup")(startup)
+
+
+async def echo_paths(request: Request, name: str):
+    return JSONResponse(
+        {
+            "name": name,
+            "path": request.scope["path"],
+            "root_path": request.scope["root_path"],
+        }
+    )
+
+
+echo_paths_routes = [
+    Route(
+        "/path",
+        functools.partial(echo_paths, name="path"),
+        name="path",
+        methods=["GET"],
+    ),
+    Mount(
+        "/root",
+        name="mount",
+        routes=[
+            Route(
+                "/path",
+                functools.partial(echo_paths, name="subpath"),
+                name="subpath",
+                methods=["GET"],
+            )
+        ],
+    ),
+]
+
+
+def test_paths_with_root_path(test_client_factory: typing.Callable[..., TestClient]):
+    app = Starlette(routes=echo_paths_routes)
+    client = test_client_factory(
+        app, base_url="https://www.example.org/", root_path="/root"
+    )
+    response = client.get("/root/path")
+    assert response.status_code == 200
+    assert response.json() == {
+        "name": "path",
+        "path": "/root/path",
+        "root_path": "/root",
+    }
+
+    response = client.get("/root/root/path")
+    assert response.status_code == 200
+    assert response.json() == {
+        "name": "subpath",
+        "path": "/root/root/path",
+        "root_path": "/root",
+    }

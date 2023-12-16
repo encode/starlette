@@ -4,7 +4,8 @@ import pytest
 
 from starlette.exceptions import HTTPException, WebSocketException
 from starlette.middleware.exceptions import ExceptionMiddleware
-from starlette.responses import PlainTextResponse
+from starlette.requests import Request
+from starlette.responses import JSONResponse, PlainTextResponse
 from starlette.routing import Route, Router, WebSocketRoute
 
 
@@ -28,6 +29,22 @@ def with_headers(request):
     raise HTTPException(status_code=200, headers={"x-potato": "always"})
 
 
+class BadBodyException(HTTPException):
+    pass
+
+
+async def read_body_and_raise_exc(request: Request):
+    await request.body()
+    raise BadBodyException(422)
+
+
+async def handler_that_reads_body(
+    request: Request, exc: BadBodyException
+) -> JSONResponse:
+    body = await request.body()
+    return JSONResponse(status_code=422, content={"body": body.decode()})
+
+
 class HandledExcAfterResponse:
     async def __call__(self, scope, receive, send):
         response = PlainTextResponse("OK", status_code=200)
@@ -44,11 +61,19 @@ router = Router(
         Route("/with_headers", endpoint=with_headers),
         Route("/handled_exc_after_response", endpoint=HandledExcAfterResponse()),
         WebSocketRoute("/runtime_error", endpoint=raise_runtime_error),
+        Route(
+            "/consume_body_in_endpoint_and_handler",
+            endpoint=read_body_and_raise_exc,
+            methods=["POST"],
+        ),
     ]
 )
 
 
-app = ExceptionMiddleware(router)
+app = ExceptionMiddleware(
+    router,
+    handlers={BadBodyException: handler_that_reads_body},  # type: ignore[dict-item]
+)
 
 
 @pytest.fixture
@@ -119,6 +144,12 @@ def test_force_500_response(test_client_factory):
     assert response.text == ""
 
 
+def test_http_str():
+    assert str(HTTPException(status_code=404)) == "404: Not Found"
+    assert str(HTTPException(404, "Not Found: foo")) == "404: Not Found: foo"
+    assert str(HTTPException(404, headers={"key": "value"})) == "404: Not Found"
+
+
 def test_http_repr():
     assert repr(HTTPException(404)) == (
         "HTTPException(status_code=404, detail='Not Found')"
@@ -133,6 +164,11 @@ def test_http_repr():
     assert repr(CustomHTTPException(500, detail="Something custom")) == (
         "CustomHTTPException(status_code=500, detail='Something custom')"
     )
+
+
+def test_websocket_str():
+    assert str(WebSocketException(1008)) == "1008: "
+    assert str(WebSocketException(1008, "Policy Violation")) == "1008: Policy Violation"
 
 
 def test_websocket_repr():
@@ -160,3 +196,9 @@ def test_exception_middleware_deprecation() -> None:
 
     with pytest.warns(DeprecationWarning):
         starlette.exceptions.ExceptionMiddleware
+
+
+def test_request_in_app_and_handler_is_the_same_object(client) -> None:
+    response = client.post("/consume_body_in_endpoint_and_handler", content=b"Hello!")
+    assert response.status_code == 422
+    assert response.json() == {"body": "Hello!"}

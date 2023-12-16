@@ -45,7 +45,7 @@ Signature: `Response.set_cookie(key, value, max_age=None, expires=None, path="/"
 
 #### Delete Cookie
 
-Conversly, Starlette also provides a `delete_cookie` method to manually expire a set cookie.
+Conversely, Starlette also provides a `delete_cookie` method to manually expire a set cookie.
 
 Signature: `Response.delete_cookie(key, path='/', domain=None)`
 
@@ -143,11 +143,11 @@ import asyncio
 
 
 async def slow_numbers(minimum, maximum):
-    yield('<html><body><ul>')
+    yield '<html><body><ul>'
     for number in range(minimum, maximum + 1):
         yield '<li>%d</li>' % number
         await asyncio.sleep(0.5)
-    yield('</ul></body></html>')
+    yield '</ul></body></html>'
 
 
 async def app(scope, receive, send):

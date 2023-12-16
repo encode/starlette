@@ -3,19 +3,18 @@ import sys
 import typing
 import warnings
 
-import anyio
+import anyio.to_thread
 
 if sys.version_info >= (3, 10):  # pragma: no cover
     from typing import ParamSpec
 else:  # pragma: no cover
     from typing_extensions import ParamSpec
 
-
-T = typing.TypeVar("T")
 P = ParamSpec("P")
+T = typing.TypeVar("T")
 
 
-async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -> None:
+async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -> None:  # type: ignore[type-arg]  # noqa: E501
     warnings.warn(
         "run_until_first_complete is deprecated "
         "and will be removed in a future version.",
@@ -24,7 +23,7 @@ async def run_until_first_complete(*args: typing.Tuple[typing.Callable, dict]) -
 
     async with anyio.create_task_group() as task_group:
 
-        async def run(func: typing.Callable[[], typing.Coroutine]) -> None:
+        async def run(func: typing.Callable[[], typing.Coroutine]) -> None:  # type: ignore[type-arg]  # noqa: E501
             await func()
             task_group.cancel_scope.cancel()
 

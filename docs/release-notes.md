@@ -1,3 +1,101 @@
+## 0.33.0
+
+December 1, 2023
+
+### Added
+
+* Add `middleware` per `Route`/`WebSocketRoute` [#2349](https://github.com/encode/starlette/pull/2349).
+* Add `middleware` per `Router` [#2351](https://github.com/encode/starlette/pull/2351).
+
+### Fixed
+
+* Do not overwrite `"path"` and `"root_path"` scope keys [#2352](https://github.com/encode/starlette/pull/2352).
+* Set `ensure_ascii=False` on `json.dumps()` for `WebSocket.send_json()` [#2341](https://github.com/encode/starlette/pull/2341).
+
+## 0.32.0.post1
+
+November 5, 2023
+
+### Fixed
+
+* Revert mkdocs-material from 9.1.17 to 9.4.7 [#2326](https://github.com/encode/starlette/pull/2326).
+
+## 0.32.0
+
+November 4, 2023
+
+### Added
+
+* Send `reason` on `WebSocketDisconnect` [#2309](https://github.com/encode/starlette/pull/2309).
+* Add `domain` parameter to `SessionMiddleware` [#2280](https://github.com/encode/starlette/pull/2280).
+
+### Changed
+
+* Inherit from `HTMLResponse` instead of `Response` on `_TemplateResponse` [#2274](https://github.com/encode/starlette/pull/2274).
+* Restore the `Response.render` type annotation to its pre-0.31.0 state [#2264](https://github.com/encode/starlette/pull/2264).
+
+## 0.31.1
+
+August 26, 2023
+
+### Fixed
+
+* Fix import error when `exceptiongroup` isn't available [#2231](https://github.com/encode/starlette/pull/2231).
+* Set `url_for` global for custom Jinja environments [#2230](https://github.com/encode/starlette/pull/2230).
+
+## 0.31.0
+
+July 24, 2023
+
+### Added
+
+* Officially support Python 3.12 [#2214](https://github.com/encode/starlette/pull/2214).
+* Support AnyIO 4.0 [#2211](https://github.com/encode/starlette/pull/2211).
+* Strictly type annotate Starlette (strict mode on mypy) [#2180](https://github.com/encode/starlette/pull/2180).
+
+### Fixed
+
+* Don't group duplicated headers on a single string when using the `TestClient` [#2219](https://github.com/encode/starlette/pull/2219).
+
+## 0.30.0
+
+July 13, 2023
+
+### Removed
+
+* Drop Python 3.7 support [#2178](https://github.com/encode/starlette/pull/2178).
+
+## 0.29.0
+
+July 13, 2023
+
+### Added
+
+* Add `follow_redirects` parameter to `TestClient` [#2207](https://github.com/encode/starlette/pull/2207).
+* Add `__str__` to `HTTPException` and `WebSocketException` [#2181](https://github.com/encode/starlette/pull/2181).
+* Warn users when using `lifespan` together with `on_startup`/`on_shutdown` [#2193](https://github.com/encode/starlette/pull/2193).
+* Collect routes from `Host` to generate the OpenAPI schema [#2183](https://github.com/encode/starlette/pull/2183).
+* Add `request` argument to `TemplateResponse` [#2191](https://github.com/encode/starlette/pull/2191).
+
+### Fixed
+
+* Stop `body_stream` in case `more_body=False` on `BaseHTTPMiddleware` [#2194](https://github.com/encode/starlette/pull/2194).
+
+## 0.28.0
+
+June 7, 2023
+
+### Changed
+* Reuse `Request`'s body buffer for call_next in `BaseHTTPMiddleware` [#1692](https://github.com/encode/starlette/pull/1692).
+* Move exception handling logic to `Route` [#2026](https://github.com/encode/starlette/pull/2026).
+
+### Added
+* Add `env` parameter to `Jinja2Templates`, and deprecate `**env_options` [#2159](https://github.com/encode/starlette/pull/2159).
+* Add clear error message when `httpx` is not installed [#2177](https://github.com/encode/starlette/pull/2177).
+
+### Fixed
+* Allow "name" argument on `templates url_for()` [#2127](https://github.com/encode/starlette/pull/2127).
+
 ## 0.27.0
 
 May 16, 2023
@@ -115,7 +213,7 @@ This release replaces the underlying HTTP client used on the `TestClient` (`requ
 ### Added
 * Add `WebSocketException` and support for WebSocket exception handlers [#1263](https://github.com/encode/starlette/pull/1263).
 * Add `middleware` parameter to `Mount` class [#1649](https://github.com/encode/starlette/pull/1649).
-* Officially support Python 3.11 [1863](https://github.com/encode/starlette/pull/1863).
+* Officially support Python 3.11 [#1863](https://github.com/encode/starlette/pull/1863).
 * Implement `__repr__` for route classes [#1864](https://github.com/encode/starlette/pull/1864).
 
 ### Fixed

@@ -142,7 +142,7 @@ class MultiPartParser:
         self._charset = ""
         self._file_parts_to_write: typing.List[typing.Tuple[MultipartPart, bytes]] = []
         self._file_parts_to_finish: typing.List[MultipartPart] = []
-        self._files_to_close_on_error: typing.List[SpooledTemporaryFile] = []
+        self._files_to_close_on_error: typing.List[SpooledTemporaryFile[bytes]] = []
 
     def on_part_begin(self) -> None:
         self._current_part = MultipartPart()
@@ -227,7 +227,7 @@ class MultiPartParser:
         # Parse the Content-Type header to get the multipart boundary.
         _, params = parse_options_header(self.headers["Content-Type"])
         charset = params.get(b"charset", "utf-8")
-        if type(charset) == bytes:
+        if isinstance(charset, bytes):
             charset = charset.decode("latin-1")
         self._charset = charset
         try:

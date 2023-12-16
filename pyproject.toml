@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = "The little ASGI library that shines."
 readme = "README.md"
 license = "BSD-3-Clause"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 authors = [
     { name = "Tom Christie", email = "tom@tomchristie.com" },
 ]
@@ -20,11 +20,11 @@ classifiers = [
     "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Internet :: WWW/HTTP",
 ]
 dependencies = [
@@ -51,26 +51,28 @@ Source = "https://github.com/encode/starlette"
 [tool.hatch.version]
 path = "starlette/__init__.py"
 
-[tool.ruff]
+[tool.ruff.lint]
 select = ["E", "F", "I"]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 combine-as-imports = true
 
 [tool.mypy]
-disallow_untyped_defs = true
+strict = true
 ignore_missing_imports = true
-no_implicit_optional = true
-show_error_codes = true
+python_version = "3.8"
 
 [[tool.mypy.overrides]]
 module = "starlette.testclient.*"
-no_implicit_optional = false
+implicit_optional = true
 
-[[tool.mypy.overrides]]
-module = "tests.*"
-disallow_untyped_defs = false
-check_untyped_defs = true
+# TODO: Uncomment the following configuration when
+# https://github.com/python/mypy/issues/10045 is solved. In the meantime,
+# we are calling `mypy tests` directly. Check `scripts/check` for more info.
+# [[tool.mypy.overrides]]
+# module = "tests.*"
+# disallow_untyped_defs = false
+# check_untyped_defs = true
 
 [tool.pytest.ini_options]
 addopts = "-rxXs --strict-config --strict-markers"
@@ -86,6 +88,7 @@ filterwarnings = [
     "ignore: The `allow_redirects` argument is deprecated. Use `follow_redirects` instead.:DeprecationWarning",
     "ignore: 'cgi' is deprecated and slated for removal in Python 3.13:DeprecationWarning",
     "ignore: You seem to already have a custom sys.excepthook handler installed. I'll skip installing Trio's custom handler, but this means MultiErrors will not show full tracebacks.:RuntimeWarning",
+    "ignore: The 'method' parameter is not used, and it will be removed.:DeprecationWarning:starlette",
 ]
 
 [tool.coverage.run]

@@ -2,38 +2,22 @@ import http.cookies
 import json
 import os
 import stat
-import sys
 import typing
+import warnings
 from datetime import datetime
 from email.utils import format_datetime, formatdate
 from functools import partial
-from mimetypes import guess_type as mimetypes_guess_type
+from mimetypes import guess_type
 from urllib.parse import quote
 
 import anyio
+import anyio.to_thread
 
 from starlette._compat import md5_hexdigest
 from starlette.background import BackgroundTask
 from starlette.concurrency import iterate_in_threadpool
 from starlette.datastructures import URL, MutableHeaders
 from starlette.types import Receive, Scope, Send
-
-if sys.version_info >= (3, 8):  # pragma: no cover
-    from typing import Literal
-else:  # pragma: no cover
-    from typing_extensions import Literal
-
-# Workaround for adding samesite support to pre 3.8 python
-http.cookies.Morsel._reserved["samesite"] = "SameSite"  # type: ignore[attr-defined]
-
-
-# Compatibility wrapper for `mimetypes.guess_type` to support `os.PathLike` on <py3.8
-def guess_type(
-    url: typing.Union[str, "os.PathLike[str]"], strict: bool = True
-) -> typing.Tuple[typing.Optional[str], typing.Optional[str]]:
-    if sys.version_info < (3, 8):  # pragma: no cover
-        url = os.fspath(url)
-    return mimetypes_guess_type(url, strict)
 
 
 class Response:
@@ -60,7 +44,7 @@ class Response:
             return b""
         if isinstance(content, bytes):
             return content
-        return content.encode(self.charset)
+        return content.encode(self.charset)  # type: ignore
 
     def init_headers(
         self, headers: typing.Optional[typing.Mapping[str, str]] = None
@@ -111,7 +95,7 @@ class Response:
         domain: typing.Optional[str] = None,
         secure: bool = False,
         httponly: bool = False,
-        samesite: typing.Optional[Literal["lax", "strict", "none"]] = "lax",
+        samesite: typing.Optional[typing.Literal["lax", "strict", "none"]] = "lax",
     ) -> None:
         cookie: "http.cookies.BaseCookie[str]" = http.cookies.SimpleCookie()
         cookie[key] = value
@@ -147,7 +131,7 @@ class Response:
         domain: typing.Optional[str] = None,
         secure: bool = False,
         httponly: bool = False,
-        samesite: typing.Optional[Literal["lax", "strict", "none"]] = "lax",
+        samesite: typing.Optional[typing.Literal["lax", "strict", "none"]] = "lax",
     ) -> None:
         self.set_cookie(
             key,
@@ -189,7 +173,7 @@ class JSONResponse(Response):
         self,
         content: typing.Any,
         status_code: int = 200,
-        headers: typing.Optional[typing.Dict[str, str]] = None,
+        headers: typing.Optional[typing.Mapping[str, str]] = None,
         media_type: typing.Optional[str] = None,
         background: typing.Optional[BackgroundTask] = None,
     ) -> None:
@@ -298,7 +282,11 @@ class FileResponse(Response):
         self.path = path
         self.status_code = status_code
         self.filename = filename
-        self.send_header_only = method is not None and method.upper() == "HEAD"
+        if method is not None:
+            warnings.warn(
+                "The 'method' parameter is not used, and it will be removed.",
+                DeprecationWarning,
+            )
         if media_type is None:
             media_type = guess_type(filename or path)[0] or "text/plain"
         self.media_type = media_type
@@ -323,7 +311,7 @@ class FileResponse(Response):
         content_length = str(stat_result.st_size)
         last_modified = formatdate(stat_result.st_mtime, usegmt=True)
         etag_base = str(stat_result.st_mtime) + "-" + str(stat_result.st_size)
-        etag = md5_hexdigest(etag_base.encode(), usedforsecurity=False)
+        etag = f'"{md5_hexdigest(etag_base.encode(), usedforsecurity=False)}"'
 
         self.headers.setdefault("content-length", content_length)
         self.headers.setdefault("last-modified", last_modified)
@@ -347,7 +335,7 @@ class FileResponse(Response):
                 "headers": self.raw_headers,
             }
         )
-        if self.send_header_only:
+        if scope["method"].upper() == "HEAD":
             await send({"type": "http.response.body", "body": b"", "more_body": False})
         else:
             async with await anyio.open_file(self.path, mode="rb") as file:
