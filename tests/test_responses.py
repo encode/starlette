@@ -256,8 +256,8 @@ async def test_file_response_on_head_method(tmpdir: Path):
 
     app = FileResponse(path=path, filename="example.png")
 
-    async def receive() -> Message:
-        return {"type": "http.request", "body": b"", "more_body": False}
+    async def receive() -> Message:  # type: ignore[empty-body]
+        ...  # pragma: no cover
 
     async def send(message: Message) -> None:
         if message["type"] == "http.response.start":
