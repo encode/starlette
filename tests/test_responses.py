@@ -272,6 +272,8 @@ async def test_file_response_on_head_method(tmpdir: Path):
             assert message["body"] == b""
             assert message["more_body"] is False
 
+    # Since the TestClient drops the response body on HEAD requests, we need to test
+    # this directly.
     await app({"type": "http", "method": "head"}, receive, send)
 
 
