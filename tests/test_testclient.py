@@ -355,6 +355,7 @@ def test_with_duplicate_headers(test_client_factory: Callable[[Starlette], TestC
     response = client.get("/", headers=[("x-token", "foo"), ("x-token", "bar")])
     assert response.json() == {"x-token": ["foo", "bar"]}
 
+
 def test_merge_url(test_client_factory: Callable[..., TestClient]):
     def homepage(request: Request) -> Response:
         return Response(request.url.path)
