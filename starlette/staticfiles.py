@@ -229,7 +229,7 @@ class StaticFiles:
         try:
             if_none_match = request_headers["if-none-match"]
             etag = response_headers["etag"]
-            if etag in [text.strip(" W/") for text in if_none_match.split(",")]:
+            if etag in [tag.strip(" W/") for tag in if_none_match.split(",")]:
                 return True
         except KeyError:
             pass
