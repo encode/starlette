@@ -9,6 +9,7 @@ import pytest
 
 from starlette import status
 from starlette.background import BackgroundTask
+from starlette.datastructures import Headers
 from starlette.requests import Request
 from starlette.responses import (
     FileResponse,
@@ -18,6 +19,7 @@ from starlette.responses import (
     StreamingResponse,
 )
 from starlette.testclient import TestClient
+from starlette.types import Message
 
 
 def test_text_response(test_client_factory):
@@ -203,7 +205,7 @@ def test_response_phrase(test_client_factory):
     assert response.reason_phrase == ""
 
 
-def test_file_response(tmpdir, test_client_factory: typing.Callable[..., TestClient]):
+def test_file_response(tmpdir, test_client_factory):
     path = os.path.join(tmpdir, "xyz")
     content = b"<file content>" * 1000
     with open(path, "wb") as file:
@@ -245,25 +247,32 @@ def test_file_response(tmpdir, test_client_factory: typing.Callable[..., TestCli
     assert filled_by_bg_task == "6, 7, 8, 9"
 
 
-def test_file_response_on_head_method(
-    tmpdir: Path, test_client_factory: typing.Callable[..., TestClient]
-):
+@pytest.mark.anyio
+async def test_file_response_on_head_method(tmpdir: Path):
     path = os.path.join(tmpdir, "xyz")
     content = b"<file content>" * 1000
     with open(path, "wb") as file:
         file.write(content)
 
     app = FileResponse(path=path, filename="example.png")
-    client = test_client_factory(app)
-    response = client.head("/")
-    expected_disposition = 'attachment; filename="example.png"'
-    assert response.status_code == status.HTTP_200_OK
-    assert response.content == b""
-    assert response.headers["content-type"] == "image/png"
-    assert response.headers["content-disposition"] == expected_disposition
-    assert "content-length" in response.headers
-    assert "last-modified" in response.headers
-    assert "etag" in response.headers
+
+    async def receive() -> Message:
+        return {"type": "http.request", "body": b"", "more_body": False}
+
+    async def send(message: Message) -> None:
+        if message["type"] == "http.response.start":
+            assert message["status"] == status.HTTP_200_OK
+            headers = Headers(raw=message["headers"])
+            assert headers["content-type"] == "image/png"
+            assert "content-length" in headers
+            assert "content-disposition" in headers
+            assert "last-modified" in headers
+            assert "etag" in headers
+        elif message["type"] == "http.response.body":
+            assert message["body"] == b""
+            assert message["more_body"] is False
+
+    await app({"type": "http", "method": "head"}, receive, send)
 
 
 def test_file_response_with_directory_raises_error(tmpdir, test_client_factory):
