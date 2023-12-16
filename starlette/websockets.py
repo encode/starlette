@@ -102,7 +102,7 @@ class WebSocket(HTTPConnection):
 
     def _raise_on_disconnect(self, message: Message) -> None:
         if message["type"] == "websocket.disconnect":
-            raise WebSocketDisconnect(message["code"])
+            raise WebSocketDisconnect(message["code"], message.get("reason"))
 
     async def receive_text(self) -> str:
         if self.application_state != WebSocketState.CONNECTED:
@@ -168,7 +168,7 @@ class WebSocket(HTTPConnection):
     async def send_json(self, data: typing.Any, mode: str = "text") -> None:
         if mode not in {"text", "binary"}:
             raise RuntimeError('The "mode" argument should be "text" or "binary".')
-        text = json.dumps(data, separators=(",", ":"))
+        text = json.dumps(data, separators=(",", ":"), ensure_ascii=False)
         if mode == "text":
             await self.send({"type": "websocket.send", "text": text})
         else:

@@ -159,7 +159,7 @@ app = Router(
 
 
 @pytest.fixture
-def client(test_client_factory):
+def client(test_client_factory: typing.Callable[..., TestClient]):
     with test_client_factory(app) as client:
         yield client
 
@@ -170,7 +170,7 @@ def client(test_client_factory):
     r":UserWarning"
     r":charset_normalizer.api"
 )
-def test_router(client):
+def test_router(client: TestClient):
     response = client.get("/")
     assert response.status_code == 200
     assert response.text == "Hello, world"
@@ -326,6 +326,26 @@ def test_router_add_websocket_route(client):
     with client.websocket_connect("/ws/test") as session:
         text = session.receive_text()
         assert text == "Hello, test!"
+
+
+def test_router_middleware(test_client_factory: typing.Callable[..., TestClient]):
+    class CustomMiddleware:
+        def __init__(self, app: ASGIApp) -> None:
+            self.app = app
+
+        async def __call__(self, scope: Scope, receive: Receive, send: Send):
+            response = PlainTextResponse("OK")
+            await response(scope, receive, send)
+
+    app = Router(
+        routes=[Route("/", homepage)],
+        middleware=[Middleware(CustomMiddleware)],
+    )
+
+    client = test_client_factory(app)
+    response = client.get("/")
+    assert response.status_code == 200
+    assert response.text == "OK"
 
 
 def http_endpoint(request):
@@ -919,6 +939,18 @@ def assert_middleware_header_route(request: Request) -> Response:
     return Response()
 
 
+route_with_middleware = Starlette(
+    routes=[
+        Route(
+            "/http",
+            endpoint=assert_middleware_header_route,
+            methods=["GET"],
+            middleware=[Middleware(AddHeadersMiddleware)],
+        ),
+        Route("/home", homepage),
+    ]
+)
+
 mounted_routes_with_middleware = Starlette(
     routes=[
         Mount(
@@ -960,9 +992,10 @@ mounted_app_with_middleware = Starlette(
     [
         mounted_routes_with_middleware,
         mounted_app_with_middleware,
+        route_with_middleware,
     ],
 )
-def test_mount_middleware(
+def test_base_route_middleware(
     test_client_factory: typing.Callable[..., TestClient],
     app: Starlette,
 ) -> None:
@@ -1076,6 +1109,44 @@ def test_mounted_middleware_does_not_catch_exception(
     assert "X-Mounted" in resp.headers
 
 
+def test_websocket_route_middleware(
+    test_client_factory: typing.Callable[..., TestClient]
+):
+    async def websocket_endpoint(session: WebSocket):
+        await session.accept()
+        await session.send_text("Hello, world!")
+        await session.close()
+
+    class WebsocketMiddleware:
+        def __init__(self, app: ASGIApp) -> None:
+            self.app = app
+
+        async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+            async def modified_send(msg: Message) -> None:
+                if msg["type"] == "websocket.accept":
+                    msg["headers"].append((b"X-Test", b"Set by middleware"))
+                await send(msg)
+
+            await self.app(scope, receive, modified_send)
+
+    app = Starlette(
+        routes=[
+            WebSocketRoute(
+                "/ws",
+                endpoint=websocket_endpoint,
+                middleware=[Middleware(WebsocketMiddleware)],
+            )
+        ]
+    )
+
+    client = test_client_factory(app)
+
+    with client.websocket_connect("/ws") as websocket:
+        text = websocket.receive_text()
+        assert text == "Hello, world!"
+        assert websocket.extra_headers == [(b"X-Test", b"Set by middleware")]
+
+
 def test_route_repr() -> None:
     route = Route("/welcome", endpoint=homepage)
     assert (
@@ -1159,3 +1230,57 @@ def test_decorator_deprecations() -> None:
             ...  # pragma: nocover
 
         router.on_event("startup")(startup)
+
+
+async def echo_paths(request: Request, name: str):
+    return JSONResponse(
+        {
+            "name": name,
+            "path": request.scope["path"],
+            "root_path": request.scope["root_path"],
+        }
+    )
+
+
+echo_paths_routes = [
+    Route(
+        "/path",
+        functools.partial(echo_paths, name="path"),
+        name="path",
+        methods=["GET"],
+    ),
+    Mount(
+        "/root",
+        name="mount",
+        routes=[
+            Route(
+                "/path",
+                functools.partial(echo_paths, name="subpath"),
+                name="subpath",
+                methods=["GET"],
+            )
+        ],
+    ),
+]
+
+
+def test_paths_with_root_path(test_client_factory: typing.Callable[..., TestClient]):
+    app = Starlette(routes=echo_paths_routes)
+    client = test_client_factory(
+        app, base_url="https://www.example.org/", root_path="/root"
+    )
+    response = client.get("/root/path")
+    assert response.status_code == 200
+    assert response.json() == {
+        "name": "path",
+        "path": "/root/path",
+        "root_path": "/root",
+    }
+
+    response = client.get("/root/root/path")
+    assert response.status_code == 200
+    assert response.json() == {
+        "name": "subpath",
+        "path": "/root/root/path",
+        "root_path": "/root",
+    }

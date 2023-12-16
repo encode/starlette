@@ -5,6 +5,13 @@ Here are some of those third party packages:
 
 ## Plugins
 
+### Apitally
+
+<a href="https://github.com/apitally/python-client" target="_blank">GitHub</a> |
+<a href="https://docs.apitally.io/frameworks/starlette" target="_blank">Documentation</a>
+
+Simple traffic, error and response time monitoring plus API key and permission management for Starlette (and other frameworks).
+
 ### Authlib
 
 <a href="https://github.com/lepture/Authlib" target="_blank">GitHub</a> |
@@ -238,3 +245,9 @@ An extension to integrate Swagger/OpenAPI document easily for Starlette project 
 Provides translations, localization, and timezone support via Babel integration.
 
 <a href="https://github.com/alex-oleshkevich/starlette_babel" target="_blank">GitHub</a>
+
+### Starlette-StaticResources
+
+<a href="https://github.com/DavidVentura/starlette-static-resources" target="_blank">GitHub</a>
+
+Allows mounting [package resources](https://docs.python.org/3/library/importlib.resources.html#module-importlib.resources) for static data, similar to [StaticFiles](https://www.starlette.io/staticfiles/).

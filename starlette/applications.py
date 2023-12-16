@@ -37,10 +37,10 @@ class Starlette:
     `handler(request, exc) -> response` and may be either standard functions, or
     async functions.
     * **on_startup** - A list of callables to run on application startup.
-    Startup handler callables do not take any arguments, and may be be either
+    Startup handler callables do not take any arguments, and may be either
     standard functions, or async functions.
     * **on_shutdown** - A list of callables to run on application shutdown.
-    Shutdown handler callables do not take any arguments, and may be be either
+    Shutdown handler callables do not take any arguments, and may be either
     standard functions, or async functions.
     * **lifespan** - A lifespan context function, which can be used to perform
     startup and shutdown tasks. This is a newer style that replaces the
@@ -137,7 +137,9 @@ class Starlette:
         self.exception_handlers[exc_class_or_status_code] = handler
 
     def add_event_handler(
-        self, event_type: str, func: typing.Callable  # type: ignore[type-arg]
+        self,
+        event_type: str,
+        func: typing.Callable,  # type: ignore[type-arg]
     ) -> None:  # pragma: no cover
         self.router.add_event_handler(event_type, func)
 
@@ -208,9 +210,7 @@ class Starlette:
 
         return decorator
 
-    def websocket_route(
-        self, path: str, name: str | None = None
-    ) -> typing.Callable:  # type: ignore[type-arg]
+    def websocket_route(self, path: str, name: str | None = None) -> typing.Callable:  # type: ignore[type-arg]
         """
         We no longer document this decorator style API, and its usage is discouraged.
         Instead you should use the following approach:
