@@ -252,9 +252,9 @@ Provides translations, localization, and timezone support via Babel integration.
 
 Allows mounting [package resources](https://docs.python.org/3/library/importlib.resources.html#module-importlib.resources) for static data, similar to [StaticFiles](https://www.starlette.io/staticfiles/).
 
-### Sentry-Python
+### Sentry
 
-<a href="https://sentry.io/" target="_blank">Website</a> | <a href="https://github.com/getsentry/sentry-python" target="_blank">GitHub</a> | <a href="https://docs.sentry.io/platforms/python/guides/starlette/" target="_blank">Documentation</a>
+<a href="https://github.com/getsentry/sentry-python" target="_blank">GitHub</a> |
+<a href="https://docs.sentry.io/platforms/python/guides/starlette/" target="_blank">Documentation</a>
 
-Sentry is a tool that finds and reports errors in software. The Sentry Python SDK is what makes it work with Python. It also gives actionable insights to resolve Python performance bottlenecks and errors. One can see the full picture of any Python exception so you can diagnose, fix, and optimize performance in the Python debugging process. Sentry has dedicated integration with Starlette for building applications in Python. Sentry can help with Error tracking; performance insights; contextual information and Alerts and notifications.
-
+Sentry is a software error detection tool. It offers actionable insights for resolving performance issues and errors, allowing users to diagnose, fix, and optimize Python debugging. Additionally, it integrates seamlessly with Starlette for Python application development. Sentry's capabilities include error tracking, performance insights, contextual information, and alerts/notifications.
