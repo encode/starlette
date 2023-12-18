@@ -1,16 +1,24 @@
-from typing import Any, Callable, Iterator
+from typing import Any, Iterator, Protocol, Type
 
-from typing_extensions import Concatenate, ParamSpec
+from typing_extensions import ParamSpec
 
-from starlette.types import ASGIApp
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 P = ParamSpec("P")
+
+
+class _MiddlewareClass(Protocol[P]):
+    def __init__(self, app: ASGIApp, *args: P.args, **kwargs: P.kwargs) -> None:
+        ...  # pragma: no cover
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        ...  # pragma: no cover
 
 
 class Middleware:
     def __init__(
         self,
-        cls: Callable[Concatenate[ASGIApp, P], Any],
+        cls: Type[_MiddlewareClass[P]],
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> None:

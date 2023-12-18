@@ -3,10 +3,10 @@ from __future__ import annotations
 import typing
 import warnings
 
-from typing_extensions import Concatenate, ParamSpec
+from typing_extensions import ParamSpec
 
 from starlette.datastructures import State, URLPath
-from starlette.middleware import Middleware
+from starlette.middleware import Middleware, _MiddlewareClass
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.errors import ServerErrorMiddleware
 from starlette.middleware.exceptions import ExceptionMiddleware
@@ -129,7 +129,7 @@ class Starlette:
 
     def add_middleware(
         self,
-        middleware_class: typing.Callable[Concatenate[ASGIApp, P], typing.Any],
+        middleware_class: typing.Type[_MiddlewareClass[P]],
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> None:
