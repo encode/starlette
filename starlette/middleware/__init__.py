@@ -1,12 +1,28 @@
-import typing
+import sys
+from typing import Any, Callable, Iterator
+
+from starlette.types import ASGIApp
+
+if sys.version_info >= (3, 10):  # pragma: no cover
+    from typing import Concatenate, ParamSpec
+else:  # pragma: no cover
+    from typing_extensions import Concatenate, ParamSpec
+
+
+P = ParamSpec("P")
 
 
 class Middleware:
-    def __init__(self, cls: type, **options: typing.Any) -> None:
+    def __init__(
+        self,
+        cls: Callable[Concatenate[ASGIApp, P], Any],
+        *args: P.args,
+        **options: P.kwargs,
+    ) -> None:
         self.cls = cls
         self.options = options
 
-    def __iter__(self) -> typing.Iterator[typing.Any]:
+    def __iter__(self) -> Iterator[Any]:
         as_tuple = (self.cls, self.options)
         return iter(as_tuple)
 
