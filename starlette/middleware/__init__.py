@@ -1,13 +1,8 @@
-import sys
 from typing import Any, Callable, Iterator
 
+from typing_extensions import Concatenate, ParamSpec
+
 from starlette.types import ASGIApp
-
-if sys.version_info >= (3, 10):  # pragma: no cover
-    from typing import Concatenate, ParamSpec
-else:  # pragma: no cover
-    from typing_extensions import Concatenate, ParamSpec
-
 
 P = ParamSpec("P")
 
@@ -17,17 +12,19 @@ class Middleware:
         self,
         cls: Callable[Concatenate[ASGIApp, P], Any],
         *args: P.args,
-        **options: P.kwargs,
+        **kwargs: P.kwargs,
     ) -> None:
         self.cls = cls
-        self.options = options
+        self.args = args
+        self.kwargs = kwargs
 
     def __iter__(self) -> Iterator[Any]:
-        as_tuple = (self.cls, self.options)
+        as_tuple = (self.cls, self.args, self.kwargs)
         return iter(as_tuple)
 
     def __repr__(self) -> str:
         class_name = self.__class__.__name__
-        option_strings = [f"{key}={value!r}" for key, value in self.options.items()]
-        args_repr = ", ".join([self.cls.__name__] + option_strings)
+        args_strings = [f"{value!r}" for value in self.args]
+        option_strings = [f"{key}={value!r}" for key, value in self.kwargs.items()]
+        args_repr = ", ".join([self.cls.__name__] + args_strings + option_strings)
         return f"{class_name}({args_repr})"
