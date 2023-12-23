@@ -1,3 +1,19 @@
+## 1.0.0
+
+The project versioning policy is now explicitly governed by SEMVER. See https://semver.org/.
+
+### Removed
+
+All deprecated features have been removed.
+
+* Removed `WSGIMiddleware`. Please use [`a2wsgi`](https://github.com/abersheeran/a2wsgi) instead.
+* Removed `run_until_first_complete`.
+* Removed `on_startup` and `on_shutdown` events. Please use `lifespan` instead.
+* Removed `iscoroutinefunction_or_partial`, which we have replaced by `_utils.is_async_callable`.
+* Removed `WS_1004_NO_STATUS_RCVD` and `WS_1005_ABNORMAL_CLOSURE` from the `status` module.
+* Removed `ExceptionMiddleware` from the `exceptions` module, it can now be found in the `middleware.exceptions` module.
+* Removed multiple possible argument sequences from `TemplateResponse`.
+
 ## 0.38.1
 
 July 23, 2024
