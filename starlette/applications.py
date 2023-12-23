@@ -41,15 +41,8 @@ class Starlette:
     Exception handler callables should be of the form
     `handler(request, exc) -> response` and may be either standard functions, or
     async functions.
-    * **on_startup** - A list of callables to run on application startup.
-    Startup handler callables do not take any arguments, and may be either
-    standard functions, or async functions.
-    * **on_shutdown** - A list of callables to run on application shutdown.
-    Shutdown handler callables do not take any arguments, and may be either
-    standard functions, or async functions.
     * **lifespan** - A lifespan context function, which can be used to perform
-    startup and shutdown tasks. This is a newer style that replaces the
-    `on_startup` and `on_shutdown` handlers. Use one or the other, not both.
+    startup and shutdown tasks.
     """
 
     def __init__(
@@ -58,16 +51,8 @@ class Starlette:
         routes: typing.Sequence[BaseRoute] | None = None,
         middleware: typing.Sequence[Middleware] | None = None,
         exception_handlers: typing.Mapping[typing.Any, ExceptionHandler] | None = None,
-        on_startup: typing.Sequence[typing.Callable[[], typing.Any]] | None = None,
-        on_shutdown: typing.Sequence[typing.Callable[[], typing.Any]] | None = None,
-        lifespan: Lifespan[AppType] | None = None,
+        lifespan: typing.Optional[Lifespan["AppType"]] = None,
     ) -> None:
-        # The lifespan context function is a newer style that replaces
-        # on_startup / on_shutdown handlers. Use one or the other, not both.
-        assert lifespan is None or (
-            on_startup is None and on_shutdown is None
-        ), "Use either 'lifespan' or 'on_startup'/'on_shutdown', not both."
-
         self.debug = debug
         self.state = State()
         self.router = Router(routes, lifespan=lifespan)
