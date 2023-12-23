@@ -331,3 +331,17 @@ The `endpoint` argument can be one of:
 
 * An async function, which accepts a single `websocket` argument.
 * A class that implements the ASGI interface, such as Starlette's [WebSocketEndpoint](endpoints.md#websocketendpoint).
+
+
+## Routing metadata
+
+You can attach arbitrary metadata to route instances.
+Metadata allows user-defined data to be associated with this route instance.
+
+
+```python
+routes = [
+    Route("/", endpoint=websocket_index, metadata={"foo": "bar"}),
+    WebSocketRoute("/{name}", endpoint=websocket_user, metadata={"foo": "bar"}),
+]
+```
