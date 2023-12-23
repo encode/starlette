@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import typing
-import warnings
 from os import PathLike
 
 from starlette.background import BackgroundTask
@@ -22,7 +21,11 @@ try:
     else:  # pragma: nocover
         pass_context = jinja2.contextfunction  # type: ignore[attr-defined]
 except ModuleNotFoundError:  # pragma: nocover
-    jinja2 = None  # type: ignore[assignment]
+    raise RuntimeError(
+        "The starlette.templating module requires the `jinja2` package to be installed."
+        "\nYou can install this with:\n"
+        "    $ pip install jinja2\n"
+    )
 
 
 class _TemplateResponse(HTMLResponse):
@@ -63,27 +66,6 @@ class Jinja2Templates:
     return templates.TemplateResponse("index.html", {"request": request})
     """
 
-    @typing.overload
-    def __init__(
-        self,
-        directory: str | PathLike[str] | typing.Sequence[str | PathLike[str]],
-        *,
-        context_processors: list[typing.Callable[[Request], dict[str, typing.Any]]]
-        | None = None,
-        **env_options: typing.Any,
-    ) -> None:
-        ...
-
-    @typing.overload
-    def __init__(
-        self,
-        *,
-        env: jinja2.Environment,
-        context_processors: list[typing.Callable[[Request], dict[str, typing.Any]]]
-        | None = None,
-    ) -> None:
-        ...
-
     def __init__(
         self,
         directory: str
@@ -94,35 +76,15 @@ class Jinja2Templates:
         context_processors: list[typing.Callable[[Request], dict[str, typing.Any]]]
         | None = None,
         env: jinja2.Environment | None = None,
-        **env_options: typing.Any,
     ) -> None:
-        if env_options:
-            warnings.warn(
-                "Extra environment options are deprecated. Use a preconfigured jinja2.Environment instead.",  # noqa: E501
-                DeprecationWarning,
-            )
-        assert jinja2 is not None, "jinja2 must be installed to use Jinja2Templates"
-        assert bool(directory) ^ bool(
-            env
-        ), "either 'directory' or 'env' arguments must be passed"
+        assert directory or env, "either 'directory' or 'env' arguments must be passed"
         self.context_processors = context_processors or []
         if directory is not None:
-            self.env = self._create_env(directory, **env_options)
+            self.env = jinja2.Environment(loader=jinja2.FileSystemLoader(directory))
         elif env is not None:
             self.env = env
 
         self._setup_env_defaults(self.env)
-
-    def _create_env(
-        self,
-        directory: str | PathLike[str] | typing.Sequence[str | PathLike[str]],
-        **env_options: typing.Any,
-    ) -> jinja2.Environment:
-        loader = jinja2.FileSystemLoader(directory)
-        env_options.setdefault("loader", loader)
-        env_options.setdefault("autoescape", True)
-
-        return jinja2.Environment(**env_options)
 
     def _setup_env_defaults(self, env: jinja2.Environment) -> None:
         @pass_context

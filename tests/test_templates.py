@@ -3,13 +3,11 @@ from __future__ import annotations
 import os
 import typing
 from pathlib import Path
-from unittest import mock
 
 import jinja2
 import pytest
 
 from starlette.applications import Starlette
-from starlette.background import BackgroundTask
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
@@ -140,7 +138,7 @@ def test_templates_require_directory_or_environment() -> None:
     with pytest.raises(
         AssertionError, match="either 'directory' or 'env' arguments must be passed"
     ):
-        Jinja2Templates()  # type: ignore[call-overload]
+        Jinja2Templates()
 
 
 def test_templates_require_directory_or_enviroment_not_both() -> None:
@@ -181,41 +179,3 @@ def test_templates_with_environment(
     assert response.text == "<html>Hello, <a href='http://testserver/'>world</a></html>"
     assert response.template.name == "index.html"  # type: ignore
     assert set(response.context.keys()) == {"request"}  # type: ignore
-
-
-def test_templates_with_environment_options_emit_warning(tmpdir: Path) -> None:
-    with pytest.warns(DeprecationWarning):
-        Jinja2Templates(str(tmpdir), autoescape=True)
-
-
-def test_templates_with_kwargs_only(
-    tmpdir: Path, test_client_factory: TestClientFactory
-) -> None:
-    # MAINTAINERS: remove after 1.0
-    path = os.path.join(tmpdir, "index.html")
-    with open(path, "w") as file:
-        file.write("value: {{ a }}")
-    templates = Jinja2Templates(directory=str(tmpdir))
-
-    spy = mock.MagicMock()
-
-    def page(request: Request) -> Response:
-        return templates.TemplateResponse(
-            request=request,
-            name="index.html",
-            context={"a": "b"},
-            status_code=201,
-            headers={"x-key": "value"},
-            media_type="text/plain",
-            background=BackgroundTask(func=spy),
-        )
-
-    app = Starlette(routes=[Route("/", page)])
-    client = test_client_factory(app)
-    response = client.get("/")
-
-    assert response.text == "value: b"  # context was rendered
-    assert response.status_code == 201
-    assert response.headers["x-key"] == "value"
-    assert response.headers["content-type"] == "text/plain; charset=utf-8"
-    spy.assert_called()
