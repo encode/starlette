@@ -1,35 +1,16 @@
 from contextvars import ContextVar
 from typing import Callable, Iterator
 
-import anyio
 import pytest
 
 from starlette.applications import Starlette
-from starlette.concurrency import iterate_in_threadpool, run_until_first_complete
+from starlette.concurrency import iterate_in_threadpool
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import Route
 from starlette.testclient import TestClient
 
 TestClientFactory = Callable[..., TestClient]
-
-
-@pytest.mark.anyio
-async def test_run_until_first_complete() -> None:
-    task1_finished = anyio.Event()
-    task2_finished = anyio.Event()
-
-    async def task1() -> None:
-        task1_finished.set()
-
-    async def task2() -> None:
-        await task1_finished.wait()
-        await anyio.sleep(0)  # pragma: nocover
-        task2_finished.set()  # pragma: nocover
-
-    await run_until_first_complete((task1, {}), (task2, {}))
-    assert task1_finished.is_set()
-    assert not task2_finished.is_set()
 
 
 def test_accessing_context_from_threaded_sync_endpoint(

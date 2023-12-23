@@ -97,7 +97,7 @@ def test_redirect_response_content_length_header(
         await response(scope, receive, send)
 
     client: TestClient = test_client_factory(app)
-    response = client.request("GET", "/redirect", allow_redirects=False)
+    response = client.request("GET", "/redirect", follow_redirects=False)
     assert response.url == "http://testserver/redirect"
     assert response.headers["content-length"] == "0"
 
@@ -341,13 +341,6 @@ def test_file_response_with_inline_disposition(
     assert response.status_code == status.HTTP_200_OK
     assert response.content == content
     assert response.headers["content-disposition"] == expected_disposition
-
-
-def test_file_response_with_method_warns(
-    tmpdir: Path, test_client_factory: TestClientFactory
-) -> None:
-    with pytest.warns(DeprecationWarning):
-        FileResponse(path=tmpdir, filename="example.png", method="GET")
 
 
 def test_set_cookie(

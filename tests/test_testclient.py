@@ -46,10 +46,6 @@ def current_task() -> Task[Any] | trio.lowlevel.Task:
     raise RuntimeError(f"unsupported asynclib={asynclib_name}")  # pragma: no cover
 
 
-def startup() -> None:
-    raise RuntimeError()
-
-
 def test_use_testclient_in_endpoint(test_client_factory: TestClientFactory) -> None:
     """
     We should be able to use the test client within applications.
@@ -170,10 +166,12 @@ def test_use_testclient_as_contextmanager(
 
 
 def test_error_on_startup(test_client_factory: TestClientFactory) -> None:
-    with pytest.deprecated_call(
-        match="The on_startup and on_shutdown parameters are deprecated"
-    ):
-        startup_error_app = Starlette(on_startup=[startup])
+    @asynccontextmanager
+    async def lifespan(app: Starlette) -> AsyncGenerator[None, None]:
+        raise RuntimeError
+        yield None  # pragma: no cover
+
+    startup_error_app = Starlette(lifespan=lifespan)
 
     with pytest.raises(RuntimeError):
         with test_client_factory(startup_error_app):
