@@ -218,12 +218,14 @@ class Route(BaseRoute):
         name: typing.Optional[str] = None,
         include_in_schema: bool = True,
         middleware: typing.Optional[typing.Sequence[Middleware]] = None,
+        metadata: typing.Optional[typing.Mapping[str, typing.Any]] = None,
     ) -> None:
         assert path.startswith("/"), "Routed paths must start with '/'"
         self.path = path
         self.endpoint = endpoint
         self.name = get_name(endpoint) if name is None else name
         self.include_in_schema = include_in_schema
+        self.metadata = metadata or {}
 
         endpoint_handler = endpoint
         while isinstance(endpoint_handler, functools.partial):
@@ -318,11 +320,13 @@ class WebSocketRoute(BaseRoute):
         *,
         name: typing.Optional[str] = None,
         middleware: typing.Optional[typing.Sequence[Middleware]] = None,
+        metadata: typing.Optional[typing.Mapping[str, typing.Any]] = None,
     ) -> None:
         assert path.startswith("/"), "Routed paths must start with '/'"
         self.path = path
         self.endpoint = endpoint
         self.name = get_name(endpoint) if name is None else name
+        self.metadata = metadata or {}
 
         endpoint_handler = endpoint
         while isinstance(endpoint_handler, functools.partial):
@@ -392,6 +396,7 @@ class Mount(BaseRoute):
         name: typing.Optional[str] = None,
         *,
         middleware: typing.Optional[typing.Sequence[Middleware]] = None,
+        metadata: typing.Optional[typing.Mapping[str, typing.Any]] = None,
     ) -> None:
         assert path == "" or path.startswith("/"), "Routed paths must start with '/'"
         assert (
@@ -407,6 +412,7 @@ class Mount(BaseRoute):
             for cls, args, kwargs in reversed(middleware):
                 self.app = cls(app=self.app, *args, **kwargs)
         self.name = name
+        self.metadata = metadata or {}
         self.path_regex, self.path_format, self.param_convertors = compile_path(
             self.path + "/{path:path}"
         )
@@ -491,12 +497,17 @@ class Mount(BaseRoute):
 
 class Host(BaseRoute):
     def __init__(
-        self, host: str, app: ASGIApp, name: typing.Optional[str] = None
+        self,
+        host: str,
+        app: ASGIApp,
+        name: typing.Optional[str] = None,
+        metadata: typing.Optional[typing.Mapping[str, typing.Any]] = None,
     ) -> None:
         assert not host.startswith("/"), "Host must not start with '/'"
         self.host = host
         self.app = app
         self.name = name
+        self.metadata = metadata or {}
         self.host_regex, self.host_format, self.param_convertors = compile_path(host)
 
     @property

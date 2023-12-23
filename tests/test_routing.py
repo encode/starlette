@@ -1284,3 +1284,35 @@ def test_paths_with_root_path(test_client_factory: typing.Callable[..., TestClie
         "path": "/root/root/path",
         "root_path": "/root",
     }
+
+
+def test_route_metadata():
+    route = Route(path="/", endpoint=homepage)
+    assert route.metadata == {}
+
+    route = Route(path="/", endpoint=homepage, metadata={"foo": "bar"})
+    assert route.metadata == {"foo": "bar"}
+
+
+def test_websocket_route_metadata():
+    route = WebSocketRoute(path="/", endpoint=homepage)
+    assert route.metadata == {}
+
+    route = WebSocketRoute(path="/", endpoint=homepage, metadata={"foo": "bar"})
+    assert route.metadata == {"foo": "bar"}
+
+
+def test_mount_route_metadata():
+    route = Mount(path="/", app=app)
+    assert route.metadata == {}
+
+    route = Mount(path="/", app=app, metadata={"foo": "bar"})
+    assert route.metadata == {"foo": "bar"}
+
+
+def test_host_route_metadata():
+    route = Host("example.com", app=app)
+    assert route.metadata == {}
+
+    route = Host("example.com", app=app, metadata={"foo": "bar"})
+    assert route.metadata == {"foo": "bar"}
