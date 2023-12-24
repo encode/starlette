@@ -359,59 +359,6 @@ def test_app_async_cm_lifespan(test_client_factory: TestClientFactory) -> None:
     assert cleanup_complete
 
 
-deprecated_lifespan = pytest.mark.filterwarnings(
-    r"ignore"
-    r":(async )?generator function lifespans are deprecated, use an "
-    r"@contextlib\.asynccontextmanager function instead"
-    r":DeprecationWarning"
-    r":starlette.routing"
-)
-
-
-@deprecated_lifespan
-def test_app_async_gen_lifespan(test_client_factory: TestClientFactory) -> None:
-    startup_complete = False
-    cleanup_complete = False
-
-    async def lifespan(app: ASGIApp) -> AsyncGenerator[None, None]:
-        nonlocal startup_complete, cleanup_complete
-        startup_complete = True
-        yield
-        cleanup_complete = True
-
-    app = Starlette(lifespan=lifespan)  # type: ignore
-
-    assert not startup_complete
-    assert not cleanup_complete
-    with test_client_factory(app):
-        assert startup_complete
-        assert not cleanup_complete
-    assert startup_complete
-    assert cleanup_complete
-
-
-@deprecated_lifespan
-def test_app_sync_gen_lifespan(test_client_factory: TestClientFactory) -> None:
-    startup_complete = False
-    cleanup_complete = False
-
-    def lifespan(app: ASGIApp) -> Generator[None, None, None]:
-        nonlocal startup_complete, cleanup_complete
-        startup_complete = True
-        yield
-        cleanup_complete = True
-
-    app = Starlette(lifespan=lifespan)  # type: ignore
-
-    assert not startup_complete
-    assert not cleanup_complete
-    with test_client_factory(app):
-        assert startup_complete
-        assert not cleanup_complete
-    assert startup_complete
-    assert cleanup_complete
-
-
 def test_middleware_stack_init(test_client_factory: TestClientFactory) -> None:
     class NoOpMiddleware:
         def __init__(self, app: ASGIApp):
