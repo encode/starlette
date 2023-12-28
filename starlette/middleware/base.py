@@ -25,7 +25,7 @@ class _CachedRequest(Request):
     """
 
     def __init__(self, scope: Scope, receive: Receive):
-        super().__init__(scope, receive)
+        super().__init__(scope, receive, enable_request_caching=True)
         self._wrapped_rcv_disconnected = False
         self._wrapped_rcv_consumed = False
         self._wrapped_rc_stream = self.stream()

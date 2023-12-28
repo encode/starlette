@@ -189,7 +189,8 @@ class Request(HTTPConnection):
     _form: typing.Optional[FormData]
 
     def __init__(
-        self, scope: Scope, receive: Receive = empty_receive, send: Send = empty_send
+        self, scope: Scope, receive: Receive = empty_receive, send: Send = empty_send,
+        enable_request_caching: bool = False
     ):
         super().__init__(scope)
         assert scope["type"] == "http"
@@ -198,6 +199,8 @@ class Request(HTTPConnection):
         self._stream_consumed = False
         self._is_disconnected = False
         self._form = None
+        if not hasattr(self.state, 'enable_request_caching'):
+            setattr(self.state, 'enable_request_caching', enable_request_caching)
 
     @property
     def method(self) -> str:
@@ -233,6 +236,9 @@ class Request(HTTPConnection):
             async for chunk in self.stream():
                 chunks.append(chunk)
             self._body = b"".join(chunks)
+        # cache body
+        if getattr(self.state, 'enable_request_caching', False):
+            setattr(self.state, 'req_body', self._body)
         return self._body
 
     async def json(self) -> typing.Any:
@@ -272,6 +278,10 @@ class Request(HTTPConnection):
                 self._form = await form_parser.parse()
             else:
                 self._form = FormData()
+        # cache form data
+        if getattr(self.state, 'enable_request_caching', False):
+            setattr(self.state, 'req_body', self._form)
+
         return self._form
 
     def form(
@@ -313,3 +323,9 @@ class Request(HTTPConnection):
             await self._send(
                 {"type": "http.response.push", "path": path, "headers": raw_headers}
             )
+
+    @property
+    def cached_req_body(self) -> typing.Union[bytes, str, FormData, None]:
+        if not hasattr(self.state, 'enable_request_caching'):
+            raise RuntimeError('Caching is not enabled')
+        return getattr(self.state, 'req_body', None)
