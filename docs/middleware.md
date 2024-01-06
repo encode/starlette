@@ -105,6 +105,8 @@ The following arguments are supported:
 * `max_age` - Session expiry time in seconds. Defaults to 2 weeks. If set to `None` then the cookie will last as long as the browser session.
 * `same_site` - SameSite flag prevents the browser from sending session cookie along with cross-site requests. Defaults to `'lax'`.
 * `https_only` - Indicate that Secure flag should be set (can be used with HTTPS only). Defaults to `False`.
+* `persist_session` - Sets the session cookie that's created to persist between connections. Defaults to `False`.
+* `auto_refresh_window` - Refresh window in seconds before max_age. If the cookie is max_age - auto_refresh_window the cookie will be refreshed with a new session cookie. Default is 0 seconds, and if set overrides persist_session. 
 * `domain` - Domain of the cookie used to share cookie between subdomains or cross-domains. The browser defaults the domain to the same host that set the cookie, excluding subdomains [refrence](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#domain_attribute).
 
 
