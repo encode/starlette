@@ -2,6 +2,7 @@ import json
 import typing
 from datetime import datetime, timedelta, timezone
 from base64 import b64decode, b64encode
+
 import itsdangerous
 from itsdangerous.exc import BadSignature, SignatureExpired
 
@@ -36,6 +37,17 @@ class SessionMiddleware:
             self.security_flags += "; secure"
         if domain is not None:
             self.security_flags += f"; domain={domain}"
+
+    def decodeCookie(self,cookie):
+        result = {}
+        try:
+            data = self.signer.unsign(cookie, max_age=self.max_age,return_timestamp=True)
+            result["datetime"] = data[1]
+            result["session"] = json.loads(b64decode(data[0]))
+        except (BadSignature, SignatureExpired):
+            result = {}
+        return result
+        
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] not in ("http", "websocket"):  # pragma: no cover
             await self.app(scope, receive, send)
@@ -43,35 +55,36 @@ class SessionMiddleware:
 
         connection = HTTPConnection(scope)
         inject_session = True
-        
+
         if self.session_cookie in connection.cookies:
             data = connection.cookies[self.session_cookie].encode("utf-8")
-            try:
-                data = self.signer.unsign(data, max_age=self.max_age,return_timestamp=True)
-                scope["session"] = json.loads(b64decode(data[0]))
-                session_exp = data[1] + timedelta(seconds=self.max_age)
-                now = datetime.now(timezone.utc)
-                if self.auto_refresh_window:
-                    if now >= (session_exp - timedelta(seconds=self.auto_refresh_window)) and now <= session_exp:
-                        #Session needs refreshing
-                        inject_session = True
-                    else:
-                        #Session does not need to be refreshed
-                        inject_session = False
-                elif not self.persist_session:
-                    #Sessions are not auto refresed, has an existing session. Catch statement should catch it if its expired.
+            data = self.decodeCookie(data)
+            scope["session"] = data["session"]
+            session_exp = data["datetime"] + timedelta(seconds=self.max_age)
+            now = datetime.now(timezone.utc)
+            if self.auto_refresh_window:
+                if now >= (session_exp - timedelta(seconds=self.auto_refresh_window)) and now <= session_exp:
+                    #Session needs refreshing
+                    inject_session = True
+                else:
+                    #Session does not need to be refreshed
                     inject_session = False
-                
-            except (BadSignature, SignatureExpired):
-                #itsdangerous should throw BadSignature or SignatureExpired so clear the session.
-                scope["session"] = {}
+            elif self.persist_session:
+                #Sessions are not auto refresed, has an existing session. Catch statement should catch it if its expired.
+                inject_session = False
         else:
             scope["session"] = {}
 
 
         async def send_wrapper(message: Message) -> None:
+            changed = False
             if message["type"] == "http.response.start":
-                if scope["session"] and inject_session:
+                if self.session_cookie in connection.cookies:
+                    old_data = self.decodeCookie(connection.cookies[self.session_cookie].encode("utf-8"))
+                    if old_data["session"] != scope["session"]:
+                        #Scope has different data, old_data is from the cookie. If they don't match then update.
+                        changed = True 
+                if scope["session"] and (inject_session or changed):
                     # We have data that needs to be persisted or refreshed. Don't inject a session if no session exists.
                     data = b64encode(json.dumps(scope["session"]).encode("utf-8"))
                     data = self.signer.sign(data)
@@ -98,3 +111,4 @@ class SessionMiddleware:
             await send(message)
 
         await self.app(scope, receive, send_wrapper)
+        
