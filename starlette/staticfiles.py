@@ -111,7 +111,7 @@ class StaticFiles:
         with OS specific path separators, and any '..', '.' components removed.
         """
         route_path = get_route_path(scope)
-        return os.path.normpath(os.path.join(*route_path.split("/")))  # type: ignore[no-any-return]  # noqa: E501
+        return os.path.normpath(os.path.join(*route_path.split("/")))  # noqa: E501
 
     async def get_response(self, path: str, scope: Scope) -> Response:
         """
