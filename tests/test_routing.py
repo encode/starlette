@@ -564,12 +564,12 @@ def test_url_for_with_root_path(test_client_factory):
     client = test_client_factory(
         app, base_url="https://www.example.org/", root_path="/sub_path"
     )
-    response = client.get("/")
+    response = client.get("/sub_path/")
     assert response.json() == {
         "index": "https://www.example.org/sub_path/",
         "submount": "https://www.example.org/sub_path/submount/",
     }
-    response = client.get("/submount/")
+    response = client.get("/sub_path/submount/")
     assert response.json() == {
         "index": "https://www.example.org/sub_path/",
         "submount": "https://www.example.org/sub_path/submount/",
