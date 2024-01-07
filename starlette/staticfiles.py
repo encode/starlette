@@ -8,6 +8,7 @@ from email.utils import parsedate
 import anyio
 import anyio.to_thread
 
+from starlette._utils import get_route_path
 from starlette.datastructures import URL, Headers
 from starlette.exceptions import HTTPException
 from starlette.responses import FileResponse, RedirectResponse, Response
@@ -110,9 +111,8 @@ class StaticFiles:
         Given the ASGI scope, return the `path` string to serve up,
         with OS specific path separators, and any '..', '.' components removed.
         """
-        root_path = scope.get("route_root_path", scope.get("root_path", ""))
-        path = scope.get("route_path", re.sub(r"^" + root_path, "", scope["path"]))
-        return os.path.normpath(os.path.join(*path.split("/")))  # type: ignore[no-any-return]  # noqa: E501
+        route_path = get_route_path(scope)
+        return os.path.normpath(os.path.join(*route_path.split("/")))  # type: ignore[no-any-return]  # noqa: E501
 
     async def get_response(self, path: str, scope: Scope) -> Response:
         """
