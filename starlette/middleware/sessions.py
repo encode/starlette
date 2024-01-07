@@ -7,7 +7,7 @@ import itsdangerous
 from itsdangerous.exc import BadSignature, SignatureExpired
 
 from starlette.datastructures import MutableHeaders, Secret
-from starlette.requests import HTTPConnection, Request
+from starlette.requests import HTTPConnection
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
