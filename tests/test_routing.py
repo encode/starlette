@@ -1263,10 +1263,7 @@ echo_paths_routes = [
         name="path",
         methods=["GET"],
     ),
-    Mount(
-        "/asgipath",
-        app=functools.partial(pure_asgi_echo_paths, name="asgipath")
-    ),
+    Mount("/asgipath", app=functools.partial(pure_asgi_echo_paths, name="asgipath")),
     Mount(
         "/sub",
         name="mount",

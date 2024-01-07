@@ -1,6 +1,5 @@
 import importlib.util
 import os
-import re
 import stat
 import typing
 from email.utils import parsedate
