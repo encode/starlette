@@ -441,7 +441,6 @@ class Mount(BaseRoute):
                     # uses the app_root_path to build the URL path.
                     "app_root_path": scope.get("app_root_path", root_path),
                     "root_path": root_path + matched_path,
-                    # "path": remaining_path,
                     "endpoint": self.app,
                 }
                 return Match.FULL, child_scope
