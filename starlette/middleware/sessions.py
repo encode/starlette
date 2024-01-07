@@ -7,7 +7,7 @@ import itsdangerous
 from itsdangerous.exc import BadSignature, SignatureExpired
 
 from starlette.datastructures import MutableHeaders, Secret
-from starlette.requests import HTTPConnection
+from starlette.requests import HTTPConnection, Request
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
@@ -38,14 +38,15 @@ class SessionMiddleware:
         if domain is not None:
             self.security_flags += f"; domain={domain}"
 
-    def decodeCookie(self,cookie):
-        result = {}
+
+    def decode_cookie(self,cookie):
+        result = {"session": {}}
         try:
             data = self.signer.unsign(cookie, max_age=self.max_age,return_timestamp=True)
-            result["datetime"] = data[1]
-            result["session"] = json.loads(b64decode(data[0]))
+            result["session"] = json.loads(b64decode(data[0])) #first element of the data array is the json
+            result["datetime"] = data[1] #second element of the data array returned is a datetime object.
         except (BadSignature, SignatureExpired):
-            result = {}
+            return result
         return result
         
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -54,38 +55,34 @@ class SessionMiddleware:
             return
 
         connection = HTTPConnection(scope)
-        inject_session = True
+        update_session = True
 
         if self.session_cookie in connection.cookies:
-            data = connection.cookies[self.session_cookie].encode("utf-8")
-            data = self.decodeCookie(data)
+            data = self.decode_cookie(connection.cookies[self.session_cookie].encode("utf-8"))
             scope["session"] = data["session"]
-            session_exp = data["datetime"] + timedelta(seconds=self.max_age)
-            now = datetime.now(timezone.utc)
+            scope["exp"] = data["datetime"] + timedelta(seconds=self.max_age)
+            
             if self.auto_refresh_window:
-                if now >= (session_exp - timedelta(seconds=self.auto_refresh_window)) and now <= session_exp:
-                    #Session needs refreshing
-                    inject_session = True
-                else:
-                    #Session does not need to be refreshed
-                    inject_session = False
+                now = datetime.now(timezone.utc)
+                #if the expiry date not inside of the expiry window, do not update.
+                if not (now >= (scope["exp"] - timedelta(seconds=self.auto_refresh_window)) and now <= scope["exp"]):
+                    update_session = False
             elif self.persist_session:
-                #Sessions are not auto refresed, has an existing session. Catch statement should catch it if its expired.
-                inject_session = False
+                    update_session = False
         else:
             scope["session"] = {}
 
 
         async def send_wrapper(message: Message) -> None:
-            changed = False
+            session_changed = False
             if message["type"] == "http.response.start":
                 if self.session_cookie in connection.cookies:
-                    old_data = self.decodeCookie(connection.cookies[self.session_cookie].encode("utf-8"))
-                    if old_data["session"] != scope["session"]:
-                        #Scope has different data, old_data is from the cookie. If they don't match then update.
-                        changed = True 
-                if scope["session"] and (inject_session or changed):
-                    # We have data that needs to be persisted or refreshed. Don't inject a session if no session exists.
+                    previous_session_data = self.decode_cookie(connection.cookies[self.session_cookie].encode("utf-8"))
+                    if (previous_session_data["session"] and scope["session"]) and previous_session_data["session"] != scope["session"]:
+                        session_changed = True 
+                
+                if scope["session"] and (update_session or session_changed):
+                    # We have data that needs to be persisted or refreshed.
                     data = b64encode(json.dumps(scope["session"]).encode("utf-8"))
                     data = self.signer.sign(data)
                     headers = MutableHeaders(scope=message)
@@ -97,8 +94,8 @@ class SessionMiddleware:
                         security_flags=self.security_flags,
                     )
                     headers.append("Set-Cookie", header_value)
-                elif not inject_session and not scope["session"]:
-                    # The session is cleared. BadSignature or initial_session_was_empty
+                elif update_session and not scope["session"]:
+                    # The session is cleared. BadSignature/SignatureExpired or the initial scope session was empty
                     headers = MutableHeaders(scope=message)
                     header_value = "{session_cookie}={data}; path={path}; {expires}{security_flags}".format(  # noqa E501
                         session_cookie=self.session_cookie,
