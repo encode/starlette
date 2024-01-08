@@ -26,5 +26,7 @@ E = typing.TypeVar("E", bound=Exception, contravariant=True)
 HTTPExceptionHandler = typing.Callable[
     ["Request", E], typing.Union["Response", typing.Awaitable["Response"]]
 ]
-WebSocketExceptionHandler = typing.Callable[["WebSocket", E], typing.Awaitable[None]]
+WebSocketExceptionHandler = typing.Callable[
+    ["WebSocket", E], typing.Awaitable[None]
+]
 ExceptionHandler = typing.Union[HTTPExceptionHandler[E], WebSocketExceptionHandler[E]]
