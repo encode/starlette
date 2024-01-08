@@ -140,7 +140,7 @@ class Starlette:
 
     def add_exception_handler(
         self,
-        exc_class_or_status_code: int | typing.Type[Exception],
+        exc_class_or_status_code: int | typing.Type[E],
         handler: ExceptionHandler[E],
     ) -> None:  # pragma: no cover
         self.exception_handlers[exc_class_or_status_code] = handler
