@@ -12,7 +12,6 @@ types-PyYAML==6.0.12.12
 types-dataclasses==0.6.6
 pytest==7.4.0
 trio==0.23.2
-anyio==4.0.0
 
 # Documentation
 mkdocs==1.5.3
