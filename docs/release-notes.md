@@ -1,3 +1,19 @@
+## 0.35.0
+
+DATE HERE
+
+#### Added
+
+* Add `*args` to `Middleware` and improve its type hints [#2381](https://github.com/encode/starlette/pull/2381).
+
+#### Fixed
+
+* Use `Iterable` instead `Iterator` on `iterate_in_threadpool` [#2362](https://github.com/encode/starlette/pull/2362).
+
+#### Changes
+
+* Turn `scope["client"]` to `None` on `TestClient` [#2377](https://github.com/encode/starlette/pull/2377).
+
 ## 0.34.0
 
 December 16, 2023
