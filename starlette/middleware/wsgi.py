@@ -1,5 +1,6 @@
 import io
 import math
+import os
 import sys
 import typing
 import warnings
@@ -15,15 +16,32 @@ warnings.warn(
     DeprecationWarning,
 )
 
+ENC, ESC = sys.getfilesystemencoding(), "surrogateescape"
+
+
+def unicode_to_wsgi(u):
+    """Convert an environment variable to a WSGI "bytes-as-unicode" string"""
+    return u.encode(ENC, ESC).decode("iso-8859-1")
+
 
 def build_environ(scope: Scope, body: bytes) -> typing.Dict[str, typing.Any]:
     """
     Builds a scope and request body into a WSGI environ object.
     """
+
+    script_name = scope.get("root_path", "").encode("utf8").decode("latin1")
+    path_info = scope["path"].encode("utf8").decode("latin1")
+    if path_info.startswith(script_name):
+        path_info = path_info[len(script_name) :]
+
+    script_name_environ_var = os.environ.get("SCRIPT_NAME", "")
+    if script_name_environ_var:
+        script_name = unicode_to_wsgi(script_name_environ_var)
+
     environ = {
         "REQUEST_METHOD": scope["method"],
-        "SCRIPT_NAME": scope.get("root_path", "").encode("utf8").decode("latin1"),
-        "PATH_INFO": scope["path"].encode("utf8").decode("latin1"),
+        "SCRIPT_NAME": script_name,
+        "PATH_INFO": path_info,
         "QUERY_STRING": scope["query_string"].decode("ascii"),
         "SERVER_PROTOCOL": f"HTTP/{scope['http_version']}",
         "wsgi.version": (1, 0),
