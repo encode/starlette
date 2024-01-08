@@ -1,6 +1,5 @@
 import io
 import math
-import os
 import sys
 import typing
 import warnings
@@ -16,13 +15,6 @@ warnings.warn(
     DeprecationWarning,
 )
 
-ENC, ESC = sys.getfilesystemencoding(), "surrogateescape"
-
-
-def unicode_to_wsgi(u: str) -> str:
-    """Convert an environment variable to a WSGI "bytes-as-unicode" string"""
-    return u.encode(ENC, ESC).decode("iso-8859-1")
-
 
 def build_environ(scope: Scope, body: bytes) -> typing.Dict[str, typing.Any]:
     """
@@ -33,10 +25,6 @@ def build_environ(scope: Scope, body: bytes) -> typing.Dict[str, typing.Any]:
     path_info = scope["path"].encode("utf8").decode("latin1")
     if path_info.startswith(script_name):
         path_info = path_info[len(script_name) :]
-
-    script_name_environ_var = os.environ.get("SCRIPT_NAME", "")
-    if script_name_environ_var:
-        script_name = unicode_to_wsgi(script_name_environ_var)
 
     environ = {
         "REQUEST_METHOD": scope["method"],
