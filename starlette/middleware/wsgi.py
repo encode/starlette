@@ -19,7 +19,7 @@ warnings.warn(
 ENC, ESC = sys.getfilesystemencoding(), "surrogateescape"
 
 
-def unicode_to_wsgi(u):
+def unicode_to_wsgi(u: str) -> str:
     """Convert an environment variable to a WSGI "bytes-as-unicode" string"""
     return u.encode(ENC, ESC).decode("iso-8859-1")
 
