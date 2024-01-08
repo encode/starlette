@@ -16,13 +16,13 @@ from starlette.types import (
 )
 from starlette.websockets import WebSocket
 
-ExceptionHandlers = typing.Dict[typing.Any, ExceptionHandler]
-StatusHandlers = typing.Dict[int, ExceptionHandler]
+ExceptionHandlers = typing.Dict[typing.Any, ExceptionHandler[Exception]]
+StatusHandlers = typing.Dict[int, ExceptionHandler[Exception]]
 
 
 def _lookup_exception_handler(
     exc_handlers: ExceptionHandlers, exc: Exception
-) -> typing.Optional[ExceptionHandler]:
+) -> typing.Optional[ExceptionHandler[Exception]]:
     for cls in type(exc).__mro__:
         if cls in exc_handlers:
             return exc_handlers[cls]
@@ -69,7 +69,7 @@ def wrap_app_handling_exceptions(
 
             if scope["type"] == "http":
                 nonlocal conn
-                handler = typing.cast(HTTPExceptionHandler, handler)
+                handler = typing.cast(HTTPExceptionHandler[Exception], handler)
                 conn = typing.cast(Request, conn)
                 if is_async_callable(handler):
                     response = await handler(conn, exc)
@@ -77,7 +77,7 @@ def wrap_app_handling_exceptions(
                     response = await run_in_threadpool(handler, conn, exc)
                 await response(scope, receive, sender)
             elif scope["type"] == "websocket":
-                handler = typing.cast(WebSocketExceptionHandler, handler)
+                handler = typing.cast(WebSocketExceptionHandler[Exception], handler)
                 conn = typing.cast(WebSocket, conn)
                 if is_async_callable(handler):
                     await handler(conn, exc)
