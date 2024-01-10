@@ -159,6 +159,11 @@ async def app(scope, receive, send):
 
 Have in mind that <a href="https://docs.python.org/3/glossary.html#term-file-like-object" target="_blank">file-like</a> objects (like those created by `open()`) are normal iterators. So, you can return them directly in a `StreamingResponse`.
 
+For reference, the way `StreamingResponse` works under the hood is
+the `more_body` parameter within the response body,
+as described in the
+[ASGI specification](https://asgi.readthedocs.io/en/latest/specs/www.html).
+
 ### FileResponse
 
 Asynchronously streams a file as the response.
