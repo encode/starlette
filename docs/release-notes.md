@@ -1,6 +1,6 @@
 ## 0.35.0
 
-DATE HERE
+January 11, 2024
 
 #### Added
 
@@ -12,6 +12,7 @@ DATE HERE
 
 #### Changes
 
+* Handle `root_path` to keep compatibility with mounted ASGI applications and WSGI [#2400](https://github.com/encode/starlette/pull/2400).
 * Turn `scope["client"]` to `None` on `TestClient` [#2377](https://github.com/encode/starlette/pull/2377).
 
 ## 0.34.0
