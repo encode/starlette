@@ -1,3 +1,29 @@
+## 0.35.1
+
+January 11, 2024
+
+#### Fixed
+
+* Stop using the deprecated "method" parameter in `FileResponse` inside of `StaticFiles` [#2406](https://github.com/encode/starlette/pull/2406).
+* Make `typing-extensions` optional again [#2409](https://github.com/encode/starlette/pull/2409).
+
+## 0.35.0
+
+January 11, 2024
+
+#### Added
+
+* Add `*args` to `Middleware` and improve its type hints [#2381](https://github.com/encode/starlette/pull/2381).
+
+#### Fixed
+
+* Use `Iterable` instead `Iterator` on `iterate_in_threadpool` [#2362](https://github.com/encode/starlette/pull/2362).
+
+#### Changes
+
+* Handle `root_path` to keep compatibility with mounted ASGI applications and WSGI [#2400](https://github.com/encode/starlette/pull/2400).
+* Turn `scope["client"]` to `None` on `TestClient` [#2377](https://github.com/encode/starlette/pull/2377).
+
 ## 0.34.0
 
 December 16, 2023
