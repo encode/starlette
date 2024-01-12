@@ -357,7 +357,7 @@ def test_websocket_scope_interface():
     interface.
     """
 
-    async def mock_receive() -> Message:
+    async def mock_receive() -> Message:  # type: ignore
         ...  # pragma: no cover
 
     async def mock_send(message: Message) -> None:
