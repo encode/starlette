@@ -103,11 +103,13 @@ def test_config(tmpdir, monkeypatch):
     with pytest.raises(ValueError):
         config.get("BOOL_AS_INT", cast=bool)
 
+
 def test_missing_env_file_raises(tmpdir):
     path = os.path.join(tmpdir, ".env")
 
     with pytest.raises(FileNotFoundError, match=f"Config file '{path}' not found."):
         Config(path)
+
 
 def test_environ():
     environ = Environ()
