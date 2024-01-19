@@ -95,7 +95,7 @@ class WebSocketTestSession:
     def __enter__(self) -> WebSocketTestSession:
         self.exit_stack = contextlib.ExitStack()
         self.portal = self.exit_stack.enter_context(self.portal_factory())
-        self.event = anyio.Event()
+        self.should_close = anyio.Event()
 
         try:
             _: Future[None] = self.portal.start_task_soon(self._run)
@@ -110,7 +110,7 @@ class WebSocketTestSession:
         return self
 
     async def _notify_close(self) -> None:
-        self.event.set()
+        self.should_close.set()
 
     def __exit__(self, *args: typing.Any) -> None:
         try:
@@ -140,7 +140,7 @@ class WebSocketTestSession:
 
         async with anyio.create_task_group() as tg:
             tg.start_soon(run_app, tg)
-            await self.event.wait()
+            await self.should_close.wait()
             tg.cancel_scope.cancel()
 
     async def _asgi_receive(self) -> Message:
