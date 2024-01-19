@@ -267,7 +267,7 @@ def test_websocket_not_block_on_close(test_client_factory: Callable[..., TestCli
     client = test_client_factory(app)
     with client.websocket_connect("/") as websocket:
         ...
-    assert websocket.event.is_set()
+    assert websocket.should_close.is_set()
 
 
 @pytest.mark.parametrize("param", ("2020-07-14T00:00:00+00:00", "España", "voilà"))
