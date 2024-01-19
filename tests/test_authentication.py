@@ -1,5 +1,6 @@
 import base64
 import binascii
+from typing import Callable
 from urllib.parse import urlencode
 
 import pytest
@@ -18,6 +19,7 @@ from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.requests import HTTPConnection
 from starlette.responses import JSONResponse
 from starlette.routing import Route, WebSocketRoute
+from starlette.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
 
@@ -263,7 +265,9 @@ def test_authentication_required(test_client_factory):
         assert response.text == "Invalid basic auth credentials"
 
 
-def test_websocket_authentication_required(test_client_factory):
+def test_websocket_authentication_required(
+    test_client_factory: Callable[..., TestClient],
+):
     with test_client_factory(app) as client:
         with pytest.raises(WebSocketDisconnect):
             with client.websocket_connect("/ws"):

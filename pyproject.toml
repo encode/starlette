@@ -9,9 +9,7 @@ description = "The little ASGI library that shines."
 readme = "README.md"
 license = "BSD-3-Clause"
 requires-python = ">=3.8"
-authors = [
-    { name = "Tom Christie", email = "tom@tomchristie.com" },
-]
+authors = [{ name = "Tom Christie", email = "tom@tomchristie.com" }]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Web Environment",
@@ -33,13 +31,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-full = [
-    "itsdangerous",
-    "jinja2",
-    "python-multipart",
-    "pyyaml",
-    "httpx>=0.22.0",
-]
+full = ["itsdangerous", "jinja2", "python-multipart", "pyyaml", "httpx>=0.22.0"]
 
 [project.urls]
 Homepage = "https://github.com/encode/starlette"
@@ -91,10 +83,7 @@ filterwarnings = [
 ]
 
 [tool.coverage.run]
-source_pkgs = [
-    "starlette",
-    "tests",
-]
+source_pkgs = ["starlette", "tests"]
 
 [tool.coverage.report]
 exclude_lines = [
