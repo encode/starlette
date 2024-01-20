@@ -95,9 +95,10 @@ class WebSocketTestSession:
     def __enter__(self) -> WebSocketTestSession:
         self.exit_stack = contextlib.ExitStack()
         self.portal = self.exit_stack.enter_context(self.portal_factory())
+        self.should_close = anyio.Event()
 
         try:
-            _: "Future[None]" = self.portal.start_task_soon(self._run)
+            _: Future[None] = self.portal.start_task_soon(self._run)
             self.send({"type": "websocket.connect"})
             message = self.receive()
             self._raise_on_close(message)
@@ -108,10 +109,14 @@ class WebSocketTestSession:
         self.extra_headers = message.get("headers", None)
         return self
 
+    async def _notify_close(self) -> None:
+        self.should_close.set()
+
     def __exit__(self, *args: typing.Any) -> None:
         try:
             self.close(1000)
         finally:
+            self.portal.start_task_soon(self._notify_close)
             self.exit_stack.close()
         while not self._send_queue.empty():
             message = self._send_queue.get()
@@ -122,14 +127,22 @@ class WebSocketTestSession:
         """
         The sub-thread in which the websocket session runs.
         """
-        scope = self.scope
-        receive = self._asgi_receive
-        send = self._asgi_send
-        try:
-            await self.app(scope, receive, send)
-        except BaseException as exc:
-            self._send_queue.put(exc)
-            raise
+
+        async def run_app(tg: anyio.abc.TaskGroup) -> None:
+            try:
+                await self.app(self.scope, self._asgi_receive, self._asgi_send)
+            except anyio.get_cancelled_exc_class():
+                ...
+            except BaseException as exc:
+                self._send_queue.put(exc)
+                raise
+            finally:
+                tg.cancel_scope.cancel()
+
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(run_app, tg)
+            await self.should_close.wait()
+            tg.cancel_scope.cancel()
 
     async def _asgi_receive(self) -> Message:
         while self._receive_queue.empty():
@@ -429,9 +442,7 @@ class TestClient(httpx.Client):
                 yield portal
 
     def _choose_redirect_arg(
-        self,
-        follow_redirects: bool | None,
-        allow_redirects: bool | None,
+        self, follow_redirects: bool | None, allow_redirects: bool | None
     ) -> bool | httpx._client.UseClientDefault:
         redirect: bool | httpx._client.UseClientDefault = (
             httpx._client.USE_CLIENT_DEFAULT
