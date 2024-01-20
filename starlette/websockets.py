@@ -61,36 +61,34 @@ class WebSocket(HTTPConnection):
         """
         Send ASGI websocket messages, ensuring valid state transitions.
         """
-        try:
-            if self.application_state == WebSocketState.CONNECTING:
-                message_type = message["type"]
-                if message_type not in {"websocket.accept", "websocket.close"}:
-                    raise RuntimeError(
-                        'Expected ASGI message "websocket.accept" or '
-                        f'"websocket.close", but got {message_type!r}'
-                    )
-                if message_type == "websocket.close":
-                    self.application_state = WebSocketState.DISCONNECTED
-                else:
-                    self.application_state = WebSocketState.CONNECTED
-                await self._send(message)
-            elif self.application_state == WebSocketState.CONNECTED:
-                message_type = message["type"]
-                if message_type not in {"websocket.send", "websocket.close"}:
-                    raise RuntimeError(
-                        'Expected ASGI message "websocket.send" or "websocket.close", '
-                        f"but got {message_type!r}"
-                    )
-                if message_type == "websocket.close":
-                    self.application_state = WebSocketState.DISCONNECTED
-                await self._send(message)
-            else:
+        if self.application_state == WebSocketState.CONNECTING:
+            message_type = message["type"]
+            if message_type not in {"websocket.accept", "websocket.close"}:
                 raise RuntimeError(
-                    'Cannot call "send" once a close message has been sent.'
+                    'Expected ASGI message "websocket.accept" or '
+                    f'"websocket.close", but got {message_type!r}'
                 )
-        except IOError:  # pragma: no cover
-            self.application_state = WebSocketState.DISCONNECTED
-            raise WebSocketDisconnect(code=1006)
+            if message_type == "websocket.close":
+                self.application_state = WebSocketState.DISCONNECTED
+            else:
+                self.application_state = WebSocketState.CONNECTED
+            await self._send(message)
+        elif self.application_state == WebSocketState.CONNECTED:
+            message_type = message["type"]
+            if message_type not in {"websocket.send", "websocket.close"}:
+                raise RuntimeError(
+                    'Expected ASGI message "websocket.send" or "websocket.close", '
+                    f"but got {message_type!r}"
+                )
+            if message_type == "websocket.close":
+                self.application_state = WebSocketState.DISCONNECTED
+            try:
+                await self._send(message)
+            except IOError:
+                self.application_state = WebSocketState.DISCONNECTED
+                raise WebSocketDisconnect(code=1006)
+        else:
+            raise RuntimeError('Cannot call "send" once a close message has been sent.')
 
     async def accept(
         self,
