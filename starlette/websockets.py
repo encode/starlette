@@ -222,7 +222,7 @@ class WebSocket(HTTPConnection):
             {"type": "websocket.close", "code": code, "reason": reason or ""}
         )
 
-    async def send_response(self, response: Response) -> None:
+    async def send_denial_response(self, response: Response) -> None:
         if self._have_response_extension():
             await response(self.scope, self.receive, self.send)
         else:

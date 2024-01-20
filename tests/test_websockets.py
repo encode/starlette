@@ -322,7 +322,7 @@ def test_rejected_connection(test_client_factory):
     }
 
 
-def test_send_response(test_client_factory):
+def test_send_denial_response(test_client_factory: Callable[..., TestClient]):
     close_msg: Message = {}
 
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
@@ -331,7 +331,7 @@ def test_send_response(test_client_factory):
         msg = await websocket.receive()
         assert msg == {"type": "websocket.connect"}
         response = Response(status_code=404, content="foo")
-        await websocket.send_response(response)
+        await websocket.send_denial_response(response)
         close_msg = await websocket.receive()
 
     client = test_client_factory(app)
@@ -346,7 +346,7 @@ def test_send_response(test_client_factory):
     }
 
 
-def test_send_response_multi(test_client_factory):
+def test_send_response_multi(test_client_factory: Callable[..., TestClient]):
     close_msg: Message = {}
 
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
@@ -379,7 +379,7 @@ def test_send_response_multi(test_client_factory):
     client = test_client_factory(app)
     with pytest.raises(WebSocketReject) as exc:
         with client.websocket_connect("/"):
-            pass  # pragma: nocover
+            pass  # pragma: no cover
     assert exc.value.response_status == 404
     assert exc.value.response_body == b"hardbody"
     assert dict(exc.value.response_headers)[b"foo"] == b"bar"
@@ -389,7 +389,7 @@ def test_send_response_multi(test_client_factory):
     }
 
 
-def test_send_response_unsupported(test_client_factory):
+def test_send_response_unsupported(test_client_factory: Callable[..., TestClient]):
     close_msg: Message = {}
 
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
@@ -399,13 +399,13 @@ def test_send_response_unsupported(test_client_factory):
         msg = await websocket.receive()
         assert msg == {"type": "websocket.connect"}
         response = Response(status_code=404, content="foo")
-        await websocket.send_response(response)
+        await websocket.send_denial_response(response)
         close_msg = await websocket.receive()
 
     client = test_client_factory(app)
     with pytest.raises(WebSocketDisconnect) as exc:
         with client.websocket_connect("/"):
-            pass  # pragma: nocover
+            pass  # pragma: no cover
     assert exc.value.code == status.WS_1008_POLICY_VIOLATION
     assert close_msg == {
         "type": "websocket.disconnect",
@@ -413,7 +413,7 @@ def test_send_response_unsupported(test_client_factory):
     }
 
 
-def test_send_response_duplicate_start(test_client_factory):
+def test_send_response_duplicate_start(test_client_factory: Callable[..., TestClient]):
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         msg = await websocket.receive()
@@ -437,7 +437,7 @@ def test_send_response_duplicate_start(test_client_factory):
     client = test_client_factory(app)
     with pytest.raises(RuntimeError) as exc:
         with client.websocket_connect("/"):
-            pass  # pragma: nocover
+            pass  # pragma: no cover
     assert exc.match("Expected ASGI message")
 
 

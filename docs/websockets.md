@@ -110,16 +110,13 @@ correctly updated.
 * `await websocket.send(message)`
 * `await websocket.receive()`
 
-### Rejecting the connection
+### Send Denial Response
 
-Before the calling `websocket.accept()` it is possible to reject the connection,
-e.g. because of failing authentication.  The standard way to do this
-is to call `websocket.close()` which will cause the ASGI web server
-to respond to the initator with a HTTP 403 error.
-It is also possible to construct a `Response` object and send that:
+If you call `websocket.close()` before calling `websocket.accept()` then
+the server will automatically send a HTTP 403 error to the client.
 
-* `await websocket.send_response(response)`
+If you want to send a different error response, you can use the
+`websocket.send_denial_response()` method. This will send the response
+and then close the connection.
 
-If the ASGI server supports the `websocket.http.response` extension, this
-will cause the specified response to be sent to the initiator, before closing
-the connection.  Otherwise, it behaves like `websocket.close()`.
+* `await websocket.send_denial_response(response)`

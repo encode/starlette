@@ -80,7 +80,7 @@ class _Upgrade(Exception):
 class WebSocketReject(WebSocketDisconnect):
     """
     A special case of WebSocketDisconnect, raised in the TestClient if the
-    socket is closed before being accepted, either with a send_response()
+    socket is closed before being accepted, either with a send_denial_response()
     or a websocket.close()
     """
 
