@@ -136,7 +136,8 @@ class WebSocketTestSession:
             except BaseException as exc:
                 self._send_queue.put(exc)
                 raise
-            tg.cancel_scope.cancel()
+            finally:
+                tg.cancel_scope.cancel()
 
         async with anyio.create_task_group() as tg:
             tg.start_soon(run_app, tg)
