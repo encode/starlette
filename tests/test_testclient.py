@@ -254,6 +254,34 @@ def test_websocket_blocking_receive(test_client_factory: Callable[..., TestClien
         assert data == {"message": "test"}
 
 
+@pytest.mark.parametrize("scope_client", (None, ["testclient", 50000]))
+def test_scope_client(scope_client, anyio_backend_name, anyio_backend_options):
+    async def app(scope, receive, send):
+        client = scope.get("client")
+        host = None
+        port = None
+        if client is not None:
+            host, port = client
+        response = JSONResponse({"host": host, "port": port})
+        await response(scope, receive, send)
+
+    test_client = TestClient(
+        app,
+        backend=anyio_backend_name,
+        backend_options=anyio_backend_options,
+        scope_client=scope_client,
+    )
+    test_response = test_client.get("/")
+
+    if scope_client is None:
+        assert test_response.json() == {"host": None, "port": None}
+    else:
+        assert test_response.json() == {
+            "host": scope_client[0],
+            "port": scope_client[1],
+        }
+
+
 def test_websocket_not_block_on_close(test_client_factory: Callable[..., TestClient]):
     def app(scope: Scope):
         async def asgi(receive: Receive, send: Send):
