@@ -13,7 +13,7 @@ class WebSocketState(enum.Enum):
     CONNECTING = 0
     CONNECTED = 1
     DISCONNECTED = 2
-    RESPONSE_STARTED = 3
+    RESPONSE = 3
 
 
 class WebSocketDisconnect(Exception):
@@ -30,11 +30,20 @@ class WebSocket(HTTPConnection):
         self._send = send
         self.client_state = WebSocketState.CONNECTING
         self.application_state = WebSocketState.CONNECTING
+        self.app_disconnect_msg: typing.Optional[Message] = None
+
+    def _have_response_extension(self) -> bool:
+        return "websocket.http.response" in self.scope.get("extensions", {})
 
     async def receive(self) -> Message:
         """
         Receive ASGI websocket messages, ensuring valid state transitions.
         """
+        if self.app_disconnect_msg is not None:
+            # return message which resulted from app disconnect
+            msg = self.app_disconnect_msg
+            self.app_disconnect_msg = None
+            return msg
         if self.client_state == WebSocketState.CONNECTING:
             message = await self._receive()
             message_type = message["type"]
@@ -55,6 +64,8 @@ class WebSocket(HTTPConnection):
                 )
             if message_type == "websocket.disconnect":
                 self.client_state = WebSocketState.DISCONNECTED
+                if "code" not in message:
+                    message["code"] = 1005  # websocket spec
             return message
         else:
             raise RuntimeError(
@@ -67,19 +78,22 @@ class WebSocket(HTTPConnection):
         """
         if self.application_state == WebSocketState.CONNECTING:
             message_type = message["type"]
-            if message_type not in {
-                "websocket.accept",
-                "websocket.close",
-                "websocket.http.response.start",
-            }:
-                raise RuntimeError(
-                    'Expected ASGI message "websocket.accept" or "websocket.close" or '
-                    f'"websocket.http.response.start", but got {message_type!r}'
-                )
+            if message_type not in {"websocket.accept", "websocket.close"}:
+                if not (
+                    self._have_response_extension()
+                    and message_type == "websocket.http.response.start"
+                ):
+                    raise RuntimeError(
+                        'Expected ASGI message "websocket.accept"'
+                        ' or "websocket.close", '
+                        f"but got {message_type!r}"
+                    )
             if message_type == "websocket.close":
                 self.application_state = WebSocketState.DISCONNECTED
+                # no close frame is sent, then the default is 1006
+                self.app_disconnect_msg = {"type": "websocket.disconnect", "code": 1006}
             elif message_type == "websocket.http.response.start":
-                self.application_state = WebSocketState.RESPONSE_STARTED
+                self.application_state = WebSocketState.RESPONSE
             else:
                 self.application_state = WebSocketState.CONNECTED
             await self._send(message)
@@ -101,7 +115,7 @@ class WebSocket(HTTPConnection):
             except IOError:
                 self.application_state = WebSocketState.DISCONNECTED
                 raise WebSocketDisconnect(code=1006)
-        elif self.application_state == WebSocketState.RESPONSE_STARTED:
+        elif self.application_state == WebSocketState.RESPONSE:
             message_type = message["type"]
             if message_type != "websocket.http.response.body":
                 raise RuntimeError(
@@ -110,6 +124,7 @@ class WebSocket(HTTPConnection):
                 )
             if not message.get("more_body", False):
                 self.application_state = WebSocketState.DISCONNECTED
+                self.app_disconnect_msg = {"type": "websocket.disconnect", "code": 1006}
             await self._send(message)
         else:
             raise RuntimeError('Cannot call "send" once a close message has been sent.')
@@ -208,9 +223,10 @@ class WebSocket(HTTPConnection):
         )
 
     async def send_response(self, response: Response) -> None:
-        if "websocket.http.response" in self.scope.get("extensions", {}):
-            return await response(self.scope, self.receive, self.send)
-        raise RuntimeError("The server doesn't support the WebSocket Denial extension.")
+        if self._have_response_extension():
+            await response(self.scope, self.receive, self.send)
+        else:
+            await self.close(code=1008, reason=f"HTTP Response {response.status_code}")
 
 
 class WebSocketClose:
