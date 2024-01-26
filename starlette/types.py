@@ -1,11 +1,10 @@
 import typing
 
-from starlette.testclient import TestClient
-
 if typing.TYPE_CHECKING:
     from starlette.middleware import _MiddlewareClass
     from starlette.requests import Request
     from starlette.responses import Response
+    from starlette.testclient import TestClient
     from starlette.websockets import WebSocket
 
 AppType = typing.TypeVar("AppType")
