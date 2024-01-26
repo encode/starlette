@@ -22,15 +22,14 @@ from starlette.routing import Route, WebSocketRoute
 from starlette.testclient import TestClient
 from starlette.types import (
     ASGIApp,
+    AwaitableGenerator,
     Message,
+    MiddlewareClass,
     Receive,
     Scope,
     Send,
     TestClientFactory,
-    MiddlewareClass,
-    AwaitableGenerator,
 )
-
 from starlette.websockets import WebSocket
 
 

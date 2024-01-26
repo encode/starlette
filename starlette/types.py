@@ -1,7 +1,7 @@
 import typing
-from starlette.testclient import TestClient
 
 from starlette.middleware import _MiddlewareClass
+from starlette.testclient import TestClient
 
 if typing.TYPE_CHECKING:
     from starlette.requests import Request
