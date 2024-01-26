@@ -1,9 +1,9 @@
 import typing
 
-from starlette.middleware import _MiddlewareClass
 from starlette.testclient import TestClient
 
 if typing.TYPE_CHECKING:
+    from starlette.middleware import _MiddlewareClass
     from starlette.requests import Request
     from starlette.responses import Response
     from starlette.websockets import WebSocket
