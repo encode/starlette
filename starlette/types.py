@@ -1,8 +1,10 @@
 import typing
 
 if typing.TYPE_CHECKING:
+    from starlette.middleware import _MiddlewareClass
     from starlette.requests import Request
     from starlette.responses import Response
+    from starlette.testclient import TestClient
     from starlette.websockets import WebSocket
 
 AppType = typing.TypeVar("AppType")
@@ -12,7 +14,7 @@ AwaitableGenerator = typing.Generator[typing.Any, None, None]
 Scope = typing.MutableMapping[str, typing.Any]
 Message = typing.MutableMapping[str, typing.Any]
 
-MiddlewareClass = typing.Type["starlette.middleware._MiddlewareClass[typing.Any]"]
+MiddlewareClass = typing.Type["_MiddlewareClass[typing.Any]"]
 
 Receive = typing.Callable[[], typing.Awaitable[Message]]
 Send = typing.Callable[[Message], typing.Awaitable[None]]
