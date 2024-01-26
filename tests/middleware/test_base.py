@@ -3,9 +3,6 @@ from contextlib import AsyncExitStack
 from typing import (
     Any,
     AsyncGenerator,
-    Awaitable,
-    Callable,
-    Dict,
     Generator,
     List,
     Union,
@@ -17,7 +14,7 @@ from anyio.abc import TaskStatus
 
 from starlette.applications import Starlette
 from starlette.background import BackgroundTask
-from starlette.middleware import Middleware, _MiddlewareClass
+from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, Response, StreamingResponse
