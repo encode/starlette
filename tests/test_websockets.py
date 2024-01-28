@@ -7,7 +7,11 @@ from anyio.abc import ObjectReceiveStream, ObjectSendStream
 
 from starlette import status
 from starlette.responses import Response
-from starlette.testclient import TestClient, WebSocketDenialResponse
+from starlette.testclient import (
+    TestClient,
+    WebSocketDenialResponse,
+    WebSocketDenialClose,
+)
 from starlette.types import Message, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketDisconnect, WebSocketState
 
@@ -302,7 +306,7 @@ def test_rejected_connection(test_client_factory):
         await websocket.close(status.WS_1001_GOING_AWAY)
 
     client = test_client_factory(app)
-    with pytest.raises(WebSocketDisconnect) as exc:
+    with pytest.raises(WebSocketDenialClose) as exc:
         with client.websocket_connect("/"):
             pass  # pragma: no cover
     assert exc.value.code == 1001
@@ -374,7 +378,7 @@ def test_send_response_unsupported(test_client_factory: Callable[..., TestClient
         await websocket.close()
 
     client = test_client_factory(app)
-    with pytest.raises(WebSocketDisconnect) as exc:
+    with pytest.raises(WebSocketDenialClose) as exc:
         with client.websocket_connect("/"):
             pass  # pragma: no cover
     assert exc.value.code == status.WS_1000_NORMAL_CLOSURE
