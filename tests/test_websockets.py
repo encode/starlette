@@ -641,5 +641,4 @@ def test_send_disconnect_no_code(test_client_factory):
 
     assert close_msg == {
         "type": "websocket.disconnect",
-        "code": status.WS_1005_NO_STATUS_RCVD,
     }

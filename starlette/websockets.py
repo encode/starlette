@@ -58,8 +58,6 @@ class WebSocket(HTTPConnection):
                 )
             if message_type == "websocket.disconnect":
                 self.client_state = WebSocketState.DISCONNECTED
-                if "code" not in message:
-                    message["code"] = 1005  # websocket spec
             return message
         else:
             raise RuntimeError(
