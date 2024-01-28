@@ -7,7 +7,7 @@ from anyio.abc import ObjectReceiveStream, ObjectSendStream
 
 from starlette import status
 from starlette.responses import Response
-from starlette.testclient import TestClient, WebSocketReject
+from starlette.testclient import TestClient, WebSocketDenialResponse
 from starlette.types import Message, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketDisconnect, WebSocketState
 
@@ -302,7 +302,7 @@ def test_rejected_connection(test_client_factory):
         await websocket.close(status.WS_1001_GOING_AWAY)
 
     client = test_client_factory(app)
-    with pytest.raises(WebSocketReject) as exc:
+    with pytest.raises(WebSocketDenialResponse) as exc:
         with client.websocket_connect("/"):
             pass  # pragma: no cover
     assert exc.value.code == status.WS_1001_GOING_AWAY
@@ -318,7 +318,7 @@ def test_send_denial_response(test_client_factory: Callable[..., TestClient]):
         await websocket.send_denial_response(response)
 
     client = test_client_factory(app)
-    with pytest.raises(WebSocketReject) as exc:
+    with pytest.raises(WebSocketDenialResponse) as exc:
         with client.websocket_connect("/"):
             pass  # pragma: nocover
     assert exc.value.response_status == 404
@@ -352,7 +352,7 @@ def test_send_response_multi(test_client_factory: Callable[..., TestClient]):
         )
 
     client = test_client_factory(app)
-    with pytest.raises(WebSocketReject) as exc:
+    with pytest.raises(WebSocketDenialResponse) as exc:
         with client.websocket_connect("/"):
             pass  # pragma: no cover
     assert exc.value.response_status == 404

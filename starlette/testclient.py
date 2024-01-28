@@ -77,7 +77,7 @@ class _Upgrade(Exception):
         self.session = session
 
 
-class WebSocketReject(WebSocketDisconnect):
+class WebSocketDenialResponse(WebSocketDisconnect):
     """
     A special case of WebSocketDisconnect, raised in the TestClient if the
     socket is closed before being accepted, either with a send_denial_response()
@@ -187,7 +187,7 @@ class WebSocketTestSession:
             body.append(message["body"])
             if not message.get("more_body", False):
                 break
-        raise WebSocketReject(
+        raise WebSocketDenialResponse(
             response_status=status_code,
             response_headers=headers,
             response_body=b"".join(body),
@@ -206,7 +206,7 @@ class WebSocketTestSession:
                 # will return a 403 response.  It may or may not do anything
                 # with the close code and reason.  We store it in this exception
                 # for test introspection.
-                raise WebSocketReject(
+                raise WebSocketDenialResponse(
                     response_status=403,
                     close_code=message.get("code", 1000),
                     close_reason=message.get("reason"),
