@@ -59,7 +59,7 @@ async def lifespan(app: Starlette) -> AsyncIterator[State]:
 
 
 async def homepage(request: Request) -> PlainTextResponse:
-    client = request.state.http_client
+    client = request.state.get("http_client")
     response = await client.get("https://www.example.com")
     return PlainTextResponse(response.text)
 

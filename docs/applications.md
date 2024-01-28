@@ -53,7 +53,7 @@ generic `app.state` attribute.
 For example:
 
 ```python
-app.state.ADMIN_EMAIL = 'admin@example.org'
+app.state['ADMIN_EMAIL'] = 'admin@example.org'
 ```
 
 ### Accessing the app instance

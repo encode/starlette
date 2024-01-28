@@ -174,4 +174,4 @@ using `request.state`.
 
 For example:
 
-`request.state.time_started = time.time()`
+`request.state['time_started'] = time.time()`
