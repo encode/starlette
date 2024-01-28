@@ -211,7 +211,9 @@ class WebSocket(HTTPConnection):
         if self._have_response_extension():
             await response(self.scope, self.receive, self.send)
         else:
-            await self.close(code=1008, reason=f"HTTP Response {response.status_code}")
+            raise RuntimeError(
+                "The server doesn't support the Websocket Denial Response extension."
+            )
 
 
 class WebSocketClose:

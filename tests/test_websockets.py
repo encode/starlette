@@ -366,13 +366,18 @@ def test_send_response_unsupported(test_client_factory: Callable[..., TestClient
         msg = await websocket.receive()
         assert msg == {"type": "websocket.connect"}
         response = Response(status_code=404, content="foo")
-        await websocket.send_denial_response(response)
+        with pytest.raises(RuntimeError) as exc:
+            await websocket.send_denial_response(response)
+        assert exc.match(
+            "The server doesn't support the Websocket Denial Response extension."
+        )
+        await websocket.close()
 
     client = test_client_factory(app)
     with pytest.raises(WebSocketDisconnect) as exc:
         with client.websocket_connect("/"):
             pass  # pragma: no cover
-    assert exc.value.code == status.WS_1008_POLICY_VIOLATION
+    assert exc.value.code == status.WS_1000_NORMAL_CLOSURE
 
 
 def test_send_response_duplicate_start(test_client_factory: Callable[..., TestClient]):
