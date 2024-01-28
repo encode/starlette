@@ -89,10 +89,8 @@ class WebSocketDenialResponse(WebSocketDisconnect):
         response_status: int,
         response_headers: typing.List[typing.Tuple[bytes, bytes]] = [],
         response_body: bytes = b"",
-        close_code: int = 1000,
-        close_reason: typing.Optional[str] = None,
     ) -> None:
-        super().__init__(close_code, close_reason)
+        super().__init__(0, None)
         self.response_status = response_status
         self.response_headers = response_headers
         self.response_body = response_body
@@ -202,14 +200,9 @@ class WebSocketTestSession:
                     message.get("code", 1000), message.get("reason", "")
                 )
             else:
-                # A webserver which gets a "close" before "accept"
-                # will return a 403 response.  It may or may not do anything
-                # with the close code and reason.  We store it in this exception
-                # for test introspection.
-                raise WebSocketDenialResponse(
-                    response_status=403,
-                    close_code=message.get("code", 1000),
-                    close_reason=message.get("reason"),
+                raise WebSocketDisconnect(
+                    code=message.get("code", 1000),
+                    reason=message.get("reason"),
                 )
 
     def send(self, message: Message) -> None:
