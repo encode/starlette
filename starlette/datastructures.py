@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import typing
+import warnings
+from collections.abc import MutableMapping
 from shlex import shlex
 from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit
 
@@ -677,7 +679,7 @@ class MutableHeaders(Headers):
         self["vary"] = vary
 
 
-class State:
+class State(MutableMapping[str, typing.Any]):
     """
     An object that can be used to store arbitrary state.
 
@@ -695,6 +697,8 @@ class State:
         self._state[key] = value
 
     def __getattr__(self, key: typing.Any) -> typing.Any:
+        warnings.warn("`__getattr__` decorator is deprecated" , DeprecationWarning)
+
         try:
             return self._state[key]
         except KeyError:
@@ -703,3 +707,18 @@ class State:
 
     def __delattr__(self, key: typing.Any) -> None:
         del self._state[key]
+
+    def __setitem__(self, key: typing.Any, value: typing.Any) -> None:
+        self._state[key] = value
+
+    def __delitem__(self, key: typing.Any) -> None:
+        del self._state[key]
+
+    def __getitem__(self, key: typing.Any) -> typing.Any:
+        return self._state[key]
+
+    def __len__(self) -> int:
+        return len(self._state)
+
+    def __iter__(self) -> typing.Iterator[str]:
+        return iter(self._state)
