@@ -294,6 +294,38 @@ def test_request_state_object():
         s.new
 
 
+def test_request_state_object_mapping_api():
+    scope = {"state": {"old": "foo"}}
+
+    s = State(scope["state"])
+
+    assert s.get("old") == "foo"
+    assert s["old"] == "foo"
+    assert getattr(s, "old") == "foo"
+
+    assert s.get("new") is None
+    assert s.get("new", "default") == "default"
+    assert getattr(s, "new", "default") == "default"
+
+    s.setdefault("old", "overwrite")
+    assert s.get("old") == "foo"
+    s.setdefault("new", "bar")
+    assert s.get("new") == "bar"
+
+    assert len(s) == 2
+
+    assert set(list(s)) == {"old", "new"}
+
+    assert s.pop("new") == "bar"
+    assert s.get("new") is None
+
+    assert list(s.keys()) == ["old"]
+    assert list(s.values()) == ["foo"]
+
+    s.clear()
+    assert len(s) == 0
+
+
 def test_request_state(test_client_factory):
     async def app(scope, receive, send):
         request = Request(scope, receive)
