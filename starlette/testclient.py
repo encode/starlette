@@ -86,14 +86,14 @@ class WebSocketDenialResponse(WebSocketDisconnect):
 
     def __init__(
         self,
-        response_status: int,
-        response_headers: typing.List[typing.Tuple[bytes, bytes]] = [],
-        response_body: bytes = b"",
+        status: int,
+        headers: typing.List[typing.Tuple[bytes, bytes]] = [],
+        body: bytes = b"",
     ) -> None:
         super().__init__(0, None)
-        self.response_status = response_status
-        self.response_headers = response_headers
-        self.response_body = response_body
+        self.status = status
+        self.headers = headers
+        self.body = body
 
 
 class WebSocketTestSession:
@@ -185,9 +185,9 @@ class WebSocketTestSession:
             if not message.get("more_body", False):
                 break
         raise WebSocketDenialResponse(
-            response_status=status_code,
-            response_headers=headers,
-            response_body=b"".join(body),
+            status=status_code,
+            headers=headers,
+            body=b"".join(body),
         )
 
     def _raise_on_close(
