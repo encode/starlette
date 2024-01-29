@@ -77,19 +77,10 @@ class _Upgrade(Exception):
         self.session = session
 
 
-class WebSocketDenial(Exception):
-    """Base exception for websocket denial responses."""
-
-
-class WebSocketDenialClose(WebSocketDisconnect, WebSocketDenial):
-    """A special case of WebSocketDisconnect, raised when connection
-    is rejected before being accepted with a websocket.close()."""
-
-
-class WebSocketDenialResponse(WebSocketDenial):
+class WebSocketDenialResponse(WebSocketDisconnect):
     """
     A special case of WebSocketDisconnect, raised in the TestClient if the
-    with a send_denial_response()
+    socket is closed before being accepted, either with a send_denial_response()
     or a websocket.close()
     """
 
@@ -99,6 +90,7 @@ class WebSocketDenialResponse(WebSocketDenial):
         response_headers: typing.List[typing.Tuple[bytes, bytes]] = [],
         response_body: bytes = b"",
     ) -> None:
+        super().__init__(0, None)
         self.response_status = response_status
         self.response_headers = response_headers
         self.response_body = response_body
@@ -207,7 +199,7 @@ class WebSocketTestSession:
                     message.get("code", 1000), message.get("reason", "")
                 )
             else:
-                raise WebSocketDenialClose(
+                raise WebSocketDisconnect(
                     code=message.get("code", 1000),
                     reason=message.get("reason"),
                 )
