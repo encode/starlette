@@ -1,5 +1,4 @@
 import io
-import math
 import sys
 import typing
 import warnings
@@ -17,21 +16,26 @@ warnings.warn(
 
 
 class WsgiRequestBody(io.BufferedReader):
-    """used to get the request body from the asgi receive coroutine and return it as a stream"""
-
-    def __init__(self, receive) -> None:
+    def __init__(self, receive: Receive) -> None:
         self.buffer = b""
         self.receive = receive
         self.has_more = True
 
-    def _receive(self):
+    def _receive(self) -> None:
         if not self.has_more:
             return
-        message = anyio.from_thread.run(self.receive)
+        try:
+            message = anyio.from_thread.run(self.receive)
+        except RuntimeError:
+            with anyio.from_thread.start_blocking_portal() as portal:
+                future = portal.start_task_soon(self.receive)
+                message = future.result()
+
         self.has_more = message.get("more_body", False)
         self.buffer += message.get("body", b"")
 
-    def read(self, size: int = -1) -> bytes:
+    def read(self, size: typing.Optional[int] = -1) -> bytes:
+        size = -1 if size is None else size
         while size == -1 or size > len(self.buffer):
             self._receive()
             if not self.has_more:
