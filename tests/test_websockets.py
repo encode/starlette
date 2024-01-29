@@ -320,8 +320,8 @@ def test_send_denial_response(test_client_factory: Callable[..., TestClient]):
     with pytest.raises(WebSocketDenialResponse) as exc:
         with client.websocket_connect("/"):
             pass  # pragma: nocover
-    assert exc.value.status == 404
-    assert exc.value.body == b"foo"
+    assert exc.value.status_code == 404
+    assert exc.value.content == b"foo"
 
 
 def test_send_response_multi(test_client_factory: Callable[..., TestClient]):
@@ -354,9 +354,9 @@ def test_send_response_multi(test_client_factory: Callable[..., TestClient]):
     with pytest.raises(WebSocketDenialResponse) as exc:
         with client.websocket_connect("/"):
             pass  # pragma: no cover
-    assert exc.value.status == 404
-    assert exc.value.body == b"hardbody"
-    assert dict(exc.value.headers)[b"foo"] == b"bar"
+    assert exc.value.status_code == 404
+    assert exc.value.content == b"hardbody"
+    assert exc.value.headers["foo"] == "bar"
 
 
 def test_send_response_unsupported(test_client_factory: Callable[..., TestClient]):

@@ -77,23 +77,12 @@ class _Upgrade(Exception):
         self.session = session
 
 
-class WebSocketDenialResponse(WebSocketDisconnect):
+class WebSocketDenialResponse(httpx.Response, WebSocketDisconnect):
     """
     A special case of WebSocketDisconnect, raised in the TestClient if the
     socket is closed before being accepted, either with a send_denial_response()
     or a websocket.close()
     """
-
-    def __init__(
-        self,
-        status: int,
-        headers: typing.List[typing.Tuple[bytes, bytes]] = [],
-        body: bytes = b"",
-    ) -> None:
-        super().__init__(0, None)
-        self.status = status
-        self.headers = headers
-        self.body = body
 
 
 class WebSocketTestSession:
@@ -185,9 +174,9 @@ class WebSocketTestSession:
             if not message.get("more_body", False):
                 break
         raise WebSocketDenialResponse(
-            status=status_code,
+            status_code=status_code,
             headers=headers,
-            body=b"".join(body),
+            content=b"".join(body),
         )
 
     def _raise_on_close(
