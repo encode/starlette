@@ -3,7 +3,11 @@ import sys
 import pytest
 
 from starlette._utils import collapse_excgroups
-from starlette.middleware.wsgi import WSGIMiddleware, build_environ
+from starlette.middleware.wsgi import (
+    WSGIMiddleware,
+    WsgiRequestBody,
+    build_environ,
+)
 
 
 def hello_world(environ, start_response):
@@ -105,10 +109,23 @@ def test_build_environ():
         "client": ("134.56.78.4", 1453),
         "server": ("www.example.org", 443),
     }
-    body = b'{"example":"body"}'
+
+    body_chunks = [b"chunk_1", b"chunk_2", b"chunk_3"]
+    chunk_idx = -1
+
+    async def receive():
+        nonlocal chunk_idx
+        chunk_idx += 1
+        return {
+            "body": body_chunks[chunk_idx],
+            "more_body": chunk_idx < len(body_chunks) - 1,
+        }
+
+    body = WsgiRequestBody(receive)
     environ = build_environ(scope, body)
     stream = environ.pop("wsgi.input")
-    assert stream.read() == b'{"example":"body"}'
+    assert stream.read(7) == b"chunk_1"
+    assert stream.read() == b"chunk_2chunk_3"
     assert environ == {
         "CONTENT_LENGTH": "18",
         "CONTENT_TYPE": "application/json",
@@ -141,6 +158,10 @@ def test_build_environ_encoding() -> None:
         "query_string": b"a=123&b=456",
         "headers": [],
     }
-    environ = build_environ(scope, b"")
+
+    async def receive():
+        return {"body": b""}
+
+    environ = build_environ(scope, WsgiRequestBody(receive))
     assert environ["SCRIPT_NAME"] == "/中国".encode().decode("latin-1")
     assert environ["PATH_INFO"] == "/小星".encode().decode("latin-1")
