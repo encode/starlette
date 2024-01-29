@@ -135,7 +135,6 @@ class WebSocketTestSession:
         except Exception:
             self.exit_stack.close()
             raise
-        assert message["type"] == "websocket.accept"
         self.accepted_subprotocol = message.get("subprotocol", None)
         self.extra_headers = message.get("headers", None)
         return self
