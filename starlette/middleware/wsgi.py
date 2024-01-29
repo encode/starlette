@@ -16,7 +16,37 @@ warnings.warn(
 )
 
 
-def build_environ(scope: Scope, body: bytes) -> typing.Dict[str, typing.Any]:
+class WsgiRequestBody(io.BufferedReader):
+    """used to get the request body from the asgi receive coroutine and return it as a stream"""
+
+    def __init__(self, receive) -> None:
+        self.buffer = b""
+        self.receive = receive
+        self.has_more = True
+
+    def _receive(self):
+        if not self.has_more:
+            return
+        message = anyio.from_thread.run(self.receive)
+        self.has_more = message.get("more_body", False)
+        self.buffer += message.get("body", b"")
+
+    def read(self, size: int = -1) -> bytes:
+        while size == -1 or size > len(self.buffer):
+            self._receive()
+            if not self.has_more:
+                break
+        if size == -1:
+            result = self.buffer
+            self.buffer = b""
+            return result
+
+        result = self.buffer[:size]
+        self.buffer = self.buffer[size:]
+        return result
+
+
+def build_environ(scope: Scope, body: WsgiRequestBody) -> typing.Dict[str, typing.Any]:
     """
     Builds a scope and request body into a WSGI environ object.
     """
@@ -34,7 +64,7 @@ def build_environ(scope: Scope, body: bytes) -> typing.Dict[str, typing.Any]:
         "SERVER_PROTOCOL": f"HTTP/{scope['http_version']}",
         "wsgi.version": (1, 0),
         "wsgi.url_scheme": scope.get("scheme", "http"),
-        "wsgi.input": io.BytesIO(body),
+        "wsgi.input": body,
         "wsgi.errors": sys.stdout,
         "wsgi.multithread": True,
         "wsgi.multiprocess": True,
@@ -87,19 +117,12 @@ class WSGIResponder:
         self.scope = scope
         self.status = None
         self.response_headers = None
-        self.stream_send, self.stream_receive = anyio.create_memory_object_stream(
-            math.inf
-        )
+        self.stream_send, self.stream_receive = anyio.create_memory_object_stream(0)
         self.response_started = False
         self.exc_info: typing.Any = None
 
     async def __call__(self, receive: Receive, send: Send) -> None:
-        body = b""
-        more_body = True
-        while more_body:
-            message = await receive()
-            body += message.get("body", b"")
-            more_body = message.get("more_body", False)
+        body = WsgiRequestBody(receive)
         environ = build_environ(self.scope, body)
 
         async with anyio.create_task_group() as task_group:
