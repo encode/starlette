@@ -82,7 +82,7 @@ class WebSocketDenialResponse(  # type: ignore[misc]
     WebSocketDisconnect,
 ):
     """
-    A special case of WebSocketDisconnect, raised in the TestClient if the
+    A special case of `WebSocketDisconnect`, raised in the `TestClient` if the
     `WebSocket` is closed before being accepted with a `send_denial_response()`.
     """
 
