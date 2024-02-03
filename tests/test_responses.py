@@ -329,6 +329,38 @@ def test_file_response_with_method_warns(tmpdir, test_client_factory):
         FileResponse(path=tmpdir, filename="example.png", method="GET")
 
 
+@pytest.mark.anyio
+async def test_file_response_with_pathsend(tmpdir: Path):
+    path = os.path.join(tmpdir, "xyz")
+    content = b"<file content>" * 1000
+    with open(path, "wb") as file:
+        file.write(content)
+
+    app = FileResponse(path=path, filename="example.png")
+
+    async def receive() -> Message:  # type: ignore[empty-body]
+        ...  # pragma: no cover
+
+    async def send(message: Message) -> None:
+        if message["type"] == "http.response.start":
+            assert message["status"] == status.HTTP_200_OK
+            headers = Headers(raw=message["headers"])
+            assert headers["content-type"] == "image/png"
+            assert "content-length" in headers
+            assert "content-disposition" in headers
+            assert "last-modified" in headers
+            assert "etag" in headers
+        elif message["type"] == "http.response.pathsend":
+            assert message["path"] == str(path)
+
+    # Since the TestClient doesn't support `pathsend`, we need to test this directly.
+    await app(
+        {"type": "http", "method": "get", "extensions": {"http.response.pathsend": {}}},
+        receive,
+        send,
+    )
+
+
 def test_set_cookie(test_client_factory, monkeypatch):
     # Mock time used as a reference for `Expires` by stdlib `SimpleCookie`.
     mocked_now = dt.datetime(2037, 1, 22, 12, 0, 0, tzinfo=dt.timezone.utc)
@@ -439,6 +471,13 @@ def test_non_empty_response(test_client_factory):
     client: TestClient = test_client_factory(app)
     response = client.get("/")
     assert response.headers["content-length"] == "2"
+
+
+def test_response_do_not_add_redundant_charset(test_client_factory):
+    app = Response(media_type="text/plain; charset=utf-8")
+    client = test_client_factory(app)
+    response = client.get("/")
+    assert response.headers["content-type"] == "text/plain; charset=utf-8"
 
 
 def test_file_response_known_size(tmpdir, test_client_factory):
