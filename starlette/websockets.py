@@ -31,9 +31,6 @@ class WebSocket(HTTPConnection):
         self.client_state = WebSocketState.CONNECTING
         self.application_state = WebSocketState.CONNECTING
 
-    def _have_response_extension(self) -> bool:
-        return "websocket.http.response" in self.scope.get("extensions", {})
-
     async def receive(self) -> Message:
         """
         Receive ASGI websocket messages, ensuring valid state transitions.
@@ -208,7 +205,7 @@ class WebSocket(HTTPConnection):
         )
 
     async def send_denial_response(self, response: Response) -> None:
-        if self._have_response_extension():
+        if "websocket.http.response" in self.scope.get("extensions", {}):
             await response(self.scope, self.receive, self.send)
         else:
             raise RuntimeError(
