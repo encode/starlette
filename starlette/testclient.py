@@ -77,7 +77,10 @@ class _Upgrade(Exception):
         self.session = session
 
 
-class WebSocketDenialResponse(httpx.Response, WebSocketDisconnect):
+class WebSocketDenialResponse(  # type: ignore[misc]
+    httpx.Response,
+    WebSocketDisconnect,
+):
     """
     A special case of WebSocketDisconnect, raised in the TestClient if the
     socket is closed before being accepted, either with a send_denial_response()
