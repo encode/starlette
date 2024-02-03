@@ -112,10 +112,7 @@ class WebSocketTestSession:
             _: Future[None] = self.portal.start_task_soon(self._run)
             self.send({"type": "websocket.connect"})
             message = self.receive()
-            if message["type"] == "websocket.http.response.start":
-                self._handle_response(message)
-            else:
-                self._raise_on_close(message, reject=True)
+            self._raise_on_close(message)
         except Exception:
             self.exit_stack.close()
             raise
@@ -166,35 +163,26 @@ class WebSocketTestSession:
     async def _asgi_send(self, message: Message) -> None:
         self._send_queue.put(message)
 
-    def _handle_response(self, message: Message) -> None:
-        status_code: int = message["status"]
-        headers: typing.List[typing.Tuple[bytes, bytes]] = message["headers"]
-        body = []
-        while True:
-            message = self.receive()
-            assert message["type"] == "websocket.http.response.body"
-            body.append(message["body"])
-            if not message.get("more_body", False):
-                break
-        raise WebSocketDenialResponse(
-            status_code=status_code,
-            headers=headers,
-            content=b"".join(body),
-        )
-
-    def _raise_on_close(
-        self, message: Message, reject: typing.Optional[bool] = None
-    ) -> None:
+    def _raise_on_close(self, message: Message) -> None:
         if message["type"] == "websocket.close":
-            if not reject:
-                raise WebSocketDisconnect(
-                    message.get("code", 1000), message.get("reason", "")
-                )
-            else:
-                raise WebSocketDisconnect(
-                    code=message.get("code", 1000),
-                    reason=message.get("reason"),
-                )
+            raise WebSocketDisconnect(
+                code=message.get("code", 1000), reason=message.get("reason", "")
+            )
+        elif message["type"] == "websocket.http.response.start":
+            status_code: int = message["status"]
+            headers: list[tuple[bytes, bytes]] = message["headers"]
+            body: list[bytes] = []
+            while True:
+                message = self.receive()
+                assert message["type"] == "websocket.http.response.body"
+                body.append(message["body"])
+                if not message.get("more_body", False):
+                    break
+            raise WebSocketDenialResponse(
+                status_code=status_code,
+                headers=headers,
+                content=b"".join(body),
+            )
 
     def send(self, message: Message) -> None:
         self._receive_queue.put(message)
