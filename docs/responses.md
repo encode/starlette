@@ -12,8 +12,8 @@ Signature: `Response(content, status_code=200, headers=None, media_type=None)`
 * `media_type` - A string giving the media type. eg. "text/html"
 
 Starlette will automatically include a Content-Length header. It will also
-include a Content-Type header, based on the media_type and appending a utf-8 charset
-for text types unless a charset has already been specified in the media_type.
+include a Content-Type header, based on the media_type and appending a charset
+for text types, unless a charset has already been specified in the `media_type`.
 
 Once you've instantiated a response, you can send it by calling it as an
 ASGI application instance.
