@@ -3,8 +3,10 @@ from contextlib import AsyncExitStack
 from typing import (
     Any,
     AsyncGenerator,
+    Callable,
     Generator,
     List,
+    Type,
     Union,
 )
 
@@ -14,23 +16,19 @@ from anyio.abc import TaskStatus
 
 from starlette.applications import Starlette
 from starlette.background import BackgroundTask
-from starlette.middleware import Middleware
+from starlette.middleware import Middleware, _MiddlewareClass
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, Response, StreamingResponse
 from starlette.routing import Route, WebSocketRoute
 from starlette.testclient import TestClient
-from starlette.types import (
-    ASGIApp,
-    AwaitableGenerator,
-    Message,
-    MiddlewareClass,
-    Receive,
-    Scope,
-    Send,
-    TestClientFactory,
-)
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from starlette.websockets import WebSocket
+
+BytesGenerator = Generator[bytes, None, None]
+AwaitableGenerator = Generator[Any, None, None]
+TestClientFactory = Callable[[ASGIApp], TestClient]
+MiddlewareClass = Type[_MiddlewareClass[Any]]
 
 
 class CustomMiddleware(BaseHTTPMiddleware):
@@ -56,7 +54,7 @@ def exc_stream(request: Request) -> StreamingResponse:
     return StreamingResponse(_generate_faulty_stream())
 
 
-def _generate_faulty_stream() -> Generator[bytes, None, None]:
+def _generate_faulty_stream() -> BytesGenerator:
     yield b"Ok"
     raise Exception("Faulty Stream")
 
