@@ -25,10 +25,7 @@ from starlette.testclient import TestClient
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from starlette.websockets import WebSocket
 
-BytesGenerator = Generator[bytes, None, None]
-AwaitableGenerator = Generator[Any, None, None]
 TestClientFactory = Callable[[ASGIApp], TestClient]
-MiddlewareClass = Type[_MiddlewareClass[Any]]
 
 
 class CustomMiddleware(BaseHTTPMiddleware):
@@ -54,7 +51,7 @@ def exc_stream(request: Request) -> StreamingResponse:
     return StreamingResponse(_generate_faulty_stream())
 
 
-def _generate_faulty_stream() -> BytesGenerator:
+def _generate_faulty_stream() -> Generator[bytes, None, None]:
     yield b"Ok"
     raise Exception("Faulty Stream")
 
@@ -68,7 +65,7 @@ class NoResponse:
     ):
         pass
 
-    def __await__(self) -> AwaitableGenerator:
+    def __await__(self) -> Generator[Any, None, None]:
         return self.dispatch().__await__()
 
     async def dispatch(self) -> None:
@@ -244,7 +241,7 @@ class CustomMiddlewareUsingBaseHTTPMiddleware(BaseHTTPMiddleware):
 )
 def test_contextvars(
     test_client_factory: TestClientFactory,
-    middleware_cls: MiddlewareClass,
+    middleware_cls: Type[_MiddlewareClass[Any]],
 ) -> None:
     # this has to be an async endpoint because Starlette calls run_in_threadpool
     # on sync endpoints which has it's own set of peculiarities w.r.t propagating
