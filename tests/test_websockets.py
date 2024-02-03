@@ -291,11 +291,8 @@ def test_application_close(test_client_factory: Callable[..., TestClient]):
         assert exc.value.code == status.WS_1001_GOING_AWAY
 
 
-def test_rejected_connection(test_client_factory):
-    close_msg: Message = {}
-
+def test_rejected_connection(test_client_factory: Callable[..., TestClient]):
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
-        nonlocal close_msg
         websocket = WebSocket(scope, receive=receive, send=send)
         msg = await websocket.receive()
         assert msg == {"type": "websocket.connect"}
@@ -305,7 +302,7 @@ def test_rejected_connection(test_client_factory):
     with pytest.raises(WebSocketDisconnect) as exc:
         with client.websocket_connect("/"):
             pass  # pragma: no cover
-    assert exc.value.code == 1001
+    assert exc.value.code == status.WS_1001_GOING_AWAY
 
 
 def test_send_denial_response(test_client_factory: Callable[..., TestClient]):
@@ -643,6 +640,4 @@ def test_send_disconnect_no_code(test_client_factory):
     with client.websocket_connect("/") as websocket:
         websocket.send({"type": "websocket.disconnect"})
 
-    assert close_msg == {
-        "type": "websocket.disconnect",
-    }
+    assert close_msg == {"type": "websocket.disconnect"}
