@@ -402,7 +402,10 @@ def test_send_response_duplicate_start(test_client_factory: Callable[..., TestCl
     with pytest.raises(RuntimeError) as exc:
         with client.websocket_connect("/"):
             pass  # pragma: no cover
-    assert exc.match("Expected ASGI message")
+    assert exc.match(
+        'Expected ASGI message "websocket.http.response.body",'
+        " but got 'websocket.http.response.start'"
+    )
 
 
 def test_subprotocol(test_client_factory):
