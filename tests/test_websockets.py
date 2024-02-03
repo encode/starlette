@@ -408,7 +408,7 @@ def test_send_response_duplicate_start(test_client_factory: Callable[..., TestCl
     )
 
 
-def test_subprotocol(test_client_factory):
+def test_subprotocol(test_client_factory: Callable[..., TestClient]):
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         assert websocket["subprotocols"] == ["soap", "wamp"]
@@ -630,7 +630,7 @@ def test_receive_wrong_message_type(test_client_factory: Callable[..., TestClien
             websocket.send({"type": "websocket.connect"})
 
 
-def test_send_disconnect_no_code(test_client_factory):
+def test_send_disconnect_no_code(test_client_factory: Callable[..., TestClient]):
     close_msg: Message = {}
 
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
