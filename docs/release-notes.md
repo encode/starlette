@@ -1,3 +1,15 @@
+## 0.37.0
+
+February 3, 2024
+
+### Added
+
+* Support the WebSocket Denial Response ASGI extension [#2041](https://github.com/encode/starlette/pull/2041).
+
+#### Fixed
+
+* Avoid duplicate charset on `Content-Type` [#2443](https://github.com/encode/starlette/2443).
+
 ## 0.36.1
 
 January 23, 2024
