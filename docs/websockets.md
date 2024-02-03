@@ -121,6 +121,5 @@ and then close the connection.
 
 * `await websocket.send_denial_response(response)`
 
-This requires the ASGI server to support the `websocket.http.response`
-extension. If it is not supported a `RuntimeError` will be raised and
-the application can then elect to perform a `websocket.close()` instead.
+This requires the ASGI server to support the WebSocket Denial Response
+extension. If it is not supported a `RuntimeError` will be raised.
