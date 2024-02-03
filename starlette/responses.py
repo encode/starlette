@@ -73,7 +73,10 @@ class Response:
 
         content_type = self.media_type
         if content_type is not None and populate_content_type:
-            if content_type.startswith("text/"):
+            if (
+                content_type.startswith("text/")
+                and "charset=" not in content_type.lower()
+            ):
                 content_type += "; charset=" + self.charset
             raw_headers.append((b"content-type", content_type.encode("latin-1")))
 
@@ -338,6 +341,8 @@ class FileResponse(Response):
         )
         if scope["method"].upper() == "HEAD":
             await send({"type": "http.response.body", "body": b"", "more_body": False})
+        elif "extensions" in scope and "http.response.pathsend" in scope["extensions"]:
+            await send({"type": "http.response.pathsend", "path": str(self.path)})
         else:
             async with await anyio.open_file(self.path, mode="rb") as file:
                 more_body = True
