@@ -631,6 +631,9 @@ def test_receive_wrong_message_type(test_client_factory: Callable[..., TestClien
 
 
 def test_send_disconnect_no_code(test_client_factory: Callable[..., TestClient]):
+    """Test that a client close message with a missing status code is accepted,
+    and verify the message passed to the application."""
+
     close_msg: Message = {}
 
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
