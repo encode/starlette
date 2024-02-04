@@ -225,7 +225,7 @@ def test_request_raw_path(test_client_factory: TestClientFactory) -> None:
 
 
 def test_request_without_setting_receive(
-        test_client_factory: TestClientFactory,
+    test_client_factory: TestClientFactory,
 ) -> None:
     """
     If Request is instantiated without the receive channel, then .body()
@@ -255,8 +255,7 @@ def test_request_disconnect(
     then ClientDisconnect should be raised.
     """
 
-    async def app(scope: Scope, receive: Receive, send: typing.Any
-    ) -> None:
+    async def app(scope: Scope, receive: Receive, send: typing.Any) -> None:
         request = Request(scope, receive)
         await request.body()
 
@@ -343,7 +342,7 @@ def test_request_cookies(test_client_factory: TestClientFactory) -> None:
     assert response.text == "Hello, cookies!"
 
 
-def test_cookie_lenient_parsing(test_client_factory: TestClientFactory ) -> None:
+def test_cookie_lenient_parsing(test_client_factory: TestClientFactory) -> None:
     """
     The following test is based on a cookie set by Okta, a well-known authorization
     service. It turns out that it's common practice to set cookies that would be
