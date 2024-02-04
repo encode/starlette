@@ -1,6 +1,8 @@
 import os
 import typing
 from contextlib import nullcontext as does_not_raise
+from pathlib import Path
+from unittest import TestCase
 
 import pytest
 
@@ -10,10 +12,14 @@ from starlette.formparsers import MultiPartException, _user_safe_decode
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Mount
+from starlette.testclient import TestClient
+from starlette.types import ASGIApp, Receive, Scope, Send
+
+TestClientFactory = typing.Callable[..., TestClient]
 
 
 class ForceMultipartDict(typing.Dict[typing.Any, typing.Any]):
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return True
 
 
@@ -21,7 +27,7 @@ class ForceMultipartDict(typing.Dict[typing.Any, typing.Any]):
 FORCE_MULTIPART = ForceMultipartDict()
 
 
-async def app(scope, receive, send):
+async def app(scope: Scope, receive: Receive, send: Send) -> None:
     request = Request(scope, receive)
     data = await request.form()
     output: typing.Dict[str, typing.Any] = {}
@@ -41,7 +47,7 @@ async def app(scope, receive, send):
     await response(scope, receive, send)
 
 
-async def multi_items_app(scope, receive, send):
+async def multi_items_app(scope: Scope, receive: Receive, send: Send) -> None:
     request = Request(scope, receive)
     data = await request.form()
     output: typing.Dict[str, typing.List[typing.Any]] = {}
@@ -65,7 +71,7 @@ async def multi_items_app(scope, receive, send):
     await response(scope, receive, send)
 
 
-async def app_with_headers(scope, receive, send):
+async def app_with_headers(scope: Scope, receive: Receive, send: Send) -> None:
     request = Request(scope, receive)
     data = await request.form()
     output: typing.Dict[str, typing.Any] = {}
@@ -86,7 +92,7 @@ async def app_with_headers(scope, receive, send):
     await response(scope, receive, send)
 
 
-async def app_read_body(scope, receive, send):
+async def app_read_body(scope: Scope, receive: Receive, send: Send) -> None:
     request = Request(scope, receive)
     # Read bytes, to force request.stream() to return the already parsed body
     await request.body()
@@ -99,8 +105,8 @@ async def app_read_body(scope, receive, send):
     await response(scope, receive, send)
 
 
-def make_app_max_parts(max_files: int = 1000, max_fields: int = 1000):
-    async def app(scope, receive, send):
+def make_app_max_parts(max_files: int = 1000, max_fields: int = 1000) -> ASGIApp:
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         data = await request.form(max_files=max_files, max_fields=max_fields)
         output: typing.Dict[str, typing.Any] = {}
@@ -122,13 +128,19 @@ def make_app_max_parts(max_files: int = 1000, max_fields: int = 1000):
     return app
 
 
-def test_multipart_request_data(tmpdir, test_client_factory):
+def test_multipart_request_data(
+    tmpdir: Path,
+    test_client_factory: TestClientFactory,
+) -> None:
     client = test_client_factory(app)
     response = client.post("/", data={"some": "data"}, files=FORCE_MULTIPART)
     assert response.json() == {"some": "data"}
 
 
-def test_multipart_request_files(tmpdir, test_client_factory):
+def test_multipart_request_files(
+    tmpdir: Path,
+    test_client_factory: TestClientFactory,
+) -> None:
     path = os.path.join(tmpdir, "test.txt")
     with open(path, "wb") as file:
         file.write(b"<file content>")
@@ -146,7 +158,10 @@ def test_multipart_request_files(tmpdir, test_client_factory):
         }
 
 
-def test_multipart_request_files_with_content_type(tmpdir, test_client_factory):
+def test_multipart_request_files_with_content_type(
+    tmpdir: Path,
+    test_client_factory: TestClientFactory,
+) -> None:
     path = os.path.join(tmpdir, "test.txt")
     with open(path, "wb") as file:
         file.write(b"<file content>")
@@ -164,7 +179,10 @@ def test_multipart_request_files_with_content_type(tmpdir, test_client_factory):
         }
 
 
-def test_multipart_request_multiple_files(tmpdir, test_client_factory):
+def test_multipart_request_multiple_files(
+    tmpdir: Path,
+    test_client_factory: TestClientFactory,
+) -> None:
     path1 = os.path.join(tmpdir, "test1.txt")
     with open(path1, "wb") as file:
         file.write(b"<file1 content>")
@@ -194,7 +212,10 @@ def test_multipart_request_multiple_files(tmpdir, test_client_factory):
         }
 
 
-def test_multipart_request_multiple_files_with_headers(tmpdir, test_client_factory):
+def test_multipart_request_multiple_files_with_headers(
+    tmpdir: Path,
+    test_client_factory: TestClientFactory,
+) -> None:
     path1 = os.path.join(tmpdir, "test1.txt")
     with open(path1, "wb") as file:
         file.write(b"<file1 content>")
@@ -231,7 +252,7 @@ def test_multipart_request_multiple_files_with_headers(tmpdir, test_client_facto
         }
 
 
-def test_multi_items(tmpdir, test_client_factory):
+def test_multi_items(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
     path1 = os.path.join(tmpdir, "test1.txt")
     with open(path1, "wb") as file:
         file.write(b"<file1 content>")
@@ -266,7 +287,10 @@ def test_multi_items(tmpdir, test_client_factory):
         }
 
 
-def test_multipart_request_mixed_files_and_data(tmpdir, test_client_factory):
+def test_multipart_request_mixed_files_and_data(
+    tmpdir: Path,
+    test_client_factory: typing.Any,
+) -> None:
     client = test_client_factory(app)
     response = client.post(
         "/",
@@ -304,7 +328,10 @@ def test_multipart_request_mixed_files_and_data(tmpdir, test_client_factory):
     }
 
 
-def test_multipart_request_with_charset_for_filename(tmpdir, test_client_factory):
+def test_multipart_request_with_charset_for_filename(
+    tmpdir: Path,
+    test_client_factory: typing.Any,
+) -> None:
     client = test_client_factory(app)
     response = client.post(
         "/",
@@ -333,7 +360,10 @@ def test_multipart_request_with_charset_for_filename(tmpdir, test_client_factory
     }
 
 
-def test_multipart_request_without_charset_for_filename(tmpdir, test_client_factory):
+def test_multipart_request_without_charset_for_filename(
+    tmpdir: Path,
+    test_client_factory: typing.Any,
+) -> None:
     client = test_client_factory(app)
     response = client.post(
         "/",
@@ -361,7 +391,10 @@ def test_multipart_request_without_charset_for_filename(tmpdir, test_client_fact
     }
 
 
-def test_multipart_request_with_encoded_value(tmpdir, test_client_factory):
+def test_multipart_request_with_encoded_value(
+    tmpdir: Path,
+    test_client_factory: typing.Any,
+) -> None:
     client = test_client_factory(app)
     response = client.post(
         "/",
@@ -382,37 +415,55 @@ def test_multipart_request_with_encoded_value(tmpdir, test_client_factory):
     assert response.json() == {"value": "Transférer"}
 
 
-def test_urlencoded_request_data(tmpdir, test_client_factory):
+def test_urlencoded_request_data(
+    tmpdir: Path,
+    test_client_factory: TestClientFactory,
+) -> None:
     client = test_client_factory(app)
     response = client.post("/", data={"some": "data"})
     assert response.json() == {"some": "data"}
 
 
-def test_no_request_data(tmpdir, test_client_factory):
+def test_no_request_data(
+    tmpdir: Path,
+    test_client_factory: TestClientFactory,
+) -> None:
     client = test_client_factory(app)
     response = client.post("/")
     assert response.json() == {}
 
 
-def test_urlencoded_percent_encoding(tmpdir, test_client_factory):
+def test_urlencoded_percent_encoding(
+    tmpdir: Path,
+    test_client_factory: TestClientFactory,
+) -> None:
     client = test_client_factory(app)
     response = client.post("/", data={"some": "da ta"})
     assert response.json() == {"some": "da ta"}
 
 
-def test_urlencoded_percent_encoding_keys(tmpdir, test_client_factory):
+def test_urlencoded_percent_encoding_keys(
+    tmpdir: Path,
+    test_client_factory: TestClientFactory,
+) -> None:
     client = test_client_factory(app)
     response = client.post("/", data={"so me": "data"})
     assert response.json() == {"so me": "data"}
 
 
-def test_urlencoded_multi_field_app_reads_body(tmpdir, test_client_factory):
+def test_urlencoded_multi_field_app_reads_body(
+    tmpdir: Path,
+    test_client_factory: TestClientFactory,
+) -> None:
     client = test_client_factory(app_read_body)
     response = client.post("/", data={"some": "data", "second": "key pair"})
     assert response.json() == {"some": "data", "second": "key pair"}
 
 
-def test_multipart_multi_field_app_reads_body(tmpdir, test_client_factory):
+def test_multipart_multi_field_app_reads_body(
+    tmpdir: Path,
+    test_client_factory: TestClientFactory,
+) -> None:
     client = test_client_factory(app_read_body)
     response = client.post(
         "/", data={"some": "data", "second": "key pair"}, files=FORCE_MULTIPART
@@ -420,12 +471,12 @@ def test_multipart_multi_field_app_reads_body(tmpdir, test_client_factory):
     assert response.json() == {"some": "data", "second": "key pair"}
 
 
-def test_user_safe_decode_helper():
+def test_user_safe_decode_helper() -> None:
     result = _user_safe_decode(b"\xc4\x99\xc5\xbc\xc4\x87", "utf-8")
     assert result == "ężć"
 
 
-def test_user_safe_decode_ignores_wrong_charset():
+def test_user_safe_decode_ignores_wrong_charset() -> None:
     result = _user_safe_decode(b"abc", "latin-8")
     assert result == "abc"
 
@@ -437,7 +488,11 @@ def test_user_safe_decode_ignores_wrong_charset():
         (Starlette(routes=[Mount("/", app=app)]), does_not_raise()),
     ],
 )
-def test_missing_boundary_parameter(app, expectation, test_client_factory) -> None:
+def test_missing_boundary_parameter(
+    app: ASGIApp,
+    expectation: typing.ContextManager[TestCase],
+    test_client_factory: typing.Any,
+) -> None:
     client = test_client_factory(app)
     with expectation:
         res = client.post(
@@ -462,8 +517,10 @@ def test_missing_boundary_parameter(app, expectation, test_client_factory) -> No
     ],
 )
 def test_missing_name_parameter_on_content_disposition(
-    app, expectation, test_client_factory
-):
+    app: ASGIApp,
+    expectation: typing.ContextManager[TestCase],
+    test_client_factory: typing.Any,
+) -> None:
     client = test_client_factory(app)
     with expectation:
         res = client.post(
@@ -493,7 +550,11 @@ def test_missing_name_parameter_on_content_disposition(
         (Starlette(routes=[Mount("/", app=app)]), does_not_raise()),
     ],
 )
-def test_too_many_fields_raise(app, expectation, test_client_factory):
+def test_too_many_fields_raise(
+    app: ASGIApp,
+    expectation: typing.ContextManager[TestCase],
+    test_client_factory: typing.Any,
+) -> None:
     client = test_client_factory(app)
     fields = []
     for i in range(1001):
@@ -518,7 +579,11 @@ def test_too_many_fields_raise(app, expectation, test_client_factory):
         (Starlette(routes=[Mount("/", app=app)]), does_not_raise()),
     ],
 )
-def test_too_many_files_raise(app, expectation, test_client_factory):
+def test_too_many_files_raise(
+    app: ASGIApp,
+    expectation: typing.ContextManager[TestCase],
+    test_client_factory: typing.Any,
+) -> None:
     client = test_client_factory(app)
     fields = []
     for i in range(1001):
@@ -545,7 +610,11 @@ def test_too_many_files_raise(app, expectation, test_client_factory):
         (Starlette(routes=[Mount("/", app=app)]), does_not_raise()),
     ],
 )
-def test_too_many_files_single_field_raise(app, expectation, test_client_factory):
+def test_too_many_files_single_field_raise(
+    app: ASGIApp,
+    expectation: typing.ContextManager[TestCase],
+    test_client_factory: typing.Any,
+) -> None:
     client = test_client_factory(app)
     fields = []
     for i in range(1001):
@@ -574,7 +643,11 @@ def test_too_many_files_single_field_raise(app, expectation, test_client_factory
         (Starlette(routes=[Mount("/", app=app)]), does_not_raise()),
     ],
 )
-def test_too_many_files_and_fields_raise(app, expectation, test_client_factory):
+def test_too_many_files_and_fields_raise(
+    app: ASGIApp,
+    expectation: typing.ContextManager[TestCase],
+    test_client_factory: typing.Any,
+) -> None:
     client = test_client_factory(app)
     fields = []
     for i in range(1001):
@@ -607,7 +680,11 @@ def test_too_many_files_and_fields_raise(app, expectation, test_client_factory):
         ),
     ],
 )
-def test_max_fields_is_customizable_low_raises(app, expectation, test_client_factory):
+def test_max_fields_is_customizable_low_raises(
+    app: ASGIApp,
+    expectation: typing.ContextManager[TestCase],
+    test_client_factory: typing.Any,
+) -> None:
     client = test_client_factory(app)
     fields = []
     for i in range(2):
@@ -635,7 +712,11 @@ def test_max_fields_is_customizable_low_raises(app, expectation, test_client_fac
         ),
     ],
 )
-def test_max_files_is_customizable_low_raises(app, expectation, test_client_factory):
+def test_max_files_is_customizable_low_raises(
+    app: ASGIApp,
+    expectation: typing.ContextManager[TestCase],
+    test_client_factory: typing.Any,
+) -> None:
     client = test_client_factory(app)
     fields = []
     for i in range(2):
@@ -655,7 +736,9 @@ def test_max_files_is_customizable_low_raises(app, expectation, test_client_fact
         assert res.text == "Too many files. Maximum number of files is 1."
 
 
-def test_max_fields_is_customizable_high(test_client_factory):
+def test_max_fields_is_customizable_high(
+    test_client_factory: typing.Any,
+) -> None:
     client = test_client_factory(make_app_max_parts(max_fields=2000, max_files=2000))
     fields = []
     for i in range(2000):
