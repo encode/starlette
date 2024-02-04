@@ -95,7 +95,7 @@ class WebSocketTestSession:
     def __enter__(self) -> WebSocketTestSession:
         self.exit_stack = contextlib.ExitStack()
         self.portal = self.exit_stack.enter_context(self.portal_factory())
-        self.should_close = anyio.Event()
+        self.should_close = self.portal.call(anyio.Event)
 
         try:
             _: Future[None] = self.portal.start_task_soon(self._run)
