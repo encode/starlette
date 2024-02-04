@@ -17,17 +17,10 @@ TestClientFactory = Callable[..., TestClient]
 def test_handler(
     test_client_factory: TestClientFactory,
 ) -> None:
-    async def app(
-        scope: Scope,
-        receive: Receive,
-        send: Send,
-    ) -> None:
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
         raise RuntimeError("Something went wrong")
 
-    def error_500(
-        request: Request,
-        exc: Exception,
-    ) -> JSONResponse:
+    def error_500(request: Request, exc: Exception) -> JSONResponse:
         return JSONResponse({"detail": "Server Error"}, status_code=500)
 
     app = ServerErrorMiddleware(app, handler=error_500)
@@ -37,14 +30,8 @@ def test_handler(
     assert response.json() == {"detail": "Server Error"}
 
 
-def test_debug_text(
-    test_client_factory: TestClientFactory,
-) -> None:
-    async def app(
-        scope: Scope,
-        receive: Receive,
-        send: Send,
-    ) -> None:
+def test_debug_text(test_client_factory: TestClientFactory) -> None:
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
         raise RuntimeError("Something went wrong")
 
     app = ServerErrorMiddleware(app, debug=True)
@@ -55,14 +42,8 @@ def test_debug_text(
     assert "RuntimeError: Something went wrong" in response.text
 
 
-def test_debug_html(
-    test_client_factory: TestClientFactory,
-) -> None:
-    async def app(
-        scope: Scope,
-        receive: Receive,
-        send: Send,
-    ) -> None:
+def test_debug_html(test_client_factory: TestClientFactory) -> None:
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
         raise RuntimeError("Something went wrong")
 
     app = ServerErrorMiddleware(app, debug=True)
@@ -73,14 +54,8 @@ def test_debug_html(
     assert "RuntimeError" in response.text
 
 
-def test_debug_after_response_sent(
-    test_client_factory: TestClientFactory,
-) -> None:
-    async def app(
-        scope: Scope,
-        receive: Receive,
-        send: Send,
-    ) -> None:
+def test_debug_after_response_sent(test_client_factory: TestClientFactory) -> None:
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
         response = Response(b"", status_code=204)
         await response(scope, receive, send)
         raise RuntimeError("Something went wrong")
@@ -91,18 +66,12 @@ def test_debug_after_response_sent(
         client.get("/")
 
 
-def test_debug_not_http(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_debug_not_http(test_client_factory: TestClientFactory) -> None:
     """
     DebugMiddleware should just pass through any non-http messages as-is.
     """
 
-    async def app(
-        scope: Scope,
-        receive: Receive,
-        send: Send,
-    ) -> None:
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
         raise RuntimeError("Something went wrong")
 
     app = ServerErrorMiddleware(app)
