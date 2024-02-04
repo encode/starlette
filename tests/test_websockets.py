@@ -316,7 +316,7 @@ def test_send_denial_response(test_client_factory: Callable[..., TestClient]):
     client = test_client_factory(app)
     with pytest.raises(WebSocketDenialResponse) as exc:
         with client.websocket_connect("/"):
-            pass  # pragma: nocover
+            pass  # pragma: no cover
     assert exc.value.status_code == 404
     assert exc.value.content == b"foo"
 
@@ -363,11 +363,11 @@ def test_send_response_unsupported(test_client_factory: Callable[..., TestClient
         msg = await websocket.receive()
         assert msg == {"type": "websocket.connect"}
         response = Response(status_code=404, content="foo")
-        with pytest.raises(RuntimeError) as exc:
+        with pytest.raises(
+            RuntimeError,
+            match="The server doesn't support the Websocket Denial Response extension.",
+        ):
             await websocket.send_denial_response(response)
-        assert exc.match(
-            "The server doesn't support the Websocket Denial Response extension."
-        )
         await websocket.close()
 
     client = test_client_factory(app)
@@ -399,13 +399,15 @@ def test_send_response_duplicate_start(test_client_factory: Callable[..., TestCl
         )
 
     client = test_client_factory(app)
-    with pytest.raises(RuntimeError) as exc:
+    with pytest.raises(
+        RuntimeError,
+        match=(
+            'Expected ASGI message "websocket.http.response.body", but got '
+            "'websocket.http.response.start'"
+        ),
+    ):
         with client.websocket_connect("/"):
             pass  # pragma: no cover
-    assert exc.match(
-        'Expected ASGI message "websocket.http.response.body",'
-        " but got 'websocket.http.response.start'"
-    )
 
 
 def test_subprotocol(test_client_factory: Callable[..., TestClient]):
