@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Callable, Generator
+from typing import Any, Callable, Iterator
 
 import pytest
 
@@ -14,7 +14,7 @@ TestClientFactory = Callable[..., TestClient]
 
 
 @pytest.fixture(scope="module", autouse=True)
-def refresh_convertor_types() -> Generator[Any, None, None]:
+def refresh_convertor_types() -> Iterator[None]:
     convert_types = convertors.CONVERTOR_TYPES.copy()
     yield
     convertors.CONVERTOR_TYPES = convert_types
@@ -51,8 +51,7 @@ def app() -> Router:
 
 
 def test_datetime_convertor(
-    test_client_factory: TestClientFactory,
-    app: Router,
+    test_client_factory: TestClientFactory, app: Router
 ) -> None:
     client = test_client_factory(app)
     response = client.get("/datetime/2020-01-01T00:00:00")
@@ -66,9 +65,7 @@ def test_datetime_convertor(
 
 @pytest.mark.parametrize("param, status_code", [("1.0", 200), ("1-0", 404)])
 def test_default_float_convertor(
-    test_client_factory: TestClientFactory,
-    param: str,
-    status_code: int,
+    test_client_factory: TestClientFactory, param: str, status_code: int
 ) -> None:
     def float_convertor(request: Request) -> JSONResponse:
         param = request.path_params["param"]
