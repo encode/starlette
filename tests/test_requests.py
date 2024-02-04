@@ -9,23 +9,16 @@ from starlette.datastructures import Address, State
 from starlette.requests import ClientDisconnect, Request
 from starlette.responses import JSONResponse, PlainTextResponse, Response
 from starlette.testclient import TestClient
-from starlette.types import (
-    Message,
-    Receive,
-    Scope,
-    Send,
-)
+from starlette.types import Message, Receive, Scope, Send
 
 TestClientFactory = Callable[..., TestClient]
 
 
-def test_request_url(test_client_factory: typing.Callable[..., TestClient]) -> None:
+def test_request_url(test_client_factory: TestClientFactory) -> None:
     async def app(
-        scope: typing.Dict[str, typing.Any],
-        receive: typing.Callable[[], typing.Awaitable[typing.Dict[str, typing.Any]]],
-        send: typing.Callable[
-            [typing.MutableMapping[str, typing.Any]], typing.Awaitable[None]
-        ],
+        scope: Scope,
+        receive: Receive,
+        send: Send,
     ) -> None:
         request = Request(scope, receive)
         data = {"method": request.method, "url": str(request.url)}
@@ -41,14 +34,12 @@ def test_request_url(test_client_factory: typing.Callable[..., TestClient]) -> N
 
 
 def test_request_query_params(
-    test_client_factory: typing.Callable[..., TestClient],
+    test_client_factory: TestClientFactory,
 ) -> None:
     async def app(
-        scope: typing.Dict[str, typing.Any],
-        receive: typing.Callable[[], typing.Awaitable[typing.Dict[str, typing.Any]]],
-        send: typing.Callable[
-            [typing.MutableMapping[str, typing.Any]], typing.Awaitable[None]
-        ],
+        scope: Scope,
+        receive: Receive,
+        send: Send,
     ) -> None:
         request = Request(scope, receive)
         params = dict(request.query_params)
@@ -64,13 +55,11 @@ def test_request_query_params(
     any(module in sys.modules for module in ("brotli", "brotlicffi")),
     reason='urllib3 includes "br" to the "accept-encoding" headers.',
 )
-def test_request_headers(test_client_factory: typing.Callable[..., TestClient]) -> None:
+def test_request_headers(test_client_factory: TestClientFactory) -> None:
     async def app(
-        scope: typing.Dict[str, typing.Any],
-        receive: typing.Callable[[], typing.Awaitable[typing.Dict[str, typing.Any]]],
-        send: typing.Callable[
-            [typing.MutableMapping[str, typing.Any]], typing.Awaitable[None]
-        ],
+        scope: Scope,
+        receive: Receive,
+        send: Send,
     ) -> None:
         request = Request(scope, receive)
         headers = dict(request.headers)
@@ -153,14 +142,12 @@ def test_request_stream(
 
 
 def test_request_form_urlencoded(
-    test_client_factory: typing.Callable[..., TestClient],
+    test_client_factory: TestClientFactory,
 ) -> None:
     async def app(
-        scope: typing.Dict[str, typing.Any],
-        receive: typing.Callable[[], typing.Awaitable[typing.Dict[str, typing.Any]]],
-        send: typing.Callable[
-            [typing.MutableMapping[str, typing.Any]], typing.Awaitable[None]
-        ],
+        scope: Scope,
+        receive: Receive,
+        send: Send,
     ) -> None:
         request = Request(scope, receive)
         form = await request.form()
@@ -288,7 +275,7 @@ def test_request_raw_path(
 
 
 def test_request_without_setting_receive(
-    test_client_factory: typing.Callable[..., TestClient],
+    test_client_factory: TestClientFactory,
 ) -> None:
     """
     If Request is instantiated without the receive channel, then .body()
@@ -355,11 +342,9 @@ def test_request_is_disconnected(
     disconnected_after_response = None
 
     async def app(
-        scope: typing.Dict[str, typing.Any],
-        receive: typing.Callable[[], typing.Awaitable[typing.Dict[str, typing.Any]]],
-        send: typing.Callable[
-            [typing.MutableMapping[str, typing.Any]], typing.Awaitable[None]
-        ],
+        scope: Scope,
+        receive: Receive,
+        send: Send,
     ) -> None:
         nonlocal disconnected_after_response
 
@@ -390,13 +375,11 @@ def test_request_state_object() -> None:
         s.new
 
 
-def test_request_state(test_client_factory: typing.Callable[..., TestClient]) -> None:
+def test_request_state(test_client_factory: TestClientFactory) -> None:
     async def app(
-        scope: typing.Dict[str, typing.Any],
-        receive: typing.Callable[[], typing.Awaitable[typing.Dict[str, typing.Any]]],
-        send: typing.Callable[
-            [typing.MutableMapping[str, typing.Any]], typing.Awaitable[None]
-        ],
+        scope: Scope,
+        receive: Receive,
+        send: Send,
     ) -> None:
         request = Request(scope, receive)
         request.state.example = 123
@@ -408,13 +391,11 @@ def test_request_state(test_client_factory: typing.Callable[..., TestClient]) ->
     assert response.json() == {"state.example": 123}
 
 
-def test_request_cookies(test_client_factory: typing.Callable[..., TestClient]) -> None:
+def test_request_cookies(test_client_factory: TestClientFactory) -> None:
     async def app(
-        scope: typing.Dict[str, typing.Any],
-        receive: typing.Callable[[], typing.Awaitable[typing.Dict[str, typing.Any]]],
-        send: typing.Callable[
-            [typing.MutableMapping[str, typing.Any]], typing.Awaitable[None]
-        ],
+        scope: Scope,
+        receive: Receive,
+        send: Send,
     ) -> None:
         request = Request(scope, receive)
         mycookie = request.cookies.get("mycookie")
@@ -434,7 +415,7 @@ def test_request_cookies(test_client_factory: typing.Callable[..., TestClient]) 
 
 
 def test_cookie_lenient_parsing(
-    test_client_factory: typing.Callable[..., TestClient],
+    test_client_factory: TestClientFactory,
 ) -> None:
     """
     The following test is based on a cookie set by Okta, a well-known authorization
@@ -458,11 +439,9 @@ def test_cookie_lenient_parsing(
     }
 
     async def app(
-        scope: typing.Dict[str, typing.Any],
-        receive: typing.Callable[[], typing.Awaitable[typing.Dict[str, typing.Any]]],
-        send: typing.Callable[
-            [typing.MutableMapping[str, typing.Any]], typing.Awaitable[None]
-        ],
+        scope: Scope,
+        receive: Receive,
+        send: Send,
     ) -> None:
         request = Request(scope, receive)
         response = JSONResponse({"cookies": request.cookies})
@@ -551,11 +530,9 @@ def test_cookies_invalid(
     """
 
     async def app(
-        scope: typing.Dict[str, typing.Any],
-        receive: typing.Callable[[], typing.Awaitable[typing.Dict[str, typing.Any]]],
-        send: typing.Callable[
-            [typing.MutableMapping[str, typing.Any]], typing.Awaitable[None]
-        ],
+        scope: Scope,
+        receive: Receive,
+        send: Send,
     ) -> None:
         request = Request(scope, receive)
         response = JSONResponse({"cookies": request.cookies})
