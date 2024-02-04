@@ -1,12 +1,25 @@
+from typing import AsyncIterable, Callable, Iterable, Union
+
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.gzip import GZipMiddleware
+from starlette.requests import Request
 from starlette.responses import PlainTextResponse, StreamingResponse
 from starlette.routing import Route
+from starlette.testclient import TestClient
+from starlette.types import ASGIApp
+
+TestClientFactory = Callable[[ASGIApp], TestClient]
+StreamingContent = Union[
+    AsyncIterable[Union[str, bytes]],
+    Iterable[Union[str, bytes]],
+]
 
 
-def test_gzip_responses(test_client_factory):
-    def homepage(request):
+def test_gzip_responses(
+    test_client_factory: TestClientFactory,
+) -> None:
+    def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("x" * 4000, status_code=200)
 
     app = Starlette(
@@ -22,8 +35,10 @@ def test_gzip_responses(test_client_factory):
     assert int(response.headers["Content-Length"]) < 4000
 
 
-def test_gzip_not_in_accept_encoding(test_client_factory):
-    def homepage(request):
+def test_gzip_not_in_accept_encoding(
+    test_client_factory: TestClientFactory,
+) -> None:
+    def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("x" * 4000, status_code=200)
 
     app = Starlette(
@@ -39,8 +54,10 @@ def test_gzip_not_in_accept_encoding(test_client_factory):
     assert int(response.headers["Content-Length"]) == 4000
 
 
-def test_gzip_ignored_for_small_responses(test_client_factory):
-    def homepage(request):
+def test_gzip_ignored_for_small_responses(
+    test_client_factory: TestClientFactory,
+) -> None:
+    def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("OK", status_code=200)
 
     app = Starlette(
@@ -56,9 +73,11 @@ def test_gzip_ignored_for_small_responses(test_client_factory):
     assert int(response.headers["Content-Length"]) == 2
 
 
-def test_gzip_streaming_response(test_client_factory):
-    def homepage(request):
-        async def generator(bytes, count):
+def test_gzip_streaming_response(
+    test_client_factory: TestClientFactory,
+) -> None:
+    def homepage(request: Request) -> StreamingResponse:
+        async def generator(bytes: bytes, count: int) -> StreamingContent:
             for index in range(count):
                 yield bytes
 
@@ -78,9 +97,11 @@ def test_gzip_streaming_response(test_client_factory):
     assert "Content-Length" not in response.headers
 
 
-def test_gzip_ignored_for_responses_with_encoding_set(test_client_factory):
-    def homepage(request):
-        async def generator(bytes, count):
+def test_gzip_ignored_for_responses_with_encoding_set(
+    test_client_factory: TestClientFactory,
+) -> None:
+    def homepage(request: Request) -> StreamingResponse:
+        async def generator(bytes: bytes, count: int) -> StreamingContent:
             for index in range(count):
                 yield bytes
 
