@@ -25,12 +25,7 @@ def test_async_partial() -> None:
     partial = functools.partial(async_func, 1)
     assert is_async_callable(partial)
 
-    partial = functools.partial(
-        cast(
-            Callable[..., Coroutine[Any, Any, None]], func
-        ),
-        1,
-    )
+    assert not is_async_callable(partial)
     assert not is_async_callable(partial)
 
 
@@ -80,12 +75,7 @@ def test_async_partial_object_call() -> None:
     partial = functools.partial(Async(), 1)
     assert is_async_callable(partial)
 
-    partial = functools.partial(
-        cast(
-            Callable[..., Coroutine[Any, Any, None]], Sync()
-        ),
-        1,
-    )
+    partial = functools.partial(Sync(), 1)  # type: ignore
     assert not is_async_callable(partial)
 
 
