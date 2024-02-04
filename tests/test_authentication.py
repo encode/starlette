@@ -124,7 +124,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
     )
 
 
-def async_inject_decorator(**kwargs: Any) -> Callable[[P.args], RouteEndpoint]:
+def async_inject_decorator(**kwargs: Any) -> Callable[..., RouteEndpoint]:
     def wrapper(endpoint: RouteEndpoint) -> RouteEndpoint:
         async def app(request: Request) -> Any:
             return await endpoint(request=request, **kwargs)
@@ -146,7 +146,7 @@ async def decorated_async(request: Request, additional: Any) -> JSONResponse:
     )
 
 
-def sync_inject_decorator(**kwargs: Any) -> Callable[[P.args], WebsocketEndpoint]:
+def sync_inject_decorator(**kwargs: Any) -> Callable[..., WebsocketEndpoint]:
     def wrapper(endpoint: RouteEndpoint) -> RouteEndpoint:
         def app(request: Request) -> Any:
             return endpoint(request=request, **kwargs)
@@ -168,7 +168,7 @@ def decorated_sync(request: Request, additional: Any) -> JSONResponse:
     )
 
 
-def ws_inject_decorator(**kwargs: Any) -> Callable[[P.args], WebsocketEndpoint]:
+def ws_inject_decorator(**kwargs: Any) -> Callable[..., WebsocketEndpoint]:
     def wrapper(endpoint: RouteEndpoint) -> WebsocketEndpoint:
         def app(websocket: WebSocket) -> Any:
             return endpoint(websocket=websocket, **kwargs)
