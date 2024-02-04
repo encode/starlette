@@ -92,7 +92,6 @@ class WebSocketTestSession:
         self._receive_queue: queue.Queue[Message] = queue.Queue()
         self._send_queue: queue.Queue[Message | BaseException] = queue.Queue()
         self.extra_headers = None
-        self._should_close: anyio.Event | None = None
 
     def __enter__(self) -> WebSocketTestSession:
         self.exit_stack = contextlib.ExitStack()
@@ -112,9 +111,7 @@ class WebSocketTestSession:
 
     @cached_property
     def should_close(self) -> anyio.Event:
-        if self._should_close is None:
-            self._should_close = anyio.Event()
-        return self._should_close
+        return anyio.Event()
 
     async def _notify_close(self) -> None:
         self.should_close.set()
