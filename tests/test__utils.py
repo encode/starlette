@@ -1,5 +1,5 @@
 import functools
-from typing import Any, Callable, Coroutine, cast
+from typing import Any
 
 from starlette._utils import is_async_callable
 
