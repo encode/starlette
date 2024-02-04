@@ -15,11 +15,7 @@ TestClientFactory = Callable[..., TestClient]
 
 
 def test_request_url(test_client_factory: TestClientFactory) -> None:
-    async def app(
-        scope: Scope,
-        receive: Receive,
-        send: Send,
-    ) -> None:
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         data = {"method": request.method, "url": str(request.url)}
         response = JSONResponse(data)
