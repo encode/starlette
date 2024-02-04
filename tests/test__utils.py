@@ -25,7 +25,7 @@ def test_async_partial() -> None:
     partial = functools.partial(async_func, 1)
     assert is_async_callable(partial)
 
-    assert not is_async_callable(partial)
+    partial = functools.partial(func, 1)
     assert not is_async_callable(partial)
 
 
