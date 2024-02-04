@@ -1,8 +1,15 @@
 import base64
 import binascii
+import sys
+from typing import Any, Awaitable, Callable, Optional, Tuple
 from urllib.parse import urlencode
 
 import pytest
+
+if sys.version_info >= (3, 10):  # pragma: no cover
+    from typing import ParamSpec
+else:  # pragma: no cover
+    from typing_extensions import ParamSpec
 
 from starlette.applications import Starlette
 from starlette.authentication import (
@@ -15,14 +22,23 @@ from starlette.authentication import (
 from starlette.endpoints import HTTPEndpoint
 from starlette.middleware import Middleware
 from starlette.middleware.authentication import AuthenticationMiddleware
-from starlette.requests import HTTPConnection
+from starlette.requests import HTTPConnection, Request
 from starlette.responses import JSONResponse
 from starlette.routing import Route, WebSocketRoute
-from starlette.websockets import WebSocketDisconnect
+from starlette.testclient import TestClient
+from starlette.websockets import WebSocket, WebSocketDisconnect
+
+P = ParamSpec("P")
+TestClientFactory = Callable[..., TestClient]
+RouteEndpoint = Callable[..., Any]
+WebsocketEndpoint = Callable[[WebSocket], Awaitable[None]]
 
 
 class BasicAuth(AuthenticationBackend):
-    async def authenticate(self, request):
+    async def authenticate(
+        self,
+        request: HTTPConnection,
+    ) -> Optional[Tuple[AuthCredentials, SimpleUser]]:
         if "Authorization" not in request.headers:
             return None
 
@@ -37,7 +53,7 @@ class BasicAuth(AuthenticationBackend):
         return AuthCredentials(["authenticated"]), SimpleUser(username)
 
 
-def homepage(request):
+def homepage(request: Request) -> JSONResponse:
     return JSONResponse(
         {
             "authenticated": request.user.is_authenticated,
@@ -47,7 +63,7 @@ def homepage(request):
 
 
 @requires("authenticated")
-async def dashboard(request):
+async def dashboard(request: Request) -> JSONResponse:
     return JSONResponse(
         {
             "authenticated": request.user.is_authenticated,
@@ -57,7 +73,7 @@ async def dashboard(request):
 
 
 @requires("authenticated", redirect="homepage")
-async def admin(request):
+async def admin(request: Request) -> JSONResponse:
     return JSONResponse(
         {
             "authenticated": request.user.is_authenticated,
@@ -67,7 +83,7 @@ async def admin(request):
 
 
 @requires("authenticated")
-def dashboard_sync(request):
+def dashboard_sync(request: Request) -> JSONResponse:
     return JSONResponse(
         {
             "authenticated": request.user.is_authenticated,
@@ -78,7 +94,7 @@ def dashboard_sync(request):
 
 class Dashboard(HTTPEndpoint):
     @requires("authenticated")
-    def get(self, request):
+    def get(self, request: Request) -> JSONResponse:
         return JSONResponse(
             {
                 "authenticated": request.user.is_authenticated,
@@ -88,7 +104,7 @@ class Dashboard(HTTPEndpoint):
 
 
 @requires("authenticated", redirect="homepage")
-def admin_sync(request):
+def admin_sync(request: Request) -> JSONResponse:
     return JSONResponse(
         {
             "authenticated": request.user.is_authenticated,
@@ -98,7 +114,7 @@ def admin_sync(request):
 
 
 @requires("authenticated")
-async def websocket_endpoint(websocket):
+async def websocket_endpoint(websocket: WebSocket) -> None:
     await websocket.accept()
     await websocket.send_json(
         {
@@ -108,9 +124,9 @@ async def websocket_endpoint(websocket):
     )
 
 
-def async_inject_decorator(**kwargs):
-    def wrapper(endpoint):
-        async def app(request):
+def async_inject_decorator(**kwargs: Any) -> Callable[[P.args], RouteEndpoint]:
+    def wrapper(endpoint: RouteEndpoint) -> RouteEndpoint:
+        async def app(request: Request) -> Any:
             return await endpoint(request=request, **kwargs)
 
         return app
@@ -120,7 +136,7 @@ def async_inject_decorator(**kwargs):
 
 @async_inject_decorator(additional="payload")
 @requires("authenticated")
-async def decorated_async(request, additional):
+async def decorated_async(request: Request, additional: Any) -> JSONResponse:
     return JSONResponse(
         {
             "authenticated": request.user.is_authenticated,
@@ -130,9 +146,9 @@ async def decorated_async(request, additional):
     )
 
 
-def sync_inject_decorator(**kwargs):
-    def wrapper(endpoint):
-        def app(request):
+def sync_inject_decorator(**kwargs: Any) -> Callable[[P.args], WebsocketEndpoint]:
+    def wrapper(endpoint: RouteEndpoint) -> RouteEndpoint:
+        def app(request: Request) -> Any:
             return endpoint(request=request, **kwargs)
 
         return app
@@ -142,7 +158,7 @@ def sync_inject_decorator(**kwargs):
 
 @sync_inject_decorator(additional="payload")
 @requires("authenticated")
-def decorated_sync(request, additional):
+def decorated_sync(request: Request, additional: Any) -> JSONResponse:
     return JSONResponse(
         {
             "authenticated": request.user.is_authenticated,
@@ -152,9 +168,9 @@ def decorated_sync(request, additional):
     )
 
 
-def ws_inject_decorator(**kwargs):
-    def wrapper(endpoint):
-        def app(websocket):
+def ws_inject_decorator(**kwargs: Any) -> Callable[[P.args], WebsocketEndpoint]:
+    def wrapper(endpoint: RouteEndpoint) -> WebsocketEndpoint:
+        def app(websocket: WebSocket) -> Any:
             return endpoint(websocket=websocket, **kwargs)
 
         return app
@@ -164,7 +180,7 @@ def ws_inject_decorator(**kwargs):
 
 @ws_inject_decorator(additional="payload")
 @requires("authenticated")
-async def websocket_endpoint_decorated(websocket, additional):
+async def websocket_endpoint_decorated(websocket: WebSocket, additional: Any) -> None:
     await websocket.accept()
     await websocket.send_json(
         {
@@ -192,15 +208,15 @@ app = Starlette(
 )
 
 
-def test_invalid_decorator_usage():
+def test_invalid_decorator_usage() -> None:
     with pytest.raises(Exception):
 
         @requires("authenticated")
-        def foo():
+        def foo() -> None:
             pass  # pragma: nocover
 
 
-def test_user_interface(test_client_factory):
+def test_user_interface(test_client_factory: TestClientFactory) -> None:
     with test_client_factory(app) as client:
         response = client.get("/")
         assert response.status_code == 200
@@ -211,7 +227,7 @@ def test_user_interface(test_client_factory):
         assert response.json() == {"authenticated": True, "user": "tomchristie"}
 
 
-def test_authentication_required(test_client_factory):
+def test_authentication_required(test_client_factory: TestClientFactory) -> None:
     with test_client_factory(app) as client:
         response = client.get("/dashboard")
         assert response.status_code == 403
@@ -263,7 +279,9 @@ def test_authentication_required(test_client_factory):
         assert response.text == "Invalid basic auth credentials"
 
 
-def test_websocket_authentication_required(test_client_factory):
+def test_websocket_authentication_required(
+    test_client_factory: TestClientFactory,
+) -> None:
     with test_client_factory(app) as client:
         with pytest.raises(WebSocketDisconnect):
             with client.websocket_connect("/ws"):
@@ -302,7 +320,7 @@ def test_websocket_authentication_required(test_client_factory):
             }
 
 
-def test_authentication_redirect(test_client_factory):
+def test_authentication_redirect(test_client_factory: TestClientFactory) -> None:
     with test_client_factory(app) as client:
         response = client.get("/admin")
         assert response.status_code == 200
@@ -327,12 +345,12 @@ def test_authentication_redirect(test_client_factory):
         assert response.json() == {"authenticated": True, "user": "tomchristie"}
 
 
-def on_auth_error(request: HTTPConnection, exc: AuthenticationError):
+def on_auth_error(request: HTTPConnection, exc: AuthenticationError) -> JSONResponse:
     return JSONResponse({"error": str(exc)}, status_code=401)
 
 
 @requires("authenticated")
-def control_panel(request):
+def control_panel(request: Request) -> JSONResponse:
     return JSONResponse(
         {
             "authenticated": request.user.is_authenticated,
@@ -351,7 +369,7 @@ other_app = Starlette(
 )
 
 
-def test_custom_on_error(test_client_factory):
+def test_custom_on_error(test_client_factory: TestClientFactory) -> None:
     with test_client_factory(other_app) as client:
         response = client.get("/control-panel", auth=("tomchristie", "example"))
         assert response.status_code == 200
