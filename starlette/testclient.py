@@ -115,7 +115,7 @@ class WebSocketTestSession:
             if message["type"] == "websocket.http.response.start":
                 self._handle_response(message)
             else:
-                self._raise_on_close(message, reject=True)
+                self._raise_on_close(message)
         except Exception:
             self.exit_stack.close()
             raise
@@ -182,19 +182,11 @@ class WebSocketTestSession:
             content=b"".join(body),
         )
 
-    def _raise_on_close(
-        self, message: Message, reject: typing.Optional[bool] = None
-    ) -> None:
+    def _raise_on_close(self, message: Message) -> None:
         if message["type"] == "websocket.close":
-            if not reject:
-                raise WebSocketDisconnect(
-                    message.get("code", 1000), message.get("reason", "")
-                )
-            else:
-                raise WebSocketDisconnect(
-                    code=message.get("code", 1000),
-                    reason=message.get("reason"),
-                )
+            raise WebSocketDisconnect(
+                message.get("code", 1000), message.get("reason", "")
+            )
 
     def send(self, message: Message) -> None:
         self._receive_queue.put(message)
