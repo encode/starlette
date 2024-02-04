@@ -1,12 +1,7 @@
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import (
-    Any,
-    AsyncIterator,
-    Callable,
-    Generator,
-)
+from typing import Any, AsyncIterator, Callable, Generator
 
 import anyio
 import pytest
@@ -23,12 +18,7 @@ from starlette.responses import JSONResponse, PlainTextResponse
 from starlette.routing import Host, Mount, Route, Router, WebSocketRoute
 from starlette.staticfiles import StaticFiles
 from starlette.testclient import TestClient
-from starlette.types import (
-    ASGIApp,
-    Receive,
-    Scope,
-    Send,
-)
+from starlette.types import ASGIApp, Receive, Scope, Send
 from starlette.websockets import WebSocket
 
 TestClientFactory = Callable[..., TestClient]
@@ -512,9 +502,7 @@ def test_decorator_deprecations() -> None:
         assert len(record) == 1
 
 
-def test_middleware_stack_init(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_middleware_stack_init(test_client_factory: TestClientFactory) -> None:
     class NoOpMiddleware:
         def __init__(self, app: ASGIApp):
             self.app = app
