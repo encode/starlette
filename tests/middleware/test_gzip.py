@@ -1,19 +1,15 @@
-from typing import AsyncIterable, Callable, Iterable, Union
+from typing import Callable
 
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.gzip import GZipMiddleware
 from starlette.requests import Request
-from starlette.responses import PlainTextResponse, StreamingResponse
+from starlette.responses import ContentStream, PlainTextResponse, StreamingResponse
 from starlette.routing import Route
 from starlette.testclient import TestClient
 from starlette.types import ASGIApp
 
 TestClientFactory = Callable[[ASGIApp], TestClient]
-StreamingContent = Union[
-    AsyncIterable[Union[str, bytes]],
-    Iterable[Union[str, bytes]],
-]
 
 
 def test_gzip_responses(
@@ -77,7 +73,7 @@ def test_gzip_streaming_response(
     test_client_factory: TestClientFactory,
 ) -> None:
     def homepage(request: Request) -> StreamingResponse:
-        async def generator(bytes: bytes, count: int) -> StreamingContent:
+        async def generator(bytes: bytes, count: int) -> ContentStream:
             for index in range(count):
                 yield bytes
 
@@ -101,7 +97,7 @@ def test_gzip_ignored_for_responses_with_encoding_set(
     test_client_factory: TestClientFactory,
 ) -> None:
     def homepage(request: Request) -> StreamingResponse:
-        async def generator(bytes: bytes, count: int) -> StreamingContent:
+        async def generator(bytes: bytes, count: int) -> ContentStream:
             for index in range(count):
                 yield bytes
 
