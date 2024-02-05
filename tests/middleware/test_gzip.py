@@ -12,9 +12,7 @@ from starlette.types import ASGIApp
 TestClientFactory = Callable[[ASGIApp], TestClient]
 
 
-def test_gzip_responses(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_gzip_responses(test_client_factory: TestClientFactory) -> None:
     def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("x" * 4000, status_code=200)
 
@@ -31,9 +29,7 @@ def test_gzip_responses(
     assert int(response.headers["Content-Length"]) < 4000
 
 
-def test_gzip_not_in_accept_encoding(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_gzip_not_in_accept_encoding(test_client_factory: TestClientFactory) -> None:
     def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("x" * 4000, status_code=200)
 
@@ -69,9 +65,7 @@ def test_gzip_ignored_for_small_responses(
     assert int(response.headers["Content-Length"]) == 2
 
 
-def test_gzip_streaming_response(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_gzip_streaming_response(test_client_factory: TestClientFactory) -> None:
     def homepage(request: Request) -> StreamingResponse:
         async def generator(bytes: bytes, count: int) -> ContentStream:
             for index in range(count):
