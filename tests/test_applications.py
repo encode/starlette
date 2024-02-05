@@ -103,7 +103,7 @@ subdomain = Router(
     ]
 )
 
-exception_handlers: Any = {
+exception_handlers = {
     500: error_500,
     405: method_not_allowed,
     HTTPException: http_exception,
@@ -126,7 +126,7 @@ app = Starlette(
         Mount("/users", app=users),
         Host("{subdomain}.example.org", app=subdomain),
     ],
-    exception_handlers=exception_handlers,
+    exception_handlers=exception_handlers,  # type: ignore
     middleware=middleware,
 )
 
