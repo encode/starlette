@@ -124,8 +124,8 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
     )
 
 
-def async_inject_decorator(
-    **kwargs: P.kwargs,  # type: ignore
+def async_inject_decorator(  # type: ignore
+    **kwargs: P.kwargs,
 ) -> Callable[[AsyncEndpoint], Callable[..., Awaitable[Response]]]:
     def wrapper(endpoint: AsyncEndpoint) -> Callable[..., Awaitable[Response]]:
         async def app(request: Request) -> Response:
@@ -148,8 +148,8 @@ async def decorated_async(request: Request, additional: str) -> JSONResponse:
     )
 
 
-def sync_inject_decorator(
-    **kwargs: P.kwargs,  # type: ignore
+def sync_inject_decorator(  # type: ignore
+    **kwargs: P.kwargs,
 ) -> Callable[[SyncEndpoint], Callable[..., Response]]:
     def wrapper(endpoint: SyncEndpoint) -> Callable[..., Response]:
         def app(request: Request) -> Response:
