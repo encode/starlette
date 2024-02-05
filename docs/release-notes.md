@@ -1,3 +1,19 @@
+## 0.37.0
+
+February 5, 2024
+
+#### Added
+
+* Support the WebSocket Denial Response ASGI extension [#2041](https://github.com/encode/starlette/pull/2041).
+
+## 0.36.3
+
+February 4, 2024
+
+#### Fixed
+
+* Create `anyio.Event` on async context [#2459](https://github.com/encode/starlette/pull/2459).
+
 ## 0.36.2
 
 February 3, 2024
