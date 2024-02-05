@@ -1,7 +1,7 @@
 import base64
 import binascii
 import sys
-from typing import Any, Awaitable, Callable, Optional, Tuple
+from typing import Awaitable, Callable, Optional, Tuple
 from urllib.parse import urlencode
 
 import pytest
@@ -23,15 +23,15 @@ from starlette.endpoints import HTTPEndpoint
 from starlette.middleware import Middleware
 from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.requests import HTTPConnection, Request
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, Response
 from starlette.routing import Route, WebSocketRoute
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 P = ParamSpec("P")
 TestClientFactory = Callable[..., TestClient]
-RouteEndpoint = Callable[..., Any]
-WebsocketEndpoint = Callable[[WebSocket], Awaitable[None]]
+AsyncEndpoint = Callable[..., Awaitable[Response]]
+SyncEndpoint = Callable[..., Response]
 
 
 class BasicAuth(AuthenticationBackend):
@@ -124,9 +124,11 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
     )
 
 
-def async_inject_decorator(**kwargs: Any) -> Callable[..., RouteEndpoint]:
-    def wrapper(endpoint: RouteEndpoint) -> RouteEndpoint:
-        async def app(request: Request) -> Any:
+def async_inject_decorator(**kwargs: P.kwargs) -> Callable[  # type: ignore
+    [AsyncEndpoint], Callable[..., Awaitable[Response]]
+]:
+    def wrapper(endpoint: AsyncEndpoint) -> Callable[..., Awaitable[Response]]:
+        async def app(request: Request) -> Response:
             return await endpoint(request=request, **kwargs)
 
         return app
@@ -136,7 +138,7 @@ def async_inject_decorator(**kwargs: Any) -> Callable[..., RouteEndpoint]:
 
 @async_inject_decorator(additional="payload")
 @requires("authenticated")
-async def decorated_async(request: Request, additional: Any) -> JSONResponse:
+async def decorated_async(request: Request, additional: str) -> JSONResponse:
     return JSONResponse(
         {
             "authenticated": request.user.is_authenticated,
@@ -146,9 +148,11 @@ async def decorated_async(request: Request, additional: Any) -> JSONResponse:
     )
 
 
-def sync_inject_decorator(**kwargs: Any) -> Callable[..., WebsocketEndpoint]:
-    def wrapper(endpoint: RouteEndpoint) -> RouteEndpoint:
-        def app(request: Request) -> Any:
+def sync_inject_decorator(**kwargs: P.kwargs) -> Callable[  # type: ignore
+    [SyncEndpoint], Callable[..., Response]
+]:
+    def wrapper(endpoint: SyncEndpoint) -> Callable[..., Response]:
+        def app(request: Request) -> Response:
             return endpoint(request=request, **kwargs)
 
         return app
@@ -158,7 +162,7 @@ def sync_inject_decorator(**kwargs: Any) -> Callable[..., WebsocketEndpoint]:
 
 @sync_inject_decorator(additional="payload")
 @requires("authenticated")
-def decorated_sync(request: Request, additional: Any) -> JSONResponse:
+def decorated_sync(request: Request, additional: str) -> JSONResponse:
     return JSONResponse(
         {
             "authenticated": request.user.is_authenticated,
@@ -168,9 +172,9 @@ def decorated_sync(request: Request, additional: Any) -> JSONResponse:
     )
 
 
-def ws_inject_decorator(**kwargs: Any) -> Callable[..., WebsocketEndpoint]:
-    def wrapper(endpoint: RouteEndpoint) -> WebsocketEndpoint:
-        def app(websocket: WebSocket) -> Any:
+def ws_inject_decorator(**kwargs: P.kwargs) -> Callable[..., AsyncEndpoint]:  # type: ignore
+    def wrapper(endpoint: AsyncEndpoint) -> AsyncEndpoint:
+        def app(websocket: WebSocket) -> Awaitable[Response]:
             return endpoint(websocket=websocket, **kwargs)
 
         return app
@@ -180,7 +184,7 @@ def ws_inject_decorator(**kwargs: Any) -> Callable[..., WebsocketEndpoint]:
 
 @ws_inject_decorator(additional="payload")
 @requires("authenticated")
-async def websocket_endpoint_decorated(websocket: WebSocket, additional: Any) -> None:
+async def websocket_endpoint_decorated(websocket: WebSocket, additional: str) -> None:
     await websocket.accept()
     await websocket.send_json(
         {
