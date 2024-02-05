@@ -1,5 +1,4 @@
 import sys
-import typing
 from typing import Callable, Dict, List, Optional
 
 import anyio
@@ -79,7 +78,7 @@ def test_request_client(scope: Scope, expected_client: Optional[Address]) -> Non
     assert client == expected_client
 
 
-def test_request_body(test_client_factory: typing.Any) -> None:
+def test_request_body(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         body = await request.body()
@@ -98,7 +97,7 @@ def test_request_body(test_client_factory: typing.Any) -> None:
     assert response.json() == {"body": "abc"}
 
 
-def test_request_stream(test_client_factory: typing.Any) -> None:
+def test_request_stream(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         body = b""
@@ -133,11 +132,7 @@ def test_request_form_urlencoded(test_client_factory: TestClientFactory) -> None
 
 
 def test_request_form_context_manager(test_client_factory: TestClientFactory) -> None:
-    async def app(
-        scope: Scope,
-        receive: Receive,
-        send: Send,
-    ) -> None:
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         async with request.form() as form:
             response = JSONResponse({"form": dict(form)})
@@ -149,7 +144,7 @@ def test_request_form_context_manager(test_client_factory: TestClientFactory) ->
     assert response.json() == {"form": {"abc": "123 @"}}
 
 
-def test_request_body_then_stream(test_client_factory: typing.Any) -> None:
+def test_request_body_then_stream(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         body = await request.body()
@@ -165,7 +160,7 @@ def test_request_body_then_stream(test_client_factory: typing.Any) -> None:
     assert response.json() == {"body": "abc", "stream": "abc"}
 
 
-def test_request_stream_then_body(test_client_factory: typing.Any) -> None:
+def test_request_stream_then_body(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         chunks = b""
@@ -251,11 +246,11 @@ def test_request_disconnect(
     then ClientDisconnect should be raised.
     """
 
-    async def app(scope: Scope, receive: Receive, send: typing.Any) -> None:
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         await request.body()
 
-    async def receiver() -> typing.Dict[str, typing.Any]:
+    async def receiver() -> Message:
         return {"type": "http.disconnect"}
 
     scope = {"type": "http", "method": "POST", "path": "/"}
