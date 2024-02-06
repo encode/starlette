@@ -1,15 +1,9 @@
 import base64
 import binascii
-import sys
-from typing import Awaitable, Callable, Optional, Tuple
+from typing import Any, Awaitable, Callable, Optional, Tuple
 from urllib.parse import urlencode
 
 import pytest
-
-if sys.version_info >= (3, 10):  # pragma: no cover
-    from typing import ParamSpec
-else:  # pragma: no cover
-    from typing_extensions import ParamSpec
 
 from starlette.applications import Starlette
 from starlette.authentication import (
@@ -28,7 +22,6 @@ from starlette.routing import Route, WebSocketRoute
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
-P = ParamSpec("P")
 TestClientFactory = Callable[..., TestClient]
 AsyncEndpoint = Callable[..., Awaitable[Response]]
 SyncEndpoint = Callable[..., Response]
@@ -124,8 +117,8 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
     )
 
 
-def async_inject_decorator(  # type: ignore
-    **kwargs: P.kwargs,
+def async_inject_decorator(
+    **kwargs: Any,
 ) -> Callable[[AsyncEndpoint], Callable[..., Awaitable[Response]]]:
     def wrapper(endpoint: AsyncEndpoint) -> Callable[..., Awaitable[Response]]:
         async def app(request: Request) -> Response:
@@ -148,8 +141,8 @@ async def decorated_async(request: Request, additional: str) -> JSONResponse:
     )
 
 
-def sync_inject_decorator(  # type: ignore
-    **kwargs: P.kwargs,
+def sync_inject_decorator(
+    **kwargs: Any,
 ) -> Callable[[SyncEndpoint], Callable[..., Response]]:
     def wrapper(endpoint: SyncEndpoint) -> Callable[..., Response]:
         def app(request: Request) -> Response:
@@ -172,7 +165,7 @@ def decorated_sync(request: Request, additional: str) -> JSONResponse:
     )
 
 
-def ws_inject_decorator(**kwargs: P.kwargs) -> Callable[..., AsyncEndpoint]:  # type: ignore
+def ws_inject_decorator(**kwargs: Any) -> Callable[..., AsyncEndpoint]:
     def wrapper(endpoint: AsyncEndpoint) -> AsyncEndpoint:
         def app(websocket: WebSocket) -> Awaitable[Response]:
             return endpoint(websocket=websocket, **kwargs)
