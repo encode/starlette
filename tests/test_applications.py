@@ -1,7 +1,7 @@
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, AsyncIterator, Callable, Generator
+from typing import AsyncGenerator, AsyncIterator, Callable, Generator
 
 import anyio
 import pytest
@@ -372,7 +372,7 @@ def test_app_async_cm_lifespan(test_client_factory: TestClientFactory) -> None:
     cleanup_complete = False
 
     @asynccontextmanager
-    async def lifespan(app: ASGIApp) -> Any:
+    async def lifespan(app: ASGIApp) -> AsyncGenerator[None, None]:
         nonlocal startup_complete, cleanup_complete
         startup_complete = True
         yield
@@ -403,13 +403,13 @@ def test_app_async_gen_lifespan(test_client_factory: TestClientFactory) -> None:
     startup_complete = False
     cleanup_complete = False
 
-    async def lifespan(app: ASGIApp) -> Any:
+    async def lifespan(app: ASGIApp) -> AsyncGenerator[None, None]:
         nonlocal startup_complete, cleanup_complete
         startup_complete = True
         yield
         cleanup_complete = True
 
-    app = Starlette(lifespan=lifespan)
+    app = Starlette(lifespan=lifespan)  # type: ignore
 
     assert not startup_complete
     assert not cleanup_complete
@@ -425,13 +425,13 @@ def test_app_sync_gen_lifespan(test_client_factory: TestClientFactory) -> None:
     startup_complete = False
     cleanup_complete = False
 
-    def lifespan(app: ASGIApp) -> Any:
+    def lifespan(app: ASGIApp) -> Generator[None, None, None]:
         nonlocal startup_complete, cleanup_complete
         startup_complete = True
         yield
         cleanup_complete = True
 
-    app = Starlette(lifespan=lifespan)
+    app = Starlette(lifespan=lifespan)  # type: ignore
 
     assert not startup_complete
     assert not cleanup_complete
