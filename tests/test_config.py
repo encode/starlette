@@ -1,5 +1,6 @@
 import os
 import typing
+import warnings
 from pathlib import Path
 from typing import Any, Optional
 
@@ -105,11 +106,15 @@ def test_config(tmpdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         config.get("BOOL_AS_INT", cast=bool)
 
 
-def test_missing_env_file_raises(tmpdir: Path) -> None:
+def test_missing_env_file_warns_only_if_requested(tmpdir: Path) -> None:
     path = os.path.join(tmpdir, ".env")
 
-    with pytest.raises(FileNotFoundError, match=f"Config file '{path}' not found."):
+    with warnings.catch_warnings(record=True) as caught:
         Config(path)
+        assert not caught
+        with pytest.raises(UserWarning):
+            Config(path, warn_missing=True)
+            assert caught
 
 
 def test_environ() -> None:
