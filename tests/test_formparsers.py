@@ -413,9 +413,7 @@ def test_urlencoded_request_data(
     assert response.json() == {"some": "data"}
 
 
-def test_no_request_data(
-    tmpdir: Path, test_client_factory: TestClientFactory
-) -> None:
+def test_no_request_data(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
     client = test_client_factory(app)
     response = client.post("/")
     assert response.json() == {}
