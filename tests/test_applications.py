@@ -462,8 +462,7 @@ def test_decorator_deprecations() -> None:
     ) as record:
 
         async def middleware(
-            request: Request,
-            call_next: RequestResponseEndpoint,
+            request: Request, call_next: RequestResponseEndpoint
         ) -> None:
             ...  # pragma: no cover
 
