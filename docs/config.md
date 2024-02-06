@@ -11,7 +11,8 @@ from starlette.config import Config
 from starlette.datastructures import CommaSeparatedStrings, Secret
 
 # Config will be read from environment variables and/or ".env" files.
-config = Config(".env")
+# If warn_missing is set then warning is given if .env -file is not found.
+config = Config(".env", warn_missing=True)
 
 DEBUG = config('DEBUG', cast=bool, default=False)
 DATABASE_URL = config('DATABASE_URL')

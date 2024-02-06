@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import typing
+import warnings
 from pathlib import Path
 
 
@@ -56,13 +57,17 @@ class Config:
         env_file: str | Path | None = None,
         environ: typing.Mapping[str, str] = environ,
         env_prefix: str = "",
+        *,
+        warn_missing: bool = False,
     ) -> None:
         self.environ = environ
         self.env_prefix = env_prefix
         self.file_values: typing.Dict[str, str] = {}
         if env_file is not None:
             if not os.path.isfile(env_file):
-                raise FileNotFoundError(f"Config file '{env_file}' not found.")
+                if warn_missing:
+                    warnings.warn(f"{env_file} not found")
+                return
             self.file_values = self._read_file(env_file)
 
     @typing.overload
