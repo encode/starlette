@@ -128,8 +128,7 @@ def make_app_max_parts(max_files: int = 1000, max_fields: int = 1000) -> ASGIApp
 
 
 def test_multipart_request_data(
-    tmpdir: Path,
-    test_client_factory: TestClientFactory,
+    tmpdir: Path, test_client_factory: TestClientFactory
 ) -> None:
     client = test_client_factory(app)
     response = client.post("/", data={"some": "data"}, files=FORCE_MULTIPART)
@@ -137,8 +136,7 @@ def test_multipart_request_data(
 
 
 def test_multipart_request_files(
-    tmpdir: Path,
-    test_client_factory: TestClientFactory,
+    tmpdir: Path, test_client_factory: TestClientFactory
 ) -> None:
     path = os.path.join(tmpdir, "test.txt")
     with open(path, "wb") as file:
@@ -158,8 +156,7 @@ def test_multipart_request_files(
 
 
 def test_multipart_request_files_with_content_type(
-    tmpdir: Path,
-    test_client_factory: TestClientFactory,
+    tmpdir: Path, test_client_factory: TestClientFactory
 ) -> None:
     path = os.path.join(tmpdir, "test.txt")
     with open(path, "wb") as file:
@@ -179,8 +176,7 @@ def test_multipart_request_files_with_content_type(
 
 
 def test_multipart_request_multiple_files(
-    tmpdir: Path,
-    test_client_factory: TestClientFactory,
+    tmpdir: Path, test_client_factory: TestClientFactory
 ) -> None:
     path1 = os.path.join(tmpdir, "test1.txt")
     with open(path1, "wb") as file:
@@ -212,8 +208,7 @@ def test_multipart_request_multiple_files(
 
 
 def test_multipart_request_multiple_files_with_headers(
-    tmpdir: Path,
-    test_client_factory: TestClientFactory,
+    tmpdir: Path, test_client_factory: TestClientFactory
 ) -> None:
     path1 = os.path.join(tmpdir, "test1.txt")
     with open(path1, "wb") as file:
@@ -287,8 +282,7 @@ def test_multi_items(tmpdir: Path, test_client_factory: TestClientFactory) -> No
 
 
 def test_multipart_request_mixed_files_and_data(
-    tmpdir: Path,
-    test_client_factory: TestClientFactory,
+    tmpdir: Path, test_client_factory: TestClientFactory
 ) -> None:
     client = test_client_factory(app)
     response = client.post(
@@ -328,8 +322,7 @@ def test_multipart_request_mixed_files_and_data(
 
 
 def test_multipart_request_with_charset_for_filename(
-    tmpdir: Path,
-    test_client_factory: TestClientFactory,
+    tmpdir: Path, test_client_factory: TestClientFactory
 ) -> None:
     client = test_client_factory(app)
     response = client.post(
@@ -360,8 +353,7 @@ def test_multipart_request_with_charset_for_filename(
 
 
 def test_multipart_request_without_charset_for_filename(
-    tmpdir: Path,
-    test_client_factory: TestClientFactory,
+    tmpdir: Path, test_client_factory: TestClientFactory
 ) -> None:
     client = test_client_factory(app)
     response = client.post(
@@ -391,8 +383,7 @@ def test_multipart_request_without_charset_for_filename(
 
 
 def test_multipart_request_with_encoded_value(
-    tmpdir: Path,
-    test_client_factory: TestClientFactory,
+    tmpdir: Path, test_client_factory: TestClientFactory
 ) -> None:
     client = test_client_factory(app)
     response = client.post(
@@ -415,8 +406,7 @@ def test_multipart_request_with_encoded_value(
 
 
 def test_urlencoded_request_data(
-    tmpdir: Path,
-    test_client_factory: TestClientFactory,
+    tmpdir: Path, test_client_factory: TestClientFactory
 ) -> None:
     client = test_client_factory(app)
     response = client.post("/", data={"some": "data"})
@@ -424,8 +414,7 @@ def test_urlencoded_request_data(
 
 
 def test_no_request_data(
-    tmpdir: Path,
-    test_client_factory: TestClientFactory,
+    tmpdir: Path, test_client_factory: TestClientFactory
 ) -> None:
     client = test_client_factory(app)
     response = client.post("/")
@@ -433,8 +422,7 @@ def test_no_request_data(
 
 
 def test_urlencoded_percent_encoding(
-    tmpdir: Path,
-    test_client_factory: TestClientFactory,
+    tmpdir: Path, test_client_factory: TestClientFactory
 ) -> None:
     client = test_client_factory(app)
     response = client.post("/", data={"some": "da ta"})
@@ -442,8 +430,7 @@ def test_urlencoded_percent_encoding(
 
 
 def test_urlencoded_percent_encoding_keys(
-    tmpdir: Path,
-    test_client_factory: TestClientFactory,
+    tmpdir: Path, test_client_factory: TestClientFactory
 ) -> None:
     client = test_client_factory(app)
     response = client.post("/", data={"so me": "data"})
@@ -451,8 +438,7 @@ def test_urlencoded_percent_encoding_keys(
 
 
 def test_urlencoded_multi_field_app_reads_body(
-    tmpdir: Path,
-    test_client_factory: TestClientFactory,
+    tmpdir: Path, test_client_factory: TestClientFactory
 ) -> None:
     client = test_client_factory(app_read_body)
     response = client.post("/", data={"some": "data", "second": "key pair"})
@@ -460,8 +446,7 @@ def test_urlencoded_multi_field_app_reads_body(
 
 
 def test_multipart_multi_field_app_reads_body(
-    tmpdir: Path,
-    test_client_factory: TestClientFactory,
+    tmpdir: Path, test_client_factory: TestClientFactory
 ) -> None:
     client = test_client_factory(app_read_body)
     response = client.post(
