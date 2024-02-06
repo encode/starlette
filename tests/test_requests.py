@@ -1,5 +1,5 @@
 import sys
-from typing import Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, Iterator, List, Optional
 
 import anyio
 import pytest
@@ -93,7 +93,7 @@ def test_request_body(test_client_factory: TestClientFactory) -> None:
     response = client.post("/", json={"a": "123"})
     assert response.json() == {"body": '{"a": "123"}'}
 
-    response = client.post("/", data="abc")
+    response = client.post("/", data="abc")  # type: ignore
     assert response.json() == {"body": "abc"}
 
 
@@ -114,7 +114,7 @@ def test_request_stream(test_client_factory: TestClientFactory) -> None:
     response = client.post("/", json={"a": "123"})
     assert response.json() == {"body": '{"a": "123"}'}
 
-    response = client.post("/", data="abc")
+    response = client.post("/", data="abc")  # type: ignore
     assert response.json() == {"body": "abc"}
 
 
@@ -156,7 +156,7 @@ def test_request_body_then_stream(test_client_factory: TestClientFactory) -> Non
 
     client = test_client_factory(app)
 
-    response = client.post("/", data="abc")
+    response = client.post("/", data="abc")  # type: ignore
     assert response.json() == {"body": "abc", "stream": "abc"}
 
 
@@ -175,7 +175,7 @@ def test_request_stream_then_body(test_client_factory: TestClientFactory) -> Non
 
     client = test_client_factory(app)
 
-    response = client.post("/", data="abc")
+    response = client.post("/", data="abc")  # type: ignore
     assert response.json() == {"body": "<stream consumed>", "stream": "abc"}
 
 
@@ -239,7 +239,7 @@ def test_request_without_setting_receive(
 
 def test_request_disconnect(
     anyio_backend_name: str,
-    anyio_backend_options: typing.Dict[str, typing.Any],
+    anyio_backend_options: Dict[str, Any],
 ) -> None:
     """
     If a client disconnect occurs while reading request body
@@ -256,7 +256,7 @@ def test_request_disconnect(
     scope = {"type": "http", "method": "POST", "path": "/"}
     with pytest.raises(ClientDisconnect):
         anyio.run(
-            app,
+            app,  # type: ignore
             scope,
             receiver,
             None,
@@ -449,7 +449,7 @@ def test_cookies_invalid(
     assert result["cookies"] == expected
 
 
-def test_chunked_encoding(test_client_factory: typing.Any) -> None:
+def test_chunked_encoding(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         body = await request.body()
@@ -458,11 +458,11 @@ def test_chunked_encoding(test_client_factory: typing.Any) -> None:
 
     client = test_client_factory(app)
 
-    def post_body() -> typing.Iterator[bytes]:
+    def post_body() -> Iterator[bytes]:
         yield b"foo"
         yield b"bar"
 
-    response = client.post("/", data=post_body())
+    response = client.post("/", data=post_body())  # type: ignore
     assert response.json() == {"body": "foobar"}
 
 
