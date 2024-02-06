@@ -2,7 +2,6 @@ import os
 import typing
 from contextlib import nullcontext as does_not_raise
 from pathlib import Path
-from unittest import TestCase
 
 import pytest
 
@@ -289,14 +288,14 @@ def test_multi_items(tmpdir: Path, test_client_factory: TestClientFactory) -> No
 
 def test_multipart_request_mixed_files_and_data(
     tmpdir: Path,
-    test_client_factory: typing.Any,
+    test_client_factory: TestClientFactory,
 ) -> None:
     client = test_client_factory(app)
     response = client.post(
         "/",
         data=(
             # data
-            b"--a7f7ac8d4e2e437c877bb7b8d7cc549c\r\n"
+            b"--a7f7ac8d4e2e437c877bb7b8d7cc549c\r\n"  # type: ignore
             b'Content-Disposition: form-data; name="field0"\r\n\r\n'
             b"value0\r\n"
             # file
@@ -330,14 +329,14 @@ def test_multipart_request_mixed_files_and_data(
 
 def test_multipart_request_with_charset_for_filename(
     tmpdir: Path,
-    test_client_factory: typing.Any,
+    test_client_factory: TestClientFactory,
 ) -> None:
     client = test_client_factory(app)
     response = client.post(
         "/",
         data=(
             # file
-            b"--a7f7ac8d4e2e437c877bb7b8d7cc549c\r\n"
+            b"--a7f7ac8d4e2e437c877bb7b8d7cc549c\r\n"  # type: ignore
             b'Content-Disposition: form-data; name="file"; filename="\xe6\x96\x87\xe6\x9b\xb8.txt"\r\n'  # noqa: E501
             b"Content-Type: text/plain\r\n\r\n"
             b"<file content>\r\n"
@@ -362,14 +361,14 @@ def test_multipart_request_with_charset_for_filename(
 
 def test_multipart_request_without_charset_for_filename(
     tmpdir: Path,
-    test_client_factory: typing.Any,
+    test_client_factory: TestClientFactory,
 ) -> None:
     client = test_client_factory(app)
     response = client.post(
         "/",
         data=(
             # file
-            b"--a7f7ac8d4e2e437c877bb7b8d7cc549c\r\n"
+            b"--a7f7ac8d4e2e437c877bb7b8d7cc549c\r\n"  # type: ignore
             b'Content-Disposition: form-data; name="file"; filename="\xe7\x94\xbb\xe5\x83\x8f.jpg"\r\n'  # noqa: E501
             b"Content-Type: image/jpeg\r\n\r\n"
             b"<file content>\r\n"
@@ -393,13 +392,13 @@ def test_multipart_request_without_charset_for_filename(
 
 def test_multipart_request_with_encoded_value(
     tmpdir: Path,
-    test_client_factory: typing.Any,
+    test_client_factory: TestClientFactory,
 ) -> None:
     client = test_client_factory(app)
     response = client.post(
         "/",
         data=(
-            b"--20b303e711c4ab8c443184ac833ab00f\r\n"
+            b"--20b303e711c4ab8c443184ac833ab00f\r\n"  # type: ignore
             b"Content-Disposition: form-data; "
             b'name="value"\r\n\r\n'
             b"Transf\xc3\xa9rer\r\n"
@@ -490,8 +489,8 @@ def test_user_safe_decode_ignores_wrong_charset() -> None:
 )
 def test_missing_boundary_parameter(
     app: ASGIApp,
-    expectation: typing.ContextManager[TestCase],
-    test_client_factory: typing.Any,
+    expectation: typing.ContextManager[Exception],
+    test_client_factory: TestClientFactory,
 ) -> None:
     client = test_client_factory(app)
     with expectation:
@@ -499,7 +498,7 @@ def test_missing_boundary_parameter(
             "/",
             data=(
                 # file
-                b'Content-Disposition: form-data; name="file"; filename="\xe6\x96\x87\xe6\x9b\xb8.txt"\r\n'  # noqa: E501
+                b'Content-Disposition: form-data; name="file"; filename="\xe6\x96\x87\xe6\x9b\xb8.txt"\r\n'  # type: ignore # noqa: E501
                 b"Content-Type: text/plain\r\n\r\n"
                 b"<file content>\r\n"
             ),
@@ -518,8 +517,8 @@ def test_missing_boundary_parameter(
 )
 def test_missing_name_parameter_on_content_disposition(
     app: ASGIApp,
-    expectation: typing.ContextManager[TestCase],
-    test_client_factory: typing.Any,
+    expectation: typing.ContextManager[Exception],
+    test_client_factory: TestClientFactory,
 ) -> None:
     client = test_client_factory(app)
     with expectation:
@@ -527,7 +526,7 @@ def test_missing_name_parameter_on_content_disposition(
             "/",
             data=(
                 # data
-                b"--a7f7ac8d4e2e437c877bb7b8d7cc549c\r\n"
+                b"--a7f7ac8d4e2e437c877bb7b8d7cc549c\r\n"  # type: ignore
                 b'Content-Disposition: form-data; ="field0"\r\n\r\n'
                 b"value0\r\n"
             ),
@@ -552,8 +551,8 @@ def test_missing_name_parameter_on_content_disposition(
 )
 def test_too_many_fields_raise(
     app: ASGIApp,
-    expectation: typing.ContextManager[TestCase],
-    test_client_factory: typing.Any,
+    expectation: typing.ContextManager[Exception],
+    test_client_factory: TestClientFactory,
 ) -> None:
     client = test_client_factory(app)
     fields = []
@@ -565,7 +564,7 @@ def test_too_many_fields_raise(
     with expectation:
         res = client.post(
             "/",
-            data=data,
+            data=data,  # type: ignore
             headers={"Content-Type": ("multipart/form-data; boundary=B")},
         )
         assert res.status_code == 400
@@ -581,8 +580,8 @@ def test_too_many_fields_raise(
 )
 def test_too_many_files_raise(
     app: ASGIApp,
-    expectation: typing.ContextManager[TestCase],
-    test_client_factory: typing.Any,
+    expectation: typing.ContextManager[Exception],
+    test_client_factory: TestClientFactory,
 ) -> None:
     client = test_client_factory(app)
     fields = []
@@ -596,7 +595,7 @@ def test_too_many_files_raise(
     with expectation:
         res = client.post(
             "/",
-            data=data,
+            data=data,  # type: ignore
             headers={"Content-Type": ("multipart/form-data; boundary=B")},
         )
         assert res.status_code == 400
@@ -612,8 +611,8 @@ def test_too_many_files_raise(
 )
 def test_too_many_files_single_field_raise(
     app: ASGIApp,
-    expectation: typing.ContextManager[TestCase],
-    test_client_factory: typing.Any,
+    expectation: typing.ContextManager[Exception],
+    test_client_factory: TestClientFactory,
 ) -> None:
     client = test_client_factory(app)
     fields = []
@@ -629,7 +628,7 @@ def test_too_many_files_single_field_raise(
     with expectation:
         res = client.post(
             "/",
-            data=data,
+            data=data,  # type: ignore
             headers={"Content-Type": ("multipart/form-data; boundary=B")},
         )
         assert res.status_code == 400
@@ -645,8 +644,8 @@ def test_too_many_files_single_field_raise(
 )
 def test_too_many_files_and_fields_raise(
     app: ASGIApp,
-    expectation: typing.ContextManager[TestCase],
-    test_client_factory: typing.Any,
+    expectation: typing.ContextManager[Exception],
+    test_client_factory: TestClientFactory,
 ) -> None:
     client = test_client_factory(app)
     fields = []
@@ -663,7 +662,7 @@ def test_too_many_files_and_fields_raise(
     with expectation:
         res = client.post(
             "/",
-            data=data,
+            data=data,  # type: ignore
             headers={"Content-Type": ("multipart/form-data; boundary=B")},
         )
         assert res.status_code == 400
@@ -682,8 +681,8 @@ def test_too_many_files_and_fields_raise(
 )
 def test_max_fields_is_customizable_low_raises(
     app: ASGIApp,
-    expectation: typing.ContextManager[TestCase],
-    test_client_factory: typing.Any,
+    expectation: typing.ContextManager[Exception],
+    test_client_factory: TestClientFactory,
 ) -> None:
     client = test_client_factory(app)
     fields = []
@@ -695,7 +694,7 @@ def test_max_fields_is_customizable_low_raises(
     with expectation:
         res = client.post(
             "/",
-            data=data,
+            data=data,  # type: ignore
             headers={"Content-Type": ("multipart/form-data; boundary=B")},
         )
         assert res.status_code == 400
@@ -714,8 +713,8 @@ def test_max_fields_is_customizable_low_raises(
 )
 def test_max_files_is_customizable_low_raises(
     app: ASGIApp,
-    expectation: typing.ContextManager[TestCase],
-    test_client_factory: typing.Any,
+    expectation: typing.ContextManager[Exception],
+    test_client_factory: TestClientFactory,
 ) -> None:
     client = test_client_factory(app)
     fields = []
@@ -729,7 +728,7 @@ def test_max_files_is_customizable_low_raises(
     with expectation:
         res = client.post(
             "/",
-            data=data,
+            data=data,  # type: ignore
             headers={"Content-Type": ("multipart/form-data; boundary=B")},
         )
         assert res.status_code == 400
@@ -737,7 +736,7 @@ def test_max_files_is_customizable_low_raises(
 
 
 def test_max_fields_is_customizable_high(
-    test_client_factory: typing.Any,
+    test_client_factory: TestClientFactory,
 ) -> None:
     client = test_client_factory(make_app_max_parts(max_fields=2000, max_files=2000))
     fields = []
@@ -754,7 +753,7 @@ def test_max_fields_is_customizable_high(
     data += b"--B--\r\n"
     res = client.post(
         "/",
-        data=data,
+        data=data,  # type: ignore
         headers={"Content-Type": ("multipart/form-data; boundary=B")},
     )
     assert res.status_code == 200
