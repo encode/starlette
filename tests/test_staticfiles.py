@@ -1,5 +1,6 @@
 import os
 import stat
+import sys
 import tempfile
 import time
 import typing
@@ -7,6 +8,7 @@ from pathlib import Path
 
 import anyio
 import pytest
+from typing_extensions import ParamSpec
 
 from starlette.applications import Starlette
 from starlette.exceptions import HTTPException
@@ -18,7 +20,13 @@ from starlette.routing import Mount
 from starlette.staticfiles import StaticFiles
 from starlette.testclient import TestClient
 
+if sys.version_info >= (3, 10):  # pragma: no cover
+    from typing import ParamSpec
+else:  # pragma: no cover
+    from typing_extensions import ParamSpec
+
 TestClientFactory = typing.Callable[..., TestClient]
+P = ParamSpec("P")
 
 
 def test_staticfiles(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
@@ -474,7 +482,7 @@ def test_staticfiles_unhandled_os_error_returns_500(
     test_client_factory: TestClientFactory,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    def mock_timeout(*args: typing.Any, **kwargs: typing.Any) -> None:
+    def mock_timeout(*args: P.args, **kwargs: P.kwargs) -> None:
         raise TimeoutError
 
     path = os.path.join(tmpdir, "example.txt")
