@@ -4,7 +4,7 @@ import itertools
 import sys
 from asyncio import Task, current_task as asyncio_current_task
 from contextlib import asynccontextmanager
-from typing import Any, AsyncGenerator, Awaitable, Callable, Union
+from typing import Any, AsyncGenerator, Awaitable, Callable
 
 import anyio
 import anyio.lowlevel
@@ -32,7 +32,7 @@ def mock_service_endpoint(request: Request) -> JSONResponse:
 mock_service = Starlette(routes=[Route("/", endpoint=mock_service_endpoint)])
 
 
-def current_task() -> Union[Task[Any], trio.lowlevel.Task]:
+def current_task() -> Task[Any] | trio.lowlevel.Task:
     # anyio's TaskInfo comparisons are invalid after their associated native
     # task object is GC'd https://github.com/agronholm/anyio/issues/324
     asynclib_name = sniffio.current_async_library()
