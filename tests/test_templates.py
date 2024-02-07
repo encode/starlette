@@ -49,7 +49,7 @@ def test_calls_context_processors(
     async def homepage(request: Request) -> Response:
         return templates.TemplateResponse(request, "index.html")
 
-    def hello_world_processor(request: Request) -> typing.Any:
+    def hello_world_processor(request: Request) -> typing.Dict[str, str]:
         return {"username": "World"}
 
     app = Starlette(
