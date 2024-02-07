@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import itertools
 import sys
 from asyncio import Task, current_task as asyncio_current_task
