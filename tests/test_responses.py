@@ -214,9 +214,7 @@ def test_response_phrase(test_client_factory: TestClientFactory) -> None:
     assert response.reason_phrase == ""
 
 
-def test_file_response(
-    tmpdir: Path, test_client_factory: TestClientFactory
-) -> None:
+def test_file_response(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
     path = os.path.join(tmpdir, "xyz")
     content = b"<file content>" * 1000
     with open(path, "wb") as file:
