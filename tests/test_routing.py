@@ -47,7 +47,7 @@ def user_no_match(request: Request) -> Response:  # pragma: no cover
     return Response(content, media_type="text/plain")
 
 
-async def partial_endpoint(arg: typing.Any, request: Request) -> JSONResponse:
+async def partial_endpoint(arg: str, request: Request) -> JSONResponse:
     return JSONResponse({"arg": arg})
 
 
@@ -59,7 +59,7 @@ async def partial_ws_endpoint(websocket: WebSocket) -> None:
 
 class PartialRoutes:
     @classmethod
-    async def async_endpoint(cls, arg: typing.Any, request: Request) -> JSONResponse:
+    async def async_endpoint(cls, arg: str, request: Request) -> JSONResponse:
         return JSONResponse({"arg": arg})
 
     @classmethod
@@ -760,7 +760,9 @@ def test_lifespan_state_unsupported(
     test_client_factory: TestClientFactory,
 ) -> None:
     @contextlib.asynccontextmanager
-    async def lifespan(app: ASGIApp) -> typing.Any:
+    async def lifespan(
+        app: ASGIApp,
+    ) -> typing.AsyncGenerator[typing.Dict[str, str], None]:
         yield {"foo": "bar"}
 
     app = Router(
@@ -838,7 +840,7 @@ def test_raise_on_startup(test_client_factory: TestClientFactory) -> None:
     startup_failed = False
 
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
-        async def _send(message: Message) -> typing.Any:
+        async def _send(message: Message) -> None:
             nonlocal startup_failed
             if message["type"] == "lifespan.startup.failed":
                 startup_failed = True
