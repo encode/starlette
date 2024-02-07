@@ -104,7 +104,7 @@ def test_streaming_response(test_client_factory: TestClientFactory) -> None:
     filled_by_bg_task = ""
 
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
-        async def numbers(minimum: int, maximum: int) -> AsyncGenerator[str, None]:
+        async def numbers(minimum: int, maximum: int) -> AsyncIterator[str]:
             for i in range(minimum, maximum + 1):
                 yield str(i)
                 if i != maximum:
@@ -557,7 +557,7 @@ async def test_streaming_response_stops_if_receiving_http_disconnect() -> None:
             if streamed >= 16:
                 disconnected.set()
 
-    async def stream_indefinitely() -> AsyncGenerator[bytes, None]:
+    async def stream_indefinitely() -> AsyncIterator[bytes]:
         while True:
             # Need a sleep for the event loop to switch to another task
             await anyio.sleep(0)
