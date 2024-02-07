@@ -681,7 +681,7 @@ def test_lifespan_with_on_events(test_client_factory: TestClientFactory) -> None
     shutdown_called = False
 
     @contextlib.asynccontextmanager
-    async def lifespan(app: Starlette) -> typing.Iterator[None]:
+    async def lifespan(app: Starlette) -> typing.AsyncGenerator[None, None]:
         nonlocal lifespan_called
         lifespan_called = True
         yield
