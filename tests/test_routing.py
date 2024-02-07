@@ -681,7 +681,7 @@ def test_lifespan_with_on_events(test_client_factory: TestClientFactory) -> None
     shutdown_called = False
 
     @contextlib.asynccontextmanager
-    async def lifespan(app: Starlette) -> typing.Any:
+    async def lifespan(app: Starlette) -> typing.Iterator[None]:
         nonlocal lifespan_called
         lifespan_called = True
         yield
@@ -1267,10 +1267,7 @@ async def echo_paths(request: Request, name: str) -> JSONResponse:
 
 
 async def pure_asgi_echo_paths(
-    scope: Scope,
-    receive: Receive,
-    send: Send,
-    name: str,
+    scope: Scope, receive: Receive, send: Send, name: str
 ) -> None:
     data = {"name": name, "path": scope["path"], "root_path": scope["root_path"]}
     content = json.dumps(data).encode("utf-8")
