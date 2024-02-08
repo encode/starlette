@@ -73,7 +73,10 @@ class Response:
 
         content_type = self.media_type
         if content_type is not None and populate_content_type:
-            if content_type.startswith("text/"):
+            if (
+                content_type.startswith("text/")
+                and "charset=" not in content_type.lower()
+            ):
                 content_type += "; charset=" + self.charset
             raw_headers.append((b"content-type", content_type.encode("latin-1")))
 
@@ -145,14 +148,15 @@ class Response:
         )
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        prefix = "websocket." if scope["type"] == "websocket" else ""
         await send(
             {
-                "type": "http.response.start",
+                "type": prefix + "http.response.start",
                 "status": self.status_code,
                 "headers": self.raw_headers,
             }
         )
-        await send({"type": "http.response.body", "body": self.body})
+        await send({"type": prefix + "http.response.body", "body": self.body})
 
         if self.background is not None:
             await self.background()
