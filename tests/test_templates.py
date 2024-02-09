@@ -27,10 +27,7 @@ def test_templates(tmpdir: Path, test_client_factory: TestClientFactory) -> None
     async def homepage(request: Request) -> Response:
         return templates.TemplateResponse(request, "index.html")
 
-    app = Starlette(
-        debug=True,
-        routes=[Route("/", endpoint=homepage)],
-    )
+    app = Starlette(debug=True, routes=[Route("/", endpoint=homepage)])
     templates = Jinja2Templates(directory=str(tmpdir))
 
     client = test_client_factory(app)
@@ -82,9 +79,7 @@ def test_template_with_middleware(
 
     class CustomMiddleware(BaseHTTPMiddleware):
         async def dispatch(
-            self,
-            request: Request,
-            call_next: RequestResponseEndpoint,
+            self, request: Request, call_next: RequestResponseEndpoint
         ) -> Response:
             return await call_next(request)
 
