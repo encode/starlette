@@ -17,8 +17,7 @@ def test_gzip_responses(test_client_factory: TestClientFactory) -> None:
         return PlainTextResponse("x" * 4000, status_code=200)
 
     app = Starlette(
-        routes=[Route("/", endpoint=homepage)],
-        middleware=[Middleware(GZipMiddleware)],
+        routes=[Route("/", endpoint=homepage)], middleware=[Middleware(GZipMiddleware)]
     )
 
     client = test_client_factory(app)
@@ -34,8 +33,7 @@ def test_gzip_not_in_accept_encoding(test_client_factory: TestClientFactory) -> 
         return PlainTextResponse("x" * 4000, status_code=200)
 
     app = Starlette(
-        routes=[Route("/", endpoint=homepage)],
-        middleware=[Middleware(GZipMiddleware)],
+        routes=[Route("/", endpoint=homepage)], middleware=[Middleware(GZipMiddleware)]
     )
 
     client = test_client_factory(app)
@@ -53,8 +51,7 @@ def test_gzip_ignored_for_small_responses(
         return PlainTextResponse("OK", status_code=200)
 
     app = Starlette(
-        routes=[Route("/", endpoint=homepage)],
-        middleware=[Middleware(GZipMiddleware)],
+        routes=[Route("/", endpoint=homepage)], middleware=[Middleware(GZipMiddleware)]
     )
 
     client = test_client_factory(app)
@@ -75,8 +72,7 @@ def test_gzip_streaming_response(test_client_factory: TestClientFactory) -> None
         return StreamingResponse(streaming, status_code=200)
 
     app = Starlette(
-        routes=[Route("/", endpoint=homepage)],
-        middleware=[Middleware(GZipMiddleware)],
+        routes=[Route("/", endpoint=homepage)], middleware=[Middleware(GZipMiddleware)]
     )
 
     client = test_client_factory(app)
@@ -101,8 +97,7 @@ def test_gzip_ignored_for_responses_with_encoding_set(
         )
 
     app = Starlette(
-        routes=[Route("/", endpoint=homepage)],
-        middleware=[Middleware(GZipMiddleware)],
+        routes=[Route("/", endpoint=homepage)], middleware=[Middleware(GZipMiddleware)]
     )
 
     client = test_client_factory(app)

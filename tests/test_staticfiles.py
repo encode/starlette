@@ -421,11 +421,7 @@ def test_staticfiles_with_invalid_dir_permissions_returns_401(
     tmp_path.chmod(stat.S_IRWXO)
     try:
         routes = [
-            Mount(
-                "/",
-                app=StaticFiles(directory=os.fsdecode(tmp_path)),
-                name="static",
-            )
+            Mount("/", app=StaticFiles(directory=os.fsdecode(tmp_path)), name="static")
         ]
         app = Starlette(routes=routes)
         client = test_client_factory(app)

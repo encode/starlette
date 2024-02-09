@@ -14,9 +14,7 @@ from starlette.types import Receive, Scope, Send
 TestClientFactory = Callable[..., TestClient]
 
 
-def test_handler(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_handler(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         raise RuntimeError("Something went wrong")
 

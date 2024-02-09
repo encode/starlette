@@ -12,9 +12,7 @@ from starlette.types import ASGIApp
 TestClientFactory = Callable[[ASGIApp], TestClient]
 
 
-def test_cors_allow_all(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_cors_allow_all(test_client_factory: TestClientFactory) -> None:
     def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("Homepage", status_code=200)
 
@@ -124,9 +122,7 @@ def test_cors_allow_all_except_credentials(
     assert "access-control-allow-origin" not in response.headers
 
 
-def test_cors_allow_specific_origin(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_cors_allow_specific_origin(test_client_factory: TestClientFactory) -> None:
     def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("Homepage", status_code=200)
 
@@ -173,9 +169,7 @@ def test_cors_allow_specific_origin(
     assert "access-control-allow-origin" not in response.headers
 
 
-def test_cors_disallowed_preflight(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_cors_disallowed_preflight(test_client_factory: TestClientFactory) -> None:
     def homepage(request: Request) -> None:
         pass  # pragma: no cover
 
@@ -235,14 +229,8 @@ def test_preflight_allows_request_origin_if_origins_wildcard_and_credentials_all
     client = test_client_factory(app)
 
     # Test pre-flight response
-    headers = {
-        "Origin": "https://example.org",
-        "Access-Control-Request-Method": "POST",
-    }
-    response = client.options(
-        "/",
-        headers=headers,
-    )
+    headers = {"Origin": "https://example.org", "Access-Control-Request-Method": "POST"}
+    response = client.options("/", headers=headers)
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "https://example.org"
     assert response.headers["access-control-allow-credentials"] == "true"
@@ -264,10 +252,7 @@ def test_cors_preflight_allow_all_methods(
 
     client = test_client_factory(app)
 
-    headers = {
-        "Origin": "https://example.org",
-        "Access-Control-Request-Method": "POST",
-    }
+    headers = {"Origin": "https://example.org", "Access-Control-Request-Method": "POST"}
 
     for method in ("DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"):
         response = client.options("/", headers=headers)
@@ -275,9 +260,7 @@ def test_cors_preflight_allow_all_methods(
         assert method in response.headers["access-control-allow-methods"]
 
 
-def test_cors_allow_all_methods(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_cors_allow_all_methods(test_client_factory: TestClientFactory) -> None:
     def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("Homepage", status_code=200)
 
@@ -306,9 +289,7 @@ def test_cors_allow_all_methods(
         assert response.status_code == 200
 
 
-def test_cors_allow_origin_regex(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_cors_allow_origin_regex(test_client_factory: TestClientFactory) -> None:
     def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("Homepage", status_code=200)
 
@@ -506,9 +487,7 @@ def test_cors_vary_header_is_properly_set_when_allow_origins_is_not_wildcard(
         )
 
     app = Starlette(
-        routes=[
-            Route("/", endpoint=homepage),
-        ],
+        routes=[Route("/", endpoint=homepage)],
         middleware=[Middleware(CORSMiddleware, allow_origins=["https://example.org"])],
     )
     client = test_client_factory(app)
@@ -525,9 +504,7 @@ def test_cors_allowed_origin_does_not_leak_between_credentialed_requests(
         return PlainTextResponse("Homepage", status_code=200)
 
     app = Starlette(
-        routes=[
-            Route("/", endpoint=homepage),
-        ],
+        routes=[Route("/", endpoint=homepage)],
         middleware=[
             Middleware(
                 CORSMiddleware,

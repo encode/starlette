@@ -60,21 +60,13 @@ class _CachedRequest(Request):
         if getattr(self, "_body", None) is not None:
             # body() was called, we return it even if the client disconnected
             self._wrapped_rcv_consumed = True
-            return {
-                "type": "http.request",
-                "body": self._body,
-                "more_body": False,
-            }
+            return {"type": "http.request", "body": self._body, "more_body": False}
         elif self._stream_consumed:
             # stream() was called to completion
             # return an empty body so that downstream apps don't hang
             # waiting for a disconnect
             self._wrapped_rcv_consumed = True
-            return {
-                "type": "http.request",
-                "body": b"",
-                "more_body": False,
-            }
+            return {"type": "http.request", "body": b"", "more_body": False}
         else:
             # body() was never called and stream() wasn't consumed
             try:

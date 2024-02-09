@@ -1,14 +1,6 @@
 import contextvars
 from contextlib import AsyncExitStack
-from typing import (
-    Any,
-    AsyncGenerator,
-    Callable,
-    Generator,
-    List,
-    Type,
-    Union,
-)
+from typing import Any, AsyncGenerator, Callable, Generator, List, Type, Union
 
 import anyio
 import pytest
@@ -30,9 +22,7 @@ TestClientFactory = Callable[[ASGIApp], TestClient]
 
 class CustomMiddleware(BaseHTTPMiddleware):
     async def dispatch(
-        self,
-        request: Request,
-        call_next: RequestResponseEndpoint,
+        self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
         response = await call_next(request)
         response.headers["Custom-Header"] = "Example"
@@ -57,12 +47,7 @@ def _generate_faulty_stream() -> Generator[bytes, None, None]:
 
 
 class NoResponse:
-    def __init__(
-        self,
-        scope: Scope,
-        receive: Receive,
-        send: Send,
-    ):
+    def __init__(self, scope: Scope, receive: Receive, send: Send):
         pass
 
     def __await__(self) -> Generator[Any, None, None]:
@@ -119,9 +104,7 @@ def test_state_data_across_multiple_middlewares(
 
     class aMiddleware(BaseHTTPMiddleware):
         async def dispatch(
-            self,
-            request: Request,
-            call_next: RequestResponseEndpoint,
+            self, request: Request, call_next: RequestResponseEndpoint
         ) -> Response:
             request.state.foo = expected_value1
             response = await call_next(request)
@@ -129,9 +112,7 @@ def test_state_data_across_multiple_middlewares(
 
     class bMiddleware(BaseHTTPMiddleware):
         async def dispatch(
-            self,
-            request: Request,
-            call_next: RequestResponseEndpoint,
+            self, request: Request, call_next: RequestResponseEndpoint
         ) -> Response:
             request.state.bar = expected_value2
             response = await call_next(request)
@@ -140,9 +121,7 @@ def test_state_data_across_multiple_middlewares(
 
     class cMiddleware(BaseHTTPMiddleware):
         async def dispatch(
-            self,
-            request: Request,
-            call_next: RequestResponseEndpoint,
+            self, request: Request, call_next: RequestResponseEndpoint
         ) -> Response:
             response = await call_next(request)
             response.headers["X-State-Bar"] = request.state.bar
@@ -184,9 +163,7 @@ def test_fully_evaluated_response(test_client_factory: TestClientFactory) -> Non
     # Test for https://github.com/encode/starlette/issues/1022
     class CustomMiddleware(BaseHTTPMiddleware):
         async def dispatch(
-            self,
-            request: Request,
-            call_next: RequestResponseEndpoint,
+            self, request: Request, call_next: RequestResponseEndpoint
         ) -> PlainTextResponse:
             await call_next(request)
             return PlainTextResponse("Custom")
@@ -213,9 +190,7 @@ class CustomMiddlewareWithoutBaseHTTPMiddleware:
 
 class CustomMiddlewareUsingBaseHTTPMiddleware(BaseHTTPMiddleware):
     async def dispatch(
-        self,
-        request: Request,
-        call_next: RequestResponseEndpoint,
+        self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
         ctxvar.set("set by middleware")
         resp = await call_next(request)
@@ -240,8 +215,7 @@ class CustomMiddlewareUsingBaseHTTPMiddleware(BaseHTTPMiddleware):
     ],
 )
 def test_contextvars(
-    test_client_factory: TestClientFactory,
-    middleware_cls: Type[_MiddlewareClass[Any]],
+    test_client_factory: TestClientFactory, middleware_cls: Type[_MiddlewareClass[Any]]
 ) -> None:
     # this has to be an async endpoint because Starlette calls run_in_threadpool
     # on sync endpoints which has it's own set of peculiarities w.r.t propagating
@@ -278,8 +252,7 @@ async def test_run_background_tasks_even_if_client_disconnects() -> None:
         return PlainTextResponse(background=BackgroundTask(sleep_and_set))
 
     async def passthrough(
-        request: Request,
-        call_next: RequestResponseEndpoint,
+        request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
         return await call_next(request)
 
@@ -288,12 +261,7 @@ async def test_run_background_tasks_even_if_client_disconnects() -> None:
         routes=[Route("/", endpoint_with_background_task)],
     )
 
-    scope = {
-        "type": "http",
-        "version": "3",
-        "method": "GET",
-        "path": "/",
-    }
+    scope = {"type": "http", "version": "3", "method": "GET", "path": "/"}
 
     async def receive() -> Message:
         nonlocal request_body_sent
@@ -340,12 +308,7 @@ async def test_do_not_block_on_background_tasks() -> None:
         routes=[Route("/", endpoint_with_background_task)],
     )
 
-    scope = {
-        "type": "http",
-        "version": "3",
-        "method": "GET",
-        "path": "/",
-    }
+    scope = {"type": "http", "version": "3", "method": "GET", "path": "/"}
 
     async def receive() -> Message:
         nonlocal request_body_sent
@@ -406,8 +369,7 @@ async def test_run_context_manager_exit_even_if_client_disconnects() -> None:
         return PlainTextResponse(background=BackgroundTask(sleep_and_set))
 
     async def passthrough(
-        request: Request,
-        call_next: RequestResponseEndpoint,
+        request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
         return await call_next(request)
 
@@ -419,12 +381,7 @@ async def test_run_context_manager_exit_even_if_client_disconnects() -> None:
         routes=[Route("/", simple_endpoint)],
     )
 
-    scope = {
-        "type": "http",
-        "version": "3",
-        "method": "GET",
-        "path": "/",
-    }
+    scope = {"type": "http", "version": "3", "method": "GET", "path": "/"}
 
     async def receive() -> Message:
         nonlocal request_body_sent
@@ -449,11 +406,7 @@ def test_app_receives_http_disconnect_while_sending_if_discarded(
     test_client_factory: TestClientFactory,
 ) -> None:
     class DiscardingMiddleware(BaseHTTPMiddleware):
-        async def dispatch(
-            self,
-            request: Request,
-            call_next: Any,
-        ) -> PlainTextResponse:
+        async def dispatch(self, request: Request, call_next: Any) -> PlainTextResponse:
             # As a matter of ordering, this test targets the case where the downstream
             # app response is discarded while it is sending a response body.
             # We need to wait for the downstream app to begin sending a response body
@@ -468,25 +421,18 @@ def test_app_receives_http_disconnect_while_sending_if_discarded(
 
             return PlainTextResponse("Custom")
 
-    async def downstream_app(
-        scope: Scope,
-        receive: Receive,
-        send: Send,
-    ) -> None:
+    async def downstream_app(scope: Scope, receive: Receive, send: Send) -> None:
         await send(
             {
                 "type": "http.response.start",
                 "status": 200,
-                "headers": [
-                    (b"content-type", b"text/plain"),
-                ],
+                "headers": [(b"content-type", b"text/plain")],
             }
         )
         async with anyio.create_task_group() as task_group:
 
             async def cancel_on_disconnect(
-                *,
-                task_status: TaskStatus[None] = anyio.TASK_STATUS_IGNORED,
+                *, task_status: TaskStatus[None] = anyio.TASK_STATUS_IGNORED
             ) -> None:
                 task_status.started()
                 while True:
@@ -528,40 +474,24 @@ def test_app_receives_http_disconnect_after_sending_if_discarded(
 ) -> None:
     class DiscardingMiddleware(BaseHTTPMiddleware):
         async def dispatch(
-            self,
-            request: Request,
-            call_next: RequestResponseEndpoint,
+            self, request: Request, call_next: RequestResponseEndpoint
         ) -> PlainTextResponse:
             await call_next(request)
             return PlainTextResponse("Custom")
 
-    async def downstream_app(
-        scope: Scope,
-        receive: Receive,
-        send: Send,
-    ) -> None:
+    async def downstream_app(scope: Scope, receive: Receive, send: Send) -> None:
         await send(
             {
                 "type": "http.response.start",
                 "status": 200,
-                "headers": [
-                    (b"content-type", b"text/plain"),
-                ],
+                "headers": [(b"content-type", b"text/plain")],
             }
         )
         await send(
-            {
-                "type": "http.response.body",
-                "body": b"first chunk, ",
-                "more_body": True,
-            }
+            {"type": "http.response.body", "body": b"first chunk, ", "more_body": True}
         )
         await send(
-            {
-                "type": "http.response.body",
-                "body": b"second chunk",
-                "more_body": True,
-            }
+            {"type": "http.response.body", "body": b"second chunk", "more_body": True}
         )
         message = await receive()
         assert message["type"] == "http.disconnect"
@@ -585,9 +515,7 @@ def test_read_request_stream_in_app_after_middleware_calls_stream(
 
     class ConsumingMiddleware(BaseHTTPMiddleware):
         async def dispatch(
-            self,
-            request: Request,
-            call_next: RequestResponseEndpoint,
+            self, request: Request, call_next: RequestResponseEndpoint
         ) -> Response:
             expected = [b"a", b""]
             async for chunk in request.stream():
@@ -617,9 +545,7 @@ def test_read_request_stream_in_app_after_middleware_calls_body(
 
     class ConsumingMiddleware(BaseHTTPMiddleware):
         async def dispatch(
-            self,
-            request: Request,
-            call_next: RequestResponseEndpoint,
+            self, request: Request, call_next: RequestResponseEndpoint
         ) -> Response:
             assert await request.body() == b"a"
             return await call_next(request)
@@ -643,9 +569,7 @@ def test_read_request_body_in_app_after_middleware_calls_stream(
 
     class ConsumingMiddleware(BaseHTTPMiddleware):
         async def dispatch(
-            self,
-            request: Request,
-            call_next: RequestResponseEndpoint,
+            self, request: Request, call_next: RequestResponseEndpoint
         ) -> Response:
             expected = [b"a", b""]
             async for chunk in request.stream():
@@ -672,9 +596,7 @@ def test_read_request_body_in_app_after_middleware_calls_body(
 
     class ConsumingMiddleware(BaseHTTPMiddleware):
         async def dispatch(
-            self,
-            request: Request,
-            call_next: RequestResponseEndpoint,
+            self, request: Request, call_next: RequestResponseEndpoint
         ) -> Response:
             assert await request.body() == b"a"
             return await call_next(request)
@@ -701,9 +623,7 @@ def test_read_request_stream_in_dispatch_after_app_calls_stream(
 
     class ConsumingMiddleware(BaseHTTPMiddleware):
         async def dispatch(
-            self,
-            request: Request,
-            call_next: RequestResponseEndpoint,
+            self, request: Request, call_next: RequestResponseEndpoint
         ) -> Response:
             resp = await call_next(request)
             with pytest.raises(RuntimeError, match="Stream consumed"):
@@ -730,9 +650,7 @@ def test_read_request_stream_in_dispatch_after_app_calls_body(
 
     class ConsumingMiddleware(BaseHTTPMiddleware):
         async def dispatch(
-            self,
-            request: Request,
-            call_next: RequestResponseEndpoint,
+            self, request: Request, call_next: RequestResponseEndpoint
         ) -> Response:
             resp = await call_next(request)
             with pytest.raises(RuntimeError, match="Stream consumed"):
@@ -761,9 +679,7 @@ async def test_read_request_stream_in_dispatch_wrapping_app_calls_body() -> None
 
     class ConsumingMiddleware(BaseHTTPMiddleware):
         async def dispatch(
-            self,
-            request: Request,
-            call_next: RequestResponseEndpoint,
+            self, request: Request, call_next: RequestResponseEndpoint
         ) -> Response:
             expected = b"1"
             response: Union[Response, None] = None
@@ -816,9 +732,7 @@ def test_read_request_stream_in_dispatch_after_app_calls_body_with_middleware_ca
 
     class ConsumingMiddleware(BaseHTTPMiddleware):
         async def dispatch(
-            self,
-            request: Request,
-            call_next: RequestResponseEndpoint,
+            self, request: Request, call_next: RequestResponseEndpoint
         ) -> Response:
             assert (
                 await request.body() == b"a"
@@ -848,9 +762,7 @@ def test_read_request_body_in_dispatch_after_app_calls_body_with_middleware_call
 
     class ConsumingMiddleware(BaseHTTPMiddleware):
         async def dispatch(
-            self,
-            request: Request,
-            call_next: RequestResponseEndpoint,
+            self, request: Request, call_next: RequestResponseEndpoint
         ) -> Response:
             assert (
                 await request.body() == b"a"
@@ -885,9 +797,7 @@ async def test_read_request_disconnected_client() -> None:
 
     class ConsumingMiddleware(BaseHTTPMiddleware):
         async def dispatch(
-            self,
-            request: Request,
-            call_next: RequestResponseEndpoint,
+            self, request: Request, call_next: RequestResponseEndpoint
         ) -> Response:
             response = await call_next(request)
             disconnected = await request.is_disconnected()
@@ -925,9 +835,7 @@ async def test_read_request_disconnected_after_consuming_steam() -> None:
 
     class ConsumingMiddleware(BaseHTTPMiddleware):
         async def dispatch(
-            self,
-            request: Request,
-            call_next: RequestResponseEndpoint,
+            self, request: Request, call_next: RequestResponseEndpoint
         ) -> Response:
             await request.body()
             disconnected = await request.is_disconnected()
@@ -970,9 +878,7 @@ def test_downstream_middleware_modifies_receive(
 
     class ConsumingMiddleware(BaseHTTPMiddleware):
         async def dispatch(
-            self,
-            request: Request,
-            call_next: RequestResponseEndpoint,
+            self, request: Request, call_next: RequestResponseEndpoint
         ) -> Response:
             body = await request.body()
             assert body == b"foo "
@@ -1004,9 +910,7 @@ def test_pr_1519_comment_1236166180_example() -> None:
 
     class LogRequestBodySize(BaseHTTPMiddleware):
         async def dispatch(
-            self,
-            request: Request,
-            call_next: RequestResponseEndpoint,
+            self, request: Request, call_next: RequestResponseEndpoint
         ) -> Response:
             print(len(await request.body()))
             return await call_next(request)

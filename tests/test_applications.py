@@ -97,11 +97,7 @@ users = Router(
     ]
 )
 
-subdomain = Router(
-    routes=[
-        Route("/", custom_subdomain),
-    ]
-)
+subdomain = Router(routes=[Route("/", custom_subdomain)])
 
 exception_handlers = {
     500: error_500,
@@ -269,11 +265,7 @@ def test_app_mount(tmpdir: Path, test_client_factory: TestClientFactory) -> None
     with open(path, "w") as file:
         file.write("<file content>")
 
-    app = Starlette(
-        routes=[
-            Mount("/static", StaticFiles(directory=tmpdir)),
-        ]
-    )
+    app = Starlette(routes=[Mount("/static", StaticFiles(directory=tmpdir))])
 
     client = test_client_factory(app)
 
@@ -290,11 +282,7 @@ def test_app_debug(test_client_factory: TestClientFactory) -> None:
     async def homepage(request: Request) -> None:
         raise RuntimeError()
 
-    app = Starlette(
-        routes=[
-            Route("/", homepage),
-        ],
-    )
+    app = Starlette(routes=[Route("/", homepage)])
     app.debug = True
 
     client = test_client_factory(app, raise_server_exceptions=False)
@@ -308,11 +296,7 @@ def test_app_add_route(test_client_factory: TestClientFactory) -> None:
     async def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("Hello, World!")
 
-    app = Starlette(
-        routes=[
-            Route("/", endpoint=homepage),
-        ]
-    )
+    app = Starlette(routes=[Route("/", endpoint=homepage)])
 
     client = test_client_factory(app)
     response = client.get("/")
@@ -326,11 +310,7 @@ def test_app_add_websocket_route(test_client_factory: TestClientFactory) -> None
         await session.send_text("Hello, world!")
         await session.close()
 
-    app = Starlette(
-        routes=[
-            WebSocketRoute("/ws", endpoint=websocket_endpoint),
-        ]
-    )
+    app = Starlette(routes=[WebSocketRoute("/ws", endpoint=websocket_endpoint)])
     client = test_client_factory(app)
 
     with client.websocket_connect("/ws") as session:
@@ -353,10 +333,7 @@ def test_app_add_event_handler(test_client_factory: TestClientFactory) -> None:
     with pytest.deprecated_call(
         match="The on_startup and on_shutdown parameters are deprecated"
     ):
-        app = Starlette(
-            on_startup=[run_startup],
-            on_shutdown=[run_cleanup],
-        )
+        app = Starlette(on_startup=[run_startup], on_shutdown=[run_cleanup])
 
     assert not startup_complete
     assert not cleanup_complete

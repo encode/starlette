@@ -127,8 +127,7 @@ def test_use_testclient_as_contextmanager(
         return JSONResponse(get_identity())
 
     app = Starlette(
-        lifespan=lifespan_context,
-        routes=[Route("/loop_id", endpoint=loop_id)],
+        lifespan=lifespan_context, routes=[Route("/loop_id", endpoint=loop_id)]
     )
 
     client = test_client_factory(app)
@@ -296,7 +295,7 @@ def test_query_params(test_client_factory: TestClientFactory, param: str) -> Non
                     sys.version_info < (3, 11),
                     reason="Fails due to domain handling in http.cookiejar module (see "
                     "#2152)",
-                ),
+                )
             ],
         ),
         ("testserver.local", True),
@@ -318,12 +317,7 @@ def test_domain_restricted_cookies(
 
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         response = Response("Hello, world!", media_type="text/plain")
-        response.set_cookie(
-            "mycookie",
-            "myvalue",
-            path="/",
-            domain=domain,
-        )
+        response.set_cookie("mycookie", "myvalue", path="/", domain=domain)
         await response(scope, receive, send)
 
     client = test_client_factory(app)

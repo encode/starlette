@@ -22,10 +22,7 @@ _CovariantValueType = typing.TypeVar("_CovariantValueType", covariant=True)
 
 class URL:
     def __init__(
-        self,
-        url: str = "",
-        scope: Scope | None = None,
-        **components: typing.Any,
+        self, url: str = "", scope: Scope | None = None, **components: typing.Any
     ) -> None:
         if scope is not None:
             assert not url, 'Cannot set both "url" and "scope".'

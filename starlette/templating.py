@@ -47,10 +47,7 @@ class _TemplateResponse(HTMLResponse):
             await send(
                 {
                     "type": "http.response.debug",
-                    "info": {
-                        "template": self.template,
-                        "context": self.context,
-                    },
+                    "info": {"template": self.template, "context": self.context},
                 }
             )
         await super().__call__(scope, receive, send)

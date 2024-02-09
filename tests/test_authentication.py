@@ -29,8 +29,7 @@ SyncEndpoint = Callable[..., Response]
 
 class BasicAuth(AuthenticationBackend):
     async def authenticate(
-        self,
-        request: HTTPConnection,
+        self, request: HTTPConnection
     ) -> Optional[Tuple[AuthCredentials, SimpleUser]]:
         if "Authorization" not in request.headers:
             return None

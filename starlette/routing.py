@@ -659,18 +659,14 @@ class Router:
                 "use an @contextlib.asynccontextmanager function instead",
                 DeprecationWarning,
             )
-            self.lifespan_context = asynccontextmanager(
-                lifespan,
-            )
+            self.lifespan_context = asynccontextmanager(lifespan)
         elif inspect.isgeneratorfunction(lifespan):
             warnings.warn(
                 "generator function lifespans are deprecated, "
                 "use an @contextlib.asynccontextmanager function instead",
                 DeprecationWarning,
             )
-            self.lifespan_context = _wrap_gen_lifespan_context(
-                lifespan,
-            )
+            self.lifespan_context = _wrap_gen_lifespan_context(lifespan)
         else:
             self.lifespan_context = lifespan
 

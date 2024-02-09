@@ -23,10 +23,7 @@ class _MiddlewareClass(Protocol[P]):
 
 class Middleware:
     def __init__(
-        self,
-        cls: type[_MiddlewareClass[P]],
-        *args: P.args,
-        **kwargs: P.kwargs,
+        self, cls: type[_MiddlewareClass[P]], *args: P.args, **kwargs: P.kwargs
     ) -> None:
         self.cls = cls
         self.args = args

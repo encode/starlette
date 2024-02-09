@@ -79,8 +79,7 @@ class _Upgrade(Exception):
 
 
 class WebSocketDenialResponse(  # type: ignore[misc]
-    httpx.Response,
-    WebSocketDisconnect,
+    httpx.Response, WebSocketDisconnect
 ):
     """
     A special case of `WebSocketDisconnect`, raised in the `TestClient` if the
@@ -90,10 +89,7 @@ class WebSocketDenialResponse(  # type: ignore[misc]
 
 class WebSocketTestSession:
     def __init__(
-        self,
-        app: ASGI3App,
-        scope: Scope,
-        portal_factory: _PortalFactoryType,
+        self, app: ASGI3App, scope: Scope, portal_factory: _PortalFactoryType
     ) -> None:
         self.app = app
         self.scope = scope
@@ -182,9 +178,7 @@ class WebSocketTestSession:
                 if not message.get("more_body", False):
                     break
             raise WebSocketDenialResponse(
-                status_code=status_code,
-                headers=headers,
-                content=b"".join(body),
+                status_code=status_code, headers=headers, content=b"".join(body)
             )
 
     def send(self, message: Message) -> None:
@@ -400,11 +394,7 @@ class _TestClientTransport(httpx.BaseTransport):
         if self.raise_server_exceptions:
             assert response_started, "TestClient did not receive any response."
         elif not response_started:
-            raw_kwargs = {
-                "status_code": 500,
-                "headers": [],
-                "stream": io.BytesIO(),
-            }
+            raw_kwargs = {"status_code": 500, "headers": [], "stream": io.BytesIO()}
 
         raw_kwargs["stream"] = httpx.ByteStream(raw_kwargs["stream"].read())
 

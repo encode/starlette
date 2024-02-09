@@ -57,19 +57,11 @@ def test_async_object_call() -> None:
 
 def test_async_partial_object_call() -> None:
     class Async:
-        async def __call__(
-            self,
-            a: Any,
-            b: Any,
-        ) -> None:
+        async def __call__(self, a: Any, b: Any) -> None:
             ...  # pragma: no cover
 
     class Sync:
-        def __call__(
-            self,
-            a: Any,
-            b: Any,
-        ) -> None:
+        def __call__(self, a: Any, b: Any) -> None:
             ...  # pragma: no cover
 
     partial = functools.partial(Async(), 1)
@@ -80,10 +72,7 @@ def test_async_partial_object_call() -> None:
 
 
 def test_async_nested_partial() -> None:
-    async def async_func(
-        a: Any,
-        b: Any,
-    ) -> None:
+    async def async_func(a: Any, b: Any) -> None:
         ...  # pragma: no cover
 
     partial = functools.partial(async_func, b=2)

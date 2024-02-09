@@ -118,8 +118,7 @@ def test_websockets_should_raise(client: TestClient) -> None:
 
 
 def test_handled_exc_after_response(
-    test_client_factory: TestClientFactory,
-    client: TestClient,
+    test_client_factory: TestClientFactory, client: TestClient
 ) -> None:
     # A 406 HttpException is raised *after* the response has already been sent.
     # The exception middleware should raise a RuntimeError.

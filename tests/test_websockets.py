@@ -336,18 +336,9 @@ def test_send_response_multi(test_client_factory: TestClientFactory) -> None:
             }
         )
         await websocket.send(
-            {
-                "type": "websocket.http.response.body",
-                "body": b"hard",
-                "more_body": True,
-            }
+            {"type": "websocket.http.response.body", "body": b"hard", "more_body": True}
         )
-        await websocket.send(
-            {
-                "type": "websocket.http.response.body",
-                "body": b"body",
-            }
-        )
+        await websocket.send({"type": "websocket.http.response.body", "body": b"body"})
 
     client = test_client_factory(app)
     with pytest.raises(WebSocketDenialResponse) as exc:

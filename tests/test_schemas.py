@@ -113,11 +113,7 @@ def schema(request: Request) -> Response:
     return schemas.OpenAPIResponse(request=request)
 
 
-subapp = Starlette(
-    routes=[
-        Route("/subapp-endpoint", endpoint=subapp_endpoint),
-    ]
-)
+subapp = Starlette(routes=[Route("/subapp-endpoint", endpoint=subapp_endpoint)])
 
 app = Starlette(
     routes=[
@@ -199,12 +195,9 @@ def test_schema_generation() -> None:
             "/users/{id}": {
                 "get": {
                     "responses": {
-                        200: {
-                            "description": "A user.",
-                            "examples": {"username": "tom"},
-                        }
+                        200: {"description": "A user.", "examples": {"username": "tom"}}
                     }
-                },
+                }
             },
         },
     }

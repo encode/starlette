@@ -343,8 +343,7 @@ def test_router_middleware(test_client_factory: TestClientFactory) -> None:
             await response(scope, receive, send)
 
     app = Router(
-        routes=[Route("/", homepage)],
-        middleware=[Middleware(CustomMiddleware)],
+        routes=[Route("/", homepage)], middleware=[Middleware(CustomMiddleware)]
     )
 
     client = test_client_factory(app)
@@ -585,7 +584,7 @@ async def stub_app(scope: Scope, receive: Receive, send: Send) -> None:
 
 
 double_mount_routes = [
-    Mount("/mount", name="mount", routes=[Mount("/static", stub_app, name="static")]),
+    Mount("/mount", name="mount", routes=[Mount("/static", stub_app, name="static")])
 ]
 
 
@@ -595,9 +594,7 @@ def test_url_for_with_double_mount() -> None:
     assert url == "/mount/static/123"
 
 
-def test_standalone_route_matches(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_standalone_route_matches(test_client_factory: TestClientFactory) -> None:
     app = Route("/", PlainTextResponse("Hello, World!"))
     client = test_client_factory(app)
     response = client.get("/")
@@ -621,9 +618,7 @@ async def ws_helloworld(websocket: WebSocket) -> None:
     await websocket.close()
 
 
-def test_standalone_ws_route_matches(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_standalone_ws_route_matches(test_client_factory: TestClientFactory) -> None:
     app = WebSocketRoute("/", ws_helloworld)
     client = test_client_factory(app)
     with client.websocket_connect("/") as websocket:
@@ -756,9 +751,7 @@ def test_lifespan_sync(test_client_factory: TestClientFactory) -> None:
     assert shutdown_complete
 
 
-def test_lifespan_state_unsupported(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_lifespan_state_unsupported(test_client_factory: TestClientFactory) -> None:
     @contextlib.asynccontextmanager
     async def lifespan(
         app: ASGIApp,
@@ -766,8 +759,7 @@ def test_lifespan_state_unsupported(
         yield {"foo": "bar"}
 
     app = Router(
-        lifespan=lifespan,
-        routes=[Mount("/", PlainTextResponse("hello, world"))],
+        lifespan=lifespan, routes=[Mount("/", PlainTextResponse("hello, world"))]
     )
 
     async def no_state_wrapper(scope: Scope, receive: Receive, send: Send) -> None:
@@ -812,10 +804,7 @@ def test_lifespan_state_async_cm(test_client_factory: TestClientFactory) -> None
         # via state
         assert state["items"] == [1, 1]
 
-    app = Router(
-        lifespan=lifespan,
-        routes=[Route("/", hello_world)],
-    )
+    app = Router(lifespan=lifespan, routes=[Route("/", hello_world)])
 
     assert not startup_complete
     assert not shutdown_complete
@@ -879,9 +868,7 @@ def test_partial_async_endpoint(test_client_factory: TestClientFactory) -> None:
     assert cls_method_response.json() == {"arg": "foo"}
 
 
-def test_partial_async_ws_endpoint(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_partial_async_ws_endpoint(test_client_factory: TestClientFactory) -> None:
     test_client = test_client_factory(app)
     with test_client.websocket_connect("/partial/ws") as websocket:
         data = websocket.receive_json()
@@ -893,10 +880,7 @@ def test_partial_async_ws_endpoint(
 
 
 def test_duplicated_param_names() -> None:
-    with pytest.raises(
-        ValueError,
-        match="Duplicated param name id at path /{id}/{id}",
-    ):
+    with pytest.raises(ValueError, match="Duplicated param name id at path /{id}/{id}"):
         Route("/{id}/{id}", user)
 
     with pytest.raises(
@@ -928,11 +912,7 @@ class Endpoint:
         pytest.param(func_homepage, "func_homepage", id="function"),
         pytest.param(Endpoint().my_method, "my_method", id="method"),
         pytest.param(Endpoint.my_classmethod, "my_classmethod", id="classmethod"),
-        pytest.param(
-            Endpoint.my_staticmethod,
-            "my_staticmethod",
-            id="staticmethod",
-        ),
+        pytest.param(Endpoint.my_staticmethod, "my_staticmethod", id="staticmethod"),
         pytest.param(Endpoint(), "Endpoint", id="object"),
         pytest.param(lambda request: ..., "<lambda>", id="lambda"),
     ],
@@ -985,7 +965,7 @@ mounted_routes_with_middleware = Starlette(
                     endpoint=assert_middleware_header_route,
                     methods=["GET"],
                     name="route",
-                ),
+                )
             ],
             middleware=[Middleware(AddHeadersMiddleware)],
         ),
@@ -1020,8 +1000,7 @@ mounted_app_with_middleware = Starlette(
     ],
 )
 def test_base_route_middleware(
-    test_client_factory: TestClientFactory,
-    app: Starlette,
+    test_client_factory: TestClientFactory, app: Starlette
 ) -> None:
     test_client = test_client_factory(app)
 
@@ -1055,19 +1034,13 @@ def test_add_route_to_app_after_mount(
     """
     inner_app = Router()
     app = Mount("/http", app=inner_app)
-    inner_app.add_route(
-        "/inner",
-        endpoint=homepage,
-        methods=["GET"],
-    )
+    inner_app.add_route("/inner", endpoint=homepage, methods=["GET"])
     client = test_client_factory(app)
     response = client.get("/http/inner")
     assert response.status_code == 200
 
 
-def test_exception_on_mounted_apps(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_exception_on_mounted_apps(test_client_factory: TestClientFactory) -> None:
     def exc(request: Request) -> None:
         raise Exception("Exc")
 
@@ -1104,10 +1077,7 @@ def test_mounted_middleware_does_not_catch_exception(
         routes=[
             Mount(
                 "/mount",
-                routes=[
-                    Route("/err", exc),
-                    Route("/home", homepage),
-                ],
+                routes=[Route("/err", exc), Route("/home", homepage)],
                 middleware=[Middleware(NamedMiddleware, name="Mounted")],
             ),
             Route("/err", exc),
@@ -1135,9 +1105,7 @@ def test_mounted_middleware_does_not_catch_exception(
     assert "X-Mounted" in resp.headers
 
 
-def test_websocket_route_middleware(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_websocket_route_middleware(test_client_factory: TestClientFactory) -> None:
     async def websocket_endpoint(session: WebSocket) -> None:
         await session.accept()
         await session.send_text("Hello, world!")
@@ -1192,51 +1160,25 @@ def test_websocket_route_repr() -> None:
 
 
 def test_mount_repr() -> None:
-    route = Mount(
-        "/app",
-        routes=[
-            Route("/", endpoint=homepage),
-        ],
-    )
+    route = Mount("/app", routes=[Route("/", endpoint=homepage)])
     # test for substring because repr(Router) returns unique object ID
     assert repr(route).startswith("Mount(path='/app', name='', app=")
 
 
 def test_mount_named_repr() -> None:
-    route = Mount(
-        "/app",
-        name="app",
-        routes=[
-            Route("/", endpoint=homepage),
-        ],
-    )
+    route = Mount("/app", name="app", routes=[Route("/", endpoint=homepage)])
     # test for substring because repr(Router) returns unique object ID
     assert repr(route).startswith("Mount(path='/app', name='app', app=")
 
 
 def test_host_repr() -> None:
-    route = Host(
-        "example.com",
-        app=Router(
-            [
-                Route("/", endpoint=homepage),
-            ]
-        ),
-    )
+    route = Host("example.com", app=Router([Route("/", endpoint=homepage)]))
     # test for substring because repr(Router) returns unique object ID
     assert repr(route).startswith("Host(host='example.com', name='', app=")
 
 
 def test_host_named_repr() -> None:
-    route = Host(
-        "example.com",
-        name="app",
-        app=Router(
-            [
-                Route("/", endpoint=homepage),
-            ]
-        ),
-    )
+    route = Host("example.com", name="app", app=Router([Route("/", endpoint=homepage)]))
     # test for substring because repr(Router) returns unique object ID
     assert repr(route).startswith("Host(host='example.com', name='app', app=")
 
@@ -1300,7 +1242,7 @@ echo_paths_routes = [
                 functools.partial(echo_paths, name="subpath"),
                 name="subpath",
                 methods=["GET"],
-            ),
+            )
         ],
     ),
 ]

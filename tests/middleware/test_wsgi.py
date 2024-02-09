@@ -13,10 +13,7 @@ StartResponse = Callable[..., Any]
 Environment = Dict[str, Any]
 
 
-def hello_world(
-    environ: Environment,
-    start_response: StartResponse,
-) -> WSGIResponse:
+def hello_world(environ: Environment, start_response: StartResponse) -> WSGIResponse:
     status = "200 OK"
     output = b"Hello World!\n"
     headers = [
@@ -27,10 +24,7 @@ def hello_world(
     return [output]
 
 
-def echo_body(
-    environ: Environment,
-    start_response: StartResponse,
-) -> WSGIResponse:
+def echo_body(environ: Environment, start_response: StartResponse) -> WSGIResponse:
     status = "200 OK"
     output = environ["wsgi.input"].read()
     headers = [
@@ -42,15 +36,13 @@ def echo_body(
 
 
 def raise_exception(
-    environ: Environment,
-    start_response: StartResponse,
+    environ: Environment, start_response: StartResponse
 ) -> WSGIResponse:
     raise RuntimeError("Something went wrong")
 
 
 def return_exc_info(
-    environ: Environment,
-    start_response: StartResponse,
+    environ: Environment, start_response: StartResponse
 ) -> WSGIResponse:
     try:
         raise RuntimeError("Something went wrong")

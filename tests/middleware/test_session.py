@@ -125,9 +125,7 @@ def test_secure_session(test_client_factory: TestClientFactory) -> None:
 
 def test_session_cookie_subpath(test_client_factory: TestClientFactory) -> None:
     second_app = Starlette(
-        routes=[
-            Route("/update_session", endpoint=update_session, methods=["POST"]),
-        ],
+        routes=[Route("/update_session", endpoint=update_session, methods=["POST"])],
         middleware=[
             Middleware(SessionMiddleware, secret_key="example", path="/second_app")
         ],

@@ -49,15 +49,9 @@ def test_calls_context_processors(
     def hello_world_processor(request: Request) -> typing.Dict[str, str]:
         return {"username": "World"}
 
-    app = Starlette(
-        debug=True,
-        routes=[Route("/", endpoint=homepage)],
-    )
+    app = Starlette(debug=True, routes=[Route("/", endpoint=homepage)])
     templates = Jinja2Templates(
-        directory=tmp_path,
-        context_processors=[
-            hello_world_processor,
-        ],
+        directory=tmp_path, context_processors=[hello_world_processor]
     )
 
     client = test_client_factory(app)
@@ -117,8 +111,7 @@ def test_templates_with_directories(
         return templates.TemplateResponse(request, "template_b.html")
 
     app = Starlette(
-        debug=True,
-        routes=[Route("/a", endpoint=page_a), Route("/b", endpoint=page_b)],
+        debug=True, routes=[Route("/a", endpoint=page_a), Route("/b", endpoint=page_b)]
     )
     templates = Jinja2Templates(directory=[dir_a, dir_b])
 
@@ -162,10 +155,7 @@ def test_templates_with_environment(
         return templates.TemplateResponse(request, "index.html")
 
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(str(tmpdir)))
-    app = Starlette(
-        debug=True,
-        routes=[Route("/", endpoint=homepage)],
-    )
+    app = Starlette(debug=True, routes=[Route("/", endpoint=homepage)])
     templates = Jinja2Templates(env=env)
     client = test_client_factory(app)
     response = client.get("/")
@@ -216,10 +206,7 @@ def test_templates_with_kwargs_only_requires_request_in_context(tmpdir: Path) ->
     # MAINTAINERS: remove after 1.0
 
     templates = Jinja2Templates(directory=str(tmpdir))
-    with pytest.warns(
-        DeprecationWarning,
-        match="requires the `request` argument",
-    ):
+    with pytest.warns(DeprecationWarning, match="requires the `request` argument"):
         with pytest.raises(ValueError):
             templates.TemplateResponse(name="index.html", context={"a": "b"})
 
@@ -243,10 +230,7 @@ def test_templates_with_kwargs_only_warns_when_no_request_keyword(
     app = Starlette(routes=[Route("/", page)])
     client = test_client_factory(app)
 
-    with pytest.warns(
-        DeprecationWarning,
-        match="requires the `request` argument",
-    ):
+    with pytest.warns(DeprecationWarning, match="requires the `request` argument"):
         client.get("/")
 
 
