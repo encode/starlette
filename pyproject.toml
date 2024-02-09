@@ -56,6 +56,10 @@ select = ["E", "F", "I"]
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
+split-on-trailing-comma = false
+
+[tool.ruff.format]
+skip-magic-trailing-comma = true
 
 [tool.mypy]
 strict = true
