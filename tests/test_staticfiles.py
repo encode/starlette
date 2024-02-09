@@ -1,6 +1,5 @@
 import os
 import stat
-import sys
 import tempfile
 import time
 import typing
@@ -18,11 +17,6 @@ from starlette.responses import Response
 from starlette.routing import Mount
 from starlette.staticfiles import StaticFiles
 from starlette.testclient import TestClient
-
-if sys.version_info >= (3, 10):  # pragma: no cover
-    pass
-else:  # pragma: no cover
-    pass
 
 TestClientFactory = typing.Callable[..., TestClient]
 
