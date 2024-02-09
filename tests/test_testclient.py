@@ -4,7 +4,7 @@ import itertools
 import sys
 from asyncio import Task, current_task as asyncio_current_task
 from contextlib import asynccontextmanager
-from typing import Any, AsyncGenerator, Awaitable, Callable
+from typing import Any, AsyncGenerator, Callable
 
 import anyio
 import anyio.lowlevel
@@ -17,12 +17,11 @@ from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, RedirectResponse, Response
 from starlette.routing import Route
-from starlette.testclient import TestClient
+from starlette.testclient import ASGIInstance, TestClient
 from starlette.types import ASGIApp, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 TestClientFactory = Callable[..., TestClient]
-ASGIConnectionHandler = Callable[[Receive, Send], Awaitable[None]]
 
 
 def mock_service_endpoint(request: Request) -> JSONResponse:
@@ -148,7 +147,7 @@ def test_use_testclient_as_contextmanager(
     assert startup_task is shutdown_task
 
     # outside the TestClient context, new requests continue to spawn in new
-    # eventloops in new threads
+    # event loops in new threads
     assert client.get("/loop_id").json() == 1
     assert client.get("/loop_id").json() == 2
 
@@ -200,7 +199,7 @@ def test_exception_in_middleware(test_client_factory: TestClientFactory) -> None
 
 
 def test_testclient_asgi2(test_client_factory: TestClientFactory) -> None:
-    def app(scope: Scope) -> ASGIConnectionHandler:
+    def app(scope: Scope) -> ASGIInstance:
         async def inner(receive: Receive, send: Send) -> None:
             await send(
                 {
@@ -235,7 +234,7 @@ def test_testclient_asgi3(test_client_factory: TestClientFactory) -> None:
 
 
 def test_websocket_blocking_receive(test_client_factory: TestClientFactory) -> None:
-    def app(scope: Scope) -> ASGIConnectionHandler:
+    def app(scope: Scope) -> ASGIInstance:
         async def respond(websocket: WebSocket) -> None:
             await websocket.send_json({"message": "test"})
 
@@ -260,7 +259,7 @@ def test_websocket_blocking_receive(test_client_factory: TestClientFactory) -> N
 
 
 def test_websocket_not_block_on_close(test_client_factory: TestClientFactory) -> None:
-    def app(scope: Scope) -> ASGIConnectionHandler:
+    def app(scope: Scope) -> ASGIInstance:
         async def asgi(receive: Receive, send: Send) -> None:
             websocket = WebSocket(scope, receive=receive, send=send)
             await websocket.accept()
