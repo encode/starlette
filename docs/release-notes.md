@@ -4,7 +4,7 @@ February 9, 2024
 
 #### Fixed
 
-* Warn instead of raise for missing env file [#2485](https://github.com/encode/starlette/pull/2485).
+* Warn instead of raise for missing env file on `Config` [#2485](https://github.com/encode/starlette/pull/2485).
 
 ## 0.37.0
 
