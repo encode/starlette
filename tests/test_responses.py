@@ -3,7 +3,7 @@ import os
 import time
 from http.cookies import SimpleCookie
 from pathlib import Path
-from typing import AsyncGenerator, AsyncIterator, Callable, Iterator, Union
+from typing import AsyncIterator, Callable, Iterator, Union
 
 import anyio
 import pytest
@@ -222,7 +222,7 @@ def test_file_response(tmpdir: Path, test_client_factory: TestClientFactory) -> 
 
     filled_by_bg_task = ""
 
-    async def numbers(minimum: int, maximum: int) -> AsyncGenerator[str, None]:
+    async def numbers(minimum: int, maximum: int) -> AsyncIterator[str]:
         for i in range(minimum, maximum + 1):
             yield str(i)
             if i != maximum:
