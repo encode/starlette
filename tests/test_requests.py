@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 from typing import Any, Callable, Iterator
+from typing import Any, Dict, Iterator, List, Optional
 
 import anyio
 import pytest
@@ -9,10 +10,8 @@ import pytest
 from starlette.datastructures import Address, State
 from starlette.requests import ClientDisconnect, Request
 from starlette.responses import JSONResponse, PlainTextResponse, Response
-from starlette.testclient import TestClient
 from starlette.types import Message, Receive, Scope, Send
-
-TestClientFactory = Callable[..., TestClient]
+from tests.test_types.types import TestClientFactory
 
 
 def test_request_url(test_client_factory: TestClientFactory) -> None:

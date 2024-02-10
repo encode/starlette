@@ -4,7 +4,7 @@ import itertools
 import sys
 from asyncio import Task, current_task as asyncio_current_task
 from contextlib import asynccontextmanager
-from typing import Any, AsyncGenerator, Callable
+from typing import Any, AsyncGenerator
 
 import anyio
 import anyio.lowlevel
@@ -20,8 +20,7 @@ from starlette.routing import Route
 from starlette.testclient import ASGIInstance, TestClient
 from starlette.types import ASGIApp, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketDisconnect
-
-TestClientFactory = Callable[..., TestClient]
+from tests.test_types.types import TestClientFactory
 
 
 def mock_service_endpoint(request: Request) -> JSONResponse:

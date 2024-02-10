@@ -21,12 +21,8 @@ from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.requests import HTTPConnection, Request
 from starlette.responses import JSONResponse, Response
 from starlette.routing import Route, WebSocketRoute
-from starlette.testclient import TestClient
 from starlette.websockets import WebSocket, WebSocketDisconnect
-
-TestClientFactory = Callable[..., TestClient]
-AsyncEndpoint = Callable[..., Awaitable[Response]]
-SyncEndpoint = Callable[..., Response]
+from tests.test_types.types import AsyncEndpoint, SyncEndpoint, TestClientFactory
 
 
 class BasicAuth(AuthenticationBackend):

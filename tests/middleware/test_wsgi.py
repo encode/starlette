@@ -1,16 +1,15 @@
 import sys
-from typing import Any, Callable, Dict, Iterable
 
 import pytest
 
 from starlette._utils import collapse_excgroups
 from starlette.middleware.wsgi import WSGIMiddleware, build_environ
-from starlette.testclient import TestClient
-
-WSGIResponse = Iterable[bytes]
-TestClientFactory = Callable[..., TestClient]
-StartResponse = Callable[..., Any]
-Environment = Dict[str, Any]
+from tests.test_types.types import (
+    Environment,
+    StartResponse,
+    TestClientFactory,
+    WSGIResponse,
+)
 
 
 def hello_world(
