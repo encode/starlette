@@ -5,7 +5,7 @@ from starlette.responses import Response
 from starlette.routing import Host, Mount, Route, Router, WebSocketRoute
 from starlette.schemas import SchemaGenerator
 from starlette.websockets import WebSocket
-from tests.test_types.types import TestClientFactory
+from tests.types import TestClientFactory
 
 schemas = SchemaGenerator(
     {"openapi": "3.0.0", "info": {"title": "Example API", "version": "1.0"}}

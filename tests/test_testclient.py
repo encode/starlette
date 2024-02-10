@@ -20,7 +20,7 @@ from starlette.routing import Route
 from starlette.testclient import ASGIInstance, TestClient
 from starlette.types import ASGIApp, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketDisconnect
-from tests.test_types.types import TestClientFactory
+from tests.types import TestClientFactory
 
 
 def mock_service_endpoint(request: Request) -> JSONResponse:

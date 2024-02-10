@@ -4,7 +4,7 @@ import pytest
 
 from starlette._utils import collapse_excgroups
 from starlette.middleware.wsgi import WSGIMiddleware, build_environ
-from tests.test_types.types import (
+from tests.types import (
     Environment,
     StartResponse,
     TestClientFactory,

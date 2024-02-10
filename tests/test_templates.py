@@ -16,7 +16,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import Route
 from starlette.templating import Jinja2Templates
-from tests.test_types.types import TestClientFactory
+from tests.types import TestClientFactory
 
 
 def test_templates(tmpdir: Path, test_client_factory: TestClientFactory) -> None:

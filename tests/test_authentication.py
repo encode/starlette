@@ -22,7 +22,7 @@ from starlette.requests import HTTPConnection, Request
 from starlette.responses import JSONResponse, Response
 from starlette.routing import Route, WebSocketRoute
 from starlette.websockets import WebSocket, WebSocketDisconnect
-from tests.test_types.types import AsyncEndpoint, SyncEndpoint, TestClientFactory
+from tests.types import AsyncEndpoint, SyncEndpoint, TestClientFactory
 
 
 class BasicAuth(AuthenticationBackend):

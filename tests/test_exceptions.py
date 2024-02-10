@@ -10,7 +10,7 @@ from starlette.responses import JSONResponse, PlainTextResponse
 from starlette.routing import Route, Router, WebSocketRoute
 from starlette.testclient import TestClient
 from starlette.types import Receive, Scope, Send
-from tests.test_types.types import TestClientFactory
+from tests.types import TestClientFactory
 
 
 def raise_runtime_error(request: Request) -> None:

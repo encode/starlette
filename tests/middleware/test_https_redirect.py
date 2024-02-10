@@ -4,7 +4,7 @@ from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse
 from starlette.routing import Route
-from tests.test_types.types import TestClientFactory
+from tests.types import TestClientFactory
 
 
 def test_https_redirect_middleware(test_client_factory: TestClientFactory) -> None:

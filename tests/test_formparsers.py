@@ -14,7 +14,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Mount
 from starlette.types import ASGIApp, Receive, Scope, Send
-from tests.test_types.types import TestClientFactory
+from tests.types import TestClientFactory
 
 
 class ForceMultipartDict(typing.Dict[typing.Any, typing.Any]):

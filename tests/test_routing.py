@@ -17,7 +17,7 @@ from starlette.routing import Host, Mount, NoMatchFound, Route, Router, WebSocke
 from starlette.testclient import TestClient
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketDisconnect
-from tests.test_types.types import TestClientFactory
+from tests.types import TestClientFactory
 
 
 def homepage(request: Request) -> Response:

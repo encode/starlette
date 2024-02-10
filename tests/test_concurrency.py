@@ -9,7 +9,7 @@ from starlette.concurrency import iterate_in_threadpool, run_until_first_complet
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import Route
-from tests.test_types.types import TestClientFactory
+from tests.types import TestClientFactory
 
 
 @pytest.mark.anyio

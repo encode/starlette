@@ -11,7 +11,7 @@ from starlette.datastructures import Address, State
 from starlette.requests import ClientDisconnect, Request
 from starlette.responses import JSONResponse, PlainTextResponse, Response
 from starlette.types import Message, Receive, Scope, Send
-from tests.test_types.types import TestClientFactory
+from tests.types import TestClientFactory
 
 
 def test_request_url(test_client_factory: TestClientFactory) -> None:

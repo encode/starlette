@@ -3,7 +3,7 @@ import pytest
 from starlette.background import BackgroundTask, BackgroundTasks
 from starlette.responses import Response
 from starlette.types import Receive, Scope, Send
-from tests.test_types.types import TestClientFactory
+from tests.types import TestClientFactory
 
 
 def test_async_task(test_client_factory: TestClientFactory) -> None:

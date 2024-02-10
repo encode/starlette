@@ -4,7 +4,7 @@ from starlette.middleware.gzip import GZipMiddleware
 from starlette.requests import Request
 from starlette.responses import ContentStream, PlainTextResponse, StreamingResponse
 from starlette.routing import Route
-from tests.test_types.types import TestClientFactory
+from tests.types import TestClientFactory
 
 
 def test_gzip_responses(test_client_factory: TestClientFactory) -> None:

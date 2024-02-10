@@ -8,7 +8,7 @@ from starlette.responses import PlainTextResponse
 from starlette.routing import Route, Router
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocket
-from tests.test_types.types import TestClientFactory
+from tests.types import TestClientFactory
 
 
 class Homepage(HTTPEndpoint):

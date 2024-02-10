@@ -23,7 +23,7 @@ from starlette.responses import (
 )
 from starlette.testclient import TestClient
 from starlette.types import Message, Receive, Scope, Send
-from tests.test_types.types import TestClientFactory
+from tests.types import TestClientFactory
 
 
 def test_text_response(test_client_factory: TestClientFactory) -> None:

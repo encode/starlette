@@ -20,7 +20,7 @@ from starlette.staticfiles import StaticFiles
 from starlette.testclient import TestClient
 from starlette.types import ASGIApp, Receive, Scope, Send
 from starlette.websockets import WebSocket
-from tests.test_types.types import TestClientFactory
+from tests.types import TestClientFactory
 
 
 async def error_500(request: Request, exc: HTTPException) -> JSONResponse:

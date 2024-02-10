@@ -10,7 +10,7 @@ from starlette.responses import Response
 from starlette.testclient import WebSocketDenialResponse
 from starlette.types import Message, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketDisconnect, WebSocketState
-from tests.test_types.types import TestClientFactory
+from tests.types import TestClientFactory
 
 
 def test_websocket_url(test_client_factory: TestClientFactory) -> None:
