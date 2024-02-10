@@ -99,6 +99,7 @@ class Response:
         secure: bool = False,
         httponly: bool = False,
         samesite: typing.Literal["lax", "strict", "none"] | None = "lax",
+        partitioned: bool = False,
     ) -> None:
         cookie: http.cookies.BaseCookie[str] = http.cookies.SimpleCookie()
         cookie[key] = value
@@ -124,6 +125,9 @@ class Response:
                 "none",
             ], "samesite must be either 'strict', 'lax' or 'none'"
             cookie[key]["samesite"] = samesite
+        if partitioned:
+            cookie[key]["partitioned"] = True
+
         cookie_val = cookie.output(header="").strip()
         self.raw_headers.append((b"set-cookie", cookie_val.encode("latin-1")))
 
