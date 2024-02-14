@@ -51,10 +51,13 @@ class TrustedHostMiddleware:
             await self.app(scope, receive, send)
         else:
             response: Response
-            if found_www_redirect and self.www_redirect:
-                url = URL(scope=scope)
-                redirect_url = url.replace(netloc="www." + url.netloc)
-                response = RedirectResponse(url=str(redirect_url))
+            if scope["type"] == "websocket":
+                await send({"type": "websocket.close", "code": 4001})
             else:
-                response = PlainTextResponse("Invalid host header", status_code=400)
-            await response(scope, receive, send)
+                if found_www_redirect and self.www_redirect:
+                    url = URL(scope=scope)
+                    redirect_url = url.replace(netloc="www." + url.netloc)
+                    response = RedirectResponse(url=str(redirect_url))
+                else:
+                    response = PlainTextResponse("Invalid host header", status_code=400)
+                await response(scope, receive, send)
