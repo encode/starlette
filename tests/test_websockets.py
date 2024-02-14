@@ -636,6 +636,7 @@ def test_receive_wrong_message_type(test_client_factory: TestClientFactory) -> N
         with client.websocket_connect("/") as websocket:
             websocket.send({"type": "websocket.connect"})
 
+
 @pytest.fixture
 def test_app():
     async def websocket_endpoint(websocket):
@@ -643,12 +644,15 @@ def test_app():
         await websocket.send_text("This should not be reached")
         await websocket.close()
 
-    app = Starlette(routes=[
-        WebSocketRoute("/ws", endpoint=websocket_endpoint),
-    ])
+    app = Starlette(
+        routes=[
+            WebSocketRoute("/ws", endpoint=websocket_endpoint),
+        ]
+    )
     # Apply your TrustedHostMiddleware with a configuration that only allows a specific host
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["allowedhost.com"])
     return app
+
 
 def test_websocket_request_with_invalid_host(test_app):
     client = TestClient(test_app)
@@ -657,7 +661,10 @@ def test_websocket_request_with_invalid_host(test_app):
         with client.websocket_connect("/ws", headers={"Host": "invalidhost.com"}):
             pass  # This block should not execute because the connection should be denied
     # Check that the connection was closed with the specific status code for invalid host header
-    assert exc_info.value.code == 4001  # Assuming 4001 is the code used for invalid host header
+    assert (
+        exc_info.value.code == 4001
+    )  # Assuming 4001 is the code used for invalid host header
+
 
 def test_websocket_request_without_host_header(test_app):
     client = TestClient(test_app)
@@ -668,4 +675,6 @@ def test_websocket_request_without_host_header(test_app):
         with client.websocket_connect("/ws", headers={}):
             pass  # This block should not execute because the connection should be denied
     # Check that the connection was closed with the specific status code for missing host header
-    assert exc_info.value.code == 4001  # Assuming 4001 is also used for missing host header
+    assert (
+        exc_info.value.code == 4001
+    )  # Assuming 4001 is also used for missing host header
