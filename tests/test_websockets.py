@@ -649,32 +649,21 @@ def test_app():
             WebSocketRoute("/ws", endpoint=websocket_endpoint),
         ]
     )
-    # Apply your TrustedHostMiddleware with a configuration that only allows a specific host
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["allowedhost.com"])
     return app
 
 
-def test_websocket_request_with_invalid_host(test_app):
+def test_websocket_request_invalid_host(test_app):
     client = TestClient(test_app)
-    # Attempt to connect with an invalid 'Host' header
     with pytest.raises(WebSocketDisconnect) as exc_info:
         with client.websocket_connect("/ws", headers={"Host": "invalidhost.com"}):
-            pass  # This block should not execute because the connection should be denied
-    # Check that the connection was closed with the specific status code for invalid host header
-    assert (
-        exc_info.value.code == 4001
-    )  # Assuming 4001 is the code used for invalid host header
+            pass
+    assert exc_info.value.code == 4001
 
 
 def test_websocket_request_without_host_header(test_app):
     client = TestClient(test_app)
-    # Simulate a WebSocket connection attempt without the 'Host' header
-    # Note: The Starlette TestClient might automatically add a 'Host' header. If so, consider using a different
-    # testing approach or tool that allows removing the 'Host' header entirely.
     with pytest.raises(WebSocketDisconnect) as exc_info:
         with client.websocket_connect("/ws", headers={}):
-            pass  # This block should not execute because the connection should be denied
-    # Check that the connection was closed with the specific status code for missing host header
-    assert (
-        exc_info.value.code == 4001
-    )  # Assuming 4001 is also used for missing host header
+            pass
+    assert exc_info.value.code == 4001
