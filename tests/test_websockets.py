@@ -11,7 +11,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.responses import Response
 from starlette.routing import WebSocketRoute
 from starlette.testclient import TestClient, WebSocketDenialResponse
-from starlette.types import Message, Receive, Scope, Send
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketDisconnect, WebSocketState
 
 TestClientFactory = Callable[..., TestClient]
@@ -638,8 +638,8 @@ def test_receive_wrong_message_type(test_client_factory: TestClientFactory) -> N
 
 
 @pytest.fixture
-def test_app():
-    async def websocket_endpoint(websocket):
+def test_app() -> ASGIApp:
+    async def websocket_endpoint(websocket: WebSocket) -> None:
         await websocket.accept()
         await websocket.send_text("This should not be reached")
         await websocket.close()
@@ -653,7 +653,7 @@ def test_app():
     return app
 
 
-def test_websocket_request_invalid_host(test_app):
+def test_websocket_request_invalid_host(test_app: ASGIApp) -> None:
     client = TestClient(test_app)
     with pytest.raises(WebSocketDisconnect) as exc_info:
         with client.websocket_connect("/ws", headers={"Host": "invalidhost.com"}):
@@ -661,7 +661,7 @@ def test_websocket_request_invalid_host(test_app):
     assert exc_info.value.code == 4001
 
 
-def test_websocket_request_without_host_header(test_app):
+def test_websocket_request_without_host_header(test_app: ASGIApp) -> None:
     client = TestClient(test_app)
     with pytest.raises(WebSocketDisconnect) as exc_info:
         with client.websocket_connect("/ws", headers={}):
