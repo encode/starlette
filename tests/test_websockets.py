@@ -6,7 +6,10 @@ import pytest
 from anyio.abc import ObjectReceiveStream, ObjectSendStream
 
 from starlette import status
+from starlette.applications import Starlette
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.responses import Response
+from starlette.routing import WebSocketRoute
 from starlette.testclient import TestClient, WebSocketDenialResponse
 from starlette.types import Message, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketDisconnect, WebSocketState
@@ -632,3 +635,37 @@ def test_receive_wrong_message_type(test_client_factory: TestClientFactory) -> N
     with pytest.raises(RuntimeError):
         with client.websocket_connect("/") as websocket:
             websocket.send({"type": "websocket.connect"})
+
+@pytest.fixture
+def test_app():
+    async def websocket_endpoint(websocket):
+        await websocket.accept()
+        await websocket.send_text("This should not be reached")
+        await websocket.close()
+
+    app = Starlette(routes=[
+        WebSocketRoute("/ws", endpoint=websocket_endpoint),
+    ])
+    # Apply your TrustedHostMiddleware with a configuration that only allows a specific host
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["allowedhost.com"])
+    return app
+
+def test_websocket_request_with_invalid_host(test_app):
+    client = TestClient(test_app)
+    # Attempt to connect with an invalid 'Host' header
+    with pytest.raises(WebSocketDisconnect) as exc_info:
+        with client.websocket_connect("/ws", headers={"Host": "invalidhost.com"}):
+            pass  # This block should not execute because the connection should be denied
+    # Check that the connection was closed with the specific status code for invalid host header
+    assert exc_info.value.code == 4001  # Assuming 4001 is the code used for invalid host header
+
+def test_websocket_request_without_host_header(test_app):
+    client = TestClient(test_app)
+    # Simulate a WebSocket connection attempt without the 'Host' header
+    # Note: The Starlette TestClient might automatically add a 'Host' header. If so, consider using a different
+    # testing approach or tool that allows removing the 'Host' header entirely.
+    with pytest.raises(WebSocketDisconnect) as exc_info:
+        with client.websocket_connect("/ws", headers={}):
+            pass  # This block should not execute because the connection should be denied
+    # Check that the connection was closed with the specific status code for missing host header
+    assert exc_info.value.code == 4001  # Assuming 4001 is also used for missing host header
