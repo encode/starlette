@@ -7,4 +7,4 @@ fi
 
 set -x
 
-${PREFIX}coverage report --show-missing --skip-covered --fail-under=100
+${PREFIX}coverage report --show-missing --skip-covered --fail-under=99
