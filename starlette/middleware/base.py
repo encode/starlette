@@ -163,6 +163,8 @@ class BaseHTTPMiddleware:
             except anyio.EndOfStream:
                 if app_exc is not None:
                     raise app_exc
+                if request._is_disconnected:
+                    return Response()  # pragma: nocover
                 raise RuntimeError("No response returned.")
 
             assert message["type"] == "http.response.start"
