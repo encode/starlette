@@ -134,7 +134,7 @@ class BaseHTTPMiddleware:
 
             async def close_recv_stream_on_response_sent() -> None:
                 await response_sent.wait()
-                recv_stream.close()
+                await recv_stream.aclose()
 
             async def send_no_error(message: Message) -> None:
                 try:
