@@ -11,6 +11,7 @@ from starlette.testclient import TestClient
 P = ParamSpec("P")
 
 
+# pytest: no collect
 class TestClientFactory(Protocol):
     def __call__(self, *args: P.args, **kwargs: P.kwargs) -> TestClient:
         ...
