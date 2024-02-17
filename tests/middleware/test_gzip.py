@@ -4,10 +4,10 @@ from starlette.middleware.gzip import GZipMiddleware
 from starlette.requests import Request
 from starlette.responses import ContentStream, PlainTextResponse, StreamingResponse
 from starlette.routing import Route
-from tests.types import TestClientFactory
+from tests.types import ClientFactoryProtocol
 
 
-def test_gzip_responses(test_client_factory: TestClientFactory) -> None:
+def test_gzip_responses(test_client_factory: ClientFactoryProtocol) -> None:
     def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("x" * 4000, status_code=200)
 
@@ -24,7 +24,9 @@ def test_gzip_responses(test_client_factory: TestClientFactory) -> None:
     assert int(response.headers["Content-Length"]) < 4000
 
 
-def test_gzip_not_in_accept_encoding(test_client_factory: TestClientFactory) -> None:
+def test_gzip_not_in_accept_encoding(
+    test_client_factory: ClientFactoryProtocol,
+) -> None:
     def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("x" * 4000, status_code=200)
 
@@ -42,7 +44,7 @@ def test_gzip_not_in_accept_encoding(test_client_factory: TestClientFactory) -> 
 
 
 def test_gzip_ignored_for_small_responses(
-    test_client_factory: TestClientFactory,
+    test_client_factory: ClientFactoryProtocol,
 ) -> None:
     def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("OK", status_code=200)
@@ -60,7 +62,7 @@ def test_gzip_ignored_for_small_responses(
     assert int(response.headers["Content-Length"]) == 2
 
 
-def test_gzip_streaming_response(test_client_factory: TestClientFactory) -> None:
+def test_gzip_streaming_response(test_client_factory: ClientFactoryProtocol) -> None:
     def homepage(request: Request) -> StreamingResponse:
         async def generator(bytes: bytes, count: int) -> ContentStream:
             for index in range(count):
@@ -83,7 +85,7 @@ def test_gzip_streaming_response(test_client_factory: TestClientFactory) -> None
 
 
 def test_gzip_ignored_for_responses_with_encoding_set(
-    test_client_factory: TestClientFactory,
+    test_client_factory: ClientFactoryProtocol,
 ) -> None:
     def homepage(request: Request) -> StreamingResponse:
         async def generator(bytes: bytes, count: int) -> ContentStream:

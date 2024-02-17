@@ -8,7 +8,7 @@ from starlette.responses import PlainTextResponse
 from starlette.routing import Route, Router
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocket
-from tests.types import TestClientFactory
+from tests.types import ClientFactoryProtocol
 
 
 class Homepage(HTTPEndpoint):
@@ -25,7 +25,7 @@ app = Router(
 
 
 @pytest.fixture
-def client(test_client_factory: TestClientFactory) -> Iterator[TestClient]:
+def client(test_client_factory: ClientFactoryProtocol) -> Iterator[TestClient]:
     with test_client_factory(app) as client:
         yield client
 
@@ -49,7 +49,9 @@ def test_http_endpoint_route_method(client: TestClient) -> None:
     assert response.headers["allow"] == "GET"
 
 
-def test_websocket_endpoint_on_connect(test_client_factory: TestClientFactory) -> None:
+def test_websocket_endpoint_on_connect(
+    test_client_factory: ClientFactoryProtocol,
+) -> None:
     class WebSocketApp(WebSocketEndpoint):
         async def on_connect(self, websocket: WebSocket) -> None:
             assert websocket["subprotocols"] == ["soap", "wamp"]
@@ -61,7 +63,7 @@ def test_websocket_endpoint_on_connect(test_client_factory: TestClientFactory) -
 
 
 def test_websocket_endpoint_on_receive_bytes(
-    test_client_factory: TestClientFactory,
+    test_client_factory: ClientFactoryProtocol,
 ) -> None:
     class WebSocketApp(WebSocketEndpoint):
         encoding = "bytes"
@@ -81,7 +83,7 @@ def test_websocket_endpoint_on_receive_bytes(
 
 
 def test_websocket_endpoint_on_receive_json(
-    test_client_factory: TestClientFactory,
+    test_client_factory: ClientFactoryProtocol,
 ) -> None:
     class WebSocketApp(WebSocketEndpoint):
         encoding = "json"
@@ -101,7 +103,7 @@ def test_websocket_endpoint_on_receive_json(
 
 
 def test_websocket_endpoint_on_receive_json_binary(
-    test_client_factory: TestClientFactory,
+    test_client_factory: ClientFactoryProtocol,
 ) -> None:
     class WebSocketApp(WebSocketEndpoint):
         encoding = "json"
@@ -117,7 +119,7 @@ def test_websocket_endpoint_on_receive_json_binary(
 
 
 def test_websocket_endpoint_on_receive_text(
-    test_client_factory: TestClientFactory,
+    test_client_factory: ClientFactoryProtocol,
 ) -> None:
     class WebSocketApp(WebSocketEndpoint):
         encoding = "text"
@@ -136,7 +138,9 @@ def test_websocket_endpoint_on_receive_text(
             websocket.send_bytes(b"Hello world")
 
 
-def test_websocket_endpoint_on_default(test_client_factory: TestClientFactory) -> None:
+def test_websocket_endpoint_on_default(
+    test_client_factory: ClientFactoryProtocol,
+) -> None:
     class WebSocketApp(WebSocketEndpoint):
         encoding = None
 
@@ -151,7 +155,7 @@ def test_websocket_endpoint_on_default(test_client_factory: TestClientFactory) -
 
 
 def test_websocket_endpoint_on_disconnect(
-    test_client_factory: TestClientFactory,
+    test_client_factory: ClientFactoryProtocol,
 ) -> None:
     class WebSocketApp(WebSocketEndpoint):
         async def on_disconnect(self, websocket: WebSocket, close_code: int) -> None:

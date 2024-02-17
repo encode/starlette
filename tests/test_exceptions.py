@@ -10,7 +10,7 @@ from starlette.responses import JSONResponse, PlainTextResponse
 from starlette.routing import Route, Router, WebSocketRoute
 from starlette.testclient import TestClient
 from starlette.types import Receive, Scope, Send
-from tests.types import TestClientFactory
+from tests.types import ClientFactoryProtocol
 
 
 def raise_runtime_error(request: Request) -> None:
@@ -81,7 +81,9 @@ app = ExceptionMiddleware(
 
 
 @pytest.fixture
-def client(test_client_factory: TestClientFactory) -> Generator[TestClient, None, None]:
+def client(
+    test_client_factory: ClientFactoryProtocol,
+) -> Generator[TestClient, None, None]:
     with test_client_factory(app) as client:
         yield client
 
@@ -117,7 +119,7 @@ def test_websockets_should_raise(client: TestClient) -> None:
 
 
 def test_handled_exc_after_response(
-    test_client_factory: TestClientFactory,
+    test_client_factory: ClientFactoryProtocol,
     client: TestClient,
 ) -> None:
     # A 406 HttpException is raised *after* the response has already been sent.
@@ -133,7 +135,7 @@ def test_handled_exc_after_response(
     assert response.text == "OK"
 
 
-def test_force_500_response(test_client_factory: TestClientFactory) -> None:
+def test_force_500_response(test_client_factory: ClientFactoryProtocol) -> None:
     # use a sentinal variable to make sure we actually
     # make it into the endpoint and don't get a 500
     # from an incorrect ASGI app signature or something

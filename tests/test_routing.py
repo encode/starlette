@@ -17,7 +17,7 @@ from starlette.routing import Host, Mount, NoMatchFound, Route, Router, WebSocke
 from starlette.testclient import TestClient
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketDisconnect
-from tests.types import TestClientFactory
+from tests.types import ClientFactoryProtocol
 
 
 def homepage(request: Request) -> Response:
@@ -164,7 +164,7 @@ app = Router(
 
 @pytest.fixture
 def client(
-    test_client_factory: TestClientFactory,
+    test_client_factory: ClientFactoryProtocol,
 ) -> typing.Generator[TestClient, None, None]:
     with test_client_factory(app) as client:
         yield client
@@ -334,7 +334,7 @@ def test_router_add_websocket_route(client: TestClient) -> None:
         assert text == "Hello, test!"
 
 
-def test_router_middleware(test_client_factory: TestClientFactory) -> None:
+def test_router_middleware(test_client_factory: ClientFactoryProtocol) -> None:
     class CustomMiddleware:
         def __init__(self, app: ASGIApp) -> None:
             self.app = app
@@ -375,7 +375,7 @@ mixed_protocol_app = Router(
 )
 
 
-def test_protocol_switch(test_client_factory: TestClientFactory) -> None:
+def test_protocol_switch(test_client_factory: ClientFactoryProtocol) -> None:
     client = test_client_factory(mixed_protocol_app)
 
     response = client.get("/")
@@ -393,7 +393,7 @@ def test_protocol_switch(test_client_factory: TestClientFactory) -> None:
 ok = PlainTextResponse("OK")
 
 
-def test_mount_urls(test_client_factory: TestClientFactory) -> None:
+def test_mount_urls(test_client_factory: ClientFactoryProtocol) -> None:
     mounted = Router([Mount("/users", ok, name="users")])
     client = test_client_factory(mounted)
     assert client.get("/users").status_code == 200
@@ -418,7 +418,7 @@ def test_reverse_mount_urls() -> None:
     )
 
 
-def test_mount_at_root(test_client_factory: TestClientFactory) -> None:
+def test_mount_at_root(test_client_factory: ClientFactoryProtocol) -> None:
     mounted = Router([Mount("/", ok, name="users")])
     client = test_client_factory(mounted)
     assert client.get("/").status_code == 200
@@ -453,7 +453,7 @@ mixed_hosts_app = Router(
 )
 
 
-def test_host_routing(test_client_factory: TestClientFactory) -> None:
+def test_host_routing(test_client_factory: ClientFactoryProtocol) -> None:
     client = test_client_factory(mixed_hosts_app, base_url="https://api.example.org/")
 
     response = client.get("/users")
@@ -528,7 +528,7 @@ subdomain_router = Router(
 )
 
 
-def test_subdomain_routing(test_client_factory: TestClientFactory) -> None:
+def test_subdomain_routing(test_client_factory: ClientFactoryProtocol) -> None:
     client = test_client_factory(subdomain_router, base_url="https://foo.example.org/")
 
     response = client.get("/")
@@ -564,7 +564,7 @@ echo_url_routes = [
 ]
 
 
-def test_url_for_with_root_path(test_client_factory: TestClientFactory) -> None:
+def test_url_for_with_root_path(test_client_factory: ClientFactoryProtocol) -> None:
     app = Starlette(routes=echo_url_routes)
     client = test_client_factory(
         app, base_url="https://www.example.org/", root_path="/sub_path"
@@ -597,7 +597,7 @@ def test_url_for_with_double_mount() -> None:
 
 
 def test_standalone_route_matches(
-    test_client_factory: TestClientFactory,
+    test_client_factory: ClientFactoryProtocol,
 ) -> None:
     app = Route("/", PlainTextResponse("Hello, World!"))
     client = test_client_factory(app)
@@ -623,7 +623,7 @@ async def ws_helloworld(websocket: WebSocket) -> None:
 
 
 def test_standalone_ws_route_matches(
-    test_client_factory: TestClientFactory,
+    test_client_factory: ClientFactoryProtocol,
 ) -> None:
     app = WebSocketRoute("/", ws_helloworld)
     client = test_client_factory(app)
@@ -633,7 +633,7 @@ def test_standalone_ws_route_matches(
 
 
 def test_standalone_ws_route_does_not_match(
-    test_client_factory: TestClientFactory,
+    test_client_factory: ClientFactoryProtocol,
 ) -> None:
     app = WebSocketRoute("/", ws_helloworld)
     client = test_client_factory(app)
@@ -642,7 +642,7 @@ def test_standalone_ws_route_does_not_match(
             pass  # pragma: nocover
 
 
-def test_lifespan_async(test_client_factory: TestClientFactory) -> None:
+def test_lifespan_async(test_client_factory: ClientFactoryProtocol) -> None:
     startup_complete = False
     shutdown_complete = False
 
@@ -676,7 +676,7 @@ def test_lifespan_async(test_client_factory: TestClientFactory) -> None:
     assert shutdown_complete
 
 
-def test_lifespan_with_on_events(test_client_factory: TestClientFactory) -> None:
+def test_lifespan_with_on_events(test_client_factory: ClientFactoryProtocol) -> None:
     lifespan_called = False
     startup_called = False
     shutdown_called = False
@@ -723,7 +723,7 @@ def test_lifespan_with_on_events(test_client_factory: TestClientFactory) -> None
             assert not shutdown_called
 
 
-def test_lifespan_sync(test_client_factory: TestClientFactory) -> None:
+def test_lifespan_sync(test_client_factory: ClientFactoryProtocol) -> None:
     startup_complete = False
     shutdown_complete = False
 
@@ -758,7 +758,7 @@ def test_lifespan_sync(test_client_factory: TestClientFactory) -> None:
 
 
 def test_lifespan_state_unsupported(
-    test_client_factory: TestClientFactory,
+    test_client_factory: ClientFactoryProtocol,
 ) -> None:
     @contextlib.asynccontextmanager
     async def lifespan(
@@ -782,7 +782,7 @@ def test_lifespan_state_unsupported(
             raise AssertionError("Should not be called")  # pragma: no cover
 
 
-def test_lifespan_state_async_cm(test_client_factory: TestClientFactory) -> None:
+def test_lifespan_state_async_cm(test_client_factory: ClientFactoryProtocol) -> None:
     startup_complete = False
     shutdown_complete = False
 
@@ -830,7 +830,7 @@ def test_lifespan_state_async_cm(test_client_factory: TestClientFactory) -> None
     assert shutdown_complete
 
 
-def test_raise_on_startup(test_client_factory: TestClientFactory) -> None:
+def test_raise_on_startup(test_client_factory: ClientFactoryProtocol) -> None:
     def run_startup() -> None:
         raise RuntimeError()
 
@@ -855,7 +855,7 @@ def test_raise_on_startup(test_client_factory: TestClientFactory) -> None:
     assert startup_failed
 
 
-def test_raise_on_shutdown(test_client_factory: TestClientFactory) -> None:
+def test_raise_on_shutdown(test_client_factory: ClientFactoryProtocol) -> None:
     def run_shutdown() -> None:
         raise RuntimeError()
 
@@ -869,7 +869,7 @@ def test_raise_on_shutdown(test_client_factory: TestClientFactory) -> None:
             pass  # pragma: nocover
 
 
-def test_partial_async_endpoint(test_client_factory: TestClientFactory) -> None:
+def test_partial_async_endpoint(test_client_factory: ClientFactoryProtocol) -> None:
     test_client = test_client_factory(app)
     response = test_client.get("/partial")
     assert response.status_code == 200
@@ -881,7 +881,7 @@ def test_partial_async_endpoint(test_client_factory: TestClientFactory) -> None:
 
 
 def test_partial_async_ws_endpoint(
-    test_client_factory: TestClientFactory,
+    test_client_factory: ClientFactoryProtocol,
 ) -> None:
     test_client = test_client_factory(app)
     with test_client.websocket_connect("/partial/ws") as websocket:
@@ -1017,7 +1017,7 @@ mounted_app_with_middleware = Starlette(
     ],
 )
 def test_base_route_middleware(
-    test_client_factory: TestClientFactory,
+    test_client_factory: ClientFactoryProtocol,
     app: Starlette,
 ) -> None:
     test_client = test_client_factory(app)
@@ -1063,7 +1063,7 @@ def test_add_route_to_app_after_mount(
 
 
 def test_exception_on_mounted_apps(
-    test_client_factory: TestClientFactory,
+    test_client_factory: ClientFactoryProtocol,
 ) -> None:
     def exc(request: Request) -> None:
         raise Exception("Exc")
@@ -1133,7 +1133,7 @@ def test_mounted_middleware_does_not_catch_exception(
 
 
 def test_websocket_route_middleware(
-    test_client_factory: TestClientFactory,
+    test_client_factory: ClientFactoryProtocol,
 ) -> None:
     async def websocket_endpoint(session: WebSocket) -> None:
         await session.accept()
@@ -1302,7 +1302,7 @@ echo_paths_routes = [
 ]
 
 
-def test_paths_with_root_path(test_client_factory: TestClientFactory) -> None:
+def test_paths_with_root_path(test_client_factory: ClientFactoryProtocol) -> None:
     app = Starlette(routes=echo_paths_routes)
     client = test_client_factory(
         app, base_url="https://www.example.org/", root_path="/root"

@@ -4,10 +4,10 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse
 from starlette.routing import Route
-from tests.types import TestClientFactory
+from tests.types import ClientFactoryProtocol
 
 
-def test_trusted_host_middleware(test_client_factory: TestClientFactory) -> None:
+def test_trusted_host_middleware(test_client_factory: ClientFactoryProtocol) -> None:
     def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("OK", status_code=200)
 
@@ -39,7 +39,7 @@ def test_default_allowed_hosts() -> None:
     assert middleware.allowed_hosts == ["*"]
 
 
-def test_www_redirect(test_client_factory: TestClientFactory) -> None:
+def test_www_redirect(test_client_factory: ClientFactoryProtocol) -> None:
     def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("OK", status_code=200)
 

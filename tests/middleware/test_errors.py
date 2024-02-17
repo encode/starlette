@@ -9,11 +9,11 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 from starlette.types import Receive, Scope, Send
-from tests.types import TestClientFactory
+from tests.types import ClientFactoryProtocol
 
 
 def test_handler(
-    test_client_factory: TestClientFactory,
+    test_client_factory: ClientFactoryProtocol,
 ) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         raise RuntimeError("Something went wrong")
@@ -28,7 +28,7 @@ def test_handler(
     assert response.json() == {"detail": "Server Error"}
 
 
-def test_debug_text(test_client_factory: TestClientFactory) -> None:
+def test_debug_text(test_client_factory: ClientFactoryProtocol) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         raise RuntimeError("Something went wrong")
 
@@ -40,7 +40,7 @@ def test_debug_text(test_client_factory: TestClientFactory) -> None:
     assert "RuntimeError: Something went wrong" in response.text
 
 
-def test_debug_html(test_client_factory: TestClientFactory) -> None:
+def test_debug_html(test_client_factory: ClientFactoryProtocol) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         raise RuntimeError("Something went wrong")
 
@@ -52,7 +52,7 @@ def test_debug_html(test_client_factory: TestClientFactory) -> None:
     assert "RuntimeError" in response.text
 
 
-def test_debug_after_response_sent(test_client_factory: TestClientFactory) -> None:
+def test_debug_after_response_sent(test_client_factory: ClientFactoryProtocol) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         response = Response(b"", status_code=204)
         await response(scope, receive, send)
@@ -64,7 +64,7 @@ def test_debug_after_response_sent(test_client_factory: TestClientFactory) -> No
         client.get("/")
 
 
-def test_debug_not_http(test_client_factory: TestClientFactory) -> None:
+def test_debug_not_http(test_client_factory: ClientFactoryProtocol) -> None:
     """
     DebugMiddleware should just pass through any non-http messages as-is.
     """
@@ -80,7 +80,7 @@ def test_debug_not_http(test_client_factory: TestClientFactory) -> None:
             pass  # pragma: nocover
 
 
-def test_background_task(test_client_factory: TestClientFactory) -> None:
+def test_background_task(test_client_factory: ClientFactoryProtocol) -> None:
     accessed_error_handler = False
 
     def error_handler(request: Request, exc: Exception) -> Any:

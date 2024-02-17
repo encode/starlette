@@ -16,12 +16,10 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import Mount
 from starlette.staticfiles import StaticFiles
-from starlette.testclient import TestClient
-
-TestClientFactory = typing.Callable[..., TestClient]
+from tests.types import ClientFactoryProtocol
 
 
-def test_staticfiles(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_staticfiles(tmpdir: Path, test_client_factory: ClientFactoryProtocol) -> None:
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
         file.write("<file content>")
@@ -34,7 +32,7 @@ def test_staticfiles(tmpdir: Path, test_client_factory: TestClientFactory) -> No
 
 
 def test_staticfiles_with_pathlib(
-    tmp_path: Path, test_client_factory: TestClientFactory
+    tmp_path: Path, test_client_factory: ClientFactoryProtocol
 ) -> None:
     path = tmp_path / "example.txt"
     with open(path, "w") as file:
@@ -48,7 +46,7 @@ def test_staticfiles_with_pathlib(
 
 
 def test_staticfiles_head_with_middleware(
-    tmpdir: Path, test_client_factory: TestClientFactory
+    tmpdir: Path, test_client_factory: ClientFactoryProtocol
 ) -> None:
     """
     see https://github.com/encode/starlette/pull/935
@@ -73,7 +71,7 @@ def test_staticfiles_head_with_middleware(
     assert response.headers.get("content-length") == "100"
 
 
-def test_staticfiles_with_package(test_client_factory: TestClientFactory) -> None:
+def test_staticfiles_with_package(test_client_factory: ClientFactoryProtocol) -> None:
     app = StaticFiles(packages=["tests"])
     client = test_client_factory(app)
     response = client.get("/example.txt")
@@ -87,7 +85,9 @@ def test_staticfiles_with_package(test_client_factory: TestClientFactory) -> Non
     assert response.text == "123\n"
 
 
-def test_staticfiles_post(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_staticfiles_post(
+    tmpdir: Path, test_client_factory: ClientFactoryProtocol
+) -> None:
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
         file.write("<file content>")
@@ -102,7 +102,7 @@ def test_staticfiles_post(tmpdir: Path, test_client_factory: TestClientFactory) 
 
 
 def test_staticfiles_with_directory_returns_404(
-    tmpdir: Path, test_client_factory: TestClientFactory
+    tmpdir: Path, test_client_factory: ClientFactoryProtocol
 ) -> None:
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
@@ -118,7 +118,7 @@ def test_staticfiles_with_directory_returns_404(
 
 
 def test_staticfiles_with_missing_file_returns_404(
-    tmpdir: Path, test_client_factory: TestClientFactory
+    tmpdir: Path, test_client_factory: ClientFactoryProtocol
 ) -> None:
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
@@ -141,7 +141,7 @@ def test_staticfiles_instantiated_with_missing_directory(tmpdir: Path) -> None:
 
 
 def test_staticfiles_configured_with_missing_directory(
-    tmpdir: Path, test_client_factory: TestClientFactory
+    tmpdir: Path, test_client_factory: ClientFactoryProtocol
 ) -> None:
     path = os.path.join(tmpdir, "no_such_directory")
     app = StaticFiles(directory=path, check_dir=False)
@@ -152,7 +152,7 @@ def test_staticfiles_configured_with_missing_directory(
 
 
 def test_staticfiles_configured_with_file_instead_of_directory(
-    tmpdir: Path, test_client_factory: TestClientFactory
+    tmpdir: Path, test_client_factory: ClientFactoryProtocol
 ) -> None:
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
@@ -166,7 +166,7 @@ def test_staticfiles_configured_with_file_instead_of_directory(
 
 
 def test_staticfiles_config_check_occurs_only_once(
-    tmpdir: Path, test_client_factory: TestClientFactory
+    tmpdir: Path, test_client_factory: ClientFactoryProtocol
 ) -> None:
     app = StaticFiles(directory=tmpdir)
     client = test_client_factory(app)
@@ -202,7 +202,7 @@ def test_staticfiles_prevents_breaking_out_of_directory(tmpdir: Path) -> None:
 
 
 def test_staticfiles_never_read_file_for_head_method(
-    tmpdir: Path, test_client_factory: TestClientFactory
+    tmpdir: Path, test_client_factory: ClientFactoryProtocol
 ) -> None:
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
@@ -217,7 +217,7 @@ def test_staticfiles_never_read_file_for_head_method(
 
 
 def test_staticfiles_304_with_etag_match(
-    tmpdir: Path, test_client_factory: TestClientFactory
+    tmpdir: Path, test_client_factory: ClientFactoryProtocol
 ) -> None:
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
@@ -239,7 +239,7 @@ def test_staticfiles_304_with_etag_match(
 
 
 def test_staticfiles_304_with_last_modified_compare_last_req(
-    tmpdir: Path, test_client_factory: TestClientFactory
+    tmpdir: Path, test_client_factory: ClientFactoryProtocol
 ) -> None:
     path = os.path.join(tmpdir, "example.txt")
     file_last_modified_time = time.mktime(
@@ -266,7 +266,7 @@ def test_staticfiles_304_with_last_modified_compare_last_req(
 
 
 def test_staticfiles_html_normal(
-    tmpdir: Path, test_client_factory: TestClientFactory
+    tmpdir: Path, test_client_factory: ClientFactoryProtocol
 ) -> None:
     path = os.path.join(tmpdir, "404.html")
     with open(path, "w") as file:
@@ -301,7 +301,7 @@ def test_staticfiles_html_normal(
 
 
 def test_staticfiles_html_without_index(
-    tmpdir: Path, test_client_factory: TestClientFactory
+    tmpdir: Path, test_client_factory: ClientFactoryProtocol
 ) -> None:
     path = os.path.join(tmpdir, "404.html")
     with open(path, "w") as file:
@@ -328,7 +328,7 @@ def test_staticfiles_html_without_index(
 
 
 def test_staticfiles_html_without_404(
-    tmpdir: Path, test_client_factory: TestClientFactory
+    tmpdir: Path, test_client_factory: ClientFactoryProtocol
 ) -> None:
     path = os.path.join(tmpdir, "dir")
     os.mkdir(path)
@@ -355,7 +355,7 @@ def test_staticfiles_html_without_404(
 
 
 def test_staticfiles_html_only_files(
-    tmpdir: Path, test_client_factory: TestClientFactory
+    tmpdir: Path, test_client_factory: ClientFactoryProtocol
 ) -> None:
     path = os.path.join(tmpdir, "hello.html")
     with open(path, "w") as file:
@@ -374,7 +374,7 @@ def test_staticfiles_html_only_files(
 
 
 def test_staticfiles_cache_invalidation_for_deleted_file_html_mode(
-    tmpdir: Path, test_client_factory: TestClientFactory
+    tmpdir: Path, test_client_factory: ClientFactoryProtocol
 ) -> None:
     path_404 = os.path.join(tmpdir, "404.html")
     with open(path_404, "w") as file:
@@ -413,7 +413,7 @@ def test_staticfiles_cache_invalidation_for_deleted_file_html_mode(
 
 
 def test_staticfiles_with_invalid_dir_permissions_returns_401(
-    tmp_path: Path, test_client_factory: TestClientFactory
+    tmp_path: Path, test_client_factory: ClientFactoryProtocol
 ) -> None:
     (tmp_path / "example.txt").write_bytes(b"<file content>")
 
@@ -438,7 +438,7 @@ def test_staticfiles_with_invalid_dir_permissions_returns_401(
 
 
 def test_staticfiles_with_missing_dir_returns_404(
-    tmpdir: Path, test_client_factory: TestClientFactory
+    tmpdir: Path, test_client_factory: ClientFactoryProtocol
 ) -> None:
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
@@ -454,7 +454,7 @@ def test_staticfiles_with_missing_dir_returns_404(
 
 
 def test_staticfiles_access_file_as_dir_returns_404(
-    tmpdir: Path, test_client_factory: TestClientFactory
+    tmpdir: Path, test_client_factory: ClientFactoryProtocol
 ) -> None:
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
@@ -484,7 +484,7 @@ def test_staticfiles_filename_too_long(
 
 def test_staticfiles_unhandled_os_error_returns_500(
     tmpdir: Path,
-    test_client_factory: TestClientFactory,
+    test_client_factory: ClientFactoryProtocol,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     def mock_timeout(*args: typing.Any, **kwargs: typing.Any) -> None:
@@ -506,7 +506,7 @@ def test_staticfiles_unhandled_os_error_returns_500(
 
 
 def test_staticfiles_follows_symlinks(
-    tmpdir: Path, test_client_factory: TestClientFactory
+    tmpdir: Path, test_client_factory: ClientFactoryProtocol
 ) -> None:
     statics_path = os.path.join(tmpdir, "statics")
     os.mkdir(statics_path)
@@ -529,7 +529,7 @@ def test_staticfiles_follows_symlinks(
 
 
 def test_staticfiles_follows_symlink_directories(
-    tmpdir: Path, test_client_factory: TestClientFactory
+    tmpdir: Path, test_client_factory: ClientFactoryProtocol
 ) -> None:
     statics_path = os.path.join(tmpdir, "statics")
     statics_html_path = os.path.join(statics_path, "html")

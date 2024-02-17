@@ -7,7 +7,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Mount, Route
 from starlette.testclient import TestClient
-from tests.types import TestClientFactory
+from tests.types import ClientFactoryProtocol
 
 
 def view_session(request: Request) -> JSONResponse:
@@ -25,7 +25,7 @@ async def clear_session(request: Request) -> JSONResponse:
     return JSONResponse({"session": request.session})
 
 
-def test_session(test_client_factory: TestClientFactory) -> None:
+def test_session(test_client_factory: ClientFactoryProtocol) -> None:
     app = Starlette(
         routes=[
             Route("/view_session", endpoint=view_session),
@@ -58,7 +58,7 @@ def test_session(test_client_factory: TestClientFactory) -> None:
     assert response.json() == {"session": {}}
 
 
-def test_session_expires(test_client_factory: TestClientFactory) -> None:
+def test_session_expires(test_client_factory: ClientFactoryProtocol) -> None:
     app = Starlette(
         routes=[
             Route("/view_session", endpoint=view_session),
@@ -82,7 +82,7 @@ def test_session_expires(test_client_factory: TestClientFactory) -> None:
     assert response.json() == {"session": {}}
 
 
-def test_secure_session(test_client_factory: TestClientFactory) -> None:
+def test_secure_session(test_client_factory: ClientFactoryProtocol) -> None:
     app = Starlette(
         routes=[
             Route("/view_session", endpoint=view_session),
@@ -121,7 +121,7 @@ def test_secure_session(test_client_factory: TestClientFactory) -> None:
     assert response.json() == {"session": {}}
 
 
-def test_session_cookie_subpath(test_client_factory: TestClientFactory) -> None:
+def test_session_cookie_subpath(test_client_factory: ClientFactoryProtocol) -> None:
     second_app = Starlette(
         routes=[
             Route("/update_session", endpoint=update_session, methods=["POST"]),
@@ -141,7 +141,7 @@ def test_session_cookie_subpath(test_client_factory: TestClientFactory) -> None:
     assert cookie_path == "/second_app"
 
 
-def test_invalid_session_cookie(test_client_factory: TestClientFactory) -> None:
+def test_invalid_session_cookie(test_client_factory: ClientFactoryProtocol) -> None:
     app = Starlette(
         routes=[
             Route("/view_session", endpoint=view_session),
@@ -160,7 +160,7 @@ def test_invalid_session_cookie(test_client_factory: TestClientFactory) -> None:
     assert response.json() == {"session": {}}
 
 
-def test_session_cookie(test_client_factory: TestClientFactory) -> None:
+def test_session_cookie(test_client_factory: ClientFactoryProtocol) -> None:
     app = Starlette(
         routes=[
             Route("/view_session", endpoint=view_session),
@@ -182,7 +182,7 @@ def test_session_cookie(test_client_factory: TestClientFactory) -> None:
     assert response.json() == {"session": {}}
 
 
-def test_domain_cookie(test_client_factory: TestClientFactory) -> None:
+def test_domain_cookie(test_client_factory: ClientFactoryProtocol) -> None:
     app = Starlette(
         routes=[
             Route("/view_session", endpoint=view_session),
