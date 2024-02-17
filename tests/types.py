@@ -11,6 +11,6 @@ from starlette.testclient import TestClient
 P = ParamSpec("P")
 
 
-class ClientFactoryProtocol(Protocol):
+class ClientFactoryProtocol(Protocol):  # pragma: no cover
     def __call__(self, *args: P.args, **kwargs: P.kwargs) -> TestClient:
         ...
