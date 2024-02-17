@@ -1,13 +1,16 @@
-from typing import Any, Awaitable, Callable, Dict, Iterable
+import sys
+from typing import Protocol
 
-from starlette.responses import Response
+if sys.version_info >= (3, 10):  # pragma: no cover
+    from typing import ParamSpec
+else:  # pragma: no cover
+    from typing_extensions import ParamSpec
+
 from starlette.testclient import TestClient
 
-TestClientFactory = Callable[..., TestClient]
+P = ParamSpec("P")
 
-WSGIResponse = Iterable[bytes]
-StartResponse = Callable[..., Any]
-Environment = Dict[str, Any]
 
-AsyncEndpoint = Callable[..., Awaitable[Response]]
-SyncEndpoint = Callable[..., Response]
+class TestClientFactory(Protocol):
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> TestClient:
+        ...
