@@ -1,4 +1,5 @@
 import re
+import time
 
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
@@ -202,3 +203,82 @@ def test_domain_cookie(test_client_factory):
     client.cookies.delete("session")
     response = client.get("/view_session")
     assert response.json() == {"session": {}}
+
+
+def test_session_refresh(test_client_factory):
+    app = Starlette(
+        routes=[
+            Route("/view_session", endpoint=view_session),
+            Route("/update_session", endpoint=update_session, methods=["POST"]),
+        ],
+        middleware=[
+            Middleware(
+                SessionMiddleware, refresh_window=100, secret_key="example", max_age=100
+            )
+        ],
+    )
+
+    client = test_client_factory(app)
+    response = client.post("/update_session", json={"some": "data"})
+    assert response.json() == {"session": {"some": "data"}}
+    original_cookie_header = response.headers["set-cookie"]
+
+    # itsdangerous only signs with seconds resolution, no milliseconds.
+    time.sleep(1)
+
+    response = client.get("/view_session")
+    assert response.json() == {"session": {"some": "data"}}
+
+    second_cookie_header = response.headers["set-cookie"]
+    # second cookie data should match what was set and the signature is differnt.
+    assert original_cookie_header != second_cookie_header
+
+
+def test_session_persistence(test_client_factory):
+    app = Starlette(
+        routes=[
+            Route("/view_session", endpoint=view_session),
+            Route("/update_session", endpoint=update_session, methods=["POST"]),
+        ],
+        middleware=[Middleware(SessionMiddleware, secret_key="example", max_age=100)],
+    )
+
+    client = test_client_factory(app)
+    response = client.post("/update_session", json={"some": "data"})
+
+    assert response.json() == {"session": {"some": "data"}}
+
+    response = client.get("/view_session")
+    # response includes the cookie data, and there's no new set-cookie
+    assert response.json() == {
+        "session": {"some": "data"}
+    } and not response.headers.get("set-cookie")
+
+
+def test_partitioned_session(test_client_factory):
+    session_cookie = "__Host-session"
+    app = Starlette(
+        routes=[
+            Route("/view_session", endpoint=view_session),
+            Route("/update_session", endpoint=update_session, methods=["POST"]),
+        ],
+        middleware=[
+            Middleware(
+                SessionMiddleware,
+                secret_key="example",
+                https_only=True,
+                partitioned=True,
+                session_cookie=session_cookie,
+                same_site="none",
+            )
+        ],
+    )
+
+    secure_client = test_client_factory(app, base_url="https://testserver")
+
+    response = secure_client.post("/update_session", json={"some": "data"})
+    assert response.json() == {"session": {"some": "data"}}
+
+    cookie = response.headers["set-cookie"]
+    cookie_partition_match = re.search(rf"{session_cookie}.*; partitioned", cookie)
+    assert cookie_partition_match is not None

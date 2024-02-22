@@ -94,7 +94,7 @@ request through as normal, but will include appropriate CORS headers on the resp
 
 ## SessionMiddleware
 
-Adds signed cookie-based HTTP sessions. Session information is readable but not modifiable.
+Adds signed cookie-based HTTP sessions. Session cookie information is user readable but not user modifiable, the data stored is ***not*** encrypted.
 
 Access or modify the session data using the `request.session` dictionary interface.
 
@@ -103,6 +103,7 @@ The following arguments are supported:
 * `secret_key` - Should be a random string.
 * `session_cookie` - Defaults to "session".
 * `max_age` - Session expiry time in seconds. Defaults to 2 weeks. If set to `None` then the cookie will last as long as the browser session.
+* `refresh_window` - Refresh window in seconds before max_age. If set the cookie will automatically refresh with in that timeframe when used to a new max_age. Defaults to `None`.
 * `same_site` - SameSite flag prevents the browser from sending session cookie along with cross-site requests. Defaults to `'lax'`.
 * `https_only` - Indicate that Secure flag should be set (can be used with HTTPS only). Defaults to `False`.
 * `domain` - Domain of the cookie used to share cookie between subdomains or cross-domains. The browser defaults the domain to the same host that set the cookie, excluding subdomains [refrence](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#domain_attribute).
