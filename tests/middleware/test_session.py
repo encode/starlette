@@ -1,30 +1,34 @@
 import re
 import time
+from typing import Callable
 
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Mount, Route
 from starlette.testclient import TestClient
 
+TestClientFactory = Callable[..., TestClient]
 
-def view_session(request):
+
+def view_session(request: Request) -> JSONResponse:
     return JSONResponse({"session": request.session})
 
 
-async def update_session(request):
+async def update_session(request: Request) -> JSONResponse:
     data = await request.json()
     request.session.update(data)
     return JSONResponse({"session": request.session})
 
 
-async def clear_session(request):
+async def clear_session(request: Request) -> JSONResponse:
     request.session.clear()
     return JSONResponse({"session": request.session})
 
 
-def test_session(test_client_factory):
+def test_session(test_client_factory: TestClientFactory) -> None:
     app = Starlette(
         routes=[
             Route("/view_session", endpoint=view_session),
@@ -57,7 +61,7 @@ def test_session(test_client_factory):
     assert response.json() == {"session": {}}
 
 
-def test_session_expires(test_client_factory):
+def test_session_expires(test_client_factory: TestClientFactory) -> None:
     app = Starlette(
         routes=[
             Route("/view_session", endpoint=view_session),
@@ -81,7 +85,7 @@ def test_session_expires(test_client_factory):
     assert response.json() == {"session": {}}
 
 
-def test_secure_session(test_client_factory):
+def test_secure_session(test_client_factory: TestClientFactory) -> None:
     app = Starlette(
         routes=[
             Route("/view_session", endpoint=view_session),
@@ -120,7 +124,7 @@ def test_secure_session(test_client_factory):
     assert response.json() == {"session": {}}
 
 
-def test_session_cookie_subpath(test_client_factory):
+def test_session_cookie_subpath(test_client_factory: TestClientFactory) -> None:
     second_app = Starlette(
         routes=[
             Route("/update_session", endpoint=update_session, methods=["POST"]),
@@ -140,7 +144,7 @@ def test_session_cookie_subpath(test_client_factory):
     assert cookie_path == "/second_app"
 
 
-def test_invalid_session_cookie(test_client_factory):
+def test_invalid_session_cookie(test_client_factory: TestClientFactory) -> None:
     app = Starlette(
         routes=[
             Route("/view_session", endpoint=view_session),
@@ -159,7 +163,7 @@ def test_invalid_session_cookie(test_client_factory):
     assert response.json() == {"session": {}}
 
 
-def test_session_cookie(test_client_factory):
+def test_session_cookie(test_client_factory: TestClientFactory) -> None:
     app = Starlette(
         routes=[
             Route("/view_session", endpoint=view_session),
@@ -181,7 +185,7 @@ def test_session_cookie(test_client_factory):
     assert response.json() == {"session": {}}
 
 
-def test_domain_cookie(test_client_factory):
+def test_domain_cookie(test_client_factory: TestClientFactory) -> None:
     app = Starlette(
         routes=[
             Route("/view_session", endpoint=view_session),
@@ -205,7 +209,7 @@ def test_domain_cookie(test_client_factory):
     assert response.json() == {"session": {}}
 
 
-def test_session_refresh(test_client_factory):
+def test_session_refresh(test_client_factory: TestClientFactory) -> None:
     app = Starlette(
         routes=[
             Route("/view_session", endpoint=view_session),
@@ -234,7 +238,7 @@ def test_session_refresh(test_client_factory):
     assert original_cookie_header != second_cookie_header
 
 
-def test_session_persistence(test_client_factory):
+def test_session_persistence(test_client_factory: TestClientFactory) -> None:
     app = Starlette(
         routes=[
             Route("/view_session", endpoint=view_session),
@@ -255,7 +259,7 @@ def test_session_persistence(test_client_factory):
     } and not response.headers.get("set-cookie")
 
 
-def test_partitioned_session(test_client_factory):
+def test_partitioned_session(test_client_factory: TestClientFactory) -> None:
     session_cookie = "__Host-session"
     app = Starlette(
         routes=[
