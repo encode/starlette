@@ -94,7 +94,7 @@ request through as normal, but will include appropriate CORS headers on the resp
 
 ## SessionMiddleware
 
-Adds signed cookie-based HTTP sessions. Session cookie information is user readable but not user modifiable, the data stored is ***not*** encrypted.
+Adds signed cookie-based HTTP sessions. Session cookie information is user readable but not user modifiable, the data stored is ***not*** encrypted. 
 
 Access or modify the session data using the `request.session` dictionary interface.
 
@@ -106,8 +106,8 @@ The following arguments are supported:
 * `refresh_window` - Refresh window in seconds before max_age. If set the cookie will automatically refresh with in that timeframe when used to a new max_age. Defaults to `None`.
 * `same_site` - SameSite flag prevents the browser from sending session cookie along with cross-site requests. Defaults to `'lax'`.
 * `https_only` - Indicate that Secure flag should be set (can be used with HTTPS only). Defaults to `False`.
-* `domain` - Domain of the cookie used to share cookie between subdomains or cross-domains. The browser defaults the domain to the same host that set the cookie, excluding subdomains [refrence](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#domain_attribute).
-
+* `domain` - Domain of the cookie used to share cookie between subdomains or cross-domains. The browser defaults the domain to the same host that set the cookie, excluding subdomains [reference](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#domain_attribute).
+* `partitioned` - A [partitioned cookie](https://developer.mozilla.org/en-US/docs/Web/Privacy/Privacy_sandbox/Partitioned_cookies) is a type of cookie that can only be accessed by the same third-party service within the context of the top-level site where it was initially set, preventing cross-site tracking and improving user privacy. Defaults to `False`.
 
 ```python
 from starlette.applications import Starlette
