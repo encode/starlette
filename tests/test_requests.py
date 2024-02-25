@@ -11,10 +11,10 @@ from starlette.datastructures import Address, State
 from starlette.requests import ClientDisconnect, Request
 from starlette.responses import JSONResponse, PlainTextResponse, Response
 from starlette.types import Message, Receive, Scope, Send
-from tests.types import ClientFactoryProtocol
+from tests.types import TestClientFactory
 
 
-def test_request_url(test_client_factory: ClientFactoryProtocol) -> None:
+def test_request_url(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         data = {"method": request.method, "url": str(request.url)}
@@ -29,7 +29,7 @@ def test_request_url(test_client_factory: ClientFactoryProtocol) -> None:
     assert response.json() == {"method": "GET", "url": "https://example.org:123/"}
 
 
-def test_request_query_params(test_client_factory: ClientFactoryProtocol) -> None:
+def test_request_query_params(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         params = dict(request.query_params)
@@ -45,7 +45,7 @@ def test_request_query_params(test_client_factory: ClientFactoryProtocol) -> Non
     any(module in sys.modules for module in ("brotli", "brotlicffi")),
     reason='urllib3 includes "br" to the "accept-encoding" headers.',
 )
-def test_request_headers(test_client_factory: ClientFactoryProtocol) -> None:
+def test_request_headers(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         headers = dict(request.headers)
@@ -79,7 +79,7 @@ def test_request_client(scope: Scope, expected_client: Address | None) -> None:
     assert client == expected_client
 
 
-def test_request_body(test_client_factory: ClientFactoryProtocol) -> None:
+def test_request_body(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         body = await request.body()
@@ -98,7 +98,7 @@ def test_request_body(test_client_factory: ClientFactoryProtocol) -> None:
     assert response.json() == {"body": "abc"}
 
 
-def test_request_stream(test_client_factory: ClientFactoryProtocol) -> None:
+def test_request_stream(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         body = b""
@@ -119,7 +119,7 @@ def test_request_stream(test_client_factory: ClientFactoryProtocol) -> None:
     assert response.json() == {"body": "abc"}
 
 
-def test_request_form_urlencoded(test_client_factory: ClientFactoryProtocol) -> None:
+def test_request_form_urlencoded(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         form = await request.form()
@@ -133,7 +133,7 @@ def test_request_form_urlencoded(test_client_factory: ClientFactoryProtocol) -> 
 
 
 def test_request_form_context_manager(
-    test_client_factory: ClientFactoryProtocol,
+    test_client_factory: TestClientFactory,
 ) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
@@ -147,7 +147,7 @@ def test_request_form_context_manager(
     assert response.json() == {"form": {"abc": "123 @"}}
 
 
-def test_request_body_then_stream(test_client_factory: ClientFactoryProtocol) -> None:
+def test_request_body_then_stream(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         body = await request.body()
@@ -163,7 +163,7 @@ def test_request_body_then_stream(test_client_factory: ClientFactoryProtocol) ->
     assert response.json() == {"body": "abc", "stream": "abc"}
 
 
-def test_request_stream_then_body(test_client_factory: ClientFactoryProtocol) -> None:
+def test_request_stream_then_body(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         chunks = b""
@@ -182,7 +182,7 @@ def test_request_stream_then_body(test_client_factory: ClientFactoryProtocol) ->
     assert response.json() == {"body": "<stream consumed>", "stream": "abc"}
 
 
-def test_request_json(test_client_factory: ClientFactoryProtocol) -> None:
+def test_request_json(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         data = await request.json()
@@ -205,7 +205,7 @@ def test_request_scope_interface() -> None:
     assert len(request) == 3
 
 
-def test_request_raw_path(test_client_factory: ClientFactoryProtocol) -> None:
+def test_request_raw_path(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         path = request.scope["path"]
@@ -219,7 +219,7 @@ def test_request_raw_path(test_client_factory: ClientFactoryProtocol) -> None:
 
 
 def test_request_without_setting_receive(
-    test_client_factory: ClientFactoryProtocol,
+    test_client_factory: TestClientFactory,
 ) -> None:
     """
     If Request is instantiated without the receive channel, then .body()
@@ -268,7 +268,7 @@ def test_request_disconnect(
         )
 
 
-def test_request_is_disconnected(test_client_factory: ClientFactoryProtocol) -> None:
+def test_request_is_disconnected(test_client_factory: TestClientFactory) -> None:
     """
     If a client disconnect occurs after reading request body
     then request will be set disconnected properly.
@@ -305,7 +305,7 @@ def test_request_state_object() -> None:
         s.new
 
 
-def test_request_state(test_client_factory: ClientFactoryProtocol) -> None:
+def test_request_state(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         request.state.example = 123
@@ -317,7 +317,7 @@ def test_request_state(test_client_factory: ClientFactoryProtocol) -> None:
     assert response.json() == {"state.example": 123}
 
 
-def test_request_cookies(test_client_factory: ClientFactoryProtocol) -> None:
+def test_request_cookies(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         mycookie = request.cookies.get("mycookie")
@@ -336,7 +336,7 @@ def test_request_cookies(test_client_factory: ClientFactoryProtocol) -> None:
     assert response.text == "Hello, cookies!"
 
 
-def test_cookie_lenient_parsing(test_client_factory: ClientFactoryProtocol) -> None:
+def test_cookie_lenient_parsing(test_client_factory: TestClientFactory) -> None:
     """
     The following test is based on a cookie set by Okta, a well-known authorization
     service. It turns out that it's common practice to set cookies that would be
@@ -452,7 +452,7 @@ def test_cookies_invalid(
     assert result["cookies"] == expected
 
 
-def test_chunked_encoding(test_client_factory: ClientFactoryProtocol) -> None:
+def test_chunked_encoding(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         body = await request.body()
@@ -469,7 +469,7 @@ def test_chunked_encoding(test_client_factory: ClientFactoryProtocol) -> None:
     assert response.json() == {"body": "foobar"}
 
 
-def test_request_send_push_promise(test_client_factory: ClientFactoryProtocol) -> None:
+def test_request_send_push_promise(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         # the server is push-enabled
         scope["extensions"]["http.response.push"] = {}
@@ -486,7 +486,7 @@ def test_request_send_push_promise(test_client_factory: ClientFactoryProtocol) -
 
 
 def test_request_send_push_promise_without_push_extension(
-    test_client_factory: ClientFactoryProtocol,
+    test_client_factory: TestClientFactory,
 ) -> None:
     """
     If server does not support the `http.response.push` extension,
@@ -506,7 +506,7 @@ def test_request_send_push_promise_without_push_extension(
 
 
 def test_request_send_push_promise_without_setting_send(
-    test_client_factory: ClientFactoryProtocol,
+    test_client_factory: TestClientFactory,
 ) -> None:
     """
     If Request is instantiated without the send channel, then

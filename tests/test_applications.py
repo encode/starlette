@@ -20,7 +20,7 @@ from starlette.staticfiles import StaticFiles
 from starlette.testclient import TestClient
 from starlette.types import ASGIApp, Receive, Scope, Send
 from starlette.websockets import WebSocket
-from tests.types import ClientFactoryProtocol
+from tests.types import TestClientFactory
 
 
 async def error_500(request: Request, exc: HTTPException) -> JSONResponse:
@@ -132,7 +132,7 @@ app = Starlette(
 
 @pytest.fixture
 def client(
-    test_client_factory: ClientFactoryProtocol,
+    test_client_factory: TestClientFactory,
 ) -> Generator[TestClient, None, None]:
     with test_client_factory(app) as client:
         yield client
@@ -176,7 +176,7 @@ def test_mounted_route_path_params(client: TestClient) -> None:
     assert response.text == "Hello, tomchristie!"
 
 
-def test_subdomain_route(test_client_factory: ClientFactoryProtocol) -> None:
+def test_subdomain_route(test_client_factory: TestClientFactory) -> None:
     client = test_client_factory(app, base_url="https://foo.example.org/")
 
     response = client.get("/")
@@ -206,7 +206,7 @@ def test_405(client: TestClient) -> None:
     assert response.json() == {"detail": "Custom message"}
 
 
-def test_500(test_client_factory: ClientFactoryProtocol) -> None:
+def test_500(test_client_factory: TestClientFactory) -> None:
     client = test_client_factory(app, raise_server_exceptions=False)
     response = client.get("/500")
     assert response.status_code == 500
@@ -233,7 +233,7 @@ def test_websocket_raise_custom_exception(client: TestClient) -> None:
         }
 
 
-def test_middleware(test_client_factory: ClientFactoryProtocol) -> None:
+def test_middleware(test_client_factory: TestClientFactory) -> None:
     client = test_client_factory(app, base_url="http://incorrecthost")
     response = client.get("/func")
     assert response.status_code == 400
@@ -265,7 +265,7 @@ def test_routes() -> None:
     ]
 
 
-def test_app_mount(tmpdir: Path, test_client_factory: ClientFactoryProtocol) -> None:
+def test_app_mount(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
         file.write("<file content>")
@@ -287,7 +287,7 @@ def test_app_mount(tmpdir: Path, test_client_factory: ClientFactoryProtocol) -> 
     assert response.text == "Method Not Allowed"
 
 
-def test_app_debug(test_client_factory: ClientFactoryProtocol) -> None:
+def test_app_debug(test_client_factory: TestClientFactory) -> None:
     async def homepage(request: Request) -> None:
         raise RuntimeError()
 
@@ -305,7 +305,7 @@ def test_app_debug(test_client_factory: ClientFactoryProtocol) -> None:
     assert app.debug
 
 
-def test_app_add_route(test_client_factory: ClientFactoryProtocol) -> None:
+def test_app_add_route(test_client_factory: TestClientFactory) -> None:
     async def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("Hello, World!")
 
@@ -321,7 +321,7 @@ def test_app_add_route(test_client_factory: ClientFactoryProtocol) -> None:
     assert response.text == "Hello, World!"
 
 
-def test_app_add_websocket_route(test_client_factory: ClientFactoryProtocol) -> None:
+def test_app_add_websocket_route(test_client_factory: TestClientFactory) -> None:
     async def websocket_endpoint(session: WebSocket) -> None:
         await session.accept()
         await session.send_text("Hello, world!")
@@ -339,7 +339,7 @@ def test_app_add_websocket_route(test_client_factory: ClientFactoryProtocol) -> 
         assert text == "Hello, world!"
 
 
-def test_app_add_event_handler(test_client_factory: ClientFactoryProtocol) -> None:
+def test_app_add_event_handler(test_client_factory: TestClientFactory) -> None:
     startup_complete = False
     cleanup_complete = False
 
@@ -368,7 +368,7 @@ def test_app_add_event_handler(test_client_factory: ClientFactoryProtocol) -> No
     assert cleanup_complete
 
 
-def test_app_async_cm_lifespan(test_client_factory: ClientFactoryProtocol) -> None:
+def test_app_async_cm_lifespan(test_client_factory: TestClientFactory) -> None:
     startup_complete = False
     cleanup_complete = False
 
@@ -400,7 +400,7 @@ deprecated_lifespan = pytest.mark.filterwarnings(
 
 
 @deprecated_lifespan
-def test_app_async_gen_lifespan(test_client_factory: ClientFactoryProtocol) -> None:
+def test_app_async_gen_lifespan(test_client_factory: TestClientFactory) -> None:
     startup_complete = False
     cleanup_complete = False
 
@@ -422,7 +422,7 @@ def test_app_async_gen_lifespan(test_client_factory: ClientFactoryProtocol) -> N
 
 
 @deprecated_lifespan
-def test_app_sync_gen_lifespan(test_client_factory: ClientFactoryProtocol) -> None:
+def test_app_sync_gen_lifespan(test_client_factory: TestClientFactory) -> None:
     startup_complete = False
     cleanup_complete = False
 
@@ -500,7 +500,7 @@ def test_decorator_deprecations() -> None:
         assert len(record) == 1
 
 
-def test_middleware_stack_init(test_client_factory: ClientFactoryProtocol) -> None:
+def test_middleware_stack_init(test_client_factory: TestClientFactory) -> None:
     class NoOpMiddleware:
         def __init__(self, app: ASGIApp):
             self.app = app

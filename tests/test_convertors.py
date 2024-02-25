@@ -8,7 +8,7 @@ from starlette.convertors import Convertor, register_url_convertor
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Route, Router
-from tests.types import ClientFactoryProtocol
+from tests.types import TestClientFactory
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -49,7 +49,7 @@ def app() -> Router:
 
 
 def test_datetime_convertor(
-    test_client_factory: ClientFactoryProtocol, app: Router
+    test_client_factory: TestClientFactory, app: Router
 ) -> None:
     client = test_client_factory(app)
     response = client.get("/datetime/2020-01-01T00:00:00")
@@ -63,7 +63,7 @@ def test_datetime_convertor(
 
 @pytest.mark.parametrize("param, status_code", [("1.0", 200), ("1-0", 404)])
 def test_default_float_convertor(
-    test_client_factory: ClientFactoryProtocol, param: str, status_code: int
+    test_client_factory: TestClientFactory, param: str, status_code: int
 ) -> None:
     def float_convertor(request: Request) -> JSONResponse:
         param = request.path_params["param"]

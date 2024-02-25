@@ -22,7 +22,7 @@ from starlette.routing import Route, WebSocketRoute
 from starlette.testclient import TestClient
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from starlette.websockets import WebSocket
-from tests.types import ClientFactoryProtocol
+from tests.types import TestClientFactory
 
 
 class CustomMiddleware(BaseHTTPMiddleware):
@@ -87,7 +87,7 @@ app = Starlette(
 )
 
 
-def test_custom_middleware(test_client_factory: ClientFactoryProtocol) -> None:
+def test_custom_middleware(test_client_factory: TestClientFactory) -> None:
     client = test_client_factory(app)
     response = client.get("/")
     assert response.headers["Custom-Header"] == "Example"
@@ -109,7 +109,7 @@ def test_custom_middleware(test_client_factory: ClientFactoryProtocol) -> None:
 
 
 def test_state_data_across_multiple_middlewares(
-    test_client_factory: ClientFactoryProtocol,
+    test_client_factory: TestClientFactory,
 ) -> None:
     expected_value1 = "foo"
     expected_value2 = "bar"
@@ -164,7 +164,7 @@ def test_state_data_across_multiple_middlewares(
     assert response.headers["X-State-Bar"] == expected_value2
 
 
-def test_app_middleware_argument(test_client_factory: ClientFactoryProtocol) -> None:
+def test_app_middleware_argument(test_client_factory: TestClientFactory) -> None:
     def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("Homepage")
 
@@ -177,7 +177,7 @@ def test_app_middleware_argument(test_client_factory: ClientFactoryProtocol) -> 
     assert response.headers["Custom-Header"] == "Example"
 
 
-def test_fully_evaluated_response(test_client_factory: ClientFactoryProtocol) -> None:
+def test_fully_evaluated_response(test_client_factory: TestClientFactory) -> None:
     # Test for https://github.com/encode/starlette/issues/1022
     class CustomMiddleware(BaseHTTPMiddleware):
         async def dispatch(
@@ -443,7 +443,7 @@ async def test_run_context_manager_exit_even_if_client_disconnects() -> None:
 
 
 def test_app_receives_http_disconnect_while_sending_if_discarded(
-    test_client_factory: ClientFactoryProtocol,
+    test_client_factory: TestClientFactory,
 ) -> None:
     class DiscardingMiddleware(BaseHTTPMiddleware):
         async def dispatch(
@@ -521,7 +521,7 @@ def test_app_receives_http_disconnect_while_sending_if_discarded(
 
 
 def test_app_receives_http_disconnect_after_sending_if_discarded(
-    test_client_factory: ClientFactoryProtocol,
+    test_client_factory: TestClientFactory,
 ) -> None:
     class DiscardingMiddleware(BaseHTTPMiddleware):
         async def dispatch(
@@ -571,7 +571,7 @@ def test_app_receives_http_disconnect_after_sending_if_discarded(
 
 
 def test_read_request_stream_in_app_after_middleware_calls_stream(
-    test_client_factory: ClientFactoryProtocol,
+    test_client_factory: TestClientFactory,
 ) -> None:
     async def homepage(request: Request) -> PlainTextResponse:
         expected = [b""]
@@ -603,7 +603,7 @@ def test_read_request_stream_in_app_after_middleware_calls_stream(
 
 
 def test_read_request_stream_in_app_after_middleware_calls_body(
-    test_client_factory: ClientFactoryProtocol,
+    test_client_factory: TestClientFactory,
 ) -> None:
     async def homepage(request: Request) -> PlainTextResponse:
         expected = [b"a", b""]
@@ -632,7 +632,7 @@ def test_read_request_stream_in_app_after_middleware_calls_body(
 
 
 def test_read_request_body_in_app_after_middleware_calls_stream(
-    test_client_factory: ClientFactoryProtocol,
+    test_client_factory: TestClientFactory,
 ) -> None:
     async def homepage(request: Request) -> PlainTextResponse:
         assert await request.body() == b""
@@ -661,7 +661,7 @@ def test_read_request_body_in_app_after_middleware_calls_stream(
 
 
 def test_read_request_body_in_app_after_middleware_calls_body(
-    test_client_factory: ClientFactoryProtocol,
+    test_client_factory: TestClientFactory,
 ) -> None:
     async def homepage(request: Request) -> PlainTextResponse:
         assert await request.body() == b"a"
@@ -687,7 +687,7 @@ def test_read_request_body_in_app_after_middleware_calls_body(
 
 
 def test_read_request_stream_in_dispatch_after_app_calls_stream(
-    test_client_factory: ClientFactoryProtocol,
+    test_client_factory: TestClientFactory,
 ) -> None:
     async def homepage(request: Request) -> PlainTextResponse:
         expected = [b"a", b""]
@@ -719,7 +719,7 @@ def test_read_request_stream_in_dispatch_after_app_calls_stream(
 
 
 def test_read_request_stream_in_dispatch_after_app_calls_body(
-    test_client_factory: ClientFactoryProtocol,
+    test_client_factory: TestClientFactory,
 ) -> None:
     async def homepage(request: Request) -> PlainTextResponse:
         assert await request.body() == b"a"
@@ -805,7 +805,7 @@ async def test_read_request_stream_in_dispatch_wrapping_app_calls_body() -> None
 
 
 def test_read_request_stream_in_dispatch_after_app_calls_body_with_middleware_calling_body_before_call_next(  # noqa: E501
-    test_client_factory: ClientFactoryProtocol,
+    test_client_factory: TestClientFactory,
 ) -> None:
     async def homepage(request: Request) -> PlainTextResponse:
         assert await request.body() == b"a"
@@ -837,7 +837,7 @@ def test_read_request_stream_in_dispatch_after_app_calls_body_with_middleware_ca
 
 
 def test_read_request_body_in_dispatch_after_app_calls_body_with_middleware_calling_body_before_call_next(  # noqa: E501
-    test_client_factory: ClientFactoryProtocol,
+    test_client_factory: TestClientFactory,
 ) -> None:
     async def homepage(request: Request) -> PlainTextResponse:
         assert await request.body() == b"a"
@@ -953,7 +953,7 @@ async def test_read_request_disconnected_after_consuming_steam() -> None:
 
 
 def test_downstream_middleware_modifies_receive(
-    test_client_factory: ClientFactoryProtocol,
+    test_client_factory: TestClientFactory,
 ) -> None:
     """If a downstream middleware modifies receive() the final ASGI app
     should see the modified version.

@@ -10,10 +10,10 @@ from starlette.responses import Response
 from starlette.testclient import WebSocketDenialResponse
 from starlette.types import Message, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketDisconnect, WebSocketState
-from tests.types import ClientFactoryProtocol
+from tests.types import TestClientFactory
 
 
-def test_websocket_url(test_client_factory: ClientFactoryProtocol) -> None:
+def test_websocket_url(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         await websocket.accept()
@@ -26,7 +26,7 @@ def test_websocket_url(test_client_factory: ClientFactoryProtocol) -> None:
         assert data == {"url": "ws://testserver/123?a=abc"}
 
 
-def test_websocket_binary_json(test_client_factory: ClientFactoryProtocol) -> None:
+def test_websocket_binary_json(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         await websocket.accept()
@@ -42,7 +42,7 @@ def test_websocket_binary_json(test_client_factory: ClientFactoryProtocol) -> No
 
 
 def test_websocket_ensure_unicode_on_send_json(
-    test_client_factory: ClientFactoryProtocol,
+    test_client_factory: TestClientFactory,
 ) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
@@ -59,7 +59,7 @@ def test_websocket_ensure_unicode_on_send_json(
         assert data == '{"test":"数据"}'
 
 
-def test_websocket_query_params(test_client_factory: ClientFactoryProtocol) -> None:
+def test_websocket_query_params(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         query_params = dict(websocket.query_params)
@@ -77,7 +77,7 @@ def test_websocket_query_params(test_client_factory: ClientFactoryProtocol) -> N
     any(module in sys.modules for module in ("brotli", "brotlicffi")),
     reason='urllib3 includes "br" to the "accept-encoding" headers.',
 )
-def test_websocket_headers(test_client_factory: ClientFactoryProtocol) -> None:
+def test_websocket_headers(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         headers = dict(websocket.headers)
@@ -100,7 +100,7 @@ def test_websocket_headers(test_client_factory: ClientFactoryProtocol) -> None:
         assert data == {"headers": expected_headers}
 
 
-def test_websocket_port(test_client_factory: ClientFactoryProtocol) -> None:
+def test_websocket_port(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         await websocket.accept()
@@ -114,7 +114,7 @@ def test_websocket_port(test_client_factory: ClientFactoryProtocol) -> None:
 
 
 def test_websocket_send_and_receive_text(
-    test_client_factory: ClientFactoryProtocol,
+    test_client_factory: TestClientFactory,
 ) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
@@ -131,7 +131,7 @@ def test_websocket_send_and_receive_text(
 
 
 def test_websocket_send_and_receive_bytes(
-    test_client_factory: ClientFactoryProtocol,
+    test_client_factory: TestClientFactory,
 ) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
@@ -148,7 +148,7 @@ def test_websocket_send_and_receive_bytes(
 
 
 def test_websocket_send_and_receive_json(
-    test_client_factory: ClientFactoryProtocol,
+    test_client_factory: TestClientFactory,
 ) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
@@ -164,7 +164,7 @@ def test_websocket_send_and_receive_json(
         assert data == {"message": {"hello": "world"}}
 
 
-def test_websocket_iter_text(test_client_factory: ClientFactoryProtocol) -> None:
+def test_websocket_iter_text(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         await websocket.accept()
@@ -178,7 +178,7 @@ def test_websocket_iter_text(test_client_factory: ClientFactoryProtocol) -> None
         assert data == "Message was: Hello, world!"
 
 
-def test_websocket_iter_bytes(test_client_factory: ClientFactoryProtocol) -> None:
+def test_websocket_iter_bytes(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         await websocket.accept()
@@ -192,7 +192,7 @@ def test_websocket_iter_bytes(test_client_factory: ClientFactoryProtocol) -> Non
         assert data == b"Message was: Hello, world!"
 
 
-def test_websocket_iter_json(test_client_factory: ClientFactoryProtocol) -> None:
+def test_websocket_iter_json(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         await websocket.accept()
@@ -207,7 +207,7 @@ def test_websocket_iter_json(test_client_factory: ClientFactoryProtocol) -> None
 
 
 def test_websocket_concurrency_pattern(
-    test_client_factory: ClientFactoryProtocol,
+    test_client_factory: TestClientFactory,
 ) -> None:
     stream_send: ObjectSendStream[MutableMapping[str, Any]]
     stream_receive: ObjectReceiveStream[MutableMapping[str, Any]]
@@ -238,7 +238,7 @@ def test_websocket_concurrency_pattern(
         assert data == {"hello": "world"}
 
 
-def test_client_close(test_client_factory: ClientFactoryProtocol) -> None:
+def test_client_close(test_client_factory: TestClientFactory) -> None:
     close_code = None
     close_reason = None
 
@@ -281,7 +281,7 @@ async def test_client_disconnect_on_send() -> None:
     assert ctx.value.code == status.WS_1006_ABNORMAL_CLOSURE
 
 
-def test_application_close(test_client_factory: ClientFactoryProtocol) -> None:
+def test_application_close(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         await websocket.accept()
@@ -294,7 +294,7 @@ def test_application_close(test_client_factory: ClientFactoryProtocol) -> None:
         assert exc.value.code == status.WS_1001_GOING_AWAY
 
 
-def test_rejected_connection(test_client_factory: ClientFactoryProtocol) -> None:
+def test_rejected_connection(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         msg = await websocket.receive()
@@ -308,7 +308,7 @@ def test_rejected_connection(test_client_factory: ClientFactoryProtocol) -> None
     assert exc.value.code == status.WS_1001_GOING_AWAY
 
 
-def test_send_denial_response(test_client_factory: ClientFactoryProtocol) -> None:
+def test_send_denial_response(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         msg = await websocket.receive()
@@ -324,7 +324,7 @@ def test_send_denial_response(test_client_factory: ClientFactoryProtocol) -> Non
     assert exc.value.content == b"foo"
 
 
-def test_send_response_multi(test_client_factory: ClientFactoryProtocol) -> None:
+def test_send_response_multi(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         msg = await websocket.receive()
@@ -359,7 +359,7 @@ def test_send_response_multi(test_client_factory: ClientFactoryProtocol) -> None
     assert exc.value.headers["foo"] == "bar"
 
 
-def test_send_response_unsupported(test_client_factory: ClientFactoryProtocol) -> None:
+def test_send_response_unsupported(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         del scope["extensions"]["websocket.http.response"]
         websocket = WebSocket(scope, receive=receive, send=send)
@@ -381,7 +381,7 @@ def test_send_response_unsupported(test_client_factory: ClientFactoryProtocol) -
 
 
 def test_send_response_duplicate_start(
-    test_client_factory: ClientFactoryProtocol,
+    test_client_factory: TestClientFactory,
 ) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
@@ -415,7 +415,7 @@ def test_send_response_duplicate_start(
             pass  # pragma: no cover
 
 
-def test_subprotocol(test_client_factory: ClientFactoryProtocol) -> None:
+def test_subprotocol(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         assert websocket["subprotocols"] == ["soap", "wamp"]
@@ -427,7 +427,7 @@ def test_subprotocol(test_client_factory: ClientFactoryProtocol) -> None:
         assert websocket.accepted_subprotocol == "wamp"
 
 
-def test_additional_headers(test_client_factory: ClientFactoryProtocol) -> None:
+def test_additional_headers(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         await websocket.accept(headers=[(b"additional", b"header")])
@@ -438,7 +438,7 @@ def test_additional_headers(test_client_factory: ClientFactoryProtocol) -> None:
         assert websocket.extra_headers == [(b"additional", b"header")]
 
 
-def test_no_additional_headers(test_client_factory: ClientFactoryProtocol) -> None:
+def test_no_additional_headers(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         await websocket.accept()
@@ -449,7 +449,7 @@ def test_no_additional_headers(test_client_factory: ClientFactoryProtocol) -> No
         assert websocket.extra_headers == []
 
 
-def test_websocket_exception(test_client_factory: ClientFactoryProtocol) -> None:
+def test_websocket_exception(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         assert False
 
@@ -459,7 +459,7 @@ def test_websocket_exception(test_client_factory: ClientFactoryProtocol) -> None
             pass  # pragma: no cover
 
 
-def test_duplicate_close(test_client_factory: ClientFactoryProtocol) -> None:
+def test_duplicate_close(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         await websocket.accept()
@@ -472,7 +472,7 @@ def test_duplicate_close(test_client_factory: ClientFactoryProtocol) -> None:
             pass  # pragma: no cover
 
 
-def test_duplicate_disconnect(test_client_factory: ClientFactoryProtocol) -> None:
+def test_duplicate_disconnect(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         await websocket.accept()
@@ -517,7 +517,7 @@ def test_websocket_scope_interface() -> None:
     assert {websocket} == {websocket}
 
 
-def test_websocket_close_reason(test_client_factory: ClientFactoryProtocol) -> None:
+def test_websocket_close_reason(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         await websocket.accept()
@@ -531,7 +531,7 @@ def test_websocket_close_reason(test_client_factory: ClientFactoryProtocol) -> N
         assert exc.value.reason == "Going Away"
 
 
-def test_send_json_invalid_mode(test_client_factory: ClientFactoryProtocol) -> None:
+def test_send_json_invalid_mode(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         await websocket.accept()
@@ -543,7 +543,7 @@ def test_send_json_invalid_mode(test_client_factory: ClientFactoryProtocol) -> N
             pass  # pragma: no cover
 
 
-def test_receive_json_invalid_mode(test_client_factory: ClientFactoryProtocol) -> None:
+def test_receive_json_invalid_mode(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         await websocket.accept()
@@ -555,7 +555,7 @@ def test_receive_json_invalid_mode(test_client_factory: ClientFactoryProtocol) -
             pass  # pragma: nocover
 
 
-def test_receive_text_before_accept(test_client_factory: ClientFactoryProtocol) -> None:
+def test_receive_text_before_accept(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         await websocket.receive_text()
@@ -567,7 +567,7 @@ def test_receive_text_before_accept(test_client_factory: ClientFactoryProtocol) 
 
 
 def test_receive_bytes_before_accept(
-    test_client_factory: ClientFactoryProtocol,
+    test_client_factory: TestClientFactory,
 ) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
@@ -579,7 +579,7 @@ def test_receive_bytes_before_accept(
             pass  # pragma: nocover
 
 
-def test_receive_json_before_accept(test_client_factory: ClientFactoryProtocol) -> None:
+def test_receive_json_before_accept(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         await websocket.receive_json()
@@ -590,7 +590,7 @@ def test_receive_json_before_accept(test_client_factory: ClientFactoryProtocol) 
             pass  # pragma: no cover
 
 
-def test_send_before_accept(test_client_factory: ClientFactoryProtocol) -> None:
+def test_send_before_accept(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         await websocket.send({"type": "websocket.send"})
@@ -601,7 +601,7 @@ def test_send_before_accept(test_client_factory: ClientFactoryProtocol) -> None:
             pass  # pragma: nocover
 
 
-def test_send_wrong_message_type(test_client_factory: ClientFactoryProtocol) -> None:
+def test_send_wrong_message_type(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         await websocket.send({"type": "websocket.accept"})
@@ -613,7 +613,7 @@ def test_send_wrong_message_type(test_client_factory: ClientFactoryProtocol) -> 
             pass  # pragma: no cover
 
 
-def test_receive_before_accept(test_client_factory: ClientFactoryProtocol) -> None:
+def test_receive_before_accept(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         await websocket.accept()
@@ -626,7 +626,7 @@ def test_receive_before_accept(test_client_factory: ClientFactoryProtocol) -> No
             websocket.send({"type": "websocket.send"})
 
 
-def test_receive_wrong_message_type(test_client_factory: ClientFactoryProtocol) -> None:
+def test_receive_wrong_message_type(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         await websocket.accept()

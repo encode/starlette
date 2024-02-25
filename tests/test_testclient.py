@@ -20,7 +20,7 @@ from starlette.routing import Route
 from starlette.testclient import ASGIInstance, TestClient
 from starlette.types import ASGIApp, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketDisconnect
-from tests.types import ClientFactoryProtocol
+from tests.types import TestClientFactory
 
 
 def mock_service_endpoint(request: Request) -> JSONResponse:
@@ -49,7 +49,7 @@ def startup() -> None:
     raise RuntimeError()
 
 
-def test_use_testclient_in_endpoint(test_client_factory: ClientFactoryProtocol) -> None:
+def test_use_testclient_in_endpoint(test_client_factory: TestClientFactory) -> None:
     """
     We should be able to use the test client within applications.
 
@@ -89,7 +89,7 @@ def test_testclient_headers_behavior() -> None:
 
 
 def test_use_testclient_as_contextmanager(
-    test_client_factory: ClientFactoryProtocol, anyio_backend_name: str
+    test_client_factory: TestClientFactory, anyio_backend_name: str
 ) -> None:
     """
     This test asserts a number of properties that are important for an
@@ -168,7 +168,7 @@ def test_use_testclient_as_contextmanager(
     assert first_task is not startup_task
 
 
-def test_error_on_startup(test_client_factory: ClientFactoryProtocol) -> None:
+def test_error_on_startup(test_client_factory: TestClientFactory) -> None:
     with pytest.deprecated_call(
         match="The on_startup and on_shutdown parameters are deprecated"
     ):
@@ -179,7 +179,7 @@ def test_error_on_startup(test_client_factory: ClientFactoryProtocol) -> None:
             pass  # pragma: no cover
 
 
-def test_exception_in_middleware(test_client_factory: ClientFactoryProtocol) -> None:
+def test_exception_in_middleware(test_client_factory: TestClientFactory) -> None:
     class MiddlewareException(Exception):
         pass
 
@@ -197,7 +197,7 @@ def test_exception_in_middleware(test_client_factory: ClientFactoryProtocol) -> 
             pass  # pragma: no cover
 
 
-def test_testclient_asgi2(test_client_factory: ClientFactoryProtocol) -> None:
+def test_testclient_asgi2(test_client_factory: TestClientFactory) -> None:
     def app(scope: Scope) -> ASGIInstance:
         async def inner(receive: Receive, send: Send) -> None:
             await send(
@@ -216,7 +216,7 @@ def test_testclient_asgi2(test_client_factory: ClientFactoryProtocol) -> None:
     assert response.text == "Hello, world!"
 
 
-def test_testclient_asgi3(test_client_factory: ClientFactoryProtocol) -> None:
+def test_testclient_asgi3(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         await send(
             {
@@ -232,7 +232,7 @@ def test_testclient_asgi3(test_client_factory: ClientFactoryProtocol) -> None:
     assert response.text == "Hello, world!"
 
 
-def test_websocket_blocking_receive(test_client_factory: ClientFactoryProtocol) -> None:
+def test_websocket_blocking_receive(test_client_factory: TestClientFactory) -> None:
     def app(scope: Scope) -> ASGIInstance:
         async def respond(websocket: WebSocket) -> None:
             await websocket.send_json({"message": "test"})
@@ -258,7 +258,7 @@ def test_websocket_blocking_receive(test_client_factory: ClientFactoryProtocol) 
 
 
 def test_websocket_not_block_on_close(
-    test_client_factory: ClientFactoryProtocol,
+    test_client_factory: TestClientFactory,
 ) -> None:
     def app(scope: Scope) -> ASGIInstance:
         async def asgi(receive: Receive, send: Send) -> None:
@@ -289,7 +289,7 @@ def test_client(test_client_factory: TestClientFactory) -> None:
 
 
 @pytest.mark.parametrize("param", ("2020-07-14T00:00:00+00:00", "España", "voilà"))
-def test_query_params(test_client_factory: ClientFactoryProtocol, param: str) -> None:
+def test_query_params(test_client_factory: TestClientFactory, param: str) -> None:
     def homepage(request: Request) -> Response:
         return Response(request.query_params["param"])
 
@@ -319,7 +319,7 @@ def test_query_params(test_client_factory: ClientFactoryProtocol, param: str) ->
     ],
 )
 def test_domain_restricted_cookies(
-    test_client_factory: ClientFactoryProtocol, domain: str, ok: bool
+    test_client_factory: TestClientFactory, domain: str, ok: bool
 ) -> None:
     """
     Test that test client discards domain restricted cookies which do not match the
@@ -346,7 +346,7 @@ def test_domain_restricted_cookies(
     assert cookie_set == ok
 
 
-def test_forward_follow_redirects(test_client_factory: ClientFactoryProtocol) -> None:
+def test_forward_follow_redirects(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         if "/ok" in scope["path"]:
             response = Response("ok")
@@ -359,7 +359,7 @@ def test_forward_follow_redirects(test_client_factory: ClientFactoryProtocol) ->
     assert response.status_code == 200
 
 
-def test_forward_nofollow_redirects(test_client_factory: ClientFactoryProtocol) -> None:
+def test_forward_nofollow_redirects(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         response = RedirectResponse("/ok")
         await response(scope, receive, send)
@@ -369,7 +369,7 @@ def test_forward_nofollow_redirects(test_client_factory: ClientFactoryProtocol) 
     assert response.status_code == 307
 
 
-def test_with_duplicate_headers(test_client_factory: ClientFactoryProtocol) -> None:
+def test_with_duplicate_headers(test_client_factory: TestClientFactory) -> None:
     def homepage(request: Request) -> JSONResponse:
         return JSONResponse({"x-token": request.headers.getlist("x-token")})
 
@@ -379,7 +379,7 @@ def test_with_duplicate_headers(test_client_factory: ClientFactoryProtocol) -> N
     assert response.json() == {"x-token": ["foo", "bar"]}
 
 
-def test_merge_url(test_client_factory: ClientFactoryProtocol) -> None:
+def test_merge_url(test_client_factory: TestClientFactory) -> None:
     def homepage(request: Request) -> Response:
         return Response(request.url.path)
 

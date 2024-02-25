@@ -3,10 +3,10 @@ import pytest
 from starlette.background import BackgroundTask, BackgroundTasks
 from starlette.responses import Response
 from starlette.types import Receive, Scope, Send
-from tests.types import ClientFactoryProtocol
+from tests.types import TestClientFactory
 
 
-def test_async_task(test_client_factory: ClientFactoryProtocol) -> None:
+def test_async_task(test_client_factory: TestClientFactory) -> None:
     TASK_COMPLETE = False
 
     async def async_task() -> None:
@@ -25,7 +25,7 @@ def test_async_task(test_client_factory: ClientFactoryProtocol) -> None:
     assert TASK_COMPLETE
 
 
-def test_sync_task(test_client_factory: ClientFactoryProtocol) -> None:
+def test_sync_task(test_client_factory: TestClientFactory) -> None:
     TASK_COMPLETE = False
 
     def sync_task() -> None:
@@ -44,7 +44,7 @@ def test_sync_task(test_client_factory: ClientFactoryProtocol) -> None:
     assert TASK_COMPLETE
 
 
-def test_multiple_tasks(test_client_factory: ClientFactoryProtocol) -> None:
+def test_multiple_tasks(test_client_factory: TestClientFactory) -> None:
     TASK_COUNTER = 0
 
     def increment(amount: int) -> None:
@@ -68,7 +68,7 @@ def test_multiple_tasks(test_client_factory: ClientFactoryProtocol) -> None:
 
 
 def test_multi_tasks_failure_avoids_next_execution(
-    test_client_factory: ClientFactoryProtocol,
+    test_client_factory: TestClientFactory,
 ) -> None:
     TASK_COUNTER = 0
 

@@ -5,7 +5,7 @@ import pytest
 
 from starlette._utils import collapse_excgroups
 from starlette.middleware.wsgi import WSGIMiddleware, build_environ
-from tests.types import ClientFactoryProtocol
+from tests.types import TestClientFactory
 
 WSGIResponse = Iterable[bytes]
 StartResponse = Callable[..., Any]
@@ -64,7 +64,7 @@ def return_exc_info(
         return [output]
 
 
-def test_wsgi_get(test_client_factory: ClientFactoryProtocol) -> None:
+def test_wsgi_get(test_client_factory: TestClientFactory) -> None:
     app = WSGIMiddleware(hello_world)
     client = test_client_factory(app)
     response = client.get("/")
@@ -72,7 +72,7 @@ def test_wsgi_get(test_client_factory: ClientFactoryProtocol) -> None:
     assert response.text == "Hello World!\n"
 
 
-def test_wsgi_post(test_client_factory: ClientFactoryProtocol) -> None:
+def test_wsgi_post(test_client_factory: TestClientFactory) -> None:
     app = WSGIMiddleware(echo_body)
     client = test_client_factory(app)
     response = client.post("/", json={"example": 123})
@@ -80,7 +80,7 @@ def test_wsgi_post(test_client_factory: ClientFactoryProtocol) -> None:
     assert response.text == '{"example": 123}'
 
 
-def test_wsgi_exception(test_client_factory: ClientFactoryProtocol) -> None:
+def test_wsgi_exception(test_client_factory: TestClientFactory) -> None:
     # Note that we're testing the WSGI app directly here.
     # The HTTP protocol implementations would catch this error and return 500.
     app = WSGIMiddleware(raise_exception)
@@ -89,7 +89,7 @@ def test_wsgi_exception(test_client_factory: ClientFactoryProtocol) -> None:
         client.get("/")
 
 
-def test_wsgi_exc_info(test_client_factory: ClientFactoryProtocol) -> None:
+def test_wsgi_exc_info(test_client_factory: TestClientFactory) -> None:
     # Note that we're testing the WSGI app directly here.
     # The HTTP protocol implementations would catch this error and return 500.
     app = WSGIMiddleware(return_exc_info)
