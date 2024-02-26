@@ -13,7 +13,7 @@ from starlette.testclient import TestClient
 P = ParamSpec("P")
 
 
-class TestClientFactory(Protocol):
+class TestClientFactory(Protocol):  # pragma: no cover
     __test__ = False  # type: ignore
 
     def __call__(
