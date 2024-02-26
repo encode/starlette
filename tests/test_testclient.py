@@ -274,8 +274,8 @@ def test_websocket_not_block_on_close(test_client_factory: TestClientFactory) ->
     assert websocket.should_close.is_set()
 
 
-def test_client(test_client_factory):
-    async def app(scope, receive, send):
+def test_client(test_client_factory: TestClientFactory) -> None:
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
         client = scope.get("client")
         assert client is not None
         host, port = client
