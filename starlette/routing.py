@@ -1,14 +1,10 @@
 from __future__ import annotations
 
-import contextlib
 import functools
 import inspect
 import re
 import traceback
-import types
 import typing
-import warnings
-from contextlib import asynccontextmanager
 from enum import Enum
 
 from starlette._exception_handler import wrap_app_handling_exceptions
@@ -39,21 +35,6 @@ class Match(Enum):
     NONE = 0
     PARTIAL = 1
     FULL = 2
-
-
-def iscoroutinefunction_or_partial(obj: typing.Any) -> bool:  # pragma: no cover
-    """
-    Correctly determines if an object is a coroutine function,
-    including those wrapped in functools.partial objects.
-    """
-    warnings.warn(
-        "iscoroutinefunction_or_partial is deprecated, "
-        "and will be removed in a future release.",
-        DeprecationWarning,
-    )
-    while isinstance(obj, functools.partial):
-        obj = obj.func
-    return inspect.iscoroutinefunction(obj)
 
 
 def request_response(
@@ -572,45 +553,15 @@ class Host(BaseRoute):
 _T = typing.TypeVar("_T")
 
 
-class _AsyncLiftContextManager(typing.AsyncContextManager[_T]):
-    def __init__(self, cm: typing.ContextManager[_T]):
-        self._cm = cm
-
-    async def __aenter__(self) -> _T:
-        return self._cm.__enter__()
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: types.TracebackType | None,
-    ) -> bool | None:
-        return self._cm.__exit__(exc_type, exc_value, traceback)
-
-
-def _wrap_gen_lifespan_context(
-    lifespan_context: typing.Callable[
-        [typing.Any], typing.Generator[typing.Any, typing.Any, typing.Any]
-    ],
-) -> typing.Callable[[typing.Any], typing.AsyncContextManager[typing.Any]]:
-    cmgr = contextlib.contextmanager(lifespan_context)
-
-    @functools.wraps(cmgr)
-    def wrapper(app: typing.Any) -> _AsyncLiftContextManager[typing.Any]:
-        return _AsyncLiftContextManager(cmgr(app))
-
-    return wrapper
-
-
 class _DefaultLifespan:
     def __init__(self, router: Router):
         self._router = router
 
     async def __aenter__(self) -> None:
-        await self._router.startup()
+        ...
 
     async def __aexit__(self, *exc_info: object) -> None:
-        await self._router.shutdown()
+        ...
 
     def __call__(self: _T, app: object) -> _T:
         return self
@@ -622,8 +573,6 @@ class Router:
         routes: typing.Sequence[BaseRoute] | None = None,
         redirect_slashes: bool = True,
         default: ASGIApp | None = None,
-        on_startup: typing.Sequence[typing.Callable[[], typing.Any]] | None = None,
-        on_shutdown: typing.Sequence[typing.Callable[[], typing.Any]] | None = None,
         # the generic to Lifespan[AppType] is the type of the top level application
         # which the router cannot know statically, so we use typing.Any
         lifespan: Lifespan[typing.Any] | None = None,
@@ -633,44 +582,9 @@ class Router:
         self.routes = [] if routes is None else list(routes)
         self.redirect_slashes = redirect_slashes
         self.default = self.not_found if default is None else default
-        self.on_startup = [] if on_startup is None else list(on_startup)
-        self.on_shutdown = [] if on_shutdown is None else list(on_shutdown)
-
-        if on_startup or on_shutdown:
-            warnings.warn(
-                "The on_startup and on_shutdown parameters are deprecated, and they "
-                "will be removed on version 1.0. Use the lifespan parameter instead. "
-                "See more about it on https://www.starlette.io/lifespan/.",
-                DeprecationWarning,
-            )
-            if lifespan:
-                warnings.warn(
-                    "The `lifespan` parameter cannot be used with `on_startup` or "
-                    "`on_shutdown`. Both `on_startup` and `on_shutdown` will be "
-                    "ignored."
-                )
 
         if lifespan is None:
             self.lifespan_context: Lifespan[typing.Any] = _DefaultLifespan(self)
-
-        elif inspect.isasyncgenfunction(lifespan):
-            warnings.warn(
-                "async generator function lifespans are deprecated, "
-                "use an @contextlib.asynccontextmanager function instead",
-                DeprecationWarning,
-            )
-            self.lifespan_context = asynccontextmanager(
-                lifespan,
-            )
-        elif inspect.isgeneratorfunction(lifespan):
-            warnings.warn(
-                "generator function lifespans are deprecated, "
-                "use an @contextlib.asynccontextmanager function instead",
-                DeprecationWarning,
-            )
-            self.lifespan_context = _wrap_gen_lifespan_context(
-                lifespan,
-            )
         else:
             self.lifespan_context = lifespan
 
@@ -701,26 +615,6 @@ class Router:
             except NoMatchFound:
                 pass
         raise NoMatchFound(name, path_params)
-
-    async def startup(self) -> None:
-        """
-        Run any `.on_startup` event handlers.
-        """
-        for handler in self.on_startup:
-            if is_async_callable(handler):
-                await handler()
-            else:
-                handler()
-
-    async def shutdown(self) -> None:
-        """
-        Run any `.on_shutdown` event handlers.
-        """
-        for handler in self.on_shutdown:
-            if is_async_callable(handler):
-                await handler()
-            else:
-                handler()
 
     async def lifespan(self, scope: Scope, receive: Receive, send: Send) -> None:
         """
@@ -812,7 +706,7 @@ class Router:
 
     def mount(
         self, path: str, app: ASGIApp, name: str | None = None
-    ) -> None:  # pragma: nocover
+    ) -> None:  # pragma: no cover
         route = Mount(path, app=app, name=name)
         self.routes.append(route)
 
@@ -829,7 +723,7 @@ class Router:
         methods: list[str] | None = None,
         name: str | None = None,
         include_in_schema: bool = True,
-    ) -> None:  # pragma: nocover
+    ) -> None:  # pragma: no cover
         route = Route(
             path,
             endpoint=endpoint,
@@ -847,78 +741,3 @@ class Router:
     ) -> None:  # pragma: no cover
         route = WebSocketRoute(path, endpoint=endpoint, name=name)
         self.routes.append(route)
-
-    def route(
-        self,
-        path: str,
-        methods: list[str] | None = None,
-        name: str | None = None,
-        include_in_schema: bool = True,
-    ) -> typing.Callable:  # type: ignore[type-arg]
-        """
-        We no longer document this decorator style API, and its usage is discouraged.
-        Instead you should use the following approach:
-
-        >>> routes = [Route(path, endpoint=...), ...]
-        >>> app = Starlette(routes=routes)
-        """
-        warnings.warn(
-            "The `route` decorator is deprecated, and will be removed in version 1.0.0."
-            "Refer to https://www.starlette.io/routing/#http-routing for the recommended approach.",  # noqa: E501
-            DeprecationWarning,
-        )
-
-        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]  # noqa: E501
-            self.add_route(
-                path,
-                func,
-                methods=methods,
-                name=name,
-                include_in_schema=include_in_schema,
-            )
-            return func
-
-        return decorator
-
-    def websocket_route(self, path: str, name: str | None = None) -> typing.Callable:  # type: ignore[type-arg]
-        """
-        We no longer document this decorator style API, and its usage is discouraged.
-        Instead you should use the following approach:
-
-        >>> routes = [WebSocketRoute(path, endpoint=...), ...]
-        >>> app = Starlette(routes=routes)
-        """
-        warnings.warn(
-            "The `websocket_route` decorator is deprecated, and will be removed in version 1.0.0. Refer to "  # noqa: E501
-            "https://www.starlette.io/routing/#websocket-routing for the recommended approach.",  # noqa: E501
-            DeprecationWarning,
-        )
-
-        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]  # noqa: E501
-            self.add_websocket_route(path, func, name=name)
-            return func
-
-        return decorator
-
-    def add_event_handler(
-        self, event_type: str, func: typing.Callable[[], typing.Any]
-    ) -> None:  # pragma: no cover
-        assert event_type in ("startup", "shutdown")
-
-        if event_type == "startup":
-            self.on_startup.append(func)
-        else:
-            self.on_shutdown.append(func)
-
-    def on_event(self, event_type: str) -> typing.Callable:  # type: ignore[type-arg]
-        warnings.warn(
-            "The `on_event` decorator is deprecated, and will be removed in version 1.0.0. "  # noqa: E501
-            "Refer to https://www.starlette.io/lifespan/ for recommended approach.",
-            DeprecationWarning,
-        )
-
-        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]  # noqa: E501
-            self.add_event_handler(event_type, func)
-            return func
-
-        return decorator

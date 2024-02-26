@@ -3,6 +3,8 @@ Starlette includes an application class `Starlette` that nicely ties together al
 its other functionality.
 
 ```python
+from contextlib import asynccontextmanager
+
 from starlette.applications import Starlette
 from starlette.responses import PlainTextResponse
 from starlette.routing import Route, Mount, WebSocketRoute
@@ -25,8 +27,11 @@ async def websocket_endpoint(websocket):
     await websocket.send_text('Hello, websocket!')
     await websocket.close()
 
-def startup():
+@asynccontextmanager
+async def lifespan(app: Starlette):
     print('Ready to go')
+    yield
+    print('Shutting down')
 
 
 routes = [
@@ -37,7 +42,7 @@ routes = [
     Mount('/static', StaticFiles(directory="static")),
 ]
 
-app = Starlette(debug=True, routes=routes, on_startup=[startup])
+app = Starlette(debug=True, routes=routes, lifespan=lifespan)
 ```
 
 ### Instantiating the application

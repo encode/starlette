@@ -3,11 +3,11 @@ Jinja2 provides an excellent choice.
 
 ### Jinja2Templates
 
-Signature: `Jinja2Templates(directory, context_processors=None, **env_options)`
+Signature: `Jinja2Templates(directory, context_processors=None, env=None)`
 
 * `directory` - A string, [os.Pathlike][pathlike] or a list of strings or [os.Pathlike][pathlike] denoting a directory path.
 * `context_processors` - A list of functions that return a dictionary to add to the template context.
-* `**env_options` - Additional keyword arguments to pass to the Jinja2 environment.
+* `env` - A preconfigured [`jinja2.Environment`](https://jinja.palletsprojects.com/en/3.0.x/api/#api) instance.
 
 Starlette provides a simple way to get `jinja2` configured. This is probably
 what you want to use by default.
@@ -58,11 +58,9 @@ templates = Jinja2Templates(directory='templates')
 templates.env.filters['marked'] = marked_filter
 ```
 
+## Using custom `jinja2.Environment` instance
 
-## Using custom jinja2.Environment instance
-
-Starlette also accepts a preconfigured [`jinja2.Environment`](https://jinja.palletsprojects.com/en/3.0.x/api/#api) instance. 
-
+Starlette accepts a preconfigured [`jinja2.Environment`](https://jinja.palletsprojects.com/en/3.0.x/api/#api) instance.
 
 ```python
 import jinja2
@@ -71,7 +69,6 @@ from starlette.templating import Jinja2Templates
 env = jinja2.Environment(...)
 templates = Jinja2Templates(env=env)
 ```
-
 
 ## Context processors
 
@@ -124,20 +121,6 @@ def test_homepage():
     assert response.status_code == 200
     assert response.template.name == 'index.html'
     assert "request" in response.context
-```
-
-## Customizing Jinja2 Environment
-
-`Jinja2Templates` accepts all options supported by Jinja2 `Environment`.
-This will allow more control over the `Environment` instance created by Starlette.
-
-For the list of options available to `Environment` you can check Jinja2 documentation [here](https://jinja.palletsprojects.com/en/3.0.x/api/#jinja2.Environment)
-
-```python
-from starlette.templating import Jinja2Templates
-
-
-templates = Jinja2Templates(directory='templates', autoescape=False, auto_reload=True)
 ```
 
 ## Asynchronous template rendering
