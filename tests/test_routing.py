@@ -764,7 +764,7 @@ def test_lifespan_state_unsupported(
     @contextlib.asynccontextmanager
     async def lifespan(
         app: ASGIApp,
-    ) -> typing.AsyncGenerator[typing.Dict[str, str], None]:
+    ) -> typing.AsyncGenerator[dict[str, str], None]:
         yield {"foo": "bar"}
 
     app = Router(

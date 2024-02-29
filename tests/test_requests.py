@@ -241,7 +241,7 @@ def test_request_without_setting_receive(
 
 def test_request_disconnect(
     anyio_backend_name: str,
-    anyio_backend_options: Dict[str, Any],
+    anyio_backend_options: dict[str, Any],
 ) -> None:
     """
     If a client disconnect occurs while reading request body
@@ -393,7 +393,7 @@ def test_cookie_lenient_parsing(test_client_factory: TestClientFactory) -> None:
 )
 def test_cookies_edge_cases(
     set_cookie: str,
-    expected: Dict[str, str],
+    expected: dict[str, str],
     test_client_factory: TestClientFactory,
 ) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
@@ -432,7 +432,7 @@ def test_cookies_edge_cases(
 )
 def test_cookies_invalid(
     set_cookie: str,
-    expected: Dict[str, str],
+    expected: dict[str, str],
     test_client_factory: TestClientFactory,
 ) -> None:
     """
