@@ -74,7 +74,7 @@ def test_request_headers(test_client_factory: TestClientFactory) -> None:
         ({}, None),
     ],
 )
-def test_request_client(scope: Scope, expected_client: Address | None):
+def test_request_client(scope: Scope, expected_client: Address | None) -> None:
     scope.update({"type": "http"})  # required by Request's constructor
     client = Request(scope).client
     assert client == expected_client
