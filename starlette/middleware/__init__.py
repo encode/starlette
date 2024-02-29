@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import sys
 from typing import Any, Iterator, Protocol
 
-if sys.version_info >= (3, 10):  # pragma: no cover
+try:
     from typing import ParamSpec
-else:  # pragma: no cover
+except ImportError:
     from typing_extensions import ParamSpec
 
 from starlette.types import ASGIApp, Receive, Scope, Send

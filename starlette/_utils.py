@@ -3,23 +3,21 @@ from __future__ import annotations
 import asyncio
 import functools
 import re
-import sys
 import typing
 from contextlib import contextmanager
 
 from starlette.types import Scope
 
-if sys.version_info >= (3, 10):  # pragma: no cover
+try:
     from typing import TypeGuard
-else:  # pragma: no cover
+except ImportError:
     from typing_extensions import TypeGuard
 
 has_exceptiongroups = True
-if sys.version_info < (3, 11):  # pragma: no cover
-    try:
-        from exceptiongroup import BaseExceptionGroup
-    except ImportError:
-        has_exceptiongroups = False
+try:
+    from exceptiongroup import BaseExceptionGroup
+except ImportError:
+    has_exceptiongroups = False
 
 T = typing.TypeVar("T")
 AwaitableCallable = typing.Callable[..., typing.Awaitable[T]]

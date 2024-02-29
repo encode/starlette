@@ -6,7 +6,6 @@ import io
 import json
 import math
 import queue
-import sys
 import typing
 import warnings
 from concurrent.futures import Future
@@ -24,9 +23,9 @@ from starlette._utils import is_async_callable
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from starlette.websockets import WebSocketDisconnect
 
-if sys.version_info >= (3, 10):  # pragma: no cover
+try:
     from typing import TypeGuard
-else:  # pragma: no cover
+except ImportError:
     from typing_extensions import TypeGuard
 
 try:

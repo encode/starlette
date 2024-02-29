@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import sys
 import typing
 import warnings
 
-if sys.version_info >= (3, 10):  # pragma: no cover
+try:
     from typing import ParamSpec
-else:  # pragma: no cover
+except ImportError:
     from typing_extensions import ParamSpec
 
 from starlette.datastructures import State, URLPath

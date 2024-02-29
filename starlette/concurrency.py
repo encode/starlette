@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import functools
-import sys
 import typing
 import warnings
 
 import anyio.to_thread
 
-if sys.version_info >= (3, 10):  # pragma: no cover
+try:
     from typing import ParamSpec
-else:  # pragma: no cover
+except ImportError:
     from typing_extensions import ParamSpec
 
 P = ParamSpec("P")
