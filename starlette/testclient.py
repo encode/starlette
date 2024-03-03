@@ -472,9 +472,9 @@ class TestClient(httpx.Client):
 
     def _choose_redirect_arg(
         self, follow_redirects: bool | None, allow_redirects: bool | None
-    ) -> bool | httpx._client.UseClientDefault:
-        redirect: bool | httpx._client.UseClientDefault = (
-            httpx._client.USE_CLIENT_DEFAULT
+    ) -> bool | httpx._config.UseClientDefault:
+        redirect: bool | httpx._config.UseClientDefault = (
+            httpx._config.USE_CLIENT_DEFAULT
         )
         if allow_redirects is not None:
             message = (
@@ -504,11 +504,11 @@ class TestClient(httpx.Client):
         headers: httpx._types.HeaderTypes | None = None,
         cookies: httpx._types.CookieTypes | None = None,
         auth: httpx._types.AuthTypes
-        | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
+        | httpx._config.UseClientDefault = httpx._config.USE_CLIENT_DEFAULT,
         follow_redirects: bool | None = None,
         allow_redirects: bool | None = None,
         timeout: httpx._types.TimeoutTypes
-        | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
+        | httpx._config.UseClientDefault = httpx._config.USE_CLIENT_DEFAULT,
         extensions: dict[str, typing.Any] | None = None,
     ) -> httpx.Response:
         url = self._merge_url(url)
@@ -537,11 +537,11 @@ class TestClient(httpx.Client):
         headers: httpx._types.HeaderTypes | None = None,
         cookies: httpx._types.CookieTypes | None = None,
         auth: httpx._types.AuthTypes
-        | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
+        | httpx._config.UseClientDefault = httpx._config.USE_CLIENT_DEFAULT,
         follow_redirects: bool | None = None,
         allow_redirects: bool | None = None,
         timeout: httpx._types.TimeoutTypes
-        | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
+        | httpx._config.UseClientDefault = httpx._config.USE_CLIENT_DEFAULT,
         extensions: dict[str, typing.Any] | None = None,
     ) -> httpx.Response:
         redirect = self._choose_redirect_arg(follow_redirects, allow_redirects)
@@ -564,11 +564,11 @@ class TestClient(httpx.Client):
         headers: httpx._types.HeaderTypes | None = None,
         cookies: httpx._types.CookieTypes | None = None,
         auth: httpx._types.AuthTypes
-        | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
+        | httpx._config.UseClientDefault = httpx._config.USE_CLIENT_DEFAULT,
         follow_redirects: bool | None = None,
         allow_redirects: bool | None = None,
         timeout: httpx._types.TimeoutTypes
-        | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
+        | httpx._config.UseClientDefault = httpx._config.USE_CLIENT_DEFAULT,
         extensions: dict[str, typing.Any] | None = None,
     ) -> httpx.Response:
         redirect = self._choose_redirect_arg(follow_redirects, allow_redirects)
@@ -591,11 +591,11 @@ class TestClient(httpx.Client):
         headers: httpx._types.HeaderTypes | None = None,
         cookies: httpx._types.CookieTypes | None = None,
         auth: httpx._types.AuthTypes
-        | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
+        | httpx._config.UseClientDefault = httpx._config.USE_CLIENT_DEFAULT,
         follow_redirects: bool | None = None,
         allow_redirects: bool | None = None,
         timeout: httpx._types.TimeoutTypes
-        | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
+        | httpx._config.UseClientDefault = httpx._config.USE_CLIENT_DEFAULT,
         extensions: dict[str, typing.Any] | None = None,
     ) -> httpx.Response:
         redirect = self._choose_redirect_arg(follow_redirects, allow_redirects)
@@ -622,11 +622,11 @@ class TestClient(httpx.Client):
         headers: httpx._types.HeaderTypes | None = None,
         cookies: httpx._types.CookieTypes | None = None,
         auth: httpx._types.AuthTypes
-        | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
+        | httpx._config.UseClientDefault = httpx._config.USE_CLIENT_DEFAULT,
         follow_redirects: bool | None = None,
         allow_redirects: bool | None = None,
         timeout: httpx._types.TimeoutTypes
-        | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
+        | httpx._config.UseClientDefault = httpx._config.USE_CLIENT_DEFAULT,
         extensions: dict[str, typing.Any] | None = None,
     ) -> httpx.Response:
         redirect = self._choose_redirect_arg(follow_redirects, allow_redirects)
@@ -657,11 +657,11 @@ class TestClient(httpx.Client):
         headers: httpx._types.HeaderTypes | None = None,
         cookies: httpx._types.CookieTypes | None = None,
         auth: httpx._types.AuthTypes
-        | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
+        | httpx._config.UseClientDefault = httpx._config.USE_CLIENT_DEFAULT,
         follow_redirects: bool | None = None,
         allow_redirects: bool | None = None,
         timeout: httpx._types.TimeoutTypes
-        | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
+        | httpx._config.UseClientDefault = httpx._config.USE_CLIENT_DEFAULT,
         extensions: dict[str, typing.Any] | None = None,
     ) -> httpx.Response:
         redirect = self._choose_redirect_arg(follow_redirects, allow_redirects)
@@ -692,11 +692,11 @@ class TestClient(httpx.Client):
         headers: httpx._types.HeaderTypes | None = None,
         cookies: httpx._types.CookieTypes | None = None,
         auth: httpx._types.AuthTypes
-        | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
+        | httpx._config.UseClientDefault = httpx._config.USE_CLIENT_DEFAULT,
         follow_redirects: bool | None = None,
         allow_redirects: bool | None = None,
         timeout: httpx._types.TimeoutTypes
-        | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
+        | httpx._config.UseClientDefault = httpx._config.USE_CLIENT_DEFAULT,
         extensions: dict[str, typing.Any] | None = None,
     ) -> httpx.Response:
         redirect = self._choose_redirect_arg(follow_redirects, allow_redirects)
@@ -723,11 +723,11 @@ class TestClient(httpx.Client):
         headers: httpx._types.HeaderTypes | None = None,
         cookies: httpx._types.CookieTypes | None = None,
         auth: httpx._types.AuthTypes
-        | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
+        | httpx._config.UseClientDefault = httpx._config.USE_CLIENT_DEFAULT,
         follow_redirects: bool | None = None,
         allow_redirects: bool | None = None,
         timeout: httpx._types.TimeoutTypes
-        | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
+        | httpx._config.UseClientDefault = httpx._config.USE_CLIENT_DEFAULT,
         extensions: dict[str, typing.Any] | None = None,
     ) -> httpx.Response:
         redirect = self._choose_redirect_arg(follow_redirects, allow_redirects)
