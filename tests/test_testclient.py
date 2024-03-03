@@ -211,7 +211,7 @@ def test_testclient_asgi2(test_client_factory: TestClientFactory) -> None:
 
         return inner
 
-    client = test_client_factory(app)
+    client = test_client_factory(app)  # type: ignore
     response = client.get("/")
     assert response.text == "Hello, world!"
 
@@ -251,7 +251,7 @@ def test_websocket_blocking_receive(test_client_factory: TestClientFactory) -> N
 
         return asgi
 
-    client = test_client_factory(app)
+    client = test_client_factory(app)  # type: ignore
     with client.websocket_connect("/") as websocket:
         data = websocket.receive_json()
         assert data == {"message": "test"}
@@ -269,7 +269,7 @@ def test_websocket_not_block_on_close(
 
         return asgi
 
-    client = test_client_factory(app)
+    client = test_client_factory(app)  # type: ignore
     with client.websocket_connect("/") as websocket:
         ...
     assert websocket.should_close.is_set()
