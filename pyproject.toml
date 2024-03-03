@@ -36,7 +36,6 @@ full = [
     "jinja2",
     "python-multipart>=0.0.7",
     "pyyaml",
-    "httpx>=0.22.0",
 ]
 
 [project.urls]
