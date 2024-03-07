@@ -56,6 +56,24 @@ def iscoroutinefunction_or_partial(obj: typing.Any) -> bool:  # pragma: no cover
     return inspect.iscoroutinefunction(obj)
 
 
+def _to_async(
+    func: typing.Callable[[Request], typing.Awaitable[Response] | Response],
+) -> typing.Callable[[Request], typing.Awaitable[Response]]:
+    """
+    Takes a function or coroutine `func(request) -> response`,
+    and returns an async function to process the request.
+    """
+    if is_async_callable(func):
+        return func
+
+    def wrapped_func(req: Request) -> typing.Awaitable[Response]:
+        return run_in_threadpool(
+            typing.cast(typing.Callable[[Request], Response], func), req
+        )
+
+    return wrapped_func
+
+
 def request_response(
     func: typing.Callable[[Request], typing.Awaitable[Response] | Response],
 ) -> ASGIApp:
@@ -63,15 +81,13 @@ def request_response(
     Takes a function or coroutine `func(request) -> response`,
     and returns an ASGI application.
     """
+    f = _to_async(func)
 
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive, send)
 
         async def app(scope: Scope, receive: Receive, send: Send) -> None:
-            if is_async_callable(func):
-                response = await func(request)
-            else:
-                response = await run_in_threadpool(func, request)
+            response = await f(request)
             await response(scope, receive, send)
 
         await wrap_app_handling_exceptions(app, request)(scope, receive, send)
