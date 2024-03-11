@@ -1,3 +1,49 @@
+## 0.37.2
+
+March 5, 2024
+
+#### Added
+
+* Add `bytes` to `_RequestData` type [#2510](https://github.com/encode/starlette/pull/2510).
+
+#### Fixed
+
+* Revert "Turn `scope["client"]` to `None` on `TestClient` (#2377)" [#2525](https://github.com/encode/starlette/pull/2525).
+* Remove deprecated `app` argument passed to `httpx.Client` on the `TestClient` [#2526](https://github.com/encode/starlette/pull/2526).
+
+## 0.37.1
+
+February 9, 2024
+
+#### Fixed
+
+* Warn instead of raise for missing env file on `Config` [#2485](https://github.com/encode/starlette/pull/2485).
+
+## 0.37.0
+
+February 5, 2024
+
+#### Added
+
+* Support the WebSocket Denial Response ASGI extension [#2041](https://github.com/encode/starlette/pull/2041).
+
+## 0.36.3
+
+February 4, 2024
+
+#### Fixed
+
+* Create `anyio.Event` on async context [#2459](https://github.com/encode/starlette/pull/2459).
+
+## 0.36.2
+
+February 3, 2024
+
+#### Fixed
+
+* Upgrade `python-multipart` to `0.0.7` [13e5c26](13e5c26a27f4903924624736abd6131b2da80cc5).
+* Avoid duplicate charset on `Content-Type` [#2443](https://github.com/encode/starlette/2443).
+
 ## 0.36.1
 
 January 23, 2024
