@@ -41,5 +41,7 @@ class BackgroundTasks(BackgroundTask):
         self.tasks.append(task)
 
     async def __call__(self) -> None:
-        for task in self.tasks:
+        for task in self.tasks.copy():
             await task()
+            if task in self.tasks:
+                self.tasks.remove(task)
