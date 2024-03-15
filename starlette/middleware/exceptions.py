@@ -64,7 +64,8 @@ class ExceptionMiddleware:
 
         await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
 
-    def http_exception(self, request: Request, exc: Exception) -> Response:
+    @staticmethod
+    def http_exception(request: Request, exc: Exception) -> Response:
         assert isinstance(exc, HTTPException)
         if exc.status_code in {204, 304}:
             return Response(status_code=exc.status_code, headers=exc.headers)
@@ -72,6 +73,7 @@ class ExceptionMiddleware:
             exc.detail, status_code=exc.status_code, headers=exc.headers
         )
 
-    async def websocket_exception(self, websocket: WebSocket, exc: Exception) -> None:
+    @staticmethod
+    async def websocket_exception(websocket: WebSocket, exc: Exception) -> None:
         assert isinstance(exc, WebSocketException)
         await websocket.close(code=exc.code, reason=exc.reason)  # pragma: no cover

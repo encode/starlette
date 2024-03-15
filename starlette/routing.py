@@ -677,7 +677,8 @@ class Router:
             for cls, args, kwargs in reversed(middleware):
                 self.middleware_stack = cls(self.middleware_stack, *args, **kwargs)
 
-    async def not_found(self, scope: Scope, receive: Receive, send: Send) -> None:
+    @staticmethod
+    async def not_found(scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "websocket":
             websocket_close = WebSocketClose()
             await websocket_close(scope, receive, send)

@@ -233,7 +233,8 @@ class StreamingResponse(Response):
         self.background = background
         self.init_headers(headers)
 
-    async def listen_for_disconnect(self, receive: Receive) -> None:
+    @staticmethod
+    async def listen_for_disconnect(receive: Receive) -> None:
         while True:
             message = await receive()
             if message["type"] == "http.disconnect":

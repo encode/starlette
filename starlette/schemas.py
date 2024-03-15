@@ -86,7 +86,8 @@ class BaseSchemaGenerator:
 
         return endpoints_info
 
-    def _remove_converter(self, path: str) -> str:
+    @staticmethod
+    def _remove_converter(path: str) -> str:
         """
         Remove the converter from the path.
         For example, a route like this:
@@ -95,8 +96,9 @@ class BaseSchemaGenerator:
         """
         return re.sub(r":\w+}", "}", path)
 
+    @staticmethod
     def parse_docstring(
-        self, func_or_method: typing.Callable[..., typing.Any]
+        func_or_method: typing.Callable[..., typing.Any],
     ) -> dict[str, typing.Any]:
         """
         Given a function, parse the docstring as YAML and return a dictionary of info.

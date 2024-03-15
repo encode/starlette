@@ -470,8 +470,9 @@ class TestClient(httpx.Client):
             ) as portal:
                 yield portal
 
+    @staticmethod
     def _choose_redirect_arg(
-        self, follow_redirects: bool | None, allow_redirects: bool | None
+        follow_redirects: bool | None, allow_redirects: bool | None
     ) -> bool | httpx._client.UseClientDefault:
         redirect: bool | httpx._client.UseClientDefault = (
             httpx._client.USE_CLIENT_DEFAULT

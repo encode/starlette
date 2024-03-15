@@ -113,8 +113,8 @@ class Jinja2Templates:
 
         self._setup_env_defaults(self.env)
 
+    @staticmethod
     def _create_env(
-        self,
         directory: str
         | PathLike[typing.AnyStr]
         | typing.Sequence[str | PathLike[typing.AnyStr]],
@@ -126,7 +126,8 @@ class Jinja2Templates:
 
         return jinja2.Environment(**env_options)
 
-    def _setup_env_defaults(self, env: jinja2.Environment) -> None:
+    @staticmethod
+    def _setup_env_defaults(env: jinja2.Environment) -> None:
         @pass_context
         def url_for(
             context: dict[str, typing.Any],

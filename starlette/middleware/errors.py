@@ -185,9 +185,8 @@ class ServerErrorMiddleware:
             # to optionally raise the error within the test case.
             raise exc
 
-    def format_line(
-        self, index: int, line: str, frame_lineno: int, frame_index: int
-    ) -> str:
+    @staticmethod
+    def format_line(index: int, line: str, frame_lineno: int, frame_index: int) -> str:
         values = {
             # HTML escape - line could contain < or >
             "line": html.escape(line).replace(" ", "&nbsp"),
@@ -245,7 +244,8 @@ class ServerErrorMiddleware:
 
         return TEMPLATE.format(styles=STYLES, js=JS, error=error, exc_html=exc_html)
 
-    def generate_plain_text(self, exc: Exception) -> str:
+    @staticmethod
+    def generate_plain_text(exc: Exception) -> str:
         return "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
 
     def debug_response(self, request: Request, exc: Exception) -> Response:
@@ -257,5 +257,6 @@ class ServerErrorMiddleware:
         content = self.generate_plain_text(exc)
         return PlainTextResponse(content, status_code=500)
 
-    def error_response(self, request: Request, exc: Exception) -> Response:
+    @staticmethod
+    def error_response(request: Request, exc: Exception) -> Response:
         return PlainTextResponse("Internal Server Error", status_code=500)
