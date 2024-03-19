@@ -258,7 +258,7 @@ def test_request_disconnect(
     scope = {"type": "http", "method": "POST", "path": "/"}
     with pytest.raises(ClientDisconnect):
         anyio.run(
-            app,
+            app,  # type: ignore
             scope,
             receiver,
             None,
