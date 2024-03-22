@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import http.cookies
-import json
 import os
 import stat
 import typing
@@ -19,6 +18,7 @@ from starlette._compat import md5_hexdigest
 from starlette.background import BackgroundTask
 from starlette.concurrency import iterate_in_threadpool
 from starlette.datastructures import URL, MutableHeaders
+from starlette.json import JSONSerializer
 from starlette.types import Receive, Scope, Send
 
 
@@ -172,6 +172,12 @@ class PlainTextResponse(Response):
 
 class JSONResponse(Response):
     media_type = "application/json"
+    options = {
+        "ensure_ascii": False,
+        "allow_nan": False,
+        "indent": None,
+        "separators": (",", ":"),
+    }
 
     def __init__(
         self,
@@ -180,17 +186,15 @@ class JSONResponse(Response):
         headers: typing.Mapping[str, str] | None = None,
         media_type: str | None = None,
         background: BackgroundTask | None = None,
+        serializer: JSONSerializer | None = None,
     ) -> None:
+        self.serializer: JSONSerializer = serializer or JSONSerializer(
+            options=self.options
+        )
         super().__init__(content, status_code, headers, media_type, background)
 
     def render(self, content: typing.Any) -> bytes:
-        return json.dumps(
-            content,
-            ensure_ascii=False,
-            allow_nan=False,
-            indent=None,
-            separators=(",", ":"),
-        ).encode("utf-8")
+        return self.serializer.serialize(content)
 
 
 class RedirectResponse(Response):

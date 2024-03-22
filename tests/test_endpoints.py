@@ -2,10 +2,11 @@ from typing import Callable, Iterator
 
 import pytest
 
+from starlette.applications import Starlette
 from starlette.endpoints import HTTPEndpoint, WebSocketEndpoint
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse
-from starlette.routing import Route, Router
+from starlette.routing import Route, Router, WebSocketRoute
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocket
 
@@ -48,6 +49,28 @@ def test_http_endpoint_route_method(client: TestClient) -> None:
     assert response.status_code == 405
     assert response.text == "Method Not Allowed"
     assert response.headers["allow"] == "GET"
+
+
+def test_websocket_json_endpoint_with_app(
+    test_client_factory: TestClientFactory,
+) -> None:
+    class WebSocketApp(WebSocketEndpoint):
+        encoding = "json"
+
+        async def on_receive(self, websocket: WebSocket, data: str) -> None:
+            await websocket.send_json({"message": data})
+
+    ws_app = Starlette(
+        routes=[
+            WebSocketRoute("/ws", WebSocketApp),
+        ]
+    )
+
+    with test_client_factory(ws_app) as client:
+        with client.websocket_connect("/ws") as websocket:
+            websocket.send_json({"hello": "world"})
+            data = websocket.receive_json()
+            assert data == {"message": {"hello": "world"}}
 
 
 def test_websocket_endpoint_on_connect(test_client_factory: TestClientFactory) -> None:

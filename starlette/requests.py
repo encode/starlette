@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import typing
 from http import cookies as http_cookies
 
@@ -10,6 +9,7 @@ from starlette._utils import AwaitableOrContextManager, AwaitableOrContextManage
 from starlette.datastructures import URL, Address, FormData, Headers, QueryParams, State
 from starlette.exceptions import HTTPException
 from starlette.formparsers import FormParser, MultiPartException, MultiPartParser
+from starlette.json import JSONParser
 from starlette.types import Message, Receive, Scope, Send
 
 try:
@@ -200,7 +200,11 @@ class Request(HTTPConnection):
     _form: typing.Optional[FormData]
 
     def __init__(
-        self, scope: Scope, receive: Receive = empty_receive, send: Send = empty_send
+        self,
+        scope: Scope,
+        receive: Receive = empty_receive,
+        send: Send = empty_send,
+        json_parser: JSONParser | None = None,
     ):
         super().__init__(scope)
         assert scope["type"] == "http"
@@ -208,6 +212,7 @@ class Request(HTTPConnection):
         self._send = send
         self._stream_consumed = False
         self._is_disconnected = False
+        self._json_parser: JSONParser = json_parser or JSONParser()
         self._form = None
 
     @property
@@ -217,6 +222,10 @@ class Request(HTTPConnection):
     @property
     def receive(self) -> Receive:
         return self._receive
+
+    @property
+    def json_parser(self) -> JSONParser:
+        return self._json_parser
 
     async def stream(self) -> typing.AsyncGenerator[bytes, None]:
         if hasattr(self, "_body"):
@@ -249,7 +258,7 @@ class Request(HTTPConnection):
     async def json(self) -> typing.Any:
         if not hasattr(self, "_json"):
             body = await self.body()
-            self._json = json.loads(body)
+            self._json = self.json_parser.parse(body)
         return self._json
 
     async def _get_form(

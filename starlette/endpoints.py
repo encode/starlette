@@ -7,6 +7,7 @@ from starlette import status
 from starlette._utils import is_async_callable
 from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException
+from starlette.json import JSONParser
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, Response
 from starlette.types import Message, Receive, Scope, Send
@@ -28,8 +29,18 @@ class HTTPEndpoint:
     def __await__(self) -> typing.Generator[typing.Any, None, None]:
         return self.dispatch().__await__()
 
+    @property
+    def json_parser(self) -> typing.Any:
+        if "app" in self.scope:
+            self._json_parser = getattr(self.scope["app"], "json_parser", JSONParser())
+        else:
+            self._json_parser = JSONParser()
+        return self._json_parser
+
     async def dispatch(self) -> None:
-        request = Request(self.scope, receive=self.receive)
+        request = Request(
+            self.scope, receive=self.receive, json_parser=self.json_parser
+        )
         handler_name = (
             "get"
             if request.method == "HEAD" and not hasattr(self, "head")
@@ -67,6 +78,14 @@ class WebSocketEndpoint:
 
     def __await__(self) -> typing.Generator[typing.Any, None, None]:
         return self.dispatch().__await__()
+
+    @property
+    def json_parser(self) -> typing.Any:
+        if "app" in self.scope:
+            self._json_parser = getattr(self.scope["app"], "json_parser", JSONParser())
+        else:
+            self._json_parser = JSONParser()
+        return self._json_parser
 
     async def dispatch(self) -> None:
         websocket = WebSocket(self.scope, receive=self.receive, send=self.send)
@@ -111,7 +130,7 @@ class WebSocketEndpoint:
                 text = message["bytes"].decode("utf-8")
 
             try:
-                return json.loads(text)
+                return self.json_parser.parse(text)
             except json.decoder.JSONDecodeError:
                 await websocket.close(code=status.WS_1003_UNSUPPORTED_DATA)
                 raise RuntimeError("Malformed JSON data received.")
