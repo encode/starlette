@@ -59,7 +59,7 @@ def test_url() -> None:
     assert url.replace(port=88) == URL("http://u:p@host:88")
 
     url = URL("http://host:80")
-    assert url.replace(username="user").password is None
+    assert url.replace(username="u") == URL("http://u@host:80")
 
 
 def test_url_query_params() -> None:
@@ -145,18 +145,20 @@ def test_url_from_scope() -> None:
     assert u == "https://example.org/path/to/somewhere?abc=123"
     assert repr(u) == "URL('https://example.org/path/to/somewhere?abc=123')"
 
-    scope_with_host_header = {
-        "scheme": "http",
-        "path": "/some/path",
-        "query_string": b"query=string",
-        "headers": [
-            (b"content-type", b"text/html"),
-            (b"host", b"example.com:8000"),
-            (b"accept", b"text/html"),
-        ],
-    }
-    url_from_scope_with_host = URL(scope=scope_with_host_header)
-    assert url_from_scope_with_host.hostname == "example.com"
+    u = URL(
+        scope={
+            "scheme": "http",
+            "path": "/some/path",
+            "query_string": b"query=string",
+            "headers": [
+                (b"content-type", b"text/html"),
+                (b"host", b"example.com:8000"),
+                (b"accept", b"text/html"),
+            ],
+        }
+    )
+    assert u == "http://example.com:8000/some/path?query=string"
+    assert repr(u) == "URL('http://example.com:8000/some/path?query=string')"
 
 
 def test_headers() -> None:
