@@ -1,7 +1,7 @@
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import AsyncGenerator, AsyncIterator, Callable, Generator
+from typing import AsyncGenerator, AsyncIterator, Generator
 
 import anyio
 import pytest
@@ -20,8 +20,7 @@ from starlette.staticfiles import StaticFiles
 from starlette.testclient import TestClient
 from starlette.types import ASGIApp, Receive, Scope, Send
 from starlette.websockets import WebSocket
-
-TestClientFactory = Callable[..., TestClient]
+from tests.types import TestClientFactory
 
 
 async def error_500(request: Request, exc: HTTPException) -> JSONResponse:
@@ -132,7 +131,9 @@ app = Starlette(
 
 
 @pytest.fixture
-def client(test_client_factory: TestClientFactory) -> Generator[TestClient, None, None]:
+def client(
+    test_client_factory: TestClientFactory,
+) -> Generator[TestClient, None, None]:
     with test_client_factory(app) as client:
         yield client
 

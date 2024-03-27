@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import functools
-from typing import Any, Callable, Literal
+from typing import Any, Literal
 
 import pytest
 
 from starlette.testclient import TestClient
-
-TestClientFactory = Callable[..., TestClient]
+from tests.types import TestClientFactory
 
 
 @pytest.fixture
@@ -21,4 +20,4 @@ def test_client_factory(
         TestClient,
         backend=anyio_backend_name,
         backend_options=anyio_backend_options,
-    )
+    )  # type: ignore

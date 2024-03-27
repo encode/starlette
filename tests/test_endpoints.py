@@ -1,4 +1,4 @@
-from typing import Callable, Iterator
+from typing import Iterator
 
 import pytest
 
@@ -8,8 +8,7 @@ from starlette.responses import PlainTextResponse
 from starlette.routing import Route, Router
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocket
-
-TestClientFactory = Callable[..., TestClient]
+from tests.types import TestClientFactory
 
 
 class Homepage(HTTPEndpoint):
@@ -50,7 +49,9 @@ def test_http_endpoint_route_method(client: TestClient) -> None:
     assert response.headers["allow"] == "GET"
 
 
-def test_websocket_endpoint_on_connect(test_client_factory: TestClientFactory) -> None:
+def test_websocket_endpoint_on_connect(
+    test_client_factory: TestClientFactory,
+) -> None:
     class WebSocketApp(WebSocketEndpoint):
         async def on_connect(self, websocket: WebSocket) -> None:
             assert websocket["subprotocols"] == ["soap", "wamp"]
@@ -137,7 +138,9 @@ def test_websocket_endpoint_on_receive_text(
             websocket.send_bytes(b"Hello world")
 
 
-def test_websocket_endpoint_on_default(test_client_factory: TestClientFactory) -> None:
+def test_websocket_endpoint_on_default(
+    test_client_factory: TestClientFactory,
+) -> None:
     class WebSocketApp(WebSocketEndpoint):
         encoding = None
 
