@@ -108,7 +108,7 @@ def test_compress_streaming_response(
         async def generator(count: int) -> ContentStream:
             for _ in range(count):
                 # enough entropy is required for successful chunks
-                yield random.randbytes(chunk_size)  # type: ignore
+                yield random.getrandbits(8 * chunk_size).to_bytes(chunk_size, "big")
 
         streaming = generator(chunk_count)
         return StreamingResponse(streaming, status_code=200, media_type="text/plain")
