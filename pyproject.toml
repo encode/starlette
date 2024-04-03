@@ -37,6 +37,9 @@ full = [
     "python-multipart>=0.0.7",
     "pyyaml",
     "httpx>=0.22.0",
+    "brotli>=1; platform_python_implementation == 'CPython'",
+    "brotlicffi>=1; platform_python_implementation != 'CPython'",
+    "zstandard>=0.15",
 ]
 
 [project.urls]

@@ -27,7 +27,8 @@ It is production-ready, and gives you the following:
 * In-process background tasks.
 * Startup and shutdown events.
 * Test client built on `httpx`.
-* CORS, GZip, Static Files, Streaming responses.
+* CORS, Static Files, Streaming responses.
+* ZStd, Brotli, GZip response compression.
 * Session and Cookie support.
 * 100% test coverage.
 * 100% type annotated codebase.
@@ -88,6 +89,8 @@ Starlette only requires `anyio`, and the following are optional:
 * [`python-multipart`][python-multipart] - Required if you want to support form parsing, with `request.form()`.
 * [`itsdangerous`][itsdangerous] - Required for `SessionMiddleware` support.
 * [`pyyaml`][pyyaml] - Required for `SchemaGenerator` support.
+* [`brotli`][brotli] or [`brotlicffi`][brotlicffi] - Required for Brotli response compression.
+* [`zstandard`][zstandard] - Required for ZStd response compression.
 
 You can install all of these with `pip3 install starlette[full]`.
 
@@ -134,6 +137,8 @@ in isolation.
 [jinja2]: https://jinja.palletsprojects.com/
 [python-multipart]: https://andrew-d.github.io/python-multipart/
 [itsdangerous]: https://itsdangerous.palletsprojects.com/
-[sqlalchemy]: https://www.sqlalchemy.org
 [pyyaml]: https://pyyaml.org/wiki/PyYAMLDocumentation
 [techempower]: https://www.techempower.com/benchmarks/#hw=ph&test=fortune&l=zijzen-sf
+[brotli]: https://pypi.org/project/Brotli/
+[brotlicffi]: https://pypi.org/project/brotlicffi/
+[zstandard]: https://python-zstandard.readthedocs.io/
