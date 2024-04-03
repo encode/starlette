@@ -1,4 +1,3 @@
-import sys
 from typing import Any, Callable, MutableMapping
 
 import anyio
@@ -74,10 +73,6 @@ def test_websocket_query_params(test_client_factory: TestClientFactory) -> None:
         assert data == {"params": {"a": "abc", "b": "456"}}
 
 
-@pytest.mark.skipif(
-    any(module in sys.modules for module in ("brotli", "brotlicffi")),
-    reason='urllib3 includes "br" to the "accept-encoding" headers.',
-)
 def test_websocket_headers(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
@@ -90,7 +85,7 @@ def test_websocket_headers(test_client_factory: TestClientFactory) -> None:
     with client.websocket_connect("/") as websocket:
         expected_headers = {
             "accept": "*/*",
-            "accept-encoding": "gzip, deflate",
+            "accept-encoding": "gzip, deflate, br",
             "connection": "upgrade",
             "host": "testserver",
             "user-agent": "testclient",
