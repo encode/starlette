@@ -50,7 +50,7 @@ def test_compress_responses(test_client_factory: TestClientFactory) -> None:
 
 
 def test_compress_not_in_accept_encoding(
-    test_client_factory: TestClientFactory
+    test_client_factory: TestClientFactory,
 ) -> None:
     def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("x" * 4000, status_code=200)
@@ -174,7 +174,7 @@ def test_compress_ignored_for_missing_accept_encoding(
 def test_compress_ignored_for_missing_content_type(
     test_client_factory: TestClientFactory,
 ) -> None:
-    def homepage(request: Request) -> PlainTextResponse:
+    def homepage(request: Request) -> Response:
         return Response("x" * 4000, status_code=200, media_type=None)
 
     app = Starlette(
@@ -195,7 +195,7 @@ def test_compress_ignored_for_missing_content_type(
 def test_compress_registered_content_type(
     test_client_factory: TestClientFactory,
 ) -> None:
-    def homepage(request: Request) -> PlainTextResponse:
+    def homepage(request: Request) -> Response:
         return Response("x" * 4000, status_code=200, media_type="test/test")
 
     app = Starlette(
@@ -228,7 +228,7 @@ def test_compress_registered_content_type(
         assert int(response.headers["Content-Length"]) == 4000
 
 
-def test_parse_accept_encoding():
+def test_parse_accept_encoding() -> None:
     assert parse_accept_encoding("") == frozenset()
     assert parse_accept_encoding("gzip, deflate") == {"gzip", "deflate"}
     assert parse_accept_encoding("br;q=1.0,gzip;q=0.8, *;q=0.1") == {"br", "gzip"}
