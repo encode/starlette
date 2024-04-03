@@ -1,5 +1,7 @@
+import random
 from typing import Callable
 
+import pytest
 import zstandard
 
 from starlette.applications import Starlette
@@ -89,13 +91,26 @@ def test_compress_ignored_for_small_responses(
         assert int(response.headers["Content-Length"]) == 2
 
 
-def test_compress_streaming_response(test_client_factory: TestClientFactory) -> None:
-    def homepage(request: Request) -> StreamingResponse:
-        async def generator(bytes: bytes, count: int) -> ContentStream:
-            for _ in range(count):
-                yield bytes
+@pytest.mark.parametrize(
+    "chunk_size",
+    [
+        1,
+        zstandard.COMPRESSION_RECOMMENDED_OUTPUT_SIZE,  # currently 128KB
+    ],
+)
+def test_compress_streaming_response(
+    test_client_factory: TestClientFactory, chunk_size: int
+) -> None:
+    random.seed(42)
+    chunk_count = 70
 
-        streaming = generator(bytes=b"x" * 400, count=10)
+    def homepage(request: Request) -> StreamingResponse:
+        async def generator(count: int) -> ContentStream:
+            for _ in range(count):
+                # enough entropy is required for successful chunks
+                yield random.randbytes(chunk_size)  # type: ignore
+
+        streaming = generator(chunk_count)
         return StreamingResponse(streaming, status_code=200, media_type="text/plain")
 
     app = Starlette(
@@ -112,14 +127,13 @@ def test_compress_streaming_response(test_client_factory: TestClientFactory) -> 
         # httpx does not support zstd yet
         # https://github.com/encode/httpx/pull/3139
         if encoding == "zstd":
-            response._text = (
+            response._content = (
                 zstandard.ZstdDecompressor()
                 .decompressobj()
                 .decompress(response.content)
-                .decode()
             )
 
-        assert response.text == "x" * 4000
+        assert len(response.content) == chunk_count * chunk_size
         assert response.headers["Content-Encoding"] == encoding
         assert "Content-Length" not in response.headers
 

@@ -16,11 +16,11 @@ if platform.python_implementation() == "CPython":
     try:
         try:
             import brotli
-        except ModuleNotFoundError:
+        except ModuleNotFoundError:  # pragma: nocover
             import brotlicffi as brotli
-    except ModuleNotFoundError:
+    except ModuleNotFoundError:  # pragma: nocover
         _missing_packages.append("brotli")
-else:
+else:  # pragma: nocover
     try:
         try:
             import brotlicffi as brotli
@@ -32,12 +32,12 @@ else:
 try:
     from zstandard import ZstdCompressor
 
-    if TYPE_CHECKING:
+    if TYPE_CHECKING:  # pragma: nocover
         from zstandard import ZstdCompressionChunker
-except ModuleNotFoundError:
+except ModuleNotFoundError:  # pragma: nocover
     _missing_packages.append("zstandard")
 
-if _missing_packages:
+if _missing_packages:  # pragma: nocover
     missing_packages_and = " and ".join(_missing_packages)
     missing_packages_space = " ".join(_missing_packages)
     raise RuntimeError(
@@ -86,32 +86,32 @@ class CompressMiddleware:
         self.zstd_compressor = ZstdCompressor(level=zstd_level)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] != "http":
-            await self.app(scope, receive, send)
-            return
+        if scope["type"] == "http":
+            accept_encoding = Headers(scope=scope).get("Accept-Encoding")
 
-        accept_encoding = Headers(scope=scope).get("Accept-Encoding")
+            if not accept_encoding:
+                await self.app(scope, receive, send)
+                return
 
-        if not accept_encoding:
-            await self.app(scope, receive, send)
-            return
+            accept_encodings = parse_accept_encoding(accept_encoding)
 
-        accept_encodings = parse_accept_encoding(accept_encoding)
+            if self.zstd and "zstd" in accept_encodings:
+                await _ZstdResponder(self.app, self.minimum_size, self.zstd_compressor)(
+                    scope, receive, send
+                )
+                return
+            elif self.brotli and "br" in accept_encodings:
+                await _BrotliResponder(
+                    self.app, self.minimum_size, self.brotli_quality
+                )(scope, receive, send)
+                return
+            elif self.gzip and "gzip" in accept_encodings:
+                await _GZipResponder(self.app, self.minimum_size, self.gzip_level)(
+                    scope, receive, send
+                )
+                return
 
-        if self.zstd and "zstd" in accept_encodings:
-            await _ZstdResponder(self.app, self.minimum_size, self.zstd_compressor)(
-                scope, receive, send
-            )
-        elif self.brotli and "br" in accept_encodings:
-            await _BrotliResponder(self.app, self.minimum_size, self.brotli_quality)(
-                scope, receive, send
-            )
-        elif self.gzip and "gzip" in accept_encodings:
-            await _GZipResponder(self.app, self.minimum_size, self.gzip_level)(
-                scope, receive, send
-            )
-        else:
-            await self.app(scope, receive, send)
+        await self.app(scope, receive, send)
 
 
 class _ZstdResponder:
@@ -143,7 +143,7 @@ class _ZstdResponder:
 
         # handle start message
         if message_type == "http.response.start":
-            if self.start_message is not None:
+            if self.start_message is not None:  # pragma: nocover
                 raise AssertionError("Unexpected repeated http.response.start message")
 
             if _is_start_message_satisfied(message):
@@ -230,7 +230,7 @@ class _BrotliResponder:
 
         # handle start message
         if message_type == "http.response.start":
-            if self.start_message is not None:
+            if self.start_message is not None:  # pragma: nocover
                 raise AssertionError("Unexpected repeated http.response.start message")
 
             if _is_start_message_satisfied(message):
@@ -315,7 +315,7 @@ class _GZipResponder:
 
         # handle start message
         if message_type == "http.response.start":
-            if self.start_message is not None:
+            if self.start_message is not None:  # pragma: nocover
                 raise AssertionError("Unexpected repeated http.response.start message")
 
             if _is_start_message_satisfied(message):
@@ -362,7 +362,7 @@ class _GZipResponder:
                 mode="wb", compresslevel=self.level, fileobj=self.buffer
             )
 
-        if self.buffer is None:
+        if self.buffer is None:  # pragma: nocover
             raise AssertionError("Compressor is set but buffer is not")
 
         # streaming
@@ -474,5 +474,5 @@ def _is_start_message_satisfied(message: Message) -> bool:
     return basic_content_type in _compress_content_types
 
 
-async def _unattached_send(message: Message) -> NoReturn:
+async def _unattached_send(message: Message) -> NoReturn:  # pragma: nocover
     raise RuntimeError("send awaitable not set")
