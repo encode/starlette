@@ -104,8 +104,9 @@ The following arguments are supported:
 * `session_cookie` - Defaults to "session".
 * `max_age` - Session expiry time in seconds. Defaults to 2 weeks. If set to `None` then the cookie will last as long as the browser session.
 * `same_site` - SameSite flag prevents the browser from sending session cookie along with cross-site requests. Defaults to `'lax'`.
+* `path` - The path set for the session cookie. Defaults to `'/'`.
 * `https_only` - Indicate that Secure flag should be set (can be used with HTTPS only). Defaults to `False`.
-* `domain` - Domain of the cookie used to share cookie between subdomains or cross-domains. The browser defaults the domain to the same host that set the cookie, excluding subdomains [refrence](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#domain_attribute).
+* `domain` - Domain of the cookie used to share cookie between subdomains or cross-domains. The browser defaults the domain to the same host that set the cookie, excluding subdomains ([reference](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#domain_attribute)).
 
 
 ```python
@@ -167,6 +168,7 @@ The following arguments are supported:
 * `allowed_hosts` - A list of domain names that should be allowed as hostnames. Wildcard
 domains such as `*.example.com` are supported for matching subdomains. To allow any
 hostname either use `allowed_hosts=["*"]` or omit the middleware.
+* `www_redirect` - If set to True, requests to non-www versions of the allowed hosts will be redirected to their www counterparts. Defaults to `True`.
 
 If an incoming request does not validate correctly then a 400 response will be sent.
 
@@ -185,7 +187,7 @@ from starlette.middleware.gzip import GZipMiddleware
 routes = ...
 
 middleware = [
-    Middleware(GZipMiddleware, minimum_size=1000)
+    Middleware(GZipMiddleware, minimum_size=1000, compresslevel=9)
 ]
 
 app = Starlette(routes=routes, middleware=middleware)
@@ -194,6 +196,7 @@ app = Starlette(routes=routes, middleware=middleware)
 The following arguments are supported:
 
 * `minimum_size` - Do not GZip responses that are smaller than this minimum size in bytes. Defaults to `500`.
+* `compresslevel` - Used during GZip compression. It is an integer ranging from 1 to 9. Defaults to `9`. Lower value results in faster compression but larger file sizes, while higher value results in slower compression but smaller file sizes.
 
 The middleware won't GZip responses that already have a `Content-Encoding` set, to prevent them from being encoded twice.
 
