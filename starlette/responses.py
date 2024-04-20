@@ -4,6 +4,7 @@ import http.cookies
 import json
 import os
 import stat
+import sys
 import typing
 import warnings
 from datetime import datetime
@@ -21,14 +22,21 @@ from starlette.concurrency import iterate_in_threadpool
 from starlette.datastructures import URL, MutableHeaders
 from starlette.types import Receive, Scope, Send
 
+if sys.version_info >= (3, 13):  # pragma: no cover
+    from typing import TypeVar
+else:
+    from typing_extensions import TypeVar
 
-class Response:
+Content = TypeVar("Content", default=typing.Any)
+
+
+class Response(typing.Generic[Content]):
     media_type = None
     charset = "utf-8"
 
     def __init__(
         self,
-        content: typing.Any = None,
+        content: Content | None = None,
         status_code: int = 200,
         headers: typing.Mapping[str, str] | None = None,
         media_type: str | None = None,
@@ -41,7 +49,7 @@ class Response:
         self.body = self.render(content)
         self.init_headers(headers)
 
-    def render(self, content: typing.Any) -> bytes:
+    def render(self, content: Content | None) -> bytes:
         if content is None:
             return b""
         if isinstance(content, bytes):
@@ -170,12 +178,12 @@ class PlainTextResponse(Response):
     media_type = "text/plain"
 
 
-class JSONResponse(Response):
+class JSONResponse(Response[Content]):
     media_type = "application/json"
 
     def __init__(
         self,
-        content: typing.Any,
+        content: Content,
         status_code: int = 200,
         headers: typing.Mapping[str, str] | None = None,
         media_type: str | None = None,
@@ -183,7 +191,7 @@ class JSONResponse(Response):
     ) -> None:
         super().__init__(content, status_code, headers, media_type, background)
 
-    def render(self, content: typing.Any) -> bytes:
+    def render(self, content: Content | None) -> bytes:
         return json.dumps(
             content,
             ensure_ascii=False,
@@ -207,9 +215,9 @@ class RedirectResponse(Response):
         self.headers["location"] = quote(str(url), safe=":/%#?=@[]!$&'()*+,;")
 
 
-Content = typing.Union[str, bytes]
-SyncContentStream = typing.Iterable[Content]
-AsyncContentStream = typing.AsyncIterable[Content]
+_Content = typing.Union[str, bytes]
+SyncContentStream = typing.Iterable[_Content]
+AsyncContentStream = typing.AsyncIterable[_Content]
 ContentStream = typing.Union[AsyncContentStream, SyncContentStream]
 
 

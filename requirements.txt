@@ -4,7 +4,7 @@
 # Testing
 coverage==7.4.3
 importlib-metadata==7.0.1
-mypy==1.8.0
+mypy==1.9.0
 ruff==0.1.15
 typing_extensions==4.10.0
 types-contextvars==2.4.7.3
