@@ -60,7 +60,7 @@ For example: `request.path_params['username']`
 
 #### Client Address
 
-The client's remote address is exposed as a named two-tuple `request.client`.
+The client's remote address is exposed as a named two-tuple `request.client` (or `None`).
 `request.client` may be `None` but each item in the tuple will not be `None`.
 
 The hostname or IP address: `request.client.host`
