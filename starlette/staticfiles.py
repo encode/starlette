@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import re
 import stat
 import typing
 from email.utils import parsedate
@@ -124,8 +125,17 @@ class StaticFiles:
             )
         except PermissionError:
             raise HTTPException(status_code=401)
-        except OSError:
-            raise
+        except OSError as ex:
+            # If the filename is too long for the underlying OS to handle, then the
+            # file couldn't possibly exist, so we treat it as "not found", rather than
+            # as an unknown error that gets propagated.
+            # From testing in a few different POSIX environments, some return
+            # "File name too long" (with a space), while others return
+            # "Filename too long" (without a space). Hence the regex.
+            if re.search(r"File ?name too long", f"{ex}") is not None:
+                raise HTTPException(status_code=404)
+
+            raise ex
 
         if stat_result and stat.S_ISREG(stat_result.st_mode):
             # We have a static file to serve.
