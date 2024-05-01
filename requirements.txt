@@ -2,22 +2,22 @@
 -e .[full]
 
 # Testing
-coverage==7.4.3
-importlib-metadata==7.0.1
-mypy==1.8.0
-ruff==0.1.15
-typing_extensions==4.10.0
+coverage==7.5.0
+importlib-metadata==7.1.0
+mypy==1.10.0
+ruff==0.4.2
+typing_extensions==4.11.0
 types-contextvars==2.4.7.3
-types-PyYAML==6.0.12.12
+types-PyYAML==6.0.12.20240311
 types-dataclasses==0.6.6
-pytest==8.0.2
-trio==0.24.0
+pytest==8.2.0
+trio==0.25.0
 
 # Documentation
-mkdocs==1.5.3
-mkdocs-material==9.5.12
+mkdocs==1.6.0
+mkdocs-material==9.5.20
 mkautodoc==0.2.0
 
 # Packaging
-build==1.1.1
+build==1.2.1
 twine==5.0.0
