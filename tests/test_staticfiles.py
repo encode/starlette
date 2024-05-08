@@ -87,6 +87,16 @@ def test_staticfiles_with_package(test_client_factory: TestClientFactory) -> Non
     assert response.text == "123\n"
 
 
+def test_staticfiles_with_package_and_missing_dir(
+    test_client_factory: TestClientFactory,
+) -> None:
+    app = StaticFiles(packages=[("tests", "no_such_directory")], check_dir=False)
+    client = test_client_factory(app)
+    with pytest.raises(HTTPException) as exc_info:
+        client.get("/example.txt")
+    assert "404: Not Found" in str(exc_info.value)
+
+
 def test_staticfiles_post(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
@@ -594,3 +604,17 @@ def test_staticfiles_avoids_path_traversal(tmp_path: Path) -> None:
 
     assert exc_info.value.status_code == 404
     assert exc_info.value.detail == "Not Found"
+
+
+def test_staticfiles_fallback_file(
+    tmpdir: Path, test_client_factory: TestClientFactory
+) -> None:
+    path = os.path.join(tmpdir, "example.txt")
+    with open(path, "w") as file:
+        file.write("<file content>")
+
+    app = StaticFiles(directory=tmpdir, fallback_file="example.txt")
+    client = test_client_factory(app)
+    response = client.get("/not_the_example_file.txt")
+    assert response.status_code == 200
+    assert response.text == "<file content>"

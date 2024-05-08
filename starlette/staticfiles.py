@@ -48,13 +48,17 @@ class StaticFiles:
         html: bool = False,
         check_dir: bool = True,
         follow_symlink: bool = False,
+        fallback_file: PathLike | None = None,
     ) -> None:
         self.directory = directory
         self.packages = packages
+        self.check_dir = check_dir
         self.all_directories = self.get_directories(directory, packages)
         self.html = html
         self.config_checked = False
         self.follow_symlink = follow_symlink
+        self.fallback_file = fallback_file
+
         if check_dir and directory is not None and not os.path.isdir(directory):
             raise RuntimeError(f"Directory '{directory}' does not exist")
 
@@ -82,9 +86,11 @@ class StaticFiles:
             package_directory = os.path.normpath(
                 os.path.join(spec.origin, "..", statics_dir)
             )
-            assert os.path.isdir(
-                package_directory
-            ), f"Directory '{statics_dir!r}' in package {package!r} could not be found."
+            if self.check_dir:
+                assert os.path.isdir(package_directory), (
+                    f"Directory '{statics_dir!r}' in package {package!r} could not be "
+                    "found."
+                )
             directories.append(package_directory)
 
         return directories
@@ -155,7 +161,7 @@ class StaticFiles:
                 return FileResponse(full_path, stat_result=stat_result, status_code=404)
         raise HTTPException(status_code=404)
 
-    def lookup_path(self, path: str) -> tuple[str, os.stat_result | None]:
+    def _lookup_path(self, path: str) -> tuple[str, os.stat_result | None]:
         for directory in self.all_directories:
             joined_path = os.path.join(directory, path)
             if self.follow_symlink:
@@ -172,6 +178,14 @@ class StaticFiles:
             except (FileNotFoundError, NotADirectoryError):
                 continue
         return "", None
+
+    def lookup_path(self, path: str) -> tuple[str, os.stat_result | None]:
+        path, stat = self._lookup_path(path)
+
+        if self.fallback_file is not None and path == "" and stat is None:
+            return self._lookup_path(str(self.fallback_file))
+
+        return path, stat
 
     def file_response(
         self,

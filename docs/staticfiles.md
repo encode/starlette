@@ -3,13 +3,14 @@ Starlette also includes a `StaticFiles` class for serving files in a given direc
 
 ### StaticFiles
 
-Signature: `StaticFiles(directory=None, packages=None, html=False, check_dir=True, follow_symlink=False)`
+Signature: `StaticFiles(directory=None, packages=None, html=False, check_dir=True, follow_symlink=False, fallback_file=None)`
 
 * `directory` - A string or [os.PathLike][pathlike] denoting a directory path.
 * `packages` - A list of strings or list of tuples of strings of python packages.
 * `html` - Run in HTML mode. Automatically loads `index.html` for directories if such file exist.
 * `check_dir` - Ensure that the directory exists upon instantiation. Defaults to `True`.
 * `follow_symlink` - A boolean indicating if symbolic links for files and directories should be followed. Defaults to `False`.
+* `fallback_file` - If the requested path doesn't exist return this file instead.
 
 You can combine this ASGI application with Starlette's routing to provide
 comprehensive static file serving.
@@ -62,5 +63,17 @@ routes=[
 You may prefer to include static files directly inside the "static" directory
 rather than using Python packaging to include static files, but it can be useful
 for bundling up reusable components.
+
+If you are mounting a static SPA that uses client side routing (such as
+react-router) the `fallback_file` option may be useful to you.
+
+```python
+routes = [
+    ...
+    Mount('/app', app=StaticFiles(directory='myapp', fallback_file='index.html')
+]
+
+app = Starlette(routes=routes)
+```
 
 [pathlike]: https://docs.python.org/3/library/os.html#os.PathLike
