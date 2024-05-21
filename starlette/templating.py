@@ -67,8 +67,8 @@ class Jinja2Templates:
     def __init__(
         self,
         directory: str
-        | PathLike[typing.AnyStr]
-        | typing.Sequence[str | PathLike[typing.AnyStr]],
+        | PathLike[str]
+        | typing.Sequence[str | PathLike[str]],
         *,
         context_processors: list[typing.Callable[[Request], dict[str, typing.Any]]]
         | None = None,
@@ -89,8 +89,8 @@ class Jinja2Templates:
     def __init__(
         self,
         directory: str
-        | PathLike[typing.AnyStr]
-        | typing.Sequence[str | PathLike[typing.AnyStr]]
+        | PathLike[str]
+        | typing.Sequence[str | PathLike[str]]
         | None = None,
         *,
         context_processors: list[typing.Callable[[Request], dict[str, typing.Any]]]
@@ -118,8 +118,8 @@ class Jinja2Templates:
     def _create_env(
         self,
         directory: str
-        | PathLike[typing.AnyStr]
-        | typing.Sequence[str | PathLike[typing.AnyStr]],
+        | PathLike[str]
+        | typing.Sequence[str | PathLike[str]],
         **env_options: typing.Any,
     ) -> jinja2.Environment:
         loader = jinja2.FileSystemLoader(directory)
