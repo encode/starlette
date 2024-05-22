@@ -92,10 +92,14 @@ def test_async_nested_partial() -> None:
     nested_partial = functools.partial(partial, a=1)
     assert is_async_callable(nested_partial)
 
-@pytest.mark.parametrize("scope, expected_result", [
-    ({"path": "/foo-123/bar", "root_path": "/foo"}, '/foo-123/bar'),
-    ({"path": "/foo/bar", "root_path": "/foo"}, '/bar'),
-    ({"path": "/foo", "root_path": "/foo"}, ''),
-])
+
+@pytest.mark.parametrize(
+    "scope, expected_result",
+    [
+        ({"path": "/foo-123/bar", "root_path": "/foo"}, "/foo-123/bar"),
+        ({"path": "/foo/bar", "root_path": "/foo"}, "/bar"),
+        ({"path": "/foo", "root_path": "/foo"}, ""),
+    ],
+)
 def test_get_route_path(scope, expected_result):
     assert get_route_path(scope) == expected_result
