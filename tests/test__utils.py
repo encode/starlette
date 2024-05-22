@@ -4,6 +4,7 @@ from typing import Any
 import pytest
 
 from starlette._utils import get_route_path, is_async_callable
+from starlette.types import Scope
 
 
 def test_async_func() -> None:
@@ -101,5 +102,5 @@ def test_async_nested_partial() -> None:
         ({"path": "/foo", "root_path": "/foo"}, ""),
     ],
 )
-def test_get_route_path(scope, expected_result):
+def test_get_route_path(scope: Scope, expected_result: str) -> None:
     assert get_route_path(scope) == expected_result
