@@ -126,7 +126,7 @@ class StaticFiles:
         except PermissionError:
             raise HTTPException(status_code=401)
         except OSError as exc:
-            # If the the user requested a filename that is too long, send back a 404.
+            # Filename is too long, so it can't be a valid static file.
             if exc.errno == errno.ENAMETOOLONG:
                 raise HTTPException(status_code=404)
 
