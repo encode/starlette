@@ -200,6 +200,33 @@ The following arguments are supported:
 
 The middleware won't GZip responses that already have a `Content-Encoding` set, to prevent them from being encoded twice.
 
+## ETagMiddleware
+
+Computers and adds `"ETags"` header to HTTP response with 200 status code.
+
+Compares the `"ETags"` response header with the `"If-None-Match"` request header, drops the response body and change its status code to 304 when they are the same.
+
+The middleware won't handle streaming responses.
+
+```python
+from starlette.applications import Starlette
+from starlette.middleware import Middleware
+from starlette.middleware.etag import ETagMiddleware
+
+
+routes = ...
+
+middleware = [
+    Middleware(ETagMiddleware, minimum_size=80)
+]
+
+app = Starlette(routes=routes, middleware=middleware)
+```
+
+The following arguments are supported:
+
+* `minimum_size` - Do not set `"ETag"` for responses that are smaller than this minimum size in bytes. Defaults to `80`. Beacause `"ETag"` and `"If-None-Match"` increase more than 70 bytes to the header, and computing `"ETag"` consumes CPU.
+
 ## BaseHTTPMiddleware
 
 An abstract class that allows you to write ASGI middleware against a request/response
