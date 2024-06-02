@@ -66,6 +66,26 @@ def test_etag_ignored_for_small_responses(
     assert response.headers.get("ETag") is None
 
 
+def test_etag_ignored_for_non_get_requests(
+    test_client_factory: TestClientFactory,
+) -> None:
+    data = "x" * 4000
+
+    def homepage(request: Request) -> PlainTextResponse:
+        return PlainTextResponse(data)
+
+    app = Starlette(
+        routes=[Route("/", endpoint=homepage, methods=["POST"])],
+        middleware=[Middleware(ETagMiddleware)],
+    )
+
+    client = test_client_factory(app)
+    response = client.post("/")
+    assert response.status_code == 200
+    assert response.text == data
+    assert response.headers.get("ETag") is None
+
+
 def test_etag_ignored_for_non_200_responses(
     test_client_factory: TestClientFactory,
 ) -> None:
