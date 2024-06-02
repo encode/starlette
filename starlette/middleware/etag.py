@@ -12,9 +12,7 @@ class ETagMiddleware:
         self.app = app
         self.minimum_size = minimum_size
 
-    async def __call__(
-        self, scope: Scope, receive: Receive, send: Send
-    ) -> None:
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "http" and scope["method"] == "GET":
             responder = ETagResponder(self.app, scope, self.minimum_size)
             await responder(scope, receive, send)
@@ -33,9 +31,7 @@ class ETagResponder:
         self.status_code: int | None = None
         self.delay_sending: bool = True
 
-    async def __call__(
-        self, scope: Scope, receive: Receive, send: Send
-    ) -> None:
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         self.send = send
         await self.app(scope, receive, self.send_with_etag)
 
