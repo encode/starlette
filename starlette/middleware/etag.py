@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from base64 import b64encode
 from hashlib import md5
-from typing import NoReturn, Union
+from typing import NoReturn
 
 from starlette.datastructures import Headers, MutableHeaders
 from starlette.status import HTTP_200_OK, HTTP_304_NOT_MODIFIED
@@ -29,8 +29,8 @@ class ETagResponder:
         self.minimum_size = minimum_size
         self.send: Send = unattached_send
         self.initial_message: Message = {}
-        self.headers: Union[MutableHeaders, None] = None
-        self.status_code: Union[int, None] = None
+        self.headers: MutableHeaders | None = None
+        self.status_code: int | None = None
         self.delay_sending: bool = True
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
