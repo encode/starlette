@@ -12,7 +12,9 @@ class ETagMiddleware:
         self.app = app
         self.minimum_size = minimum_size
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: Receive, send: Send
+    ) -> None:
         if scope["type"] == "http" and scope["method"] == "GET":
             responder = ETagResponder(self.app, scope, self.minimum_size)
             await responder(scope, receive, send)
@@ -31,7 +33,9 @@ class ETagResponder:
         self.status_code: int | None = None
         self.delay_sending: bool = True
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(
+        self, scope: Scope, receive: Receive, send: Send
+    ) -> None:
         self.send = send
         await self.app(scope, receive, self.send_with_etag)
 
@@ -48,7 +52,8 @@ class ETagResponder:
         if message_type == "http.response.start":
             self.headers = MutableHeaders(raw=message["headers"])
             etag = self.headers.get("etag")
-            if etag:  # Etag has already been set, we should compare it with If-None-Match
+            if etag:
+                # Etag has been set, we should compare it with If-None-Match
                 if self.compare_etag_with_if_none_match(etag):
                     self.status_code = message["status"] = HTTP_304_NOT_MODIFIED
                     del self.headers["content-length"]
@@ -60,8 +65,8 @@ class ETagResponder:
                 if content_length:
                     size = int(content_length)
                     if size >= self.minimum_size:
-                        # Don't send the initial message until we've determined how to
-                        # modify the outgoing headers correctly.
+                        # Don't send the initial message until we've determined
+                        # how to modify the outgoing headers correctly.
                         self.initial_message = message
                         return
                     # else we should not send Etag
@@ -73,11 +78,15 @@ class ETagResponder:
                 await self.send(message)
                 return
 
-            assert not message.get("more_body", False)  #  it's a streamming response, but should be checked before
+            # There shouldn't be more body since we have checked streamming
+            # and file response before.
+            assert not message.get("more_body", False)
 
             body = message.get("body", b"")
             if len(body) >= self.minimum_size:
-                etag = f'''"{b64encode(md5(body).digest())[:-2].decode('ascii')}"'''  # remove trailing '=='
+                digest = md5(body).digest()
+                encoded = b64encode(digest)[:-2]  # remove trailing '=='
+                etag = f'''"{encoded.decode('ascii')}"'''
                 assert self.headers is not None
                 self.headers["etag"] = etag
                 if self.compare_etag_with_if_none_match(etag):
@@ -90,7 +99,8 @@ class ETagResponder:
     def compare_etag_with_if_none_match(self, etag: str) -> bool:
         if_none_match = Headers(scope=self.scope).get("if-none-match")
         if if_none_match:
-            if if_none_match[:2] == "W/":  # nginx will add 'W/' prefix to ETag for gzipped content
+            if if_none_match[:2] == "W/":
+                # nginx will add 'W/' prefix to ETag for gzipped content
                 if_none_match = if_none_match[2:]
             return if_none_match == etag
         return False

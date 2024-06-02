@@ -46,7 +46,9 @@ def test_etag_responses(test_client_factory: TestClientFactory) -> None:
     assert response.headers["ETag"] == etag
 
 
-def test_etag_ignored_for_small_responses(test_client_factory: TestClientFactory) -> None:
+def test_etag_ignored_for_small_responses(
+    test_client_factory: TestClientFactory,
+) -> None:
     data = "x" * 40
 
     def homepage(request: Request) -> PlainTextResponse:
@@ -64,7 +66,9 @@ def test_etag_ignored_for_small_responses(test_client_factory: TestClientFactory
     assert response.headers.get("ETag") is None
 
 
-def test_etag_ignored_for_non_200_responses(test_client_factory: TestClientFactory) -> None:
+def test_etag_ignored_for_non_200_responses(
+    test_client_factory: TestClientFactory,
+) -> None:
     data = "x" * 4000
 
     def homepage(request: Request) -> PlainTextResponse:
@@ -82,7 +86,9 @@ def test_etag_ignored_for_non_200_responses(test_client_factory: TestClientFacto
     assert response.headers.get("ETag") is None
 
 
-def test_etag_ignored_for_streamming_responses(test_client_factory: TestClientFactory) -> None:
+def test_etag_ignored_for_streamming_responses(
+    test_client_factory: TestClientFactory,
+) -> None:
     data = b"x" * 40
 
     def homepage(request: Request) -> StreamingResponse:
