@@ -40,6 +40,11 @@ def test_etag_responses(test_client_factory: TestClientFactory) -> None:
     assert response.content == b""
     assert response.headers["ETag"] == etag
 
+    response = client.get("/", headers={"If-None-Match": f"W/{etag}"})
+    assert response.status_code == 304
+    assert response.content == b""
+    assert response.headers["ETag"] == etag
+
 
 def test_etag_ignored_for_small_responses(test_client_factory: TestClientFactory) -> None:
     data = "x" * 40
@@ -139,3 +144,28 @@ def test_etag_for_file_responses(
         assert etag == etag2
     finally:
         FileResponse.chunk_size = chunk_size  # reset chunk_size
+
+
+def test_etag_for_manually_set(
+    test_client_factory: TestClientFactory,
+) -> None:
+    def homepage(request: Request) -> PlainTextResponse:
+        data = request.query_params["data"]
+        return PlainTextResponse(data, headers={"ETag": f'"{data}"'})
+
+    app = Starlette(
+        routes=[Route("/", endpoint=homepage)],
+        middleware=[Middleware(ETagMiddleware)],
+    )
+
+    client = test_client_factory(app)
+
+    response = client.get("/?data=x", headers={"If-None-Match": '"x"'})
+    assert response.status_code == 304
+    assert response.content == b""
+    assert response.headers["ETag"] == '"x"'
+
+    response = client.get("/?data=xx", headers={"If-None-Match": '"xx"'})
+    assert response.status_code == 304
+    assert response.content == b""
+    assert response.headers["ETag"] == '"xx"'
