@@ -137,7 +137,8 @@ def test_etag_for_file_responses(
 
     chunk_size = FileResponse.chunk_size
     try:
-        FileResponse.chunk_size = 64  # set it to a smaller size for testing chunked body
+        # set it to a smaller size for testing chunked body
+        FileResponse.chunk_size = 64
         response = client.get("/", headers={"If-None-Match": etag})
         assert response.status_code == 304
         etag2 = response.headers["ETag"]
