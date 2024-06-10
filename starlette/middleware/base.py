@@ -170,6 +170,10 @@ class BaseHTTPMiddleware:
             async def body_stream() -> typing.AsyncGenerator[bytes, None]:
                 async with recv_stream:
                     async for message in recv_stream:
+                        if message["type"] == "http.response.pathsend":
+                            # with pathsend we don't need to stream anything
+                            yield message
+                            break
                         assert message["type"] == "http.response.body"
                         body = message.get("body", b"")
                         if body:

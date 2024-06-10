@@ -247,12 +247,19 @@ class StreamingResponse(Response):
                 "headers": self.raw_headers,
             }
         )
+        should_close_body = True
         async for chunk in self.body_iterator:
+            if isinstance(chunk, dict):
+                # We got an ASGI message which is not response body (eg: pathsend)
+                should_close_body = False
+                await send(chunk)
+                break
             if not isinstance(chunk, (bytes, memoryview)):
                 chunk = chunk.encode(self.charset)
             await send({"type": "http.response.body", "body": chunk, "more_body": True})
 
-        await send({"type": "http.response.body", "body": b"", "more_body": False})
+        if should_close_body:
+            await send({"type": "http.response.body", "body": b"", "more_body": False})
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         async with anyio.create_task_group() as task_group:
