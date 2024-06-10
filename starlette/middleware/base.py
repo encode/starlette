@@ -15,6 +15,9 @@ RequestResponseEndpoint = typing.Callable[[Request], typing.Awaitable[Response]]
 DispatchFunction = typing.Callable[
     [Request, RequestResponseEndpoint], typing.Awaitable[Response]
 ]
+BodyStreamGenerator = typing.AsyncGenerator[
+    typing.Union[bytes, typing.MutableMapping[str, typing.Any]], None
+]
 T = typing.TypeVar("T")
 
 
@@ -167,7 +170,7 @@ class BaseHTTPMiddleware:
 
             assert message["type"] == "http.response.start"
 
-            async def body_stream() -> typing.AsyncGenerator[bytes, None]:
+            async def body_stream() -> BodyStreamGenerator:
                 async with recv_stream:
                     async for message in recv_stream:
                         if message["type"] == "http.response.pathsend":

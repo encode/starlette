@@ -207,7 +207,7 @@ class RedirectResponse(Response):
         self.headers["location"] = quote(str(url), safe=":/%#?=@[]!$&'()*+,;")
 
 
-Content = typing.Union[str, bytes, memoryview]
+Content = typing.Union[str, bytes, memoryview, typing.MutableMapping[str, typing.Any]]
 SyncContentStream = typing.Iterable[Content]
 AsyncContentStream = typing.AsyncIterable[Content]
 ContentStream = typing.Union[AsyncContentStream, SyncContentStream]
@@ -254,7 +254,7 @@ class StreamingResponse(Response):
                 should_close_body = False
                 await send(chunk)
                 break
-            if not isinstance(chunk, (bytes, memoryview)):
+            if isinstance(chunk, str):
                 chunk = chunk.encode(self.charset)
             await send({"type": "http.response.body", "body": chunk, "more_body": True})
 
