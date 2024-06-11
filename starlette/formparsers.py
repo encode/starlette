@@ -195,32 +195,43 @@ class MultiPartParser:
             self._current_part.field_name = _user_safe_decode(
                 options[b"name"], self._charset
             )
-        except KeyError:
+        except KeyError as e:
             raise MultiPartException(
                 'The Content-Disposition header field "name" must be ' "provided."
-            )
+            ) from e
         if b"filename" in options:
-            self._current_files += 1
-            if self._current_files > self.max_files:
-                raise MultiPartException(
-                    f"Too many files. Maximum number of files is {self.max_files}."
-                )
-            filename = _user_safe_decode(options[b"filename"], self._charset)
-            tempfile = SpooledTemporaryFile(max_size=self.max_file_size)
-            self._files_to_close_on_error.append(tempfile)
-            self._current_part.file = UploadFile(
-                file=tempfile,  # type: ignore[arg-type]
-                size=0,
-                filename=filename,
-                headers=Headers(raw=self._current_part.item_headers),
-            )
+            self._handle_upload_file(options)
         else:
             self._current_fields += 1
             if self._current_fields > self.max_fields:
                 raise MultiPartException(
                     f"Too many fields. Maximum number of fields is {self.max_fields}."
                 )
-            self._current_part.file = None
+
+    def _handle_upload_file(self, options: dict[bytes, bytes]) -> None:
+        self._current_files += 1
+        if self._current_files > self.max_files:
+            raise MultiPartException(
+                f"Too many files. Maximum number of files is {self.max_files}."
+            )
+        filename = _user_safe_decode(options[b"filename"], self._charset)
+        temp_file = SpooledTemporaryFile(max_size=self.max_file_size)
+        self._files_to_close_on_error.append(temp_file)
+        self._current_part.file = self.init_upload_file(
+            file=temp_file,  # type: ignore[arg-type]
+            size=0,
+            filename=filename,
+            headers=Headers(raw=self._current_part.item_headers),
+        )
+
+    @staticmethod
+    def init_upload_file(
+        file: typing.BinaryIO,
+        size: int | None = None,
+        filename: str | None = None,
+        headers: Headers | None = None,
+    ) -> UploadFile:
+        return UploadFile(file=file, size=size, filename=filename, headers=headers)
 
     def on_end(self) -> None:
         pass
