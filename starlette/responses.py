@@ -253,7 +253,7 @@ class StreamingResponse(Response):
                 # We got an ASGI message which is not response body (eg: pathsend)
                 should_close_body = False
                 await send(chunk)
-                break
+                continue
             if isinstance(chunk, str):
                 chunk = chunk.encode(self.charset)
             await send({"type": "http.response.body", "body": chunk, "more_body": True})
