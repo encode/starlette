@@ -17,7 +17,7 @@ from starlette.applications import Starlette
 from starlette.background import BackgroundTask
 from starlette.middleware import Middleware, _MiddlewareClass
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.requests import Request
+from starlette.requests import ClientDisconnect, Request
 from starlette.responses import PlainTextResponse, Response, StreamingResponse
 from starlette.routing import Route, WebSocketRoute
 from starlette.testclient import TestClient
@@ -1037,7 +1037,7 @@ def test_pr_1519_comment_1236166180_example() -> None:
 
 
 @pytest.mark.anyio
-async def test_multiple_middlewares_stacked() -> None:
+async def test_multiple_middlewares_stacked_client_disconnected() -> None:
     class MyMiddleware(BaseHTTPMiddleware):
         def __init__(self, app: ASGIApp, version: int, events: list[str]) -> None:
             self.version = version
@@ -1057,7 +1057,12 @@ async def test_multiple_middlewares_stacked() -> None:
                 return Response(b"")
 
     async def sleepy(request: Request) -> Response:
-        await anyio.sleep(0.5)
+        try:
+            await request.body()
+        except ClientDisconnect:
+            pass
+        else:  # pragma: no cover
+            raise AssertionError("Should have raised ClientDisconnect")
         return Response(b"")
 
     events: list[str] = []
