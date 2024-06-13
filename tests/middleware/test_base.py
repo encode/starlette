@@ -1056,7 +1056,7 @@ async def test_multiple_middlewares_stacked() -> None:
                 self.events.append(f"{self.version}:FAILED:{type(exc)}")
                 return Response(b"")
 
-    async def sleepy(request: Request):
+    async def sleepy(request: Request) -> Response:
         await anyio.sleep(0.5)
         return Response(b"")
 
