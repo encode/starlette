@@ -1146,6 +1146,7 @@ async def test_poll_for_disconnect_repeated(send_body: bool) -> None:
     }
 
     async def receive() -> AsyncIterator[Message]:
+        # the key here is that we only ever send 1 htt.disconnect message
         if send_body:
             yield {"type": "http.request", "body": b"hello", "more_body": True}
             yield {"type": "http.request", "body": b"", "more_body": False}
