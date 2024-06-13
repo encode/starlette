@@ -1048,13 +1048,9 @@ async def test_multiple_middlewares_stacked_client_disconnected() -> None:
             self, request: Request, call_next: RequestResponseEndpoint
         ) -> Response:
             self.events.append(f"{self.version}:STARTED")
-            try:
-                res = await call_next(request)
-                self.events.append(f"{self.version}:COMPLETED")
-                return res
-            except Exception as exc:
-                self.events.append(f"{self.version}:FAILED:{type(exc)}")
-                return Response(b"")
+            res = await call_next(request)
+            self.events.append(f"{self.version}:COMPLETED")
+            return res
 
     async def sleepy(request: Request) -> Response:
         try:
