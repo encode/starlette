@@ -5,6 +5,7 @@ from contextlib import AsyncExitStack
 from typing import (
     Any,
     AsyncGenerator,
+    AsyncIterator,
     Generator,
 )
 
@@ -1033,3 +1034,87 @@ def test_pr_1519_comment_1236166180_example() -> None:
     resp.raise_for_status()
 
     assert bodies == [b"Hello, World!-foo"]
+
+
+
+@pytest.mark.anyio
+async def test_multiple_middlewares_stacked() -> None:
+    class DummyMiddleware(BaseHTTPMiddleware):
+        def __init__(self, app: ASGIApp, version: int, events: list[str]) -> None:
+            self.version = version
+            self.events = events
+            super().__init__(app)
+
+        async def dispatch(
+            self, request: Request, call_next: RequestResponseEndpoint
+        ) -> Response:
+            self.events.append(f"{self.version}:STARTED")
+            try:
+                res = await call_next(request)
+                self.events.append(f"{self.version}:COMPLETED")
+                return res
+            except Exception as exc:
+                self.events.append(f"{self.version}:FAILED:{type(exc)}")
+                return Response(b"")
+
+    async def sleepy(request: Request):
+        await anyio.sleep(0.5)
+        return Response(b"")
+
+    events: list[str] = []
+
+    app = Starlette(
+        routes=[Route("/", sleepy)],
+        middleware=[
+            Middleware(DummyMiddleware, version=_ + 1, events=events) for _ in range(10)
+        ],
+    )
+
+    scope = {
+        "type": "http",
+        "version": "3",
+        "method": "GET",
+        "path": "/",
+    }
+
+    async def receive() -> AsyncIterator[Message]:
+        yield {"type": "http.disconnect"}
+
+    sent: list[Message] = []
+
+    async def send(message: Message) -> None:
+        sent.append(message)
+
+    await app(scope, receive().__anext__, send)
+
+    assert events == [
+        "1:STARTED",
+        "2:STARTED",
+        "3:STARTED",
+        "4:STARTED",
+        "5:STARTED",
+        "6:STARTED",
+        "7:STARTED",
+        "8:STARTED",
+        "9:STARTED",
+        "10:STARTED",
+        "10:COMPLETED",
+        "9:COMPLETED",
+        "8:COMPLETED",
+        "7:COMPLETED",
+        "6:COMPLETED",
+        "5:COMPLETED",
+        "4:COMPLETED",
+        "3:COMPLETED",
+        "2:COMPLETED",
+        "1:COMPLETED",
+    ]
+
+    assert sent == [
+        {
+            "type": "http.response.start",
+            "status": 200,
+            "headers": [(b"content-length", b"0")],
+        },
+        {"type": "http.response.body", "body": b"", "more_body": False},
+    ]
