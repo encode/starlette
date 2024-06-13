@@ -1120,10 +1120,13 @@ async def test_multiple_middlewares_stacked() -> None:
 
 
 @pytest.mark.anyio
-async def test_poll_for_disconnect_repeated() -> None:
+@pytest.mark.parametrize('send_body', [True, False])
+async def test_poll_for_disconnect_repeated(send_body: bool) -> None:
     async def app_poll_disconnect(scope: Scope, receive: Receive, send: Send) -> None:
         for _ in range(2):
             msg = await receive()
+            while msg["type"] == "http.request":
+                msg = await receive()
             assert msg["type"] == "http.disconnect"
         await Response(b"good!")(scope, receive, send)
 
@@ -1143,6 +1146,9 @@ async def test_poll_for_disconnect_repeated() -> None:
     }
 
     async def receive() -> AsyncIterator[Message]:
+        if send_body:
+            yield {"type": "http.request", "body": b"hello", "more_body": True}
+            yield {"type": "http.request", "body": b"", "more_body": False}
         yield {"type": "http.disconnect"}
         raise AssertionError("Should not be called, would hang")  # pragma: no cover
 

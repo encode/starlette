@@ -55,6 +55,7 @@ class _CachedRequest(Request):
                 # at this point a disconnect is all that we should be receiving
                 # if we get something else, things went wrong somewhere
                 raise RuntimeError(f"Unexpected message received: {msg['type']}")
+            self._wrapped_rcv_disconnected = True
             return msg
 
         # wrapped_rcv state 3: not yet consumed
