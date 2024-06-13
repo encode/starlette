@@ -1120,7 +1120,7 @@ async def test_multiple_middlewares_stacked() -> None:
 
 
 @pytest.mark.anyio
-@pytest.mark.parametrize('send_body', [True, False])
+@pytest.mark.parametrize("send_body", [True, False])
 async def test_poll_for_disconnect_repeated(send_body: bool) -> None:
     async def app_poll_disconnect(scope: Scope, receive: Receive, send: Send) -> None:
         for _ in range(2):
