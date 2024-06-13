@@ -1038,7 +1038,7 @@ def test_pr_1519_comment_1236166180_example() -> None:
 
 @pytest.mark.anyio
 async def test_multiple_middlewares_stacked() -> None:
-    class DummyMiddleware(BaseHTTPMiddleware):
+    class MyMiddleware(BaseHTTPMiddleware):
         def __init__(self, app: ASGIApp, version: int, events: list[str]) -> None:
             self.version = version
             self.events = events
@@ -1065,7 +1065,7 @@ async def test_multiple_middlewares_stacked() -> None:
     app = Starlette(
         routes=[Route("/", sleepy)],
         middleware=[
-            Middleware(DummyMiddleware, version=_ + 1, events=events) for _ in range(10)
+            Middleware(MyMiddleware, version=_ + 1, events=events) for _ in range(10)
         ],
     )
 
@@ -1115,5 +1115,50 @@ async def test_multiple_middlewares_stacked() -> None:
             "status": 200,
             "headers": [(b"content-length", b"0")],
         },
+        {"type": "http.response.body", "body": b"", "more_body": False},
+    ]
+
+
+@pytest.mark.anyio
+async def test_poll_for_disconnect_repeated() -> None:
+    async def app_poll_disconnect(scope: Scope, receive: Receive, send: Send) -> None:
+        for _ in range(2):
+            msg = await receive()
+            assert msg["type"] == "http.disconnect"
+        await Response(b"good!")(scope, receive, send)
+
+    class MyMiddleware(BaseHTTPMiddleware):
+        async def dispatch(
+            self, request: Request, call_next: RequestResponseEndpoint
+        ) -> Response:
+            return await call_next(request)
+
+    app = MyMiddleware(app_poll_disconnect)
+
+    scope = {
+        "type": "http",
+        "version": "3",
+        "method": "GET",
+        "path": "/",
+    }
+
+    async def receive() -> AsyncIterator[Message]:
+        yield {"type": "http.disconnect"}
+        raise AssertionError("Should not be called, would hang")  # pragma: no cover
+
+    sent: list[Message] = []
+
+    async def send(message: Message) -> None:
+        sent.append(message)
+
+    await app(scope, receive().__anext__, send)
+
+    assert sent == [
+        {
+            "type": "http.response.start",
+            "status": 200,
+            "headers": [(b"content-length", b"5")],
+        },
+        {"type": "http.response.body", "body": b"good!", "more_body": True},
         {"type": "http.response.body", "body": b"", "more_body": False},
     ]
