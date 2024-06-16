@@ -48,7 +48,8 @@ class CORSMiddleware:
 
         preflight_headers = {}
         if preflight_explicit_allow_origin:
-            # The origin value will be set in preflight_response() if it is allowed.
+            # The origin value will be set in cors_preflight_response()
+            # if it is allowed.
             preflight_headers["Vary"] = "Origin"
         else:
             preflight_headers["Access-Control-Allow-Origin"] = "*"
@@ -69,6 +70,7 @@ class CORSMiddleware:
         self.app = app
         self.allow_origins = allow_origins
         self.allow_methods = allow_methods
+        self.allow_private_network = allow_private_network
         self.allow_headers = [h.lower() for h in allow_headers]
         self.allow_all_origins = allow_all_origins
         self.allow_all_headers = allow_all_headers
@@ -91,7 +93,14 @@ class CORSMiddleware:
             return
 
         if method == "OPTIONS" and "access-control-request-method" in headers:
-            response = self.preflight_response(request_headers=headers)
+            response = self.cors_preflight_response(request_headers=headers)
+            await response(scope, receive, send)
+            return
+
+        # Must respond to preflight request in no-cors mode
+        # (https://developer.chrome.com/blog/private-network-access-preflight#no-cors_mode)
+        if method == "OPTIONS" and "access-control-request-private-network" in headers:
+            response = self.pna_preflight_response(request_headers=headers)
             await response(scope, receive, send)
             return
 
@@ -108,7 +117,7 @@ class CORSMiddleware:
 
         return origin in self.allow_origins
 
-    def preflight_response(self, request_headers: Headers) -> Response:
+    def cors_preflight_response(self, request_headers: Headers) -> Response:
         requested_origin = request_headers["origin"]
         requested_method = request_headers["access-control-request-method"]
         requested_headers = request_headers.get("access-control-request-headers")
@@ -142,6 +151,35 @@ class CORSMiddleware:
         # if we do.
         if failures:
             failure_text = "Disallowed CORS " + ", ".join(failures)
+            return PlainTextResponse(failure_text, status_code=400, headers=headers)
+
+        return PlainTextResponse("OK", status_code=200, headers=headers)
+
+    def pna_preflight_response(self, request_headers: Headers) -> Response:
+        requested_origin = request_headers["origin"]
+        requested_private_network = request_headers[
+            "access-control-request-private-network"
+        ]
+
+        headers = dict(self.preflight_headers)
+        failures = []
+
+        if self.is_allowed_origin(origin=requested_origin):
+            if self.preflight_explicit_allow_origin:
+                # The "else" case is already accounted for in self.preflight_headers
+                # and the value would be "*".
+                headers["Access-Control-Allow-Origin"] = requested_origin
+        else:
+            failures.append("origin")
+
+        if requested_private_network == "true" and not self.allow_private_network:
+            failures.append("private-network")
+
+        # We don't strictly need to use 400 responses here, since its up to
+        # the browser to enforce the CORS policy, but its more informative
+        # if we do.
+        if failures:
+            failure_text = "Disallowed PNA " + ", ".join(failures)
             return PlainTextResponse(failure_text, status_code=400, headers=headers)
 
         return PlainTextResponse("OK", status_code=200, headers=headers)
