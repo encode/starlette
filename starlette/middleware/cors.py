@@ -20,6 +20,7 @@ class CORSMiddleware:
         allow_methods: typing.Sequence[str] = ("GET",),
         allow_headers: typing.Sequence[str] = (),
         allow_credentials: bool = False,
+        allow_private_network: bool = False,
         allow_origin_regex: str | None = None,
         expose_headers: typing.Sequence[str] = (),
         max_age: int = 600,
@@ -40,6 +41,8 @@ class CORSMiddleware:
             simple_headers["Access-Control-Allow-Origin"] = "*"
         if allow_credentials:
             simple_headers["Access-Control-Allow-Credentials"] = "true"
+        if allow_private_network:
+            simple_headers["Access-Control-Allow-Private-Network"] = "true"
         if expose_headers:
             simple_headers["Access-Control-Expose-Headers"] = ", ".join(expose_headers)
 
@@ -60,6 +63,8 @@ class CORSMiddleware:
             preflight_headers["Access-Control-Allow-Headers"] = ", ".join(allow_headers)
         if allow_credentials:
             preflight_headers["Access-Control-Allow-Credentials"] = "true"
+        if allow_private_network:
+            preflight_headers["Access-Control-Allow-Private-Network"] = "true"
 
         self.app = app
         self.allow_origins = allow_origins
