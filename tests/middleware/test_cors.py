@@ -28,13 +28,14 @@ def test_cors_allow_all(
                 allow_methods=["*"],
                 expose_headers=["X-Status"],
                 allow_credentials=True,
+                allow_private_network=True,
             )
         ],
     )
 
     client = test_client_factory(app)
 
-    # Test pre-flight response
+    # Test CORS pre-flight response
     headers = {
         "Origin": "https://example.org",
         "Access-Control-Request-Method": "GET",
@@ -46,7 +47,19 @@ def test_cors_allow_all(
     assert response.headers["access-control-allow-origin"] == "https://example.org"
     assert response.headers["access-control-allow-headers"] == "X-Example"
     assert response.headers["access-control-allow-credentials"] == "true"
+    assert response.headers["access-control-allow-private-network"] == "true"
     assert response.headers["vary"] == "Origin"
+
+    # Test PNA pre-flight response
+    headers = {
+        "Origin": "https://example.org",
+        "Access-Control-Request-Private-Network": "true",
+    }
+    response = client.options("/", headers=headers)
+    assert response.status_code == 200
+    assert response.text == "OK"
+    assert response.headers["access-control-allow-origin"] == "https://example.org"
+    assert response.headers["access-control-allow-private-network"] == "true"
 
     # Test standard response
     headers = {"Origin": "https://example.org"}
@@ -56,6 +69,7 @@ def test_cors_allow_all(
     assert response.headers["access-control-allow-origin"] == "*"
     assert response.headers["access-control-expose-headers"] == "X-Status"
     assert response.headers["access-control-allow-credentials"] == "true"
+    assert response.headers["access-control-allow-private-network"] == "true"
 
     # Test standard credentialed response
     headers = {"Origin": "https://example.org", "Cookie": "star_cookie=sugar"}
@@ -65,6 +79,7 @@ def test_cors_allow_all(
     assert response.headers["access-control-allow-origin"] == "https://example.org"
     assert response.headers["access-control-expose-headers"] == "X-Status"
     assert response.headers["access-control-allow-credentials"] == "true"
+    assert response.headers["access-control-allow-private-network"] == "true"
 
     # Test non-CORS response
     response = client.get("/")
@@ -88,13 +103,14 @@ def test_cors_allow_all_except_credentials(
                 allow_headers=["*"],
                 allow_methods=["*"],
                 expose_headers=["X-Status"],
+                allow_private_network=True,
             )
         ],
     )
 
     client = test_client_factory(app)
 
-    # Test pre-flight response
+    # Test CORS pre-flight response
     headers = {
         "Origin": "https://example.org",
         "Access-Control-Request-Method": "GET",
@@ -106,7 +122,19 @@ def test_cors_allow_all_except_credentials(
     assert response.headers["access-control-allow-origin"] == "*"
     assert response.headers["access-control-allow-headers"] == "X-Example"
     assert "access-control-allow-credentials" not in response.headers
+    assert response.headers["access-control-allow-private-network"] == "true"
     assert "vary" not in response.headers
+
+    # Test PNA pre-flight response
+    headers = {
+        "Origin": "https://example.org",
+        "Access-Control-Request-Private-Network": "true",
+    }
+    response = client.options("/", headers=headers)
+    assert response.status_code == 200
+    assert response.text == "OK"
+    assert response.headers["access-control-allow-origin"] == "*"
+    assert response.headers["access-control-allow-private-network"] == "true"
 
     # Test standard response
     headers = {"Origin": "https://example.org"}
@@ -116,6 +144,61 @@ def test_cors_allow_all_except_credentials(
     assert response.headers["access-control-allow-origin"] == "*"
     assert response.headers["access-control-expose-headers"] == "X-Status"
     assert "access-control-allow-credentials" not in response.headers
+    assert response.headers["access-control-allow-private-network"] == "true"
+
+    # Test non-CORS response
+    response = client.get("/")
+    assert response.status_code == 200
+    assert response.text == "Homepage"
+    assert "access-control-allow-origin" not in response.headers
+
+
+def test_cors_allow_all_except_private_network(
+    test_client_factory: TestClientFactory,
+) -> None:
+    def homepage(request: Request) -> PlainTextResponse:
+        return PlainTextResponse("Homepage", status_code=200)
+
+    app = Starlette(
+        routes=[Route("/", endpoint=homepage)],
+        middleware=[
+            Middleware(
+                CORSMiddleware,
+                allow_origins=["*"],
+                allow_headers=["*"],
+                allow_methods=["*"],
+                expose_headers=["X-Status"],
+                allow_credentials=True,
+            )
+        ],
+    )
+
+    client = test_client_factory(app)
+
+    # Test CORS pre-flight response
+    headers = {
+        "Origin": "https://example.org",
+        "Access-Control-Request-Method": "GET",
+        "Access-Control-Request-Headers": "X-Example",
+    }
+    response = client.options("/", headers=headers)
+    assert response.status_code == 200
+    assert response.text == "OK"
+    assert response.headers["access-control-allow-origin"] == "https://example.org"
+    assert response.headers["access-control-allow-headers"] == "X-Example"
+    assert response.headers["access-control-allow-credentials"] == "true"
+    assert "access-control-allow-private-network" not in response.headers
+    assert response.headers["vary"] == "Origin"
+
+    # Test standard response
+    headers = {"Origin": "https://example.org"}
+    response = client.get("/", headers=headers)
+    assert response.status_code == 200
+    assert response.text == "Homepage"
+    assert response.headers["access-control-allow-origin"] == "*"
+    assert response.headers["access-control-expose-headers"] == "X-Status"
+    assert response.headers["access-control-allow-credentials"] == "true"
+    assert "access-control-allow-private-network" not in response.headers
 
     # Test non-CORS response
     response = client.get("/")
@@ -157,6 +240,7 @@ def test_cors_allow_specific_origin(
         "Accept, Accept-Language, Content-Language, Content-Type, X-Example"
     )
     assert "access-control-allow-credentials" not in response.headers
+    assert "access-control-allow-private-network" not in response.headers
 
     # Test standard response
     headers = {"Origin": "https://example.org"}
@@ -165,12 +249,14 @@ def test_cors_allow_specific_origin(
     assert response.text == "Homepage"
     assert response.headers["access-control-allow-origin"] == "https://example.org"
     assert "access-control-allow-credentials" not in response.headers
+    assert "access-control-allow-private-network" not in response.headers
 
     # Test non-CORS response
     response = client.get("/")
     assert response.status_code == 200
     assert response.text == "Homepage"
     assert "access-control-allow-origin" not in response.headers
+    assert "access-control-allow-private-network" not in response.headers
 
 
 def test_cors_disallowed_preflight(
@@ -202,6 +288,7 @@ def test_cors_disallowed_preflight(
     assert response.status_code == 400
     assert response.text == "Disallowed CORS origin, method, headers"
     assert "access-control-allow-origin" not in response.headers
+    assert "access-control-allow-private-network" not in response.headers
 
     # Bug specific test, https://github.com/encode/starlette/pull/1199
     # Test preflight response text with multiple disallowed headers
@@ -212,6 +299,33 @@ def test_cors_disallowed_preflight(
     }
     response = client.options("/", headers=headers)
     assert response.text == "Disallowed CORS headers"
+
+
+def test_pna_disallowed_preflight(test_client_factory: TestClientFactory) -> None:
+    def homepage(request: Request) -> None:
+        pass  # pragma: no cover
+
+    app = Starlette(
+        routes=[Route("/", endpoint=homepage)],
+        middleware=[
+            Middleware(
+                CORSMiddleware,
+                allow_origins=["https://example.org"],
+                allow_private_network=False,
+            )
+        ],
+    )
+
+    client = test_client_factory(app)
+
+    headers = {
+        "Origin": "https://another.org",
+        "Access-Control-Request-Private-Network": "true",
+    }
+    response = client.options("/", headers=headers)
+    assert response.status_code == 400
+    assert response.text == "Disallowed PNA origin, private-network"
+    assert "access-control-allow-private-network" not in response.headers
 
 
 def test_preflight_allows_request_origin_if_origins_wildcard_and_credentials_allowed(
@@ -246,6 +360,7 @@ def test_preflight_allows_request_origin_if_origins_wildcard_and_credentials_all
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "https://example.org"
     assert response.headers["access-control-allow-credentials"] == "true"
+    assert "access-control-allow-private-network" not in response.headers
     assert response.headers["vary"] == "Origin"
 
 
@@ -320,6 +435,7 @@ def test_cors_allow_origin_regex(
                 allow_headers=["X-Example", "Content-Type"],
                 allow_origin_regex="https://.*",
                 allow_credentials=True,
+                allow_private_network=True,
             )
         ],
     )
@@ -333,6 +449,7 @@ def test_cors_allow_origin_regex(
     assert response.text == "Homepage"
     assert response.headers["access-control-allow-origin"] == "https://example.org"
     assert response.headers["access-control-allow-credentials"] == "true"
+    assert response.headers["access-control-allow-private-network"] == "true"
 
     # Test standard credentialed response
     headers = {"Origin": "https://example.org", "Cookie": "star_cookie=sugar"}
@@ -341,6 +458,7 @@ def test_cors_allow_origin_regex(
     assert response.text == "Homepage"
     assert response.headers["access-control-allow-origin"] == "https://example.org"
     assert response.headers["access-control-allow-credentials"] == "true"
+    assert response.headers["access-control-allow-private-network"] == "true"
 
     # Test disallowed standard response
     # Note that enforcement is a browser concern. The disallowed-ness is reflected
@@ -365,6 +483,7 @@ def test_cors_allow_origin_regex(
         "Accept, Accept-Language, Content-Language, Content-Type, X-Example"
     )
     assert response.headers["access-control-allow-credentials"] == "true"
+    assert response.headers["access-control-allow-private-network"] == "true"
 
     # Test disallowed pre-flight response
     headers = {
@@ -407,6 +526,7 @@ def test_cors_allow_origin_regex_fullmatch(
         == "https://subdomain.example.org"
     )
     assert "access-control-allow-credentials" not in response.headers
+    assert "access-control-allow-private-network" not in response.headers
 
     # Test diallowed standard response
     headers = {"Origin": "https://subdomain.example.org.hacker.com"}
@@ -435,6 +555,7 @@ def test_cors_credentialed_requests_return_specific_origin(
     assert response.text == "Homepage"
     assert response.headers["access-control-allow-origin"] == "https://example.org"
     assert "access-control-allow-credentials" not in response.headers
+    assert "access-control-allow-private-network" not in response.headers
 
 
 def test_cors_vary_header_defaults_to_origin(
@@ -542,13 +663,16 @@ def test_cors_allowed_origin_does_not_leak_between_credentialed_requests(
     response = client.get("/", headers={"Origin": "https://someplace.org"})
     assert response.headers["access-control-allow-origin"] == "*"
     assert "access-control-allow-credentials" not in response.headers
+    assert "access-control-allow-private-network" not in response.headers
 
     response = client.get(
         "/", headers={"Cookie": "foo=bar", "Origin": "https://someplace.org"}
     )
     assert response.headers["access-control-allow-origin"] == "https://someplace.org"
     assert "access-control-allow-credentials" not in response.headers
+    assert "access-control-allow-private-network" not in response.headers
 
     response = client.get("/", headers={"Origin": "https://someplace.org"})
     assert response.headers["access-control-allow-origin"] == "*"
     assert "access-control-allow-credentials" not in response.headers
+    assert "access-control-allow-private-network" not in response.headers
