@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sys
-from typing import Any, Callable, Iterator
+from typing import Any, Iterator
 
 import anyio
 import pytest
@@ -9,10 +9,8 @@ import pytest
 from starlette.datastructures import Address, State
 from starlette.requests import ClientDisconnect, Request
 from starlette.responses import JSONResponse, PlainTextResponse, Response
-from starlette.testclient import TestClient
 from starlette.types import Message, Receive, Scope, Send
-
-TestClientFactory = Callable[..., TestClient]
+from tests.types import TestClientFactory
 
 
 def test_request_url(test_client_factory: TestClientFactory) -> None:
@@ -133,7 +131,9 @@ def test_request_form_urlencoded(test_client_factory: TestClientFactory) -> None
     assert response.json() == {"form": {"abc": "123 @"}}
 
 
-def test_request_form_context_manager(test_client_factory: TestClientFactory) -> None:
+def test_request_form_context_manager(
+    test_client_factory: TestClientFactory,
+) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         async with request.form() as form:
