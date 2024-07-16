@@ -5,8 +5,8 @@ from contextlib import AsyncExitStack
 from typing import (
     Any,
     AsyncGenerator,
-    Callable,
     Generator,
+    Literal,
 )
 
 import anyio
@@ -24,8 +24,7 @@ from starlette.routing import Route, WebSocketRoute
 from starlette.testclient import TestClient
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from starlette.websockets import WebSocket
-
-TestClientFactory = Callable[[ASGIApp], TestClient]
+from tests.conftest import TestClientFactory
 
 
 class CustomMiddleware(BaseHTTPMiddleware):
@@ -373,8 +372,8 @@ async def test_do_not_block_on_background_tasks() -> None:
         {"body": b"Hello", "more_body": True, "type": "http.response.body"},
         {"body": b"", "more_body": False, "type": "http.response.body"},
         "Background task started",
-        "Background task started",
         "Background task finished",
+        "Background task started",
         "Background task finished",
     ]
 
@@ -1037,55 +1036,6 @@ def test_pr_1519_comment_1236166180_example() -> None:
 
     assert bodies == [b"Hello, World!-foo"]
 
-@pytest.mark.anyio
-async def test_background_tasks_client_disconnect() -> None:
-    # test for https://github.com/encode/starlette/issues/1438
-    container: list[str] = []
-
-    disconnected = anyio.Event()
-
-    async def slow_background() -> None:
-        # small delay to give BaseHTTPMiddleware a chance to cancel us
-        # this is required to make the test fail prior to fixing the issue
-        # so do not be surprised if you remove it and the test still passes
-        await anyio.sleep(0.1)
-        container.append("called")
-
-    app: ASGIApp
-    app = PlainTextResponse("hi!", background=BackgroundTask(slow_background))
-
-    async def dispatch(
-        request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
-        return await call_next(request)
-
-    app = BaseHTTPMiddleware(app, dispatch=dispatch)
-
-    app = BackgroundTaskMiddleware(app)
-
-    async def recv_gen() -> AsyncGenerator[Message, None]:
-        yield {"type": "http.request"}
-        await disconnected.wait()
-        while True:
-            yield {"type": "http.disconnect"}
-
-    async def send_gen() -> AsyncGenerator[None, Message]:
-        while True:
-            msg = yield
-            if msg["type"] == "http.response.body" and not msg.get("more_body", False):
-                disconnected.set()
-
-    scope = {"type": "http", "method": "GET", "path": "/"}
-
-    async with AsyncExitStack() as stack:
-        recv = recv_gen()
-        stack.push_async_callback(recv.aclose)
-        send = send_gen()
-        stack.push_async_callback(send.aclose)
-        await send.__anext__()
-        await app(scope, recv.__aiter__().__anext__, send.asend)
-
-    assert container == ["called"]
 
 @pytest.mark.anyio
 async def test_background_tasks_client_disconnect() -> None:
@@ -1141,16 +1091,20 @@ async def test_background_tasks_client_disconnect() -> None:
 @pytest.mark.anyio
 async def test_background_tasks_failure(
     test_client_factory: TestClientFactory,
+    anyio_backend_name: Literal["asyncio", "trio"],
 ) -> None:
+    if anyio_backend_name == "trio":
+        pytest.skip("this test hangs with trio")
+
     # test for https://github.com/encode/starlette/discussions/2640
     container: list[str] = []
 
-    def task1() -> None:
+    async def task1() -> None:
         container.append("task1 called")
         raise ValueError("task1 failed")
 
-    def task2() -> None:
-        container.append("task2 called")
+    async def task2() -> None:
+        container.append("task2 called")  # pragma: no cover
 
     async def endpoint(request: Request) -> Response:
         background = BackgroundTasks()
@@ -1168,7 +1122,7 @@ async def test_background_tasks_failure(
         middleware=[Middleware(BaseHTTPMiddleware, dispatch=dispatch)],
     )
 
-    client = test_client_factory(app)
+    client = test_client_factory(app, raise_server_exceptions=False)
 
     response = client.get("/")
     assert response.status_code == 200

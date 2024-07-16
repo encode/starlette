@@ -16,10 +16,10 @@ import anyio
 import anyio.to_thread
 
 from starlette._compat import md5_hexdigest
-from starlette.middleware import background
 from starlette.background import BackgroundTask
 from starlette.concurrency import iterate_in_threadpool
 from starlette.datastructures import URL, MutableHeaders
+from starlette.middleware import background
 from starlette.types import Receive, Scope, Send
 
 

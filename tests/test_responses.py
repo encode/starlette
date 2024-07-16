@@ -12,11 +12,8 @@ import pytest
 
 from starlette import status
 from starlette.background import BackgroundTask
-<<<<<<< HEAD
 from starlette.datastructures import Headers
-=======
 from starlette.middleware.background import BackgroundTaskMiddleware
->>>>>>> c19dd7c (Move BackgroundTask execution outside of request/response cycle)
 from starlette.requests import Request
 from starlette.responses import (
     FileResponse,

@@ -32,7 +32,7 @@ def test_client_factory_mw(
 
 
 def response_app_factory(task: BackgroundTask) -> ASGIApp:
-    async def app(scope: Scope, receive: Receive, send: Send):
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
         response = Response(b"task initiated", media_type="text/plain", background=task)
         await response(scope, receive, send)
 
@@ -40,7 +40,7 @@ def response_app_factory(task: BackgroundTask) -> ASGIApp:
 
 
 def file_response_app_factory(task: BackgroundTask) -> ASGIApp:
-    async def app(scope: Scope, receive: Receive, send: Send):
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
         with NamedTemporaryFile("wb+") as f:
             f.write(b"task initiated")
             f.seek(0)
@@ -51,7 +51,7 @@ def file_response_app_factory(task: BackgroundTask) -> ASGIApp:
 
 
 def streaming_response_app_factory(task: BackgroundTask) -> ASGIApp:
-    async def app(scope: Scope, receive: Receive, send: Send):
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
         async def stream() -> AsyncIterable[bytes]:
             yield b"task initiated"
 
@@ -72,10 +72,10 @@ def streaming_response_app_factory(task: BackgroundTask) -> ASGIApp:
 def test_async_task(
     test_client_factory_mw: TestClientFactory,
     app_factory: Callable[[BackgroundTask], ASGIApp],
-):
+) -> None:
     task_complete = False
 
-    async def async_task():
+    async def async_task() -> None:
         nonlocal task_complete
         task_complete = True
 
@@ -89,10 +89,10 @@ def test_async_task(
     assert task_complete
 
 
-def test_sync_task(test_client_factory: TestClientFactory):
+def test_sync_task(test_client_factory: TestClientFactory) -> None:
     task_complete = False
 
-    def sync_task():
+    def sync_task() -> None:
         nonlocal task_complete
         task_complete = True
 
@@ -108,10 +108,10 @@ def test_sync_task(test_client_factory: TestClientFactory):
     assert task_complete
 
 
-def test_multiple_tasks(test_client_factory: TestClientFactory):
+def test_multiple_tasks(test_client_factory: TestClientFactory) -> None:
     task_counter = 0
 
-    def increment(amount: int):
+    def increment(amount: int) -> None:
         nonlocal task_counter
         task_counter += amount
 
@@ -136,7 +136,7 @@ def test_multi_tasks_failure_avoids_next_execution(
 ) -> None:
     task_counter = 0
 
-    def increment():
+    def increment() -> None:
         nonlocal task_counter
         task_counter += 1
         if task_counter == 1:
