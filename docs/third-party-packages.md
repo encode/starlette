@@ -66,6 +66,13 @@ Simple APISpec integration for Starlette.
 Document your REST API built with Starlette by declaring OpenAPI (Swagger)
 schemas in YAML format in your endpoint's docstrings.
 
+### Starlette Compress
+
+<a href="https://github.com/Zaczero/starlette-compress" target="_blank">GitHub</a>
+
+Starlette-Compress is a fast and simple middleware for compressing responses in Starlette.
+It adds ZStd, Brotli, and GZip compression support with sensible default configuration.
+
 ### Starlette Context
 
 <a href="https://github.com/tomwojcik/starlette-context" target="_blank">GitHub</a>
@@ -247,3 +254,10 @@ Allows mounting [package resources](https://docs.python.org/3/library/importlib.
 <a href="https://docs.sentry.io/platforms/python/guides/starlette/" target="_blank">Documentation</a>
 
 Sentry is a software error detection tool. It offers actionable insights for resolving performance issues and errors, allowing users to diagnose, fix, and optimize Python debugging. Additionally, it integrates seamlessly with Starlette for Python application development. Sentry's capabilities include error tracking, performance insights, contextual information, and alerts/notifications.
+
+### Shiny
+
+<a href="https://github.com/posit-dev/py-shiny" target="_blank">GitHub</a> |
+<a href="https://shiny.posit.co/py/" target="_blank">Documentation</a>
+
+Leveraging Starlette and asyncio, Shiny allows developers to create effortless Python web applications using the power of reactive programming. Shiny eliminates the hassle of manual state management, automatically determining the best execution path for your app at runtime while simultaneously minimizing re-rendering. This means that Shiny can support everything from the simplest dashboard to full-featured web apps.   
