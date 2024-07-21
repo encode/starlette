@@ -51,6 +51,7 @@ path = "starlette/__init__.py"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "FA", "UP"]
+ignore = ["UP031"]
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
