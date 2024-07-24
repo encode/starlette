@@ -51,7 +51,7 @@ class Starlette:
         routes: typing.Sequence[BaseRoute] | None = None,
         middleware: typing.Sequence[Middleware] | None = None,
         exception_handlers: typing.Mapping[typing.Any, ExceptionHandler] | None = None,
-        lifespan: typing.Optional[Lifespan["AppType"]] = None,
+        lifespan: Lifespan[AppType] | None = None,
     ) -> None:
         self.debug = debug
         self.state = State()

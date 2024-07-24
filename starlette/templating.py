@@ -77,7 +77,9 @@ class Jinja2Templates:
         | None = None,
         env: jinja2.Environment | None = None,
     ) -> None:
-        assert directory or env, "either 'directory' or 'env' arguments must be passed"
+        assert bool(directory) ^ bool(
+            env
+        ), "either 'directory' or 'env' arguments must be passed"
         self.context_processors = context_processors or []
         if directory is not None:
             self.env = jinja2.Environment(loader=jinja2.FileSystemLoader(directory))
