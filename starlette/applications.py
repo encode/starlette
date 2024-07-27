@@ -11,6 +11,7 @@ else:  # pragma: no cover
 
 from starlette.datastructures import State, URLPath
 from starlette.middleware import Middleware, _MiddlewareClass
+from starlette.middleware.background import BackgroundTaskMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.errors import ServerErrorMiddleware
 from starlette.middleware.exceptions import ExceptionMiddleware
@@ -96,6 +97,7 @@ class Starlette:
 
         middleware = (
             [Middleware(ServerErrorMiddleware, handler=error_handler, debug=debug)]
+            + [Middleware(BackgroundTaskMiddleware)]
             + self.user_middleware
             + [
                 Middleware(

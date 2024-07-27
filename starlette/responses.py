@@ -19,6 +19,7 @@ from starlette._compat import md5_hexdigest
 from starlette.background import BackgroundTask
 from starlette.concurrency import iterate_in_threadpool
 from starlette.datastructures import URL, MutableHeaders
+from starlette.middleware import background
 from starlette.types import Receive, Scope, Send
 
 
@@ -148,6 +149,12 @@ class Response:
         )
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if (
+            self.background is not None
+            and background.is_background_task_middleware_installed(scope)
+        ):
+            background.add_tasks(scope, self.background)
+            self.background = None
         prefix = "websocket." if scope["type"] == "websocket" else ""
         await send(
             {
@@ -255,6 +262,12 @@ class StreamingResponse(Response):
         await send({"type": "http.response.body", "body": b"", "more_body": False})
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if (
+            self.background is not None
+            and background.is_background_task_middleware_installed(scope)
+        ):
+            background.add_tasks(scope, self.background)
+            self.background = None
         async with anyio.create_task_group() as task_group:
 
             async def wrap(func: typing.Callable[[], typing.Awaitable[None]]) -> None:
@@ -320,6 +333,12 @@ class FileResponse(Response):
         self.headers.setdefault("etag", etag)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if (
+            self.background is not None
+            and background.is_background_task_middleware_installed(scope)
+        ):
+            background.add_tasks(scope, self.background)
+            self.background = None
         if self.stat_result is None:
             try:
                 stat_result = await anyio.to_thread.run_sync(os.stat, self.path)
