@@ -20,4 +20,4 @@ def test_client_factory(
         TestClient,
         backend=anyio_backend_name,
         backend_options=anyio_backend_options,
-    )  # type: ignore
+    )

@@ -131,9 +131,7 @@ app = Starlette(
 
 
 @pytest.fixture
-def client(
-    test_client_factory: TestClientFactory,
-) -> Generator[TestClient, None, None]:
+def client(test_client_factory: TestClientFactory) -> Generator[TestClient, None, None]:
     with test_client_factory(app) as client:
         yield client
 

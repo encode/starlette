@@ -257,9 +257,7 @@ def test_websocket_blocking_receive(test_client_factory: TestClientFactory) -> N
         assert data == {"message": "test"}
 
 
-def test_websocket_not_block_on_close(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_websocket_not_block_on_close(test_client_factory: TestClientFactory) -> None:
     def app(scope: Scope) -> ASGIInstance:
         async def asgi(receive: Receive, send: Send) -> None:
             websocket = WebSocket(scope, receive=receive, send=send)

@@ -206,9 +206,7 @@ def test_websocket_iter_json(test_client_factory: TestClientFactory) -> None:
         assert data == {"message": {"hello": "world"}}
 
 
-def test_websocket_concurrency_pattern(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_websocket_concurrency_pattern(test_client_factory: TestClientFactory) -> None:
     stream_send: ObjectSendStream[MutableMapping[str, Any]]
     stream_receive: ObjectReceiveStream[MutableMapping[str, Any]]
     stream_send, stream_receive = anyio.create_memory_object_stream()
@@ -380,9 +378,7 @@ def test_send_response_unsupported(test_client_factory: TestClientFactory) -> No
     assert exc.value.code == status.WS_1000_NORMAL_CLOSURE
 
 
-def test_send_response_duplicate_start(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_send_response_duplicate_start(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         msg = await websocket.receive()
@@ -566,9 +562,7 @@ def test_receive_text_before_accept(test_client_factory: TestClientFactory) -> N
             pass  # pragma: nocover
 
 
-def test_receive_bytes_before_accept(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_receive_bytes_before_accept(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         await websocket.receive_bytes()

@@ -499,9 +499,7 @@ def test_streaming_response_unknown_size(
     assert "content-length" not in response.headers
 
 
-def test_streaming_response_known_size(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_streaming_response_known_size(test_client_factory: TestClientFactory) -> None:
     app = StreamingResponse(
         content=iter(["hello", "world"]), headers={"content-length": "10"}
     )

@@ -24,9 +24,7 @@ def test_gzip_responses(test_client_factory: TestClientFactory) -> None:
     assert int(response.headers["Content-Length"]) < 4000
 
 
-def test_gzip_not_in_accept_encoding(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_gzip_not_in_accept_encoding(test_client_factory: TestClientFactory) -> None:
     def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("x" * 4000, status_code=200)
 

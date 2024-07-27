@@ -131,9 +131,7 @@ def test_request_form_urlencoded(test_client_factory: TestClientFactory) -> None
     assert response.json() == {"form": {"abc": "123 @"}}
 
 
-def test_request_form_context_manager(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_request_form_context_manager(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         async with request.form() as form:
