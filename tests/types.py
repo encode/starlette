@@ -17,7 +17,7 @@ class TestClientFactory(Protocol):  # pragma: no cover
         base_url: str = "http://testserver",
         raise_server_exceptions: bool = True,
         root_path: str = "",
-        cookies: httpx._types.CookieTypes | None = None,  # type: ignore
+        cookies: httpx._types.CookieTypes | None = None,
         headers: dict[str, str] | None = None,
         follow_redirects: bool = True,
     ) -> TestClient: ...

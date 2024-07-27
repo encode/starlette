@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import sys
-from typing import Any, Callable, Iterator
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any, Iterator
 
 import anyio
 import pytest
