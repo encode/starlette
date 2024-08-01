@@ -287,6 +287,21 @@ async def test_file_response_on_head_method(tmpdir: Path) -> None:
     await app({"type": "http", "method": "head"}, receive, send)
 
 
+def test_file_response_with_manually_specified_media_type(
+    tmpdir: Path, test_client_factory: TestClientFactory
+) -> None:
+    path = os.path.join(tmpdir, "xyz")
+    content = b"<file content>"
+    with open(path, "wb") as file:
+        file.write(content)
+    # By default, FileResponse will determine the `media_type` based on the filename or path,
+    # unless a specific `media_type` is provided.
+    app = FileResponse(path=path, filename="example.png", media_type="image/jpeg")
+    client: TestClient = test_client_factory(app)
+    response = client.get("/")
+    assert response.headers["content-type"] == "image/jpeg"
+
+
 def test_file_response_with_directory_raises_error(
     tmpdir: Path, test_client_factory: TestClientFactory
 ) -> None:
@@ -379,6 +394,29 @@ def test_set_cookie(
         == "mycookie=myvalue; Domain=localhost; expires=Thu, 22 Jan 2037 12:00:10 GMT; "
         "HttpOnly; Max-Age=10; Path=/; SameSite=none; Secure"
     )
+
+
+def test_set_cookie_without_optional_keys(
+    test_client_factory: TestClientFactory,
+) -> None:
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
+        response = Response("Hello, world!", media_type="text/plain")
+        response.set_cookie(
+            "mycookie",
+            "myvalue",
+            max_age=None,
+            expires=None,
+            path=None,
+            domain=None,
+            secure=False,
+            httponly=False,
+            samesite=None,
+        )
+        await response(scope, receive, send)
+
+    client = test_client_factory(app)
+    response = client.get("/")
+    assert response.headers["set-cookie"] == "mycookie=myvalue"
 
 
 @pytest.mark.parametrize(
