@@ -294,8 +294,8 @@ def test_file_response_with_manually_specified_media_type(
     content = b"<file content>"
     with open(path, "wb") as file:
         file.write(content)
-    # By default, FileResponse will determine the `media_type` based on the filename or path,
-    # unless a specific `media_type` is provided.
+    # By default, FileResponse will determine the `media_type` based on
+    # the filename or path, unless a specific `media_type` is provided.
     app = FileResponse(path=path, filename="example.png", media_type="image/jpeg")
     client: TestClient = test_client_factory(app)
     response = client.get("/")
