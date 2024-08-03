@@ -216,10 +216,9 @@ def test_response_phrase(test_client_factory: TestClientFactory) -> None:
 
 
 def test_file_response(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
-    path = os.path.join(tmpdir, "xyz")
+    path = tmpdir / "xyz"
     content = b"<file content>" * 1000
-    with open(path, "wb") as file:
-        file.write(content)
+    path.write_bytes(content)
 
     filled_by_bg_task = ""
 
@@ -259,10 +258,9 @@ def test_file_response(tmpdir: Path, test_client_factory: TestClientFactory) -> 
 
 @pytest.mark.anyio
 async def test_file_response_on_head_method(tmpdir: Path) -> None:
-    path = os.path.join(tmpdir, "xyz")
+    path = tmpdir / "xyz"
     content = b"<file content>" * 1000
-    with open(path, "wb") as file:
-        file.write(content)
+    path.write_bytes(content)
 
     app = FileResponse(path=path, filename="example.png")
 
@@ -287,14 +285,13 @@ async def test_file_response_on_head_method(tmpdir: Path) -> None:
     await app({"type": "http", "method": "head"}, receive, send)
 
 
-def test_file_response_with_manually_specified_media_type(
+def test_file_response_set_media_type(
     tmpdir: Path, test_client_factory: TestClientFactory
 ) -> None:
-    path = os.path.join(tmpdir, "xyz")
-    content = b"<file content>"
-    with open(path, "wb") as file:
-        file.write(content)
-    # By default, FileResponse will determine the `media_type` based on
+    path = tmpdir / "xyz"
+    path.write_bytes(b"<file content>")
+
+    # By default, FileResponse will determine the `content-type` based on
     # the filename or path, unless a specific `media_type` is provided.
     app = FileResponse(path=path, filename="example.png", media_type="image/jpeg")
     client: TestClient = test_client_factory(app)
@@ -315,7 +312,7 @@ def test_file_response_with_directory_raises_error(
 def test_file_response_with_missing_file_raises_error(
     tmpdir: Path, test_client_factory: TestClientFactory
 ) -> None:
-    path = os.path.join(tmpdir, "404.txt")
+    path = tmpdir / "404.txt"
     app = FileResponse(path=path, filename="404.txt")
     client = test_client_factory(app)
     with pytest.raises(RuntimeError) as exc_info:
@@ -328,9 +325,8 @@ def test_file_response_with_chinese_filename(
 ) -> None:
     content = b"file content"
     filename = "你好.txt"  # probably "Hello.txt" in Chinese
-    path = os.path.join(tmpdir, filename)
-    with open(path, "wb") as f:
-        f.write(content)
+    path = tmpdir / filename
+    path.write_bytes(content)
     app = FileResponse(path=path, filename=filename)
     client = test_client_factory(app)
     response = client.get("/")
@@ -345,9 +341,8 @@ def test_file_response_with_inline_disposition(
 ) -> None:
     content = b"file content"
     filename = "hello.txt"
-    path = os.path.join(tmpdir, filename)
-    with open(path, "wb") as f:
-        f.write(content)
+    path = tmpdir / filename
+    path.write_bytes(content)
     app = FileResponse(path=path, filename=filename, content_disposition_type="inline")
     client = test_client_factory(app)
     response = client.get("/")
@@ -396,27 +391,16 @@ def test_set_cookie(
     )
 
 
-def test_set_cookie_without_optional_keys(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_set_cookie_path_none(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         response = Response("Hello, world!", media_type="text/plain")
-        response.set_cookie(
-            "mycookie",
-            "myvalue",
-            max_age=None,
-            expires=None,
-            path=None,
-            domain=None,
-            secure=False,
-            httponly=False,
-            samesite=None,
-        )
+        response.set_cookie("mycookie", "myvalue", path=None)
         await response(scope, receive, send)
 
     client = test_client_factory(app)
     response = client.get("/")
-    assert response.headers["set-cookie"] == "mycookie=myvalue"
+    assert response.text == "Hello, world!"
+    assert response.headers["set-cookie"] == "mycookie=myvalue; SameSite=lax"
 
 
 @pytest.mark.parametrize(
@@ -517,10 +501,9 @@ def test_response_do_not_add_redundant_charset(
 def test_file_response_known_size(
     tmpdir: Path, test_client_factory: TestClientFactory
 ) -> None:
-    path = os.path.join(tmpdir, "xyz")
+    path = tmpdir / "xyz"
     content = b"<file content>" * 1000
-    with open(path, "wb") as file:
-        file.write(content)
+    path.write_bytes(content)
 
     app = FileResponse(path=path, filename="example.png")
     client: TestClient = test_client_factory(app)
