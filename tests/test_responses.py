@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import datetime as dt
-import os
 import time
 from http.cookies import SimpleCookie
 from pathlib import Path
