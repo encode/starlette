@@ -214,8 +214,8 @@ def test_response_phrase(test_client_factory: TestClientFactory) -> None:
     assert response.reason_phrase == ""
 
 
-def test_file_response(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
-    path = tmpdir / "xyz"
+def test_file_response(tmp_path: Path, test_client_factory: TestClientFactory) -> None:
+    path = tmp_path / "xyz"
     content = b"<file content>" * 1000
     path.write_bytes(content)
 
@@ -256,8 +256,8 @@ def test_file_response(tmpdir: Path, test_client_factory: TestClientFactory) -> 
 
 
 @pytest.mark.anyio
-async def test_file_response_on_head_method(tmpdir: Path) -> None:
-    path = tmpdir / "xyz"
+async def test_file_response_on_head_method(tmp_path: Path) -> None:
+    path = tmp_path / "xyz"
     content = b"<file content>" * 1000
     path.write_bytes(content)
 
@@ -285,9 +285,9 @@ async def test_file_response_on_head_method(tmpdir: Path) -> None:
 
 
 def test_file_response_set_media_type(
-    tmpdir: Path, test_client_factory: TestClientFactory
+    tmp_path: Path, test_client_factory: TestClientFactory
 ) -> None:
-    path = tmpdir / "xyz"
+    path = tmp_path / "xyz"
     path.write_bytes(b"<file content>")
 
     # By default, FileResponse will determine the `content-type` based on
@@ -299,9 +299,9 @@ def test_file_response_set_media_type(
 
 
 def test_file_response_with_directory_raises_error(
-    tmpdir: Path, test_client_factory: TestClientFactory
+    tmp_path: Path, test_client_factory: TestClientFactory
 ) -> None:
-    app = FileResponse(path=tmpdir, filename="example.png")
+    app = FileResponse(path=tmp_path, filename="example.png")
     client = test_client_factory(app)
     with pytest.raises(RuntimeError) as exc_info:
         client.get("/")
@@ -309,9 +309,9 @@ def test_file_response_with_directory_raises_error(
 
 
 def test_file_response_with_missing_file_raises_error(
-    tmpdir: Path, test_client_factory: TestClientFactory
+    tmp_path: Path, test_client_factory: TestClientFactory
 ) -> None:
-    path = tmpdir / "404.txt"
+    path = tmp_path / "404.txt"
     app = FileResponse(path=path, filename="404.txt")
     client = test_client_factory(app)
     with pytest.raises(RuntimeError) as exc_info:
@@ -320,11 +320,11 @@ def test_file_response_with_missing_file_raises_error(
 
 
 def test_file_response_with_chinese_filename(
-    tmpdir: Path, test_client_factory: TestClientFactory
+    tmp_path: Path, test_client_factory: TestClientFactory
 ) -> None:
     content = b"file content"
     filename = "你好.txt"  # probably "Hello.txt" in Chinese
-    path = tmpdir / filename
+    path = tmp_path / filename
     path.write_bytes(content)
     app = FileResponse(path=path, filename=filename)
     client = test_client_factory(app)
@@ -336,11 +336,11 @@ def test_file_response_with_chinese_filename(
 
 
 def test_file_response_with_inline_disposition(
-    tmpdir: Path, test_client_factory: TestClientFactory
+    tmp_path: Path, test_client_factory: TestClientFactory
 ) -> None:
     content = b"file content"
     filename = "hello.txt"
-    path = tmpdir / filename
+    path = tmp_path / filename
     path.write_bytes(content)
     app = FileResponse(path=path, filename=filename, content_disposition_type="inline")
     client = test_client_factory(app)
@@ -351,11 +351,9 @@ def test_file_response_with_inline_disposition(
     assert response.headers["content-disposition"] == expected_disposition
 
 
-def test_file_response_with_method_warns(
-    tmpdir: Path, test_client_factory: TestClientFactory
-) -> None:
+def test_file_response_with_method_warns(tmp_path: Path) -> None:
     with pytest.warns(DeprecationWarning):
-        FileResponse(path=tmpdir, filename="example.png", method="GET")
+        FileResponse(path=tmp_path, filename="example.png", method="GET")
 
 
 def test_set_cookie(
@@ -498,9 +496,9 @@ def test_response_do_not_add_redundant_charset(
 
 
 def test_file_response_known_size(
-    tmpdir: Path, test_client_factory: TestClientFactory
+    tmp_path: Path, test_client_factory: TestClientFactory
 ) -> None:
-    path = tmpdir / "xyz"
+    path = tmp_path / "xyz"
     content = b"<file content>" * 1000
     path.write_bytes(content)
 
