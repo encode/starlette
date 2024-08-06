@@ -1,5 +1,5 @@
 import sys
-from typing import Any, Callable, MutableMapping
+from typing import Any, MutableMapping
 
 import anyio
 import pytest
@@ -7,11 +7,10 @@ from anyio.abc import ObjectReceiveStream, ObjectSendStream
 
 from starlette import status
 from starlette.responses import Response
-from starlette.testclient import TestClient, WebSocketDenialResponse
+from starlette.testclient import WebSocketDenialResponse
 from starlette.types import Message, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketDisconnect, WebSocketState
-
-TestClientFactory = Callable[..., TestClient]
+from tests.types import TestClientFactory
 
 
 def test_websocket_url(test_client_factory: TestClientFactory) -> None:
@@ -492,8 +491,7 @@ def test_websocket_scope_interface() -> None:
     async def mock_receive() -> Message:  # type: ignore
         ...  # pragma: no cover
 
-    async def mock_send(message: Message) -> None:
-        ...  # pragma: no cover
+    async def mock_send(message: Message) -> None: ...  # pragma: no cover
 
     websocket = WebSocket(
         {"type": "websocket", "path": "/abc/", "headers": []},
