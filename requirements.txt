@@ -12,6 +12,8 @@ types-PyYAML==6.0.12.20240724
 types-dataclasses==0.6.6
 pytest==8.3.2
 trio==0.26.1
+# TODO: Remove when trio is updated.
+attrs==23.2.0
 
 # Documentation
 mkdocs==1.6.0
