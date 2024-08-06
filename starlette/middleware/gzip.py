@@ -41,8 +41,8 @@ class GZipResponder:
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         self.send = send
-        await self.app(scope, receive, self.send_with_gzip)
-        self.gzip_file.close()
+        with self.gzip_buffer, self.gzip_file:
+            await self.app(scope, receive, self.send_with_gzip)
 
     async def send_with_gzip(self, message: Message) -> None:
         message_type = message["type"]
