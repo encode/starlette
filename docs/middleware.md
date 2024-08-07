@@ -76,6 +76,7 @@ The following arguments are supported:
 * `allow_methods` - A list of HTTP methods that should be allowed for cross-origin requests. Defaults to `['GET']`. You can use `['*']` to allow all standard methods.
 * `allow_headers` - A list of HTTP request headers that should be supported for cross-origin requests. Defaults to `[]`. You can use `['*']` to allow all headers. The `Accept`, `Accept-Language`, `Content-Language` and `Content-Type` headers are always allowed for CORS requests.
 * `allow_credentials` - Indicate that cookies should be supported for cross-origin requests. Defaults to `False`. Also, `allow_origins`, `allow_methods` and `allow_headers` cannot be set to `['*']` for credentials to be allowed, all of them must be explicitly specified.
+* `allow_private_network` - Indicate that direct access to localhost or private network endpoints from public websites allowed. It also allows access to localhost endpoints from private network. Defaults to `False`.
 * `expose_headers` - Indicate any response headers that should be made accessible to the browser. Defaults to `[]`.
 * `max_age` - Sets a maximum time in seconds for browsers to cache CORS responses. Defaults to `600`.
 
@@ -84,6 +85,12 @@ The middleware responds to two particular types of HTTP request...
 #### CORS preflight requests
 
 These are any `OPTIONS` request with `Origin` and `Access-Control-Request-Method` headers.
+In this case the middleware will intercept the incoming request and respond with
+appropriate CORS headers, and either a 200 or 400 response for informational purposes.
+
+#### PNA preflight requests
+
+These are any `OPTIONS` request with `Origin` and `Access-Control-Request-Private-Network` headers.
 In this case the middleware will intercept the incoming request and respond with
 appropriate CORS headers, and either a 200 or 400 response for informational purposes.
 
