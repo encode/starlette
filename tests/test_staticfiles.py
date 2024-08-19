@@ -16,9 +16,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import Mount
 from starlette.staticfiles import StaticFiles
-from starlette.testclient import TestClient
-
-TestClientFactory = typing.Callable[..., TestClient]
+from tests.types import TestClientFactory
 
 
 def test_staticfiles(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
@@ -465,6 +463,19 @@ def test_staticfiles_access_file_as_dir_returns_404(
     client = test_client_factory(app)
 
     response = client.get("/example.txt/foo")
+    assert response.status_code == 404
+    assert response.text == "Not Found"
+
+
+def test_staticfiles_filename_too_long(
+    tmpdir: Path, test_client_factory: TestClientFactory
+) -> None:
+    routes = [Mount("/", app=StaticFiles(directory=tmpdir), name="static")]
+    app = Starlette(routes=routes)
+    client = test_client_factory(app)
+
+    path_max_size = os.pathconf("/", "PC_PATH_MAX")
+    response = client.get(f"/{'a' * path_max_size}.txt")
     assert response.status_code == 404
     assert response.text == "Not Found"
 

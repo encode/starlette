@@ -1,3 +1,38 @@
+## 0.38.2
+
+July 27, 2024
+
+#### Fixed
+
+* Not assume all routines have `__name__` on `routing.get_name()` [#2648](https://github.com/encode/starlette/pull/2648).
+
+## 0.38.1
+
+July 23, 2024
+
+#### Removed
+
+* Revert "Add support for ASGI pathsend extension" [#2649](https://github.com/encode/starlette/pull/2649).
+
+## 0.38.0
+
+July 20, 2024
+
+#### Added
+
+* Allow use of `memoryview` in `StreamingResponse` and `Response` [#2576](https://github.com/encode/starlette/pull/2576)
+  and [#2577](https://github.com/encode/starlette/pull/2577).
+* Send 404 instead of 500 when filename requested is too long on `StaticFiles` [#2583](https://github.com/encode/starlette/pull/2583).
+
+#### Changed
+
+* Fail fast on invalid `Jinja2Template` instantiation parameters [#2568](https://github.com/encode/starlette/pull/2568).
+* Check endpoint handler is async only once [#2536](https://github.com/encode/starlette/pull/2536).
+
+#### Fixed
+
+* Add proper synchronization to `WebSocketTestSession` [#2597](https://github.com/encode/starlette/pull/2597).
+
 ## 0.37.2
 
 March 5, 2024

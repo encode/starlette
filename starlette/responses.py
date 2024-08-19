@@ -41,10 +41,10 @@ class Response:
         self.body = self.render(content)
         self.init_headers(headers)
 
-    def render(self, content: typing.Any) -> bytes:
+    def render(self, content: typing.Any) -> bytes | memoryview:
         if content is None:
             return b""
-        if isinstance(content, bytes):
+        if isinstance(content, (bytes, memoryview)):
             return content
         return content.encode(self.charset)  # type: ignore
 
@@ -94,7 +94,7 @@ class Response:
         value: str = "",
         max_age: int | None = None,
         expires: datetime | str | int | None = None,
-        path: str = "/",
+        path: str | None = "/",
         domain: str | None = None,
         secure: bool = False,
         httponly: bool = False,
@@ -299,12 +299,10 @@ class FileResponse(Response):
         if self.filename is not None:
             content_disposition_filename = quote(self.filename)
             if content_disposition_filename != self.filename:
-                content_disposition = "{}; filename*=utf-8''{}".format(
-                    content_disposition_type, content_disposition_filename
-                )
+                content_disposition = f"{content_disposition_type}; filename*=utf-8''{content_disposition_filename}"  # noqa: E501
             else:
-                content_disposition = '{}; filename="{}"'.format(
-                    content_disposition_type, self.filename
+                content_disposition = (
+                    f'{content_disposition_type}; filename="{self.filename}"'
                 )
             self.headers.setdefault("content-disposition", content_disposition)
         self.stat_result = stat_result
@@ -341,8 +339,6 @@ class FileResponse(Response):
         )
         if scope["method"].upper() == "HEAD":
             await send({"type": "http.response.body", "body": b"", "more_body": False})
-        elif "extensions" in scope and "http.response.pathsend" in scope["extensions"]:
-            await send({"type": "http.response.pathsend", "path": str(self.path)})
         else:
             async with await anyio.open_file(self.path, mode="rb") as file:
                 more_body = True

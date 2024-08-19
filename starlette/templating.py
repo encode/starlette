@@ -66,15 +66,12 @@ class Jinja2Templates:
     @typing.overload
     def __init__(
         self,
-        directory: str
-        | PathLike[typing.AnyStr]
-        | typing.Sequence[str | PathLike[typing.AnyStr]],
+        directory: str | PathLike[str] | typing.Sequence[str | PathLike[str]],
         *,
         context_processors: list[typing.Callable[[Request], dict[str, typing.Any]]]
         | None = None,
         **env_options: typing.Any,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @typing.overload
     def __init__(
@@ -83,14 +80,13 @@ class Jinja2Templates:
         env: jinja2.Environment,
         context_processors: list[typing.Callable[[Request], dict[str, typing.Any]]]
         | None = None,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def __init__(
         self,
         directory: str
-        | PathLike[typing.AnyStr]
-        | typing.Sequence[str | PathLike[typing.AnyStr]]
+        | PathLike[str]
+        | typing.Sequence[str | PathLike[str]]
         | None = None,
         *,
         context_processors: list[typing.Callable[[Request], dict[str, typing.Any]]]
@@ -117,9 +113,7 @@ class Jinja2Templates:
 
     def _create_env(
         self,
-        directory: str
-        | PathLike[typing.AnyStr]
-        | typing.Sequence[str | PathLike[typing.AnyStr]],
+        directory: str | PathLike[str] | typing.Sequence[str | PathLike[str]],
         **env_options: typing.Any,
     ) -> jinja2.Environment:
         loader = jinja2.FileSystemLoader(directory)
@@ -154,8 +148,7 @@ class Jinja2Templates:
         headers: typing.Mapping[str, str] | None = None,
         media_type: str | None = None,
         background: BackgroundTask | None = None,
-    ) -> _TemplateResponse:
-        ...
+    ) -> _TemplateResponse: ...
 
     @typing.overload
     def TemplateResponse(
