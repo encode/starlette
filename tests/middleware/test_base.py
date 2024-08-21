@@ -261,7 +261,6 @@ def test_contextvars(
 @pytest.mark.anyio
 async def test_run_background_tasks_even_if_client_disconnects() -> None:
     # test for https://github.com/encode/starlette/issues/1438
-    request_body_sent = False
     response_complete = anyio.Event()
     background_task_run = anyio.Event()
 
@@ -294,7 +293,7 @@ async def test_run_background_tasks_even_if_client_disconnects() -> None:
     }
 
     async def receive() -> Message:
-        raise NotImplementedError('Should not be called!')  # pragma: no cover
+        raise NotImplementedError("Should not be called!")  # pragma: no cover
 
     async def send(message: Message) -> None:
         if message["type"] == "http.response.body":
@@ -308,7 +307,6 @@ async def test_run_background_tasks_even_if_client_disconnects() -> None:
 
 @pytest.mark.anyio
 async def test_do_not_block_on_background_tasks() -> None:
-    request_body_sent = False
     response_complete = anyio.Event()
     events: list[str | Message] = []
 
@@ -340,7 +338,7 @@ async def test_do_not_block_on_background_tasks() -> None:
     }
 
     async def receive() -> Message:
-        raise NotImplementedError('Should not be called!')  # pragma: no cover
+        raise NotImplementedError("Should not be called!")  # pragma: no cover
 
     async def send(message: Message) -> None:
         if message["type"] == "http.response.body":
@@ -369,7 +367,6 @@ async def test_do_not_block_on_background_tasks() -> None:
 @pytest.mark.anyio
 async def test_run_context_manager_exit_even_if_client_disconnects() -> None:
     # test for https://github.com/encode/starlette/issues/1678#issuecomment-1172916042
-    request_body_sent = False
     response_complete = anyio.Event()
     context_manager_exited = anyio.Event()
 
@@ -414,7 +411,7 @@ async def test_run_context_manager_exit_even_if_client_disconnects() -> None:
     }
 
     async def receive() -> Message:
-        raise NotImplementedError('Should not be called!')  # pragma: no cover
+        raise NotImplementedError("Should not be called!")  # pragma: no cover
 
     async def send(message: Message) -> None:
         if message["type"] == "http.response.body":
