@@ -294,13 +294,7 @@ async def test_run_background_tasks_even_if_client_disconnects() -> None:
     }
 
     async def receive() -> Message:
-        nonlocal request_body_sent
-        if not request_body_sent:
-            request_body_sent = True
-            return {"type": "http.request", "body": b"", "more_body": False}
-        # We simulate a client that disconnects immediately after receiving the response
-        await response_complete.wait()
-        return {"type": "http.disconnect"}
+        raise NotImplementedError('Should not be called!')  # pragma: no cover
 
     async def send(message: Message) -> None:
         if message["type"] == "http.response.body":
@@ -346,12 +340,7 @@ async def test_do_not_block_on_background_tasks() -> None:
     }
 
     async def receive() -> Message:
-        nonlocal request_body_sent
-        if not request_body_sent:
-            request_body_sent = True
-            return {"type": "http.request", "body": b"", "more_body": False}
-        await response_complete.wait()
-        return {"type": "http.disconnect"}
+        raise NotImplementedError('Should not be called!')  # pragma: no cover
 
     async def send(message: Message) -> None:
         if message["type"] == "http.response.body":
@@ -425,13 +414,7 @@ async def test_run_context_manager_exit_even_if_client_disconnects() -> None:
     }
 
     async def receive() -> Message:
-        nonlocal request_body_sent
-        if not request_body_sent:
-            request_body_sent = True
-            return {"type": "http.request", "body": b"", "more_body": False}
-        # We simulate a client that disconnects immediately after receiving the response
-        await response_complete.wait()
-        return {"type": "http.disconnect"}
+        raise NotImplementedError('Should not be called!')  # pragma: no cover
 
     async def send(message: Message) -> None:
         if message["type"] == "http.response.body":
@@ -779,7 +762,9 @@ async def test_read_request_stream_in_dispatch_wrapping_app_calls_body() -> None
         yield {"type": "http.request", "body": b"1", "more_body": True}
         yield {"type": "http.request", "body": b"2", "more_body": True}
         yield {"type": "http.request", "body": b"3"}
-        await anyio.sleep(float("inf"))
+        raise AssertionError(  # pragma: no cover
+            "Should not be called, no need to poll for disconnect"
+        )
 
     sent: list[Message] = []
 

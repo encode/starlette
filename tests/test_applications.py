@@ -462,7 +462,8 @@ def test_decorator_deprecations() -> None:
 
         async def middleware(
             request: Request, call_next: RequestResponseEndpoint
-        ) -> None: ...  # pragma: no cover
+        ) -> None:
+            ...  # pragma: no cover
 
         app.middleware("http")(middleware)
         assert len(record) == 1
@@ -492,7 +493,8 @@ def test_decorator_deprecations() -> None:
         )
     ) as record:
 
-        async def startup() -> None: ...  # pragma: no cover
+        async def startup() -> None:
+            ...  # pragma: no cover
 
         app.on_event("startup")(startup)
         assert len(record) == 1

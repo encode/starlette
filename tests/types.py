@@ -19,7 +19,8 @@ if TYPE_CHECKING:
             cookies: httpx._types.CookieTypes | None = None,
             headers: dict[str, str] | None = None,
             follow_redirects: bool = True,
-        ) -> TestClient: ...
+        ) -> TestClient:
+            ...
 else:  # pragma: no cover
 
     class TestClientFactory:
