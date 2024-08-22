@@ -101,6 +101,10 @@ class IdentityResponder:
             message["body"] = self.apply_compression(body, more_body=more_body)
 
             await self.send(message)
+        elif message_type == "http.response.pathsend":
+            # Don't apply GZip to pathsend responses
+            await self.send(self.initial_message)
+            await self.send(message)
 
     def apply_compression(self, body: bytes, *, more_body: bool) -> bytes:
         """Apply compression on the response body.

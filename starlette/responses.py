@@ -379,6 +379,8 @@ class FileResponse(Response):
         await send({"type": "http.response.start", "status": self.status_code, "headers": self.raw_headers})
         if send_header_only:
             await send({"type": "http.response.body", "body": b"", "more_body": False})
+        elif "http.response.pathsend" in scope["extensions"]:
+            await send({"type": "http.response.pathsend", "path": str(self.path)})
         else:
             async with await anyio.open_file(self.path, mode="rb") as file:
                 more_body = True
