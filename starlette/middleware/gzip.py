@@ -87,7 +87,6 @@ class GZipResponder:
 
                 await self.send(self.initial_message)
                 await self.send(message)
-
         elif message_type == "http.response.body":
             # Remaining body in streaming GZip response.
             body = message.get("body", b"")
@@ -101,6 +100,10 @@ class GZipResponder:
             self.gzip_buffer.seek(0)
             self.gzip_buffer.truncate()
 
+            await self.send(message)
+        elif message_type == "http.response.pathsend":
+            # Don't apply GZip to pathsend responses
+            await self.send(self.initial_message)
             await self.send(message)
 
 
