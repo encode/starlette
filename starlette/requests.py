@@ -19,6 +19,7 @@ except ModuleNotFoundError:  # pragma: no cover
 
 
 if typing.TYPE_CHECKING:
+    from starlette.applications import Starlette
     from starlette.routing import Router
 
 
@@ -175,8 +176,8 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
         return self._state
 
     def url_for(self, name: str, /, **path_params: typing.Any) -> URL:
-        router: Router = self.scope["router"]
-        url_path = router.url_path_for(name, **path_params)
+        url_pather: Starlette | Router = self.scope.get("app") or self.scope["router"]
+        url_path = url_pather.url_path_for(name, **path_params)
         return url_path.make_absolute_url(base_url=self.base_url)
 
 

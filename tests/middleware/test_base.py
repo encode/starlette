@@ -1158,3 +1158,35 @@ async def test_poll_for_disconnect_repeated(send_body: bool) -> None:
         {"type": "http.response.body", "body": b"good!", "more_body": True},
         {"type": "http.response.body", "body": b"", "more_body": False},
     ]
+
+
+def test_request_url_for_before_call_next(
+    test_client_factory: TestClientFactory,
+) -> None:
+    class CallsRequestUrlForMiddleware(BaseHTTPMiddleware):
+        async def dispatch(
+            self,
+            request: Request,
+            call_next: RequestResponseEndpoint,
+        ) -> Response:
+            if request.url == request.url_for("special"):
+                return PlainTextResponse("Special")
+            return await call_next(request)
+
+    def endpoint(request: Request) -> Response:
+        return PlainTextResponse("OK")
+
+    app = Starlette(
+        routes=[
+            Route("/", endpoint, name="index"),
+            Route("/special", endpoint, name="special"),
+        ],
+        middleware=[Middleware(CallsRequestUrlForMiddleware)],
+    )
+
+    client = test_client_factory(app)
+    response = client.get("/")
+    assert response.text == "OK"
+
+    response = client.get("/special")
+    assert response.text == "Special"
