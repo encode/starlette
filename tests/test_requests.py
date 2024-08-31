@@ -28,6 +28,34 @@ def test_request_url(test_client_factory: TestClientFactory) -> None:
     assert response.json() == {"method": "GET", "url": "https://example.org:123/"}
 
 
+def test_request_lazy_load_property(test_client_factory: TestClientFactory) -> None:
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
+        request = Request(scope, receive)
+        assert not hasattr(request, "_url")
+        assert not hasattr(request, "_query_params")
+        assert not hasattr(request, "_json")
+        # trigger lazy loading
+        _, _, _ = request.url, request.query_params, await request.json()
+        assert hasattr(request, "_url")
+        assert hasattr(request, "_query_params")
+        assert hasattr(request, "_json")
+        data = {
+            "url": str(request.url),
+            "query_params": dict(request.query_params),
+            "json": await request.json(),
+        }
+        response = JSONResponse(data)
+        await response(scope, receive, send)
+
+    client = test_client_factory(app)
+    response = client.post("/42?foo=bar", json={"baz": "qux"})
+    assert response.json() == {
+        "url": "http://testserver/42?foo=bar",
+        "query_params": {"foo": "bar"},
+        "json": {"baz": "qux"},
+    }
+
+
 def test_request_query_params(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
@@ -425,7 +453,7 @@ def test_cookies_edge_cases(
         # Browsers don't send extra whitespace or semicolons in Cookie headers,
         # but cookie_parser() should parse whitespace the same way
         # document.cookie parses whitespace.
-        # ("  =  b  ;  ;  =  ;   c  =  ;  ", {"": "b", "c": ""}),
+        ("  =  b  ;  ;  =  ;   c  =  ;  ", {"": "b", "c": ""}),
     ],
 )
 def test_cookies_invalid(
