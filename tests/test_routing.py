@@ -417,6 +417,14 @@ def test_reverse_mount_urls() -> None:
         mounted.url_path_for("users", subpath="test", path="/tom") == "/test/users/tom"
     )
 
+    mounted = Router([Mount("/users", ok, name="users")])
+    with pytest.raises(NoMatchFound):
+        mounted.url_path_for("users", path="/a", foo="bar")
+
+    mounted = Router([Mount("/users", ok, name="users")])
+    with pytest.raises(NoMatchFound):
+        mounted.url_path_for("users")
+
 
 def test_mount_at_root(test_client_factory: TestClientFactory) -> None:
     mounted = Router([Mount("/", ok, name="users")])
@@ -516,6 +524,8 @@ def test_host_reverse_urls() -> None:
         )
         == "https://port.example.org:3600/"
     )
+    with pytest.raises(NoMatchFound):
+        mixed_hosts_app.url_path_for("api", path="whatever", foo="bar")
 
 
 async def subdomain_app(scope: Scope, receive: Receive, send: Send) -> None:
