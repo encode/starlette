@@ -50,8 +50,11 @@ Source = "https://github.com/encode/starlette"
 [tool.hatch.version]
 path = "starlette/__init__.py"
 
+[tool.ruff]
+line-length = 120
+
 [tool.ruff.lint]
-select = ["E", "F", "I", "FA", "UP"]
+select = ["E", "F", "I", "FA", "UP", "RUF100"]
 ignore = ["UP031"]
 
 [tool.ruff.lint.isort]

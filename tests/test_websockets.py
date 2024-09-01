@@ -402,10 +402,7 @@ def test_send_response_duplicate_start(test_client_factory: TestClientFactory) -
     client = test_client_factory(app)
     with pytest.raises(
         RuntimeError,
-        match=(
-            'Expected ASGI message "websocket.http.response.body", but got '
-            "'websocket.http.response.start'"
-        ),
+        match=('Expected ASGI message "websocket.http.response.body", but got ' "'websocket.http.response.start'"),
     ):
         with client.websocket_connect("/"):
             pass  # pragma: no cover
