@@ -656,10 +656,7 @@ def test_lifespan_with_on_events(test_client_factory: TestClientFactory) -> None
 
     with pytest.deprecated_call(match="The on_startup and on_shutdown parameters are deprecated"):
         with pytest.warns(
-            UserWarning,
-            match=(
-                "The `lifespan` parameter cannot be used with `on_startup` or `on_shutdown`."
-            ),
+            UserWarning, match="The `lifespan` parameter cannot be used with `on_startup` or `on_shutdown`."
         ):
             app = Router(on_startup=[run_startup], on_shutdown=[run_shutdown], lifespan=lifespan)
 

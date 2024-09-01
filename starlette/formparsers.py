@@ -184,7 +184,7 @@ class MultiPartParser:
         try:
             self._current_part.field_name = _user_safe_decode(options[b"name"], self._charset)
         except KeyError:
-            raise MultiPartException('The Content-Disposition header field "name" must be ' "provided.")
+            raise MultiPartException('The Content-Disposition header field "name" must be provided.')
         if b"filename" in options:
             self._current_files += 1
             if self._current_files > self.max_files:

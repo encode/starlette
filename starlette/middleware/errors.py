@@ -112,7 +112,7 @@ FRAME_TEMPLATE = """
     </p>
     <div id="{frame_filename}-{frame_lineno}" class="source-code {collapsed}">{code_context}</div>
 </div>
-"""
+"""  # noqa: E501
 
 LINE = """
 <p><span class="frame-line">
