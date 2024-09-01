@@ -441,13 +441,13 @@ def test_decorator_deprecations() -> None:
     app = Starlette()
 
     with pytest.deprecated_call(
-        match=("The `exception_handler` decorator is deprecated, " "and will be removed in version 1.0.0.")
+        match=("The `exception_handler` decorator is deprecated, and will be removed in version 1.0.0.")
     ) as record:
         app.exception_handler(500)(http_exception)
         assert len(record) == 1
 
     with pytest.deprecated_call(
-        match=("The `middleware` decorator is deprecated, " "and will be removed in version 1.0.0.")
+        match=("The `middleware` decorator is deprecated, and will be removed in version 1.0.0.")
     ) as record:
 
         async def middleware(request: Request, call_next: RequestResponseEndpoint) -> None: ...  # pragma: no cover
@@ -456,19 +456,19 @@ def test_decorator_deprecations() -> None:
         assert len(record) == 1
 
     with pytest.deprecated_call(
-        match=("The `route` decorator is deprecated, " "and will be removed in version 1.0.0.")
+        match=("The `route` decorator is deprecated, and will be removed in version 1.0.0.")
     ) as record:
         app.route("/")(async_homepage)
         assert len(record) == 1
 
     with pytest.deprecated_call(
-        match=("The `websocket_route` decorator is deprecated, " "and will be removed in version 1.0.0.")
+        match=("The `websocket_route` decorator is deprecated, and will be removed in version 1.0.0.")
     ) as record:
         app.websocket_route("/ws")(websocket_endpoint)
         assert len(record) == 1
 
     with pytest.deprecated_call(
-        match=("The `on_event` decorator is deprecated, " "and will be removed in version 1.0.0.")
+        match=("The `on_event` decorator is deprecated, and will be removed in version 1.0.0.")
     ) as record:
 
         async def startup() -> None: ...  # pragma: no cover

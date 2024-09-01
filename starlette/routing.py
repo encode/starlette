@@ -47,7 +47,7 @@ def iscoroutinefunction_or_partial(obj: typing.Any) -> bool:  # pragma: no cover
     including those wrapped in functools.partial objects.
     """
     warnings.warn(
-        "iscoroutinefunction_or_partial is deprecated, " "and will be removed in a future release.",
+        "iscoroutinefunction_or_partial is deprecated, and will be removed in a future release.",
         DeprecationWarning,
     )
     while isinstance(obj, functools.partial):

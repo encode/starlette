@@ -302,7 +302,7 @@ def test_query_params(test_client_factory: TestClientFactory, param: str) -> Non
             marks=[
                 pytest.mark.xfail(
                     sys.version_info < (3, 11),
-                    reason="Fails due to domain handling in http.cookiejar module (see " "#2152)",
+                    reason="Fails due to domain handling in http.cookiejar module (see #2152)",
                 ),
             ],
         ),
