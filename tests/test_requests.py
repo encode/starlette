@@ -110,7 +110,7 @@ def test_request_client(scope: Scope, expected_client: Address | None) -> None:
 async def test_request_close() -> None:
     request = Request({"type": "http", "method": "GET", "path": "/foo/"})
     assert request._form is None
-    # When request.`_form` is not None, close() should do nothing.
+    # When request.`_form` is None, close() should do nothing.
     # To verify this behavior, we could just call request.close() here.
     # If request.`_form`.close is called,
     # an Exception will be raised and the test will fail.
