@@ -106,6 +106,17 @@ def test_request_client(scope: Scope, expected_client: Address | None) -> None:
     assert client == expected_client
 
 
+@pytest.mark.anyio
+async def test_request_close() -> None:
+    request = Request({"type": "http", "method": "GET", "path": "/foo/"})
+    assert request._form is None
+    # When request.`_form` is not None, close() should do nothing.
+    # To verify this behavior, we could just call request.close() here.
+    # If request.`_form`.close is called,
+    # an Exception will be raised and the test will fail.
+    await request.close()
+
+
 def test_request_body(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
