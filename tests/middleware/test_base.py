@@ -3,7 +3,8 @@ from __future__ import annotations
 import contextvars
 from collections.abc import AsyncGenerator, AsyncIterator, Generator
 from contextlib import AsyncExitStack
-from typing import Any
+from pathlib import Path
+from typing import Any, AsyncGenerator, AsyncIterator, Generator
 
 import anyio
 import pytest
@@ -14,7 +15,7 @@ from starlette.background import BackgroundTask
 from starlette.middleware import Middleware, _MiddlewareFactory
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import ClientDisconnect, Request
-from starlette.responses import PlainTextResponse, Response, StreamingResponse
+from starlette.responses import FileResponse, PlainTextResponse, Response, StreamingResponse
 from starlette.routing import Route, WebSocketRoute
 from starlette.testclient import TestClient
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
@@ -1177,3 +1178,52 @@ async def test_poll_for_disconnect_repeated(send_body: bool) -> None:
         {"type": "http.response.body", "body": b"good!", "more_body": True},
         {"type": "http.response.body", "body": b"", "more_body": False},
     ]
+
+
+@pytest.mark.anyio
+async def test_asgi_pathsend_events(tmpdir: Path) -> None:
+    path = tmpdir / "example.txt"
+    with path.open("w") as file:
+        file.write("<file content>")
+
+    request_body_sent = False
+    response_complete = anyio.Event()
+    events: list[Message] = []
+
+    async def endpoint_with_pathsend(_: Request) -> FileResponse:
+        return FileResponse(path)
+
+    async def passthrough(request: Request, call_next: RequestResponseEndpoint) -> Response:
+        return await call_next(request)
+
+    app = Starlette(
+        middleware=[Middleware(BaseHTTPMiddleware, dispatch=passthrough)],
+        routes=[Route("/", endpoint_with_pathsend)],
+    )
+
+    scope = {
+        "type": "http",
+        "version": "3",
+        "method": "GET",
+        "path": "/",
+        "extensions": {"http.response.pathsend": {}},
+    }
+
+    async def receive() -> Message:
+        nonlocal request_body_sent
+        if not request_body_sent:
+            request_body_sent = True
+            return {"type": "http.request", "body": b"", "more_body": False}
+        await response_complete.wait()
+        return {"type": "http.disconnect"}
+
+    async def send(message: Message) -> None:
+        events.append(message)
+        if message["type"] == "http.response.pathsend":
+            response_complete.set()
+
+    await app(scope, receive, send)
+
+    assert len(events) == 2
+    assert events[0]["type"] == "http.response.start"
+    assert events[1]["type"] == "http.response.pathsend"
