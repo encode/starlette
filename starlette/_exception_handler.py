@@ -22,9 +22,7 @@ ExceptionHandlers = typing.Dict[typing.Any, ExceptionHandler[Exception]]
 StatusHandlers = typing.Dict[int, ExceptionHandler[Exception]]
 
 
-def _lookup_exception_handler(
-    exc_handlers: ExceptionHandlers, exc: Exception
-) -> ExceptionHandler[Exception] | None:
+def _lookup_exception_handler(exc_handlers: ExceptionHandlers, exc: Exception) -> ExceptionHandler[Exception] | None:
     for cls in type(exc).__mro__:
         if cls in exc_handlers:
             return exc_handlers[cls]
