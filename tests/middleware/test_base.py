@@ -1186,7 +1186,6 @@ async def test_asgi_pathsend_events(tmpdir: Path) -> None:
     with path.open("w") as file:
         file.write("<file content>")
 
-    request_body_sent = False
     response_complete = anyio.Event()
     events: list[Message] = []
 
@@ -1210,12 +1209,7 @@ async def test_asgi_pathsend_events(tmpdir: Path) -> None:
     }
 
     async def receive() -> Message:
-        nonlocal request_body_sent
-        if not request_body_sent:
-            request_body_sent = True
-            return {"type": "http.request", "body": b"", "more_body": False}
-        await response_complete.wait()
-        return {"type": "http.disconnect"}
+        raise NotImplementedError("Should not be called!")  # pragma: no cover
 
     async def send(message: Message) -> None:
         events.append(message)
