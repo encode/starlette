@@ -21,8 +21,6 @@ from starlette.types import (
     ASGIApp,
     ExceptionHandler,
     ExceptionType,
-    ExceptionType2,
-    ExceptionType3,
     Lifespan,
     Receive,
     Scope,
