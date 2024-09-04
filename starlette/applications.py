@@ -64,45 +64,12 @@ class Starlette:
     `on_startup` and `on_shutdown` handlers. Use one or the other, not both.
     """
 
-    @typing.overload
     def __init__(
         self: AppType,
         debug: bool = False,
         routes: typing.Sequence[BaseRoute] | None = None,
         middleware: typing.Sequence[Middleware] | None = None,
-        exception_handlers: typing.Mapping[
-            typing.Any, ExceptionHandler[ExceptionType] | ExceptionHandler[ExceptionType2]
-        ]
-        | None = None,
-        on_startup: typing.Sequence[typing.Callable[[], typing.Any]] | None = None,
-        on_shutdown: typing.Sequence[typing.Callable[[], typing.Any]] | None = None,
-        lifespan: Lifespan[AppType] | None = None,
-    ) -> None:
-        ...
-
-    @typing.overload
-    def __init__(
-        self: AppType,
-        debug: bool = False,
-        routes: typing.Sequence[BaseRoute] | None = None,
-        middleware: typing.Sequence[Middleware] | None = None,
-        exception_handlers: typing.Mapping[
-            typing.Any,
-            ExceptionHandler[ExceptionType] | ExceptionHandler[ExceptionType2] | ExceptionHandler[ExceptionType3],
-        ]
-        | None = None,
-        on_startup: typing.Sequence[typing.Callable[[], typing.Any]] | None = None,
-        on_shutdown: typing.Sequence[typing.Callable[[], typing.Any]] | None = None,
-        lifespan: Lifespan[AppType] | None = None,
-    ) -> None:
-        ...
-
-    def __init__(
-        self: AppType,
-        debug: bool = False,
-        routes: typing.Sequence[BaseRoute] | None = None,
-        middleware: typing.Sequence[Middleware] | None = None,
-        exception_handlers: typing.Mapping[typing.Any, ExceptionHandler[ExceptionType]] | None = None,
+        exception_handlers: typing.Mapping[typing.Any, typing.Callable] | None = None,
         on_startup: typing.Sequence[typing.Callable[[], typing.Any]] | None = None,
         on_shutdown: typing.Sequence[typing.Callable[[], typing.Any]] | None = None,
         lifespan: Lifespan[AppType] | None = None,
