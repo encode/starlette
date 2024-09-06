@@ -6,8 +6,9 @@ import anyio
 from anyio.abc import ObjectReceiveStream, ObjectSendStream
 
 from starlette._utils import collapse_excgroups
+from starlette.background import BackgroundTask
 from starlette.requests import ClientDisconnect, Request
-from starlette.responses import AsyncContentStream, Response
+from starlette.responses import AsyncContentStream, Response, StreamingResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 RequestResponseEndpoint = typing.Callable[[Request], typing.Awaitable[Response]]
@@ -192,33 +193,21 @@ class BaseHTTPMiddleware:
         raise NotImplementedError()  # pragma: no cover
 
 
-class _StreamingResponse(Response):
+class _StreamingResponse(StreamingResponse):
     def __init__(
         self,
         content: AsyncContentStream,
         status_code: int = 200,
         headers: typing.Mapping[str, str] | None = None,
         media_type: str | None = None,
+        background: BackgroundTask | None = None,
         info: typing.Mapping[str, typing.Any] | None = None,
     ) -> None:
-        self.info = info
-        self.body_iterator = content
-        self.status_code = status_code
-        self.media_type = media_type
-        self.init_headers(headers)
+        self._info = info
+        # Disabling early disconnect to allow stacked middleware gracefull termination
+        super().__init__(content, status_code, headers, media_type, background, early_disconnect=False)
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if self.info is not None:
-            await send({"type": "http.response.debug", "info": self.info})
-        await send(
-            {
-                "type": "http.response.start",
-                "status": self.status_code,
-                "headers": self.raw_headers,
-            }
-        )
-
-        async for chunk in self.body_iterator:
-            await send({"type": "http.response.body", "body": chunk, "more_body": True})
-
-        await send({"type": "http.response.body", "body": b"", "more_body": False})
+    async def stream_response(self, send: Send) -> None:
+        if self._info:
+            await send({"type": "http.response.debug", "info": self._info})
+        return await super().stream_response(send)
