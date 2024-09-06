@@ -206,6 +206,7 @@ class _StreamingResponse(Response):
         self.status_code = status_code
         self.media_type = media_type
         self.init_headers(headers)
+        self.background = None
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if self.info is not None:

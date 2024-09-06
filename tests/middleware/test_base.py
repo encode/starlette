@@ -1027,6 +1027,7 @@ async def test_multiple_middlewares_stacked_client_disconnected() -> None:
             def background() -> None:
                 unordered_events.append(f"{self.version}:BACKGROUND")
 
+            assert res.background is None
             res.background = BackgroundTask(background)
             return res
 
