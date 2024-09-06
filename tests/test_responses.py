@@ -519,6 +519,11 @@ def test_streaming_response_memoryview(test_client_factory: TestClientFactory) -
 
 @pytest.mark.anyio
 async def test_streaming_response_stops_if_receiving_http_disconnect() -> None:
+    """
+    Tests for:
+    - https://github.com/encode/starlette/issues/2516
+    - https://github.com/encode/starlette/pull/2687
+    """
     streamed = 0
 
     disconnected = anyio.Event()
