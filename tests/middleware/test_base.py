@@ -1006,6 +1006,11 @@ def test_pr_1519_comment_1236166180_example() -> None:
 
 @pytest.mark.anyio
 async def test_multiple_middlewares_stacked_client_disconnected() -> None:
+    """
+    Tests for:
+    - https://github.com/encode/starlette/issues/2516
+    - https://github.com/encode/starlette/pull/2687
+    """
     ordered_events: list[str] = []
     unordered_events: list[str] = []
 
