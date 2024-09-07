@@ -7,7 +7,7 @@ toc_depth: 2
 
 #### Fixed
 
-* Run `BackgroundTasks` when using `BaseHTTPMiddleware` [#2688](https://github.com/encode/starlette/pull/2688).
+* Schedule `BackgroundTasks` from within `BaseHTTPMiddleware` [#2688](https://github.com/encode/starlette/pull/2688).
   This behavior was removed in 0.38.3, and is now restored.
 
 ## 0.38.4 (September 1, 2024)
