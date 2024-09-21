@@ -211,9 +211,4 @@ class _StreamingResponse(Response):
         await send({"type": "http.response.body", "body": b"", "more_body": False})
 
         if self.background:
-            try:
-                await self.background()
-            except Exception:
-                print("hi there")
-                breakpoint()
-                raise
+            await self.background()
