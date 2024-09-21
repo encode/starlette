@@ -60,32 +60,20 @@ class _CachedRequest(Request):
         if getattr(self, "_body", None) is not None:
             # body() was called, we return it even if the client disconnected
             self._wrapped_rcv_consumed = True
-            return {
-                "type": "http.request",
-                "body": self._body,
-                "more_body": False,
-            }
+            return {"type": "http.request", "body": self._body, "more_body": False}
         elif self._stream_consumed:
             # stream() was called to completion
             # return an empty body so that downstream apps don't hang
             # waiting for a disconnect
             self._wrapped_rcv_consumed = True
-            return {
-                "type": "http.request",
-                "body": b"",
-                "more_body": False,
-            }
+            return {"type": "http.request", "body": b"", "more_body": False}
         else:
             # body() was never called and stream() wasn't consumed
             try:
                 stream = self.stream()
                 chunk = await stream.__anext__()
                 self._wrapped_rcv_consumed = self._stream_consumed
-                return {
-                    "type": "http.request",
-                    "body": chunk,
-                    "more_body": not self._stream_consumed,
-                }
+                return {"type": "http.request", "body": chunk, "more_body": not self._stream_consumed}
             except ClientDisconnect:
                 self._wrapped_rcv_disconnected = True
                 return {"type": "http.disconnect"}
@@ -148,6 +136,8 @@ class BaseHTTPMiddleware:
                     try:
                         await self.app(scope, receive_or_disconnect, send_no_error)
                     except Exception as exc:
+                        # import traceback
+                        # traceback.print_exc()
                         app_exc = exc
 
             task_group.start_soon(close_recv_stream_on_response_sent)
@@ -174,6 +164,8 @@ class BaseHTTPMiddleware:
                             yield body
                         if not message.get("more_body", False):
                             break
+
+                await anyio.sleep(0)
 
                 if app_exc is not None:
                     raise app_exc
@@ -211,13 +203,7 @@ class _StreamingResponse(Response):
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if self.info is not None:
             await send({"type": "http.response.debug", "info": self.info})
-        await send(
-            {
-                "type": "http.response.start",
-                "status": self.status_code,
-                "headers": self.raw_headers,
-            }
-        )
+        await send({"type": "http.response.start", "status": self.status_code, "headers": self.raw_headers})
 
         async for chunk in self.body_iterator:
             await send({"type": "http.response.body", "body": chunk, "more_body": True})
@@ -225,4 +211,9 @@ class _StreamingResponse(Response):
         await send({"type": "http.response.body", "body": b"", "more_body": False})
 
         if self.background:
-            await self.background()
+            try:
+                await self.background()
+            except Exception:
+                print("hi there")
+                breakpoint()
+                raise
