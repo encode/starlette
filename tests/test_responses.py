@@ -277,7 +277,7 @@ async def test_file_response_on_head_method(tmp_path: Path) -> None:
 
     # Since the TestClient drops the response body on HEAD requests, we need to test
     # this directly.
-    await app({"type": "http", "method": "head"}, receive, send)
+    await app({"type": "http", "method": "head", "headers": [(b"key", b"value")]}, receive, send)
 
 
 def test_file_response_set_media_type(tmp_path: Path, test_client_factory: TestClientFactory) -> None:

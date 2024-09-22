@@ -336,25 +336,15 @@ class FileResponse(Response):
 
             if len(ranges) == 1:
                 start, end = ranges[0]
-                await self._handle_single_range(
-                    send, start, end, stat_result.st_size, send_header_only
-                )
+                await self._handle_single_range(send, start, end, stat_result.st_size, send_header_only)
             else:
-                await self._handle_multiple_ranges(
-                    send, ranges, stat_result.st_size, send_header_only
-                )
+                await self._handle_multiple_ranges(send, ranges, stat_result.st_size, send_header_only)
 
         if self.background is not None:
             await self.background()
 
     async def _handle_simple(self, send: Send, send_header_only: bool) -> None:
-        await send(
-            {
-                "type": "http.response.start",
-                "status": self.status_code,
-                "headers": self.raw_headers,
-            }
-        )
+        await send({"type": "http.response.start", "status": self.status_code, "headers": self.raw_headers})
         if send_header_only:
             await send({"type": "http.response.body", "body": b"", "more_body": False})
         else:
@@ -363,25 +353,13 @@ class FileResponse(Response):
                 while more_body:
                     chunk = await file.read(self.chunk_size)
                     more_body = len(chunk) == self.chunk_size
-                    await send(
-                        {
-                            "type": "http.response.body",
-                            "body": chunk,
-                            "more_body": more_body,
-                        }
-                    )
+                    await send({"type": "http.response.body", "body": chunk, "more_body": more_body})
 
     async def _handle_single_range(
         self, send: Send, start: int, end: int, file_size: int, send_header_only: bool
     ) -> None:
         self.headers["content-range"] = f"bytes {start}-{end - 1}/{file_size}"
-        await send(
-            {
-                "type": "http.response.start",
-                "status": 206,
-                "headers": self.raw_headers,
-            }
-        )
+        await send({"type": "http.response.start", "status": 206, "headers": self.raw_headers})
         if send_header_only:
             await send({"type": "http.response.body", "body": b"", "more_body": False})
         else:
@@ -392,31 +370,19 @@ class FileResponse(Response):
                     chunk = await file.read(min(self.chunk_size, end - start))
                     start += len(chunk)
                     more_body = len(chunk) == self.chunk_size and start < end
-                    await send(
-                        {
-                            "type": "http.response.body",
-                            "body": chunk,
-                            "more_body": more_body,
-                        }
-                    )
+                    await send({"type": "http.response.body", "body": chunk, "more_body": more_body})
 
     async def _handle_multiple_ranges(
         self,
         send: Send,
-        ranges: typing.List[typing.Tuple[int, int]],
+        ranges: list[tuple[int, int]],
         file_size: int,
         send_header_only: bool,
     ) -> None:
         boundary = md5_hexdigest(os.urandom(16), usedforsecurity=False)
         content_type = f"multipart/byteranges; boundary={boundary}"
         self.headers["content-type"] = content_type
-        await send(
-            {
-                "type": "http.response.start",
-                "status": 206,
-                "headers": self.raw_headers,
-            }
-        )
+        await send({"type": "http.response.start", "status": 206, "headers": self.raw_headers})
         if send_header_only:
             await send({"type": "http.response.body", "body": b"", "more_body": False})
         else:
@@ -432,18 +398,14 @@ class FileResponse(Response):
                     await send(
                         {
                             "type": "http.response.body",
-                            "body": f"Content-Type: {self.media_type}\r\n".encode(
-                                "utf-8"
-                            ),
+                            "body": f"Content-Type: {self.media_type}\r\n".encode(),
                             "more_body": True,
                         }
                     )
                     await send(
                         {
                             "type": "http.response.body",
-                            "body": f"Content-Range: bytes {start}-{end - 1}/{file_size}\r\n\r\n".encode(
-                                "utf-8"
-                            ),
+                            "body": f"Content-Range: bytes {start}-{end - 1}/{file_size}\r\n\r\n".encode(),
                             "more_body": True,
                         }
                     )
@@ -453,13 +415,7 @@ class FileResponse(Response):
                         chunk = await file.read(min(self.chunk_size, end - start))
                         start += len(chunk)
                         more_body = len(chunk) == self.chunk_size and start < end
-                        await send(
-                            {
-                                "type": "http.response.body",
-                                "body": chunk,
-                                "more_body": more_body,
-                            }
-                        )
+                        await send({"type": "http.response.body", "body": chunk, "more_body": more_body})
                 await send(
                     {
                         "type": "http.response.body",
@@ -468,10 +424,8 @@ class FileResponse(Response):
                     }
                 )
 
-    def _parse_range_header(
-        self, http_range: typing.Optional[str], file_size: int
-    ) -> typing.List[typing.Tuple[int, int]]:
-        ranges: typing.List[typing.Tuple[int, int]] = []
+    def _parse_range_header(self, http_range: str | None, file_size: int) -> list[tuple[int, int]]:
+        ranges: list[tuple[int, int]] = []
         if http_range is None:
             return ranges
 
@@ -499,7 +453,7 @@ class FileResponse(Response):
                     return []
                 ranges.append((start, file_size))
             else:
-                start, end = [int(v) for v in val.split("-", 1)]
+                start, end = (int(v) for v in val.split("-", 1))
                 start = int(start)
                 end = int(end) + 1
                 if start >= end:
