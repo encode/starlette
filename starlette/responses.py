@@ -363,13 +363,7 @@ class FileResponse(Response):
             await self.background()
 
     async def _handle_simple(self, send: Send, send_header_only: bool) -> None:
-        await send(
-            {
-                "type": "http.response.start",
-                "status": self.status_code,
-                "headers": self.raw_headers,
-            }
-        )
+        await send({"type": "http.response.start", "status": self.status_code, "headers": self.raw_headers})
         if send_header_only:
             await send({"type": "http.response.body", "body": b"", "more_body": False})
         else:
@@ -402,13 +396,7 @@ class FileResponse(Response):
                     chunk = await file.read(min(self.chunk_size, end - start))
                     start += len(chunk)
                     more_body = len(chunk) == self.chunk_size and start < end
-                    await send(
-                        {
-                            "type": "http.response.body",
-                            "body": chunk,
-                            "more_body": more_body,
-                        }
-                    )
+                    await send({"type": "http.response.body", "body": chunk, "more_body": more_body})
 
     async def _handle_multiple_ranges(
         self,
