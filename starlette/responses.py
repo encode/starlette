@@ -302,7 +302,7 @@ class FileResponse(Response):
         self.background = background
         self.init_headers(headers)
         self.headers.setdefault("accept-ranges", "bytes")
-        if self.filename is not None:  # pragma: no cover
+        if self.filename is not None:
             content_disposition_filename = quote(self.filename)
             if content_disposition_filename != self.filename:
                 content_disposition = f"{content_disposition_type}; filename*=utf-8''{content_disposition_filename}"
@@ -310,14 +310,14 @@ class FileResponse(Response):
                 content_disposition = f'{content_disposition_type}; filename="{self.filename}"'
             self.headers.setdefault("content-disposition", content_disposition)
         self.stat_result = stat_result
-        if stat_result is not None:  # pragma: no cover
+        if stat_result is not None:
             self.set_stat_headers(stat_result)
 
     def set_stat_headers(self, stat_result: os.stat_result) -> None:
         content_length = str(stat_result.st_size)
         last_modified = formatdate(stat_result.st_mtime, usegmt=True)
         etag_base = str(stat_result.st_mtime) + "-" + str(stat_result.st_size)
-        etag = md5_hexdigest(etag_base.encode(), usedforsecurity=False)
+        etag = f'"{md5_hexdigest(etag_base.encode(), usedforsecurity=False)}"'
 
         self.headers.setdefault("content-length", content_length)
         self.headers.setdefault("last-modified", last_modified)
@@ -329,13 +329,13 @@ class FileResponse(Response):
             try:
                 stat_result = await anyio.to_thread.run_sync(os.stat, self.path)
                 self.set_stat_headers(stat_result)
-            except FileNotFoundError:  # pragma: no cover
+            except FileNotFoundError:
                 raise RuntimeError(f"File at path {self.path} does not exist.")
             else:
                 mode = stat_result.st_mode
-                if not stat.S_ISREG(mode):  # pragma: no cover
+                if not stat.S_ISREG(mode):
                     raise RuntimeError(f"File at path {self.path} is not a file.")
-        else:  # pragma: no cover
+        else:
             stat_result = self.stat_result
 
         headers = Headers(scope=scope)
@@ -360,7 +360,7 @@ class FileResponse(Response):
                 await self._handle_multiple_ranges(send, ranges, stat_result.st_size, send_header_only)
 
         if self.background is not None:
-            await self.background()  # pragma: no cover
+            await self.background()
 
     async def _handle_simple(self, send: Send, send_header_only: bool) -> None:
         await send(
@@ -391,13 +391,7 @@ class FileResponse(Response):
     ) -> None:
         self.headers["content-range"] = f"bytes {start}-{end - 1}/{file_size}"
         self.headers["content-length"] = str(end - start)
-        await send(
-            {
-                "type": "http.response.start",
-                "status": 206,
-                "headers": self.raw_headers,
-            }
-        )
+        await send({"type": "http.response.start", "status": 206, "headers": self.raw_headers})
         if send_header_only:
             await send({"type": "http.response.body", "body": b"", "more_body": False})
         else:
@@ -451,7 +445,7 @@ class FileResponse(Response):
     @classmethod
     def _should_use_range(cls, http_if_range: str, stat_result: os.stat_result) -> bool:
         etag_base = str(stat_result.st_mtime) + "-" + str(stat_result.st_size)
-        etag = md5_hexdigest(etag_base.encode(), usedforsecurity=False)
+        etag = f'"{md5_hexdigest(etag_base.encode(), usedforsecurity=False)}"'
         return http_if_range == formatdate(stat_result.st_mtime, usegmt=True) or http_if_range == etag
 
     @staticmethod
