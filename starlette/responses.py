@@ -56,8 +56,7 @@ class Response:
             populate_content_length = True
             populate_content_type = True
         else:
-            raw_headers = [(k.lower().encode("latin-1"), v.encode("latin-1")) for k, v in
-                           headers.items()]
+            raw_headers = [(k.lower().encode("latin-1"), v.encode("latin-1")) for k, v in headers.items()]
             keys = [h[0] for h in raw_headers]
             populate_content_length = b"content-length" not in keys
             populate_content_type = b"content-type" not in keys
@@ -198,8 +197,7 @@ class RedirectResponse(Response):
         headers: typing.Mapping[str, str] | None = None,
         background: BackgroundTask | None = None,
     ) -> None:
-        super().__init__(content=b"", status_code=status_code, headers=headers,
-                         background=background)
+        super().__init__(content=b"", status_code=status_code, headers=headers, background=background)
         self.headers["location"] = quote(str(url), safe=":/%#?=@[]!$&'()*+,;")
 
 
@@ -252,6 +250,7 @@ class StreamingResponse(Response):
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         async with anyio.create_task_group() as task_group:
+
             async def wrap(func: typing.Callable[[], typing.Awaitable[None]]) -> None:
                 await func()
                 task_group.cancel_scope.cancel()
@@ -345,8 +344,7 @@ class FileResponse(Response):
         http_range = headers.get("range")
         http_if_range = headers.get("if-range")
 
-        if http_range is None or (
-            http_if_range is not None and not self._should_use_range(http_if_range, stat_result)):
+        if http_range is None or (http_if_range is not None and not self._should_use_range(http_if_range, stat_result)):
             await self._handle_simple(send, send_header_only)
         else:
             try:
@@ -354,24 +352,20 @@ class FileResponse(Response):
             except MalformedRangeHeader as exc:
                 return await PlainTextResponse(exc.content, status_code=400)(scope, receive, send)
             except RangeNotSatisfiable as exc:
-                response = PlainTextResponse(status_code=416,
-                                             headers={"Content-Range": f"*/{exc.max_size}"})
+                response = PlainTextResponse(status_code=416, headers={"Content-Range": f"*/{exc.max_size}"})
                 return await response(scope, receive, send)
 
             if len(ranges) == 1:
                 start, end = ranges[0]
-                await self._handle_single_range(send, start, end, stat_result.st_size,
-                                                send_header_only)
+                await self._handle_single_range(send, start, end, stat_result.st_size, send_header_only)
             else:
-                await self._handle_multiple_ranges(send, ranges, stat_result.st_size,
-                                                   send_header_only)
+                await self._handle_multiple_ranges(send, ranges, stat_result.st_size, send_header_only)
 
         if self.background is not None:
             await self.background()
 
     async def _handle_simple(self, send: Send, send_header_only: bool) -> None:
-        await send({"type": "http.response.start", "status": self.status_code,
-                    "headers": self.raw_headers})
+        await send({"type": "http.response.start", "status": self.status_code, "headers": self.raw_headers})
         if send_header_only:
             await send({"type": "http.response.body", "body": b"", "more_body": False})
         else:
@@ -404,8 +398,7 @@ class FileResponse(Response):
                     chunk = await file.read(min(self.chunk_size, end - start))
                     start += len(chunk)
                     more_body = len(chunk) == self.chunk_size and start < end
-                    await send(
-                        {"type": "http.response.body", "body": chunk, "more_body": more_body})
+                    await send({"type": "http.response.body", "body": chunk, "more_body": more_body})
 
     async def _handle_multiple_ranges(
         self,
@@ -428,8 +421,7 @@ class FileResponse(Response):
                 for start, end in ranges:
                     await file.seek(start)
                     chunk = await file.read(min(self.chunk_size, end - start))
-                    await send({"type": "http.response.body", "body": header_generator(start, end),
-                                "more_body": True})
+                    await send({"type": "http.response.body", "body": header_generator(start, end), "more_body": True})
                     await send({"type": "http.response.body", "body": chunk, "more_body": True})
                     await send({"type": "http.response.body", "body": b"\n", "more_body": True})
                 await send(
@@ -444,8 +436,7 @@ class FileResponse(Response):
     def _should_use_range(cls, http_if_range: str, stat_result: os.stat_result) -> bool:
         etag_base = str(stat_result.st_mtime) + "-" + str(stat_result.st_size)
         etag = f'"{md5_hexdigest(etag_base.encode(), usedforsecurity=False)}"'
-        return http_if_range == formatdate(stat_result.st_mtime,
-                                           usegmt=True) or http_if_range == etag
+        return http_if_range == formatdate(stat_result.st_mtime, usegmt=True) or http_if_range == etag
 
     @staticmethod
     def _parse_range_header(http_range: str, file_size: int) -> list[tuple[int, int]]:
@@ -530,8 +521,8 @@ class FileResponse(Response):
             + (end - start)  # Content
             for start, end in ranges
         ) + (
-                             5 + boundary_len  # --boundary--\n
-                         )
+            5 + boundary_len  # --boundary--\n
+        )
         return (
             content_length,
             lambda start, end: (
