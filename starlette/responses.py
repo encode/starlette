@@ -11,7 +11,6 @@ from datetime import datetime
 from email.utils import format_datetime, formatdate
 from functools import partial
 from mimetypes import guess_type
-from random import choices as random_choices
 from secrets import token_hex
 from urllib.parse import quote
 
