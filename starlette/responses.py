@@ -420,7 +420,7 @@ class FileResponse(Response):
                         start += len(chunk)
                         await send({"type": "http.response.body", "body": chunk, "more_body": True})
                         if len(chunk) < self.chunk_size or start >= end:
-                            break
+                            break  # pragma: no cover
                     await send({"type": "http.response.body", "body": b"\n", "more_body": True})
                 await send(
                     {
