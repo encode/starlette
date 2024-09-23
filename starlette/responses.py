@@ -12,6 +12,7 @@ from email.utils import format_datetime, formatdate
 from functools import partial
 from mimetypes import guess_type
 from random import choices as random_choices
+from secrets import token_hex
 from urllib.parse import quote
 
 import anyio
@@ -404,7 +405,7 @@ class FileResponse(Response):
         file_size: int,
         send_header_only: bool,
     ) -> None:
-        boundary = "".join(random_choices("abcdefghijklmnopqrstuvwxyz0123456789", k=13))
+        boundary = token_hex(20)
         content_length, header_generator = self.generate_multipart(
             ranges, boundary, file_size, self.headers["content-type"]
         )
