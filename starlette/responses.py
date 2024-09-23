@@ -528,7 +528,7 @@ class FileResponse(Response):
             lambda start, end: (
                 f"--{boundary}\n"
                 f"Content-Type: {content_type}\n"
-                f"Content-Range: bytes {start}-{end - 1}/{max_size}\n"
+                f"Content-Range: bytes {start}-{end-1}/{max_size}\n"
                 "\n"
             ).encode("latin-1"),
         )
