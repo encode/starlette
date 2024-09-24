@@ -414,8 +414,8 @@ class FileResponse(Response):
             async with await anyio.open_file(self.path, mode="rb") as file:
                 for start, end in ranges:
                     await send({"type": "http.response.body", "body": header_generator(start, end), "more_body": True})
+                    await file.seek(start)
                     while start < end:
-                        await file.seek(start)
                         chunk = await file.read(min(self.chunk_size, end - start))
                         start += len(chunk)
                         await send({"type": "http.response.body", "body": chunk, "more_body": True})
