@@ -7,7 +7,7 @@ name = "starlette"
 dynamic = ["version"]
 description = "The little ASGI library that shines."
 readme = "README.md"
-license = "BSD-3-Clause"
+license = {file = "LICENSE.md"}
 requires-python = ">=3.8"
 authors = [{ name = "Tom Christie", email = "tom@tomchristie.com" }]
 classifiers = [
