@@ -7,7 +7,7 @@ toc_depth: 2
 
 #### Fixed
 
-- Avoid regex re-compilation in `starlette/responses.py` and `starlette/schemas.py`
+- Avoid regex re-compilation in `responses.py` and `schemas.py`
   [#2700](https://github.com/encode/starlette/pull/2700).
 - Improve performance of `get_route_path` by removing regular expression usage
   [#2701](https://github.com/encode/starlette/pull/2701).
