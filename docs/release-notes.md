@@ -3,7 +3,7 @@ hide: navigation
 toc_depth: 2
 ---
 
-## 0.39.1 - (September 25, 2024)
+## 0.39.1 (September 25, 2024)
 
 #### Fixed
 
