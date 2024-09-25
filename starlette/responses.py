@@ -272,6 +272,9 @@ class RangeNotSatisfiable(Exception):
         self.max_size = max_size
 
 
+_RANGE_PATTERN = re.compile(r"(\d*)-(\d*)")
+
+
 class FileResponse(Response):
     chunk_size = 64 * 1024
 
@@ -371,13 +374,7 @@ class FileResponse(Response):
                 while more_body:
                     chunk = await file.read(self.chunk_size)
                     more_body = len(chunk) == self.chunk_size
-                    await send(
-                        {
-                            "type": "http.response.body",
-                            "body": chunk,
-                            "more_body": more_body,
-                        }
-                    )
+                    await send({"type": "http.response.body", "body": chunk, "more_body": more_body})
 
     async def _handle_single_range(
         self, send: Send, start: int, end: int, file_size: int, send_header_only: bool
@@ -417,10 +414,12 @@ class FileResponse(Response):
         else:
             async with await anyio.open_file(self.path, mode="rb") as file:
                 for start, end in ranges:
-                    await file.seek(start)
-                    chunk = await file.read(min(self.chunk_size, end - start))
                     await send({"type": "http.response.body", "body": header_generator(start, end), "more_body": True})
-                    await send({"type": "http.response.body", "body": chunk, "more_body": True})
+                    await file.seek(start)
+                    while start < end:
+                        chunk = await file.read(min(self.chunk_size, end - start))
+                        start += len(chunk)
+                        await send({"type": "http.response.body", "body": chunk, "more_body": True})
                     await send({"type": "http.response.body", "body": b"\n", "more_body": True})
                 await send(
                     {
@@ -454,7 +453,7 @@ class FileResponse(Response):
                 int(_[0]) if _[0] else file_size - int(_[1]),
                 int(_[1]) + 1 if _[0] and _[1] and int(_[1]) < file_size else file_size,
             )
-            for _ in re.findall(r"(\d*)-(\d*)", range_)
+            for _ in _RANGE_PATTERN.findall(range_)
             if _ != ("", "")
         ]
 
