@@ -404,8 +404,7 @@ class FileResponse(Response):
         file_size: int,
         send_header_only: bool,
     ) -> None:
-        # in firefox and chrome, they use boundary with 95-96 bits entropy,
-        # that's roughly 13 bytes
+        # In firefox and chrome, they use boundary with 95-96 bits entropy (that's roughly 13 bytes).
         boundary = token_hex(13)
         content_length, header_generator = self.generate_multipart(
             ranges, boundary, file_size, self.headers["content-type"]
