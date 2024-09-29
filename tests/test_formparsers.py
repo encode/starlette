@@ -275,7 +275,7 @@ def test_multipart_request_mixed_files_and_data(tmpdir: Path, test_client_factor
         "/",
         data=(
             # data
-            b"--a7f7ac8d4e2e437c877bb7b8d7cc549c\r\n"  # type: ignore
+            b"--a7f7ac8d4e2e437c877bb7b8d7cc549c\r\n"
             b'Content-Disposition: form-data; name="field0"\r\n\r\n'
             b"value0\r\n"
             # file
@@ -309,7 +309,7 @@ def test_multipart_request_with_charset_for_filename(tmpdir: Path, test_client_f
         "/",
         data=(
             # file
-            b"--a7f7ac8d4e2e437c877bb7b8d7cc549c\r\n"  # type: ignore
+            b"--a7f7ac8d4e2e437c877bb7b8d7cc549c\r\n"
             b'Content-Disposition: form-data; name="file"; filename="\xe6\x96\x87\xe6\x9b\xb8.txt"\r\n'
             b"Content-Type: text/plain\r\n\r\n"
             b"<file content>\r\n"
@@ -333,7 +333,7 @@ def test_multipart_request_without_charset_for_filename(tmpdir: Path, test_clien
         "/",
         data=(
             # file
-            b"--a7f7ac8d4e2e437c877bb7b8d7cc549c\r\n"  # type: ignore
+            b"--a7f7ac8d4e2e437c877bb7b8d7cc549c\r\n"
             b'Content-Disposition: form-data; name="file"; filename="\xe7\x94\xbb\xe5\x83\x8f.jpg"\r\n'
             b"Content-Type: image/jpeg\r\n\r\n"
             b"<file content>\r\n"
@@ -356,7 +356,7 @@ def test_multipart_request_with_encoded_value(tmpdir: Path, test_client_factory:
     response = client.post(
         "/",
         data=(
-            b"--20b303e711c4ab8c443184ac833ab00f\r\n"  # type: ignore
+            b"--20b303e711c4ab8c443184ac833ab00f\r\n"
             b"Content-Disposition: form-data; "
             b'name="value"\r\n\r\n'
             b"Transf\xc3\xa9rer\r\n"
@@ -431,7 +431,7 @@ def test_missing_boundary_parameter(
             "/",
             data=(
                 # file
-                b'Content-Disposition: form-data; name="file"; filename="\xe6\x96\x87\xe6\x9b\xb8.txt"\r\n'  # type: ignore
+                b'Content-Disposition: form-data; name="file"; filename="\xe6\x96\x87\xe6\x9b\xb8.txt"\r\n'
                 b"Content-Type: text/plain\r\n\r\n"
                 b"<file content>\r\n"
             ),
@@ -459,7 +459,7 @@ def test_missing_name_parameter_on_content_disposition(
             "/",
             data=(
                 # data
-                b"--a7f7ac8d4e2e437c877bb7b8d7cc549c\r\n"  # type: ignore
+                b"--a7f7ac8d4e2e437c877bb7b8d7cc549c\r\n"
                 b'Content-Disposition: form-data; ="field0"\r\n\r\n'
                 b"value0\r\n"
             ),
@@ -487,11 +487,7 @@ def test_too_many_fields_raise(
         fields.append("--B\r\n" f'Content-Disposition: form-data; name="N{i}";\r\n\r\n' "\r\n")
     data = "".join(fields).encode("utf-8")
     with expectation:
-        res = client.post(
-            "/",
-            data=data,  # type: ignore
-            headers={"Content-Type": ("multipart/form-data; boundary=B")},
-        )
+        res = client.post("/", data=data, headers={"Content-Type": ("multipart/form-data; boundary=B")})
         assert res.status_code == 400
         assert res.text == "Too many fields. Maximum number of fields is 1000."
 
@@ -514,11 +510,7 @@ def test_too_many_files_raise(
         fields.append("--B\r\n" f'Content-Disposition: form-data; name="N{i}"; filename="F{i}";\r\n\r\n' "\r\n")
     data = "".join(fields).encode("utf-8")
     with expectation:
-        res = client.post(
-            "/",
-            data=data,  # type: ignore
-            headers={"Content-Type": ("multipart/form-data; boundary=B")},
-        )
+        res = client.post("/", data=data, headers={"Content-Type": ("multipart/form-data; boundary=B")})
         assert res.status_code == 400
         assert res.text == "Too many files. Maximum number of files is 1000."
 
@@ -543,11 +535,7 @@ def test_too_many_files_single_field_raise(
         fields.append("--B\r\n" f'Content-Disposition: form-data; name="N"; filename="F{i}";\r\n\r\n' "\r\n")
     data = "".join(fields).encode("utf-8")
     with expectation:
-        res = client.post(
-            "/",
-            data=data,  # type: ignore
-            headers={"Content-Type": ("multipart/form-data; boundary=B")},
-        )
+        res = client.post("/", data=data, headers={"Content-Type": ("multipart/form-data; boundary=B")})
         assert res.status_code == 400
         assert res.text == "Too many files. Maximum number of files is 1000."
 
@@ -571,11 +559,7 @@ def test_too_many_files_and_fields_raise(
         fields.append("--B\r\n" f'Content-Disposition: form-data; name="N{i}";\r\n\r\n' "\r\n")
     data = "".join(fields).encode("utf-8")
     with expectation:
-        res = client.post(
-            "/",
-            data=data,  # type: ignore
-            headers={"Content-Type": ("multipart/form-data; boundary=B")},
-        )
+        res = client.post("/", data=data, headers={"Content-Type": ("multipart/form-data; boundary=B")})
         assert res.status_code == 400
         assert res.text == "Too many files. Maximum number of files is 1000."
 
@@ -601,11 +585,7 @@ def test_max_fields_is_customizable_low_raises(
         fields.append("--B\r\n" f'Content-Disposition: form-data; name="N{i}";\r\n\r\n' "\r\n")
     data = "".join(fields).encode("utf-8")
     with expectation:
-        res = client.post(
-            "/",
-            data=data,  # type: ignore
-            headers={"Content-Type": ("multipart/form-data; boundary=B")},
-        )
+        res = client.post("/", data=data, headers={"Content-Type": ("multipart/form-data; boundary=B")})
         assert res.status_code == 400
         assert res.text == "Too many fields. Maximum number of fields is 1."
 
@@ -631,11 +611,7 @@ def test_max_files_is_customizable_low_raises(
         fields.append("--B\r\n" f'Content-Disposition: form-data; name="F{i}"; filename="F{i}";\r\n\r\n' "\r\n")
     data = "".join(fields).encode("utf-8")
     with expectation:
-        res = client.post(
-            "/",
-            data=data,  # type: ignore
-            headers={"Content-Type": ("multipart/form-data; boundary=B")},
-        )
+        res = client.post("/", data=data, headers={"Content-Type": ("multipart/form-data; boundary=B")})
         assert res.status_code == 400
         assert res.text == "Too many files. Maximum number of files is 1."
 
@@ -650,11 +626,7 @@ def test_max_fields_is_customizable_high(
         fields.append("--B\r\n" f'Content-Disposition: form-data; name="F{i}"; filename="F{i}";\r\n\r\n' "\r\n")
     data = "".join(fields).encode("utf-8")
     data += b"--B--\r\n"
-    res = client.post(
-        "/",
-        data=data,  # type: ignore
-        headers={"Content-Type": ("multipart/form-data; boundary=B")},
-    )
+    res = client.post("/", data=data, headers={"Content-Type": ("multipart/form-data; boundary=B")})
     assert res.status_code == 200
     res_data = res.json()
     assert res_data["N1999"] == ""
