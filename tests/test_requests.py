@@ -628,7 +628,7 @@ def test_request_url_starlette_context(test_client_factory: TestClientFactory) -
             url_for = request.url_for("homepage")
             await self.app(scope, receive, send)
 
-    app = Starlette(routes=[Route("/home", homepage)], middleware=[Middleware(CustomMiddleware)])
+    app = Starlette(routes=[Route("/", homepage)], middleware=[Middleware(CustomMiddleware)])
 
     client = test_client_factory(app)
     client.get("/")
