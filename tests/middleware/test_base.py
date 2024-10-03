@@ -4,7 +4,7 @@ import contextvars
 from collections.abc import AsyncGenerator, AsyncIterator, Generator
 from contextlib import AsyncExitStack
 from pathlib import Path
-from typing import Any, AsyncGenerator, AsyncIterator, Generator
+from typing import Any
 
 import anyio
 import pytest
@@ -1205,6 +1205,7 @@ async def test_asgi_pathsend_events(tmpdir: Path) -> None:
         "version": "3",
         "method": "GET",
         "path": "/",
+        "headers": [],
         "extensions": {"http.response.pathsend": {}},
     }
 

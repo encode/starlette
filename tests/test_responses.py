@@ -379,7 +379,7 @@ async def test_file_response_with_pathsend(tmpdir: Path) -> None:
 
     # Since the TestClient doesn't support `pathsend`, we need to test this directly.
     await app(
-        {"type": "http", "method": "get", "extensions": {"http.response.pathsend": {}}},
+        {"type": "http", "method": "get", "headers": [], "extensions": {"http.response.pathsend": {}}},
         receive,
         send,
     )
