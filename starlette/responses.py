@@ -345,7 +345,7 @@ class FileResponse(Response):
         http_if_range = headers.get("if-range")
 
         if http_range is None or (http_if_range is not None and not self._should_use_range(http_if_range, stat_result)):
-            await self._handle_simple(send, send_header_only)
+            await self._handle_simple(scope, send, send_header_only)
         else:
             try:
                 ranges = self._parse_range_header(http_range, stat_result.st_size)
@@ -364,7 +364,7 @@ class FileResponse(Response):
         if self.background is not None:
             await self.background()
 
-    async def _handle_simple(self, send: Send, send_header_only: bool) -> None:
+    async def _handle_simple(self, scope: Scope, send: Send, send_header_only: bool) -> None:
         await send({"type": "http.response.start", "status": self.status_code, "headers": self.raw_headers})
         if send_header_only:
             await send({"type": "http.response.body", "body": b"", "more_body": False})

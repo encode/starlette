@@ -1181,6 +1181,7 @@ async def test_asgi_pathsend_events(tmpdir: Path) -> None:
         "version": "3",
         "method": "GET",
         "path": "/",
+        "headers": [],
         "extensions": {"http.response.pathsend": {}},
     }
 
