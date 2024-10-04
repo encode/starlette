@@ -403,7 +403,7 @@ def test_websocket_raw_path_with_querystring(test_client_factory: TestClientFact
 
         return asgi
 
-    client = test_client_factory(app)
+    client = test_client_factory(app)  # type: ignore
     with client.websocket_connect("/hello%20world?foo=bar") as websocket:
         data = websocket.receive_text()
         assert data == "raw_path: b'/hello%20world'"
