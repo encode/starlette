@@ -126,12 +126,14 @@ class MultiPartParser:
         *,
         max_files: int | float = 1000,
         max_fields: int | float = 1000,
+        max_part_file_size: int | float | None = None,
     ) -> None:
         assert multipart is not None, "The `python-multipart` library must be installed to use form parsing."
         self.headers = headers
         self.stream = stream
         self.max_files = max_files
         self.max_fields = max_fields
+        self.max_part_file_size = max_part_file_size
         self.items: list[tuple[str, str | UploadFile]] = []
         self._current_files = 0
         self._current_fields = 0
@@ -247,6 +249,12 @@ class MultiPartParser:
                 # the main thread.
                 for part, data in self._file_parts_to_write:
                     assert part.file  # for type checkers
+                    if (
+                        self.max_part_file_size is not None
+                        and part.file.size is not None
+                        and part.file.size + len(data) > self.max_part_file_size
+                    ):
+                        raise MultiPartException(f"File exceeds maximum size of {self.max_part_file_size} bytes.")
                     await part.file.write(data)
                 for part in self._file_parts_to_finish:
                     assert part.file  # for type checkers

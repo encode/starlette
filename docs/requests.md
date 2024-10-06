@@ -122,6 +122,13 @@ async with request.form(max_files=1000, max_fields=1000):
     ...
 ```
 
+You can configure maximum size per file uploaded with the parameter `max_file_size`:
+
+```python
+async with request.form(max_file_size=100*1024*1024):  # 100 MB limit per file
+    ...
+```
+
 !!! info
     These limits are for security reasons, allowing an unlimited number of fields or files could lead to a denial of service attack by consuming a lot of CPU and memory parsing too many empty fields.
 
