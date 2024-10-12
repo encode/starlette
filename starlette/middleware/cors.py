@@ -8,7 +8,7 @@ from starlette.datastructures import Headers, MutableHeaders
 from starlette.responses import PlainTextResponse, Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-ALL_METHODS = ("DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT")
+ALL_METHODS = {"DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"}
 SAFELISTED_HEADERS = {"Accept", "Accept-Language", "Content-Language", "Content-Type"}
 
 
@@ -16,32 +16,38 @@ class CORSMiddleware:
     def __init__(
         self,
         app: ASGIApp,
-        allow_origins: typing.Sequence[str] = (),
-        allow_methods: typing.Sequence[str] = ("GET",),
-        allow_headers: typing.Sequence[str] = (),
+        allow_origins: typing.Iterable[str] = (),
+        allow_methods: typing.Iterable[str] = ("GET",),
+        allow_headers: typing.Iterable[str] = (),
         allow_credentials: bool = False,
         allow_origin_regex: str | None = None,
-        expose_headers: typing.Sequence[str] = (),
+        expose_headers: typing.Iterable[str] = (),
         max_age: int = 600,
     ) -> None:
-        if "*" in allow_methods:
-            allow_methods = ALL_METHODS
+        allowed_methods = set(allow_methods)
+        if "*" in allowed_methods:
+            allowed_methods = ALL_METHODS
 
         compiled_allow_origin_regex = None
         if allow_origin_regex is not None:
             compiled_allow_origin_regex = re.compile(allow_origin_regex)
 
-        allow_all_origins = "*" in allow_origins
-        allow_all_headers = "*" in allow_headers
+        allowed_origins = set(allow_origins)
+        allow_all_origins = "*" in allowed_origins
+
+        allowed_headers = set(allow_headers)
+        allow_all_headers = "*" in allowed_headers
+
         preflight_explicit_allow_origin = not allow_all_origins or allow_credentials
+        exposed_headers = set(expose_headers)
 
         simple_headers = {}
         if allow_all_origins:
             simple_headers["Access-Control-Allow-Origin"] = "*"
         if allow_credentials:
             simple_headers["Access-Control-Allow-Credentials"] = "true"
-        if expose_headers:
-            simple_headers["Access-Control-Expose-Headers"] = ", ".join(expose_headers)
+        if exposed_headers:
+            simple_headers["Access-Control-Expose-Headers"] = ", ".join(exposed_headers)
 
         preflight_headers = {}
         if preflight_explicit_allow_origin:
@@ -51,11 +57,12 @@ class CORSMiddleware:
             preflight_headers["Access-Control-Allow-Origin"] = "*"
         preflight_headers.update(
             {
-                "Access-Control-Allow-Methods": ", ".join(allow_methods),
+                "Access-Control-Allow-Methods": ", ".join(allowed_methods),
                 "Access-Control-Max-Age": str(max_age),
             }
         )
-        allow_headers = sorted(SAFELISTED_HEADERS | set(allow_headers))
+
+        allow_headers = sorted(SAFELISTED_HEADERS | allowed_headers)
         if allow_headers and not allow_all_headers:
             preflight_headers["Access-Control-Allow-Headers"] = ", ".join(allow_headers)
         if allow_credentials:
@@ -63,7 +70,7 @@ class CORSMiddleware:
 
         self.app = app
         self.allow_origins = allow_origins
-        self.allow_methods = allow_methods
+        self.allow_methods = allowed_methods
         self.allow_headers = [h.lower() for h in allow_headers]
         self.allow_all_origins = allow_all_origins
         self.allow_all_headers = allow_all_headers
