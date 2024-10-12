@@ -39,13 +39,13 @@ class CORSMiddleware:
         allow_all_headers = "*" in allowed_headers
 
         preflight_explicit_allow_origin = not allow_all_origins or allow_credentials
-        exposed_headers = set(expose_headers)
-
         simple_headers = {}
         if allow_all_origins:
             simple_headers["Access-Control-Allow-Origin"] = "*"
         if allow_credentials:
             simple_headers["Access-Control-Allow-Credentials"] = "true"
+
+        exposed_headers = set(expose_headers)
         if exposed_headers:
             simple_headers["Access-Control-Expose-Headers"] = ", ".join(exposed_headers)
 
@@ -69,9 +69,9 @@ class CORSMiddleware:
             preflight_headers["Access-Control-Allow-Credentials"] = "true"
 
         self.app = app
-        self.allow_origins = allow_origins
-        self.allow_methods = allowed_methods
-        self.allow_headers = [h.lower() for h in allow_headers]
+        self.allow_origins: set[str] = allowed_origins
+        self.allow_methods: set[str] = allowed_methods
+        self.allow_headers: list[str] = [h.lower() for h in allow_headers]
         self.allow_all_origins = allow_all_origins
         self.allow_all_headers = allow_all_headers
         self.preflight_explicit_allow_origin = preflight_explicit_allow_origin
