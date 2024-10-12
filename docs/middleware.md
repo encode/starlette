@@ -1,12 +1,12 @@
+# Middleware
 
 Starlette includes several middleware classes for adding behavior that is applied across
-your entire application. These are all implemented as standard ASGI
-middleware classes, and can be applied either to Starlette or to any other ASGI application.
+your entire application.
+These are all implemented as standard ASGI middleware classes, and can be applied either to Starlette or to any other ASGI application.
 
 ## Using middleware
 
-The Starlette application class allows you to include the ASGI middleware
-in a way that ensures that it remains wrapped by the exception handler.
+The Starlette application class allows you to include the ASGI middleware in a way that ensures that it remains wrapped by the exception handler.
 
 ```python
 from starlette.applications import Starlette
@@ -38,10 +38,10 @@ Middleware is evaluated from top-to-bottom, so the flow of execution in our exam
 application would look like this:
 
 * Middleware
-    * `ServerErrorMiddleware`
-    * `TrustedHostMiddleware`
-    * `HTTPSRedirectMiddleware`
-    * `ExceptionMiddleware`
+  * `ServerErrorMiddleware`
+  * `TrustedHostMiddleware`
+  * `HTTPSRedirectMiddleware`
+  * `ExceptionMiddleware`
 * Routing
 * Endpoint
 
@@ -71,26 +71,24 @@ app = Starlette(routes=routes, middleware=middleware)
 
 The following arguments are supported:
 
-* `allow_origins` - A list of origins that should be permitted to make cross-origin requests. eg. `['https://example.org', 'https://www.example.org']`. You can use `['*']` to allow any origin.
-* `allow_origin_regex` - A regex string to match against origins that should be permitted to make cross-origin requests. eg. `'https://.*\.example\.org'`.
-* `allow_methods` - A list of HTTP methods that should be allowed for cross-origin requests. Defaults to `['GET']`. You can use `['*']` to allow all standard methods.
-* `allow_headers` - A list of HTTP request headers that should be supported for cross-origin requests. Defaults to `[]`. You can use `['*']` to allow all headers. The `Accept`, `Accept-Language`, `Content-Language` and `Content-Type` headers are always allowed for CORS requests.
+* `allow_origins` - An iterable of origins that should be permitted to make cross-origin requests, e.g., `['https://example.org', 'https://www.example.org']`. You can use `["*"]` to allow any origin. Defaults to `()`.
+* `allow_origin_regex` - A regex string to match against origins that should be permitted to make cross-origin requests, e.g., `'https://.*\.example\.org'`.
+* `allow_methods` - An iterable of HTTP methods that should be allowed for cross-origin requests. Defaults to `("GET",)`. You can use `["*"]` to allow all standard methods.
+* `allow_headers` - An iterable of HTTP request headers that should be supported for cross-origin requests. Defaults to `()`. You can use `["*"]` to allow all headers. The `Accept`, `Accept-Language`, `Content-Language` and `Content-Type` headers are always allowed for CORS requests.
 * `allow_credentials` - Indicate that cookies should be supported for cross-origin requests. Defaults to `False`. Also, `allow_origins`, `allow_methods` and `allow_headers` cannot be set to `['*']` for credentials to be allowed, all of them must be explicitly specified.
-* `expose_headers` - Indicate any response headers that should be made accessible to the browser. Defaults to `[]`.
+* `expose_headers` - Indicate any response headers that should be made accessible to the browser. Defaults to `()`.
 * `max_age` - Sets a maximum time in seconds for browsers to cache CORS responses. Defaults to `600`.
 
 The middleware responds to two particular types of HTTP request...
 
-#### CORS preflight requests
+### CORS preflight requests
 
 These are any `OPTIONS` request with `Origin` and `Access-Control-Request-Method` headers.
-In this case the middleware will intercept the incoming request and respond with
-appropriate CORS headers, and either a 200 or 400 response for informational purposes.
+In this case the middleware will intercept the incoming request and respond with appropriate CORS headers, and either a 200 or 400 response for informational purposes.
 
-#### Simple requests
+### Simple requests
 
-Any request with an `Origin` header. In this case the middleware will pass the
-request through as normal, but will include appropriate CORS headers on the response.
+Any request with an `Origin` header. In this case the middleware will pass the request through as normal, but will include appropriate CORS headers on the response.
 
 ## SessionMiddleware
 
@@ -107,7 +105,6 @@ The following arguments are supported:
 * `path` - The path set for the session cookie. Defaults to `'/'`.
 * `https_only` - Indicate that Secure flag should be set (can be used with HTTPS only). Defaults to `False`.
 * `domain` - Domain of the cookie used to share cookie between subdomains or cross-domains. The browser defaults the domain to the same host that set the cookie, excluding subdomains ([reference](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#domain_attribute)).
-
 
 ```python
 from starlette.applications import Starlette
@@ -263,7 +260,7 @@ around explicitly, rather than mutating the middleware instance.
 
 Currently, the `BaseHTTPMiddleware` has some known limitations:
 
-- Using `BaseHTTPMiddleware` will prevent changes to [`contextlib.ContextVar`](https://docs.python.org/3/library/contextvars.html#contextvars.ContextVar)s from propagating upwards. That is, if you set a value for a `ContextVar` in your endpoint and try to read it from a middleware you will find that the value is not the same value you set in your endpoint (see [this test](https://github.com/encode/starlette/blob/621abc747a6604825190b93467918a0ec6456a24/tests/middleware/test_base.py#L192-L223) for an example of this behavior).
+* Using `BaseHTTPMiddleware` will prevent changes to [`contextlib.ContextVar`](https://docs.python.org/3/library/contextvars.html#contextvars.ContextVar)s from propagating upwards. That is, if you set a value for a `ContextVar` in your endpoint and try to read it from a middleware you will find that the value is not the same value you set in your endpoint (see [this test](https://github.com/encode/starlette/blob/621abc747a6604825190b93467918a0ec6456a24/tests/middleware/test_base.py#L192-L223) for an example of this behavior).
 
 To overcome these limitations, use [pure ASGI middleware](#pure-asgi-middleware), as shown below.
 
@@ -308,9 +305,9 @@ def asgi_middleware():
 In any case, ASGI middleware must be callables that accept three arguments: `scope`, `receive`, and `send`.
 
 * `scope` is a dict holding information about the connection, where `scope["type"]` may be:
-    * [`"http"`](https://asgi.readthedocs.io/en/latest/specs/www.html#http-connection-scope): for HTTP requests.
-    * [`"websocket"`](https://asgi.readthedocs.io/en/latest/specs/www.html#websocket-connection-scope): for WebSocket connections.
-    * [`"lifespan"`](https://asgi.readthedocs.io/en/latest/specs/lifespan.html#scope): for ASGI lifespan messages.
+  * [`"http"`](https://asgi.readthedocs.io/en/latest/specs/www.html#http-connection-scope): for HTTP requests.
+  * [`"websocket"`](https://asgi.readthedocs.io/en/latest/specs/www.html#websocket-connection-scope): for WebSocket connections.
+  * [`"lifespan"`](https://asgi.readthedocs.io/en/latest/specs/lifespan.html#scope): for ASGI lifespan messages.
 * `receive` and `send` can be used to exchange ASGI event messages with the ASGI server — more on this below. The type and contents of these messages depend on the scope type. Learn more in the [ASGI specification](https://asgi.readthedocs.io/en/latest/specs/index.html).
 
 ### Using pure ASGI middleware
@@ -483,7 +480,6 @@ middleware = [
 app = Starlette(routes=routes, middleware=middleware)
 ```
 
-
 #### Inspecting or modifying the request
 
 Request information can be accessed or changed by manipulating the `scope`. For a full example of this pattern, see Uvicorn's [`ProxyHeadersMiddleware`](https://github.com/encode/uvicorn/blob/fd4386fefb8fe8a4568831a7d8b2930d5fb61455/uvicorn/middleware/proxy_headers.py) which inspects and tweaks the `scope` when serving behind a frontend proxy.
@@ -615,70 +611,70 @@ As an example, this would conditionally replace the response body, if an `X-Mock
 
 === "✅ Do"
 
-    ```python
-    from starlette.datastructures import Headers
+```python
+from starlette.datastructures import Headers
 
-    class MockResponseBodyMiddleware:
-        def __init__(self, app, content):
-            self.app = app
-            self.content = content
+class MockResponseBodyMiddleware:
+    def __init__(self, app, content):
+        self.app = app
+        self.content = content
 
-        async def __call__(self, scope, receive, send):
-            if scope["type"] != "http":
-                await self.app(scope, receive, send)
-                return
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
 
-            # A flag that we will turn `True` if the HTTP response
-            # has the 'X-Mock' header.
-            # ✅: Scoped to this function.
-            should_mock = False
+        # A flag that we will turn `True` if the HTTP response
+        # has the 'X-Mock' header.
+        # ✅: Scoped to this function.
+        should_mock = False
 
-            async def maybe_send_with_mock_content(message):
-                nonlocal should_mock
+        async def maybe_send_with_mock_content(message):
+            nonlocal should_mock
 
-                if message["type"] == "http.response.start":
-                    headers = Headers(raw=message["headers"])
-                    should_mock = headers.get("X-Mock") == "1"
-                    await send(message)
+            if message["type"] == "http.response.start":
+                headers = Headers(raw=message["headers"])
+                should_mock = headers.get("X-Mock") == "1"
+                await send(message)
 
-                elif message["type"] == "http.response.body":
-                    if should_mock:
-                        message = {"type": "http.response.body", "body": self.content}
-                    await send(message)
+            elif message["type"] == "http.response.body":
+                if should_mock:
+                    message = {"type": "http.response.body", "body": self.content}
+                await send(message)
 
-            await self.app(scope, receive, maybe_send_with_mock_content)
-    ```
+        await self.app(scope, receive, maybe_send_with_mock_content)
+```
 
 === "❌ Don't"
 
-    ```python hl_lines="7-8"
-    from starlette.datastructures import Headers
+```python hl_lines="7-8"
+from starlette.datastructures import Headers
 
-    class MockResponseBodyMiddleware:
-        def __init__(self, app, content):
-            self.app = app
-            self.content = content
-            # ❌: This variable would be read and written across requests!
-            self.should_mock = False
+class MockResponseBodyMiddleware:
+    def __init__(self, app, content):
+        self.app = app
+        self.content = content
+        # ❌: This variable would be read and written across requests!
+        self.should_mock = False
 
-        async def __call__(self, scope, receive, send):
-            if scope["type"] != "http":
-                await self.app(scope, receive, send)
-                return
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
 
-            async def maybe_send_with_mock_content(message):
-                if message["type"] == "http.response.start":
-                    headers = Headers(raw=message["headers"])
-                    self.should_mock = headers.get("X-Mock") == "1"
-                    await send(message)
+        async def maybe_send_with_mock_content(message):
+            if message["type"] == "http.response.start":
+                headers = Headers(raw=message["headers"])
+                self.should_mock = headers.get("X-Mock") == "1"
+                await send(message)
 
-                elif message["type"] == "http.response.body":
-                    if self.should_mock:
-                        message = {"type": "http.response.body", "body": self.content}
-                    await send(message)
+            elif message["type"] == "http.response.body":
+                if self.should_mock:
+                    message = {"type": "http.response.body", "body": self.content}
+                await send(message)
 
-            await self.app(scope, receive, maybe_send_with_mock_content)
-    ```
+        await self.app(scope, receive, maybe_send_with_mock_content)
+```
 
 See also [`GZipMiddleware`](https://github.com/encode/starlette/blob/9ef1b91c9c043197da6c3f38aa153fd874b95527/starlette/middleware/gzip.py) for a full example implementation that navigates this potential gotcha.
 
@@ -688,8 +684,8 @@ This documentation should be enough to have a good basis on how to create an ASG
 
 Nonetheless, there are great articles about the subject:
 
-- [Introduction to ASGI: Emergence of an Async Python Web Ecosystem](https://florimond.dev/en/posts/2019/08/introduction-to-asgi-async-python-web/)
-- [How to write ASGI middleware](https://pgjones.dev/blog/how-to-write-asgi-middleware-2021/)
+* [Introduction to ASGI: Emergence of an Async Python Web Ecosystem](https://florimond.dev/en/posts/2019/08/introduction-to-asgi-async-python-web/)
+* [How to write ASGI middleware](https://pgjones.dev/blog/how-to-write-asgi-middleware-2021/)
 
 ## Using middleware in other frameworks
 
@@ -780,69 +776,69 @@ router = Router(routes=routes, middleware=[Middleware(GZipMiddleware)])
 
 ## Third party middleware
 
-#### [asgi-auth-github](https://github.com/simonw/asgi-auth-github)
+### [asgi-auth-github](https://github.com/simonw/asgi-auth-github)
 
 This middleware adds authentication to any ASGI application, requiring users to sign in
 using their GitHub account (via [OAuth](https://developer.github.com/apps/building-oauth-apps/authorizing-oauth-apps/)).
 Access can be restricted to specific users or to members of specific GitHub organizations or teams.
 
-#### [asgi-csrf](https://github.com/simonw/asgi-csrf)
+### [asgi-csrf](https://github.com/simonw/asgi-csrf)
 
 Middleware for protecting against CSRF attacks. This middleware implements the Double Submit Cookie pattern, where a cookie is set, then it is compared to a csrftoken hidden form field or an `x-csrftoken` HTTP header.
 
-#### [AuthlibMiddleware](https://github.com/aogier/starlette-authlib)
+### [AuthlibMiddleware](https://github.com/aogier/starlette-authlib)
 
 A drop-in replacement for Starlette session middleware, using [authlib's jwt](https://docs.authlib.org/en/latest/jose/jwt.html)
 module.
 
-#### [BugsnagMiddleware](https://github.com/ashinabraham/starlette-bugsnag)
+### [BugsnagMiddleware](https://github.com/ashinabraham/starlette-bugsnag)
 
 A middleware class for logging exceptions to [Bugsnag](https://www.bugsnag.com/).
 
-#### [CSRFMiddleware](https://github.com/frankie567/starlette-csrf)
+### [CSRFMiddleware](https://github.com/frankie567/starlette-csrf)
 
 Middleware for protecting against CSRF attacks. This middleware implements the Double Submit Cookie pattern, where a cookie is set, then it is compared to an `x-csrftoken` HTTP header.
 
-#### [EarlyDataMiddleware](https://github.com/HarrySky/starlette-early-data)
+### [EarlyDataMiddleware](https://github.com/HarrySky/starlette-early-data)
 
 Middleware and decorator for detecting and denying [TLSv1.3 early data](https://tools.ietf.org/html/rfc8470) requests.
 
-#### [PrometheusMiddleware](https://github.com/perdy/starlette-prometheus)
+### [PrometheusMiddleware](https://github.com/perdy/starlette-prometheus)
 
 A middleware class for capturing Prometheus metrics related to requests and responses, including in progress requests, timing...
 
-#### [ProxyHeadersMiddleware](https://github.com/encode/uvicorn/blob/master/uvicorn/middleware/proxy_headers.py)
+### [ProxyHeadersMiddleware](https://github.com/encode/uvicorn/blob/master/uvicorn/middleware/proxy_headers.py)
 
 Uvicorn includes a middleware class for determining the client IP address,
 when proxy servers are being used, based on the `X-Forwarded-Proto` and `X-Forwarded-For` headers. For more complex proxy configurations, you might want to adapt this middleware.
 
-#### [RateLimitMiddleware](https://github.com/abersheeran/asgi-ratelimit)
+### [RateLimitMiddleware](https://github.com/abersheeran/asgi-ratelimit)
 
 A rate limit middleware. Regular expression matches url; flexible rules; highly customizable. Very easy to use.
 
-#### [RequestIdMiddleware](https://github.com/snok/asgi-correlation-id)
+### [RequestIdMiddleware](https://github.com/snok/asgi-correlation-id)
 
 A middleware class for reading/generating request IDs and attaching them to application logs.
 
-#### [RollbarMiddleware](https://docs.rollbar.com/docs/starlette)
+### [RollbarMiddleware](https://docs.rollbar.com/docs/starlette)
 
 A middleware class for logging exceptions, errors, and log messages to [Rollbar](https://www.rollbar.com).
 
-#### [StarletteOpentracing](https://github.com/acidjunk/starlette-opentracing)
+### [StarletteOpentracing](https://github.com/acidjunk/starlette-opentracing)
 
 A middleware class that emits tracing info to [OpenTracing.io](https://opentracing.io/) compatible tracers and
 can be used to profile and monitor distributed applications.
 
-#### [SecureCookiesMiddleware](https://github.com/thearchitector/starlette-securecookies)
+### [SecureCookiesMiddleware](https://github.com/thearchitector/starlette-securecookies)
 
 Customizable middleware for adding automatic cookie encryption and decryption to Starlette applications, with
 extra support for existing cookie-based middleware.
 
-#### [TimingMiddleware](https://github.com/steinnes/timing-asgi)
+### [TimingMiddleware](https://github.com/steinnes/timing-asgi)
 
 A middleware class to emit timing information (cpu and wall time) for each request which
 passes through it.  Includes examples for how to emit these timings as statsd metrics.
 
-#### [WSGIMiddleware](https://github.com/abersheeran/a2wsgi)
+### [WSGIMiddleware](https://github.com/abersheeran/a2wsgi)
 
 A middleware class in charge of converting a WSGI application into an ASGI one.
