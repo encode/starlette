@@ -46,7 +46,7 @@ def wrap_app_handling_exceptions(app: ASGIApp, conn: Request | WebSocket) -> ASG
             exception_handlers: ExceptionHandlers
             status_handlers: StatusHandlers
             try:
-                exception_handlers, status_handlers = conn.scope["starlette.exception_handlers"]
+                exception_handlers, status_handlers = scope["starlette.exception_handlers"]
             except KeyError:
                 exception_handlers, status_handlers = {}, {}
 
