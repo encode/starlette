@@ -30,13 +30,6 @@ def _lookup_exception_handler(exc_handlers: ExceptionHandlers, exc: Exception) -
 
 
 def wrap_app_handling_exceptions(app: ASGIApp, conn: Request | WebSocket) -> ASGIApp:
-    exception_handlers: ExceptionHandlers
-    status_handlers: StatusHandlers
-    try:
-        exception_handlers, status_handlers = conn.scope["starlette.exception_handlers"]
-    except KeyError:
-        exception_handlers, status_handlers = {}, {}
-
     async def wrapped_app(scope: Scope, receive: Receive, send: Send) -> None:
         response_started = False
 
@@ -50,8 +43,14 @@ def wrap_app_handling_exceptions(app: ASGIApp, conn: Request | WebSocket) -> ASG
         try:
             await app(scope, receive, sender)
         except Exception as exc:
-            handler = None
+            exception_handlers: ExceptionHandlers
+            status_handlers: StatusHandlers
+            try:
+                exception_handlers, status_handlers = conn.scope["starlette.exception_handlers"]
+            except KeyError:
+                exception_handlers, status_handlers = {}, {}
 
+            handler = None
             if isinstance(exc, HTTPException):
                 handler = status_handlers.get(exc.status_code)
 
