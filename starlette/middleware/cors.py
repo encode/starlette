@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 import functools
 import re
 from collections.abc import Container, Iterable
