@@ -1,21 +1,13 @@
 from __future__ import annotations
 
 import typing
+import warnings
 
 from starlette._utils import is_async_callable
 from starlette.concurrency import run_in_threadpool
-from starlette.exceptions import HTTPException
+from starlette.exceptions import HTTPException, WebSocketException
 from starlette.requests import Request
-from starlette.types import (
-    ASGIApp,
-    ExceptionHandler,
-    HTTPExceptionHandler,
-    Message,
-    Receive,
-    Scope,
-    Send,
-    WebSocketExceptionHandler,
-)
+from starlette.types import ASGIApp, ExceptionHandler, Message, Receive, Scope, Send
 from starlette.websockets import WebSocket
 
 ExceptionHandlers = typing.Dict[typing.Any, ExceptionHandler]
@@ -30,28 +22,33 @@ def _lookup_exception_handler(exc_handlers: ExceptionHandlers, exc: Exception) -
 
 
 def wrap_app_handling_exceptions(app: ASGIApp, conn: Request | WebSocket) -> ASGIApp:
-    exception_handlers: ExceptionHandlers
-    status_handlers: StatusHandlers
-    try:
-        exception_handlers, status_handlers = conn.scope["starlette.exception_handlers"]
-    except KeyError:
-        exception_handlers, status_handlers = {}, {}
-
     async def wrapped_app(scope: Scope, receive: Receive, send: Send) -> None:
         response_started = False
+        websocket_accepted = False
+        print("websocket_accepted", websocket_accepted)
 
         async def sender(message: Message) -> None:
             nonlocal response_started
+            nonlocal websocket_accepted
 
-            if message["type"] == "http.response.start":
+            if message["type"] in ("http.response.start", "websocket.http.response.start"):
                 response_started = True
+            elif message["type"] == "websocket.accept":
+                websocket_accepted = True
+            print(f"message: {message}")
             await send(message)
 
         try:
             await app(scope, receive, sender)
         except Exception as exc:
-            handler = None
+            exception_handlers: ExceptionHandlers
+            status_handlers: StatusHandlers
+            try:
+                exception_handlers, status_handlers = scope["starlette.exception_handlers"]
+            except KeyError:
+                exception_handlers, status_handlers = {}, {}
 
+            handler = None
             if isinstance(exc, HTTPException):
                 handler = status_handlers.get(exc.status_code)
 
@@ -62,24 +59,17 @@ def wrap_app_handling_exceptions(app: ASGIApp, conn: Request | WebSocket) -> ASG
                 raise exc
 
             if response_started:
-                msg = "Caught handled exception, but response already started."
-                raise RuntimeError(msg) from exc
+                raise RuntimeError("Caught handled exception, but response already started.") from exc
 
-            if scope["type"] == "http":
-                nonlocal conn
-                handler = typing.cast(HTTPExceptionHandler, handler)
-                conn = typing.cast(Request, conn)
-                if is_async_callable(handler):
-                    response = await handler(conn, exc)
-                else:
-                    response = await run_in_threadpool(handler, conn, exc)
+            print("run before the conditional", websocket_accepted)
+            if not websocket_accepted and isinstance(exc, WebSocketException):
+                warnings.warn("WebSocketException used before the websocket connection was accepted.", UserWarning)
+
+            if is_async_callable(handler):
+                response = await handler(conn, exc)
+            else:
+                response = await run_in_threadpool(handler, conn, exc)  # type: ignore
+            if response is not None:
                 await response(scope, receive, sender)
-            elif scope["type"] == "websocket":
-                handler = typing.cast(WebSocketExceptionHandler, handler)
-                conn = typing.cast(WebSocket, conn)
-                if is_async_callable(handler):
-                    await handler(conn, exc)
-                else:
-                    await run_in_threadpool(handler, conn, exc)
 
     return wrapped_app

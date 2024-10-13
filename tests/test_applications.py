@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncGenerator, AsyncIterator, Generator
 
-import anyio
+import anyio.from_thread
 import pytest
 
 from starlette import status
@@ -212,21 +212,13 @@ def test_500(test_client_factory: TestClientFactory) -> None:
 def test_websocket_raise_websocket_exception(client: TestClient) -> None:
     with client.websocket_connect("/ws-raise-websocket") as session:
         response = session.receive()
-        assert response == {
-            "type": "websocket.close",
-            "code": status.WS_1003_UNSUPPORTED_DATA,
-            "reason": "",
-        }
+        assert response == {"type": "websocket.close", "code": status.WS_1003_UNSUPPORTED_DATA, "reason": ""}
 
 
 def test_websocket_raise_custom_exception(client: TestClient) -> None:
     with client.websocket_connect("/ws-raise-custom") as session:
         response = session.receive()
-        assert response == {
-            "type": "websocket.close",
-            "code": status.WS_1013_TRY_AGAIN_LATER,
-            "reason": "",
-        }
+        assert response == {"type": "websocket.close", "code": status.WS_1013_TRY_AGAIN_LATER, "reason": ""}
 
 
 def test_middleware(test_client_factory: TestClientFactory) -> None:
@@ -254,10 +246,7 @@ def test_routes() -> None:
                 ]
             ),
         ),
-        Host(
-            "{subdomain}.example.org",
-            app=Router(routes=[Route("/", endpoint=custom_subdomain)]),
-        ),
+        Host("{subdomain}.example.org", app=Router(routes=[Route("/", endpoint=custom_subdomain)])),
     ]
 
 
@@ -266,11 +255,7 @@ def test_app_mount(tmpdir: Path, test_client_factory: TestClientFactory) -> None
     with open(path, "w") as file:
         file.write("<file content>")
 
-    app = Starlette(
-        routes=[
-            Mount("/static", StaticFiles(directory=tmpdir)),
-        ]
-    )
+    app = Starlette(routes=[Mount("/static", StaticFiles(directory=tmpdir))])
 
     client = test_client_factory(app)
 
@@ -287,11 +272,7 @@ def test_app_debug(test_client_factory: TestClientFactory) -> None:
     async def homepage(request: Request) -> None:
         raise RuntimeError()
 
-    app = Starlette(
-        routes=[
-            Route("/", homepage),
-        ],
-    )
+    app = Starlette(routes=[Route("/", homepage)])
     app.debug = True
 
     client = test_client_factory(app, raise_server_exceptions=False)
@@ -305,11 +286,7 @@ def test_app_add_route(test_client_factory: TestClientFactory) -> None:
     async def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("Hello, World!")
 
-    app = Starlette(
-        routes=[
-            Route("/", endpoint=homepage),
-        ]
-    )
+    app = Starlette(routes=[Route("/", endpoint=homepage)])
 
     client = test_client_factory(app)
     response = client.get("/")
@@ -323,11 +300,7 @@ def test_app_add_websocket_route(test_client_factory: TestClientFactory) -> None
         await session.send_text("Hello, world!")
         await session.close()
 
-    app = Starlette(
-        routes=[
-            WebSocketRoute("/ws", endpoint=websocket_endpoint),
-        ]
-    )
+    app = Starlette(routes=[WebSocketRoute("/ws", endpoint=websocket_endpoint)])
     client = test_client_factory(app)
 
     with client.websocket_connect("/ws") as session:
@@ -348,10 +321,7 @@ def test_app_add_event_handler(test_client_factory: TestClientFactory) -> None:
         cleanup_complete = True
 
     with pytest.deprecated_call(match="The on_startup and on_shutdown parameters are deprecated"):
-        app = Starlette(
-            on_startup=[run_startup],
-            on_shutdown=[run_cleanup],
-        )
+        app = Starlette(on_startup=[run_startup], on_shutdown=[run_cleanup])
 
     assert not startup_complete
     assert not cleanup_complete

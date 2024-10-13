@@ -2,11 +2,7 @@ from __future__ import annotations
 
 import typing
 
-from starlette._exception_handler import (
-    ExceptionHandlers,
-    StatusHandlers,
-    wrap_app_handling_exceptions,
-)
+from starlette._exception_handler import ExceptionHandlers, StatusHandlers, wrap_app_handling_exceptions
 from starlette.exceptions import HTTPException, WebSocketException
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, Response
@@ -45,13 +41,9 @@ class ExceptionMiddleware:
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] not in ("http", "websocket"):
-            await self.app(scope, receive, send)
-            return
+            return await self.app(scope, receive, send)
 
-        scope["starlette.exception_handlers"] = (
-            self._exception_handlers,
-            self._status_handlers,
-        )
+        scope["starlette.exception_handlers"] = (self._exception_handlers, self._status_handlers)
 
         conn: Request | WebSocket
         if scope["type"] == "http":
