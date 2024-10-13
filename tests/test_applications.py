@@ -228,8 +228,8 @@ def test_websocket_raise_http_exception(client: TestClient) -> None:
     with pytest.raises(WebSocketDenialResponse) as exc:
         with client.websocket_connect("/ws-raise-http"):
             pass  # pragma: no cover
-        assert exc.value.status_code == 401
-        assert exc.value.content == b'{"detail":"Unauthorized"}'
+    assert exc.value.status_code == 401
+    assert exc.value.content == b'{"detail":"Unauthorized"}'
 
 
 def test_websocket_raise_custom_exception(client: TestClient) -> None:
