@@ -77,7 +77,7 @@ module = "starlette.testclient.*"
 implicit_optional = true
 
 [tool.pytest.ini_options]
-addopts = "-rXs --strict-config --strict-markers --maxfail=1"
+addopts = "-rXs --strict-config --strict-markers"
 xfail_strict = true
 filterwarnings = [
     # Turn warnings that aren't filtered into exceptions
