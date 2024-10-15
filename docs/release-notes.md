@@ -3,7 +3,7 @@ hide: navigation
 toc_depth: 2
 ---
 
-## 0.41.0 (October 16, 2024)
+## 0.41.0 (October 15, 2024)
 
 #### Added
 
