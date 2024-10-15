@@ -7,11 +7,13 @@ from anyio.abc import ObjectReceiveStream, ObjectSendStream
 
 from starlette._utils import collapse_excgroups
 from starlette.requests import ClientDisconnect, Request
-from starlette.responses import AsyncContentStream, Response
+from starlette.responses import Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 RequestResponseEndpoint = typing.Callable[[Request], typing.Awaitable[Response]]
 DispatchFunction = typing.Callable[[Request, RequestResponseEndpoint], typing.Awaitable[Response]]
+BodyStreamGenerator = typing.AsyncGenerator[typing.Union[bytes, typing.MutableMapping[str, typing.Any]], None]
+AsyncContentStream = typing.AsyncIterable[typing.Union[str, bytes, memoryview, typing.MutableMapping[str, typing.Any]]]
 T = typing.TypeVar("T")
 
 
@@ -165,9 +167,12 @@ class BaseHTTPMiddleware:
 
             assert message["type"] == "http.response.start"
 
-            async def body_stream() -> typing.AsyncGenerator[bytes, None]:
+            async def body_stream() -> BodyStreamGenerator:
                 async with recv_stream:
                     async for message in recv_stream:
+                        if message["type"] == "http.response.pathsend":
+                            yield message
+                            break
                         assert message["type"] == "http.response.body"
                         body = message.get("body", b"")
                         if body:
@@ -219,10 +224,17 @@ class _StreamingResponse(Response):
             }
         )
 
+        should_close_body = True
         async for chunk in self.body_iterator:
+            if isinstance(chunk, dict):
+                # We got an ASGI message which is not response body (eg: pathsend)
+                should_close_body = False
+                await send(chunk)
+                continue
             await send({"type": "http.response.body", "body": chunk, "more_body": True})
 
-        await send({"type": "http.response.body", "body": b"", "more_body": False})
+        if should_close_body:
+            await send({"type": "http.response.body", "body": b"", "more_body": False})
 
         if self.background:
             await self.background()
