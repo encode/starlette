@@ -235,7 +235,13 @@ class StreamingResponse(Response):
                 break
 
     async def stream_response(self, send: Send) -> None:
-        await send({"type": "http.response.start", "status": self.status_code, "headers": self.raw_headers})
+        await send(
+            {
+                "type": "http.response.start",
+                "status": self.status_code,
+                "headers": self.raw_headers,
+            }
+        )
         async for chunk in self.body_iterator:
             if not isinstance(chunk, (bytes, memoryview)):
                 chunk = chunk.encode(self.charset)
