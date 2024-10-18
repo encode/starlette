@@ -211,13 +211,7 @@ class _StreamingResponse(Response):
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if self.info is not None:
             await send({"type": "http.response.debug", "info": self.info})
-        await send(
-            {
-                "type": "http.response.start",
-                "status": self.status_code,
-                "headers": self.raw_headers,
-            }
-        )
+        await send({"type": "http.response.start", "status": self.status_code, "headers": self.raw_headers})
 
         async for chunk in self.body_iterator:
             await send({"type": "http.response.body", "body": chunk, "more_body": True})
