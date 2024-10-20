@@ -51,7 +51,7 @@ class BaseSchemaGenerator:
 
         for route in routes:
             if isinstance(route, (Mount, Host)):
-                routes = route.routes or []
+                sub_routes = route.routes or []
                 if isinstance(route, Mount):
                     path = self._remove_converter(route.path)
                 else:
@@ -62,7 +62,7 @@ class BaseSchemaGenerator:
                         http_method=sub_endpoint.http_method,
                         func=sub_endpoint.func,
                     )
-                    for sub_endpoint in self.get_endpoints(routes)
+                    for sub_endpoint in self.get_endpoints(sub_routes)
                 ]
                 endpoints_info.extend(sub_endpoints)
 
