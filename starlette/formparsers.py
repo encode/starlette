@@ -13,10 +13,10 @@ if typing.TYPE_CHECKING:
     from multipart.multipart import MultipartCallbacks, QuerystringCallbacks, parse_options_header
 else:
     try:
-        try:  # pragma: no cover
+        try:
             import python_multipart as multipart
             from python_multipart.multipart import parse_options_header
-        except ModuleNotFoundError:
+        except ModuleNotFoundError:  # pragma: no cover
             import multipart
             from multipart.multipart import parse_options_header
     except ModuleNotFoundError:  # pragma: no cover

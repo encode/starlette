@@ -21,7 +21,7 @@ else:
     try:
         try:
             from python_multipart.multipart import parse_options_header
-        except ModuleNotFoundError:
+        except ModuleNotFoundError:  # pragma: no cover
             from multipart.multipart import parse_options_header
     except ModuleNotFoundError:  # pragma: no cover
         parse_options_header = None
