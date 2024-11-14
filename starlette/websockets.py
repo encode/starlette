@@ -110,6 +110,8 @@ class WebSocket(HTTPConnection):
 
     def _raise_on_disconnect(self, message: Message) -> None:
         if message["type"] == "websocket.disconnect":
+            self.application_state = WebSocketState.DISCONNECTED
+
             raise WebSocketDisconnect(message["code"], message.get("reason"))
 
     async def receive_text(self) -> str:
