@@ -36,6 +36,6 @@ class Middleware:
         class_name = self.__class__.__name__
         args_strings = [f"{value!r}" for value in self.args]
         option_strings = [f"{key}={value!r}" for key, value in self.kwargs.items()]
-        cls_name = self.cls.__name__  # type: ignore[attr-defined]
-        args_repr = ", ".join([cls_name] + args_strings + option_strings)
+        name = getattr(self.cls, "__name__", "")
+        args_repr = ", ".join([name] + args_strings + option_strings)
         return f"{class_name}({args_repr})"
