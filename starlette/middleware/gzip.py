@@ -95,8 +95,9 @@ class GZipResponder:
             more_body = message.get("more_body", False)
 
             self.gzip_file.write(body)
-            self.gzip_file.flush()
-            if not more_body:
+            if more_body:
+                self.gzip_file.flush()
+            else:
                 self.gzip_file.close()
 
             message["body"] = self.gzip_buffer.getvalue()
