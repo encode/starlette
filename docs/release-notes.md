@@ -1,7 +1,19 @@
 ---
-hide: navigation
 toc_depth: 2
 ---
+
+## 0.41.2 (October 27, 2024)
+
+#### Fixed
+
+* Revert bump on `python-multipart` on `starlette[full]` extras [#2737](https://github.com/encode/starlette/pull/2737).
+
+## 0.41.1 (October 24, 2024)
+
+#### Fixed
+
+* Bump minimum `python-multipart` version to `0.0.13` [#2734](https://github.com/encode/starlette/pull/2734).
+* Change `python-multipart` import to `python_multipart` [#2733](https://github.com/encode/starlette/pull/2733).
 
 ## 0.41.0 (October 15, 2024)
 
