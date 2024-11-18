@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncGenerator, AsyncIterator, Generator
 
-import anyio
+import anyio.from_thread
 import pytest
 
 from starlette import status
@@ -17,7 +19,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, PlainTextResponse
 from starlette.routing import Host, Mount, Route, Router, WebSocketRoute
 from starlette.staticfiles import StaticFiles
-from starlette.testclient import TestClient
+from starlette.testclient import TestClient, WebSocketDenialResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 from starlette.websockets import WebSocket
 from tests.types import TestClientFactory
@@ -71,9 +73,13 @@ async def websocket_endpoint(session: WebSocket) -> None:
     await session.close()
 
 
-async def websocket_raise_websocket(websocket: WebSocket) -> None:
+async def websocket_raise_websocket_exception(websocket: WebSocket) -> None:
     await websocket.accept()
     raise WebSocketException(code=status.WS_1003_UNSUPPORTED_DATA)
+
+
+async def websocket_raise_http_exception(websocket: WebSocket) -> None:
+    raise HTTPException(status_code=401, detail="Unauthorized")
 
 
 class CustomWSException(Exception):
@@ -118,7 +124,8 @@ app = Starlette(
         Route("/class", endpoint=Homepage),
         Route("/500", endpoint=runtime_error),
         WebSocketRoute("/ws", endpoint=websocket_endpoint),
-        WebSocketRoute("/ws-raise-websocket", endpoint=websocket_raise_websocket),
+        WebSocketRoute("/ws-raise-websocket", endpoint=websocket_raise_websocket_exception),
+        WebSocketRoute("/ws-raise-http", endpoint=websocket_raise_http_exception),
         WebSocketRoute("/ws-raise-custom", endpoint=websocket_raise_custom),
         Mount("/users", app=users),
         Host("{subdomain}.example.org", app=subdomain),
@@ -219,6 +226,14 @@ def test_websocket_raise_websocket_exception(client: TestClient) -> None:
         }
 
 
+def test_websocket_raise_http_exception(client: TestClient) -> None:
+    with pytest.raises(WebSocketDenialResponse) as exc:
+        with client.websocket_connect("/ws-raise-http"):
+            pass  # pragma: no cover
+    assert exc.value.status_code == 401
+    assert exc.value.content == b'{"detail":"Unauthorized"}'
+
+
 def test_websocket_raise_custom_exception(client: TestClient) -> None:
     with client.websocket_connect("/ws-raise-custom") as session:
         response = session.receive()
@@ -243,7 +258,8 @@ def test_routes() -> None:
         Route("/class", endpoint=Homepage),
         Route("/500", endpoint=runtime_error, methods=["GET"]),
         WebSocketRoute("/ws", endpoint=websocket_endpoint),
-        WebSocketRoute("/ws-raise-websocket", endpoint=websocket_raise_websocket),
+        WebSocketRoute("/ws-raise-websocket", endpoint=websocket_raise_websocket_exception),
+        WebSocketRoute("/ws-raise-http", endpoint=websocket_raise_http_exception),
         WebSocketRoute("/ws-raise-custom", endpoint=websocket_raise_custom),
         Mount(
             "/users",
@@ -517,6 +533,48 @@ def test_middleware_stack_init(test_client_factory: TestClientFactory) -> None:
     test_client_factory(app).get("/foo")
 
     assert SimpleInitializableMiddleware.counter == 2
+
+
+def test_middleware_args(test_client_factory: TestClientFactory) -> None:
+    calls: list[str] = []
+
+    class MiddlewareWithArgs:
+        def __init__(self, app: ASGIApp, arg: str) -> None:
+            self.app = app
+            self.arg = arg
+
+        async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+            calls.append(self.arg)
+            await self.app(scope, receive, send)
+
+    app = Starlette()
+    app.add_middleware(MiddlewareWithArgs, "foo")
+    app.add_middleware(MiddlewareWithArgs, "bar")
+
+    with test_client_factory(app):
+        pass
+
+    assert calls == ["bar", "foo"]
+
+
+def test_middleware_factory(test_client_factory: TestClientFactory) -> None:
+    calls: list[str] = []
+
+    def _middleware_factory(app: ASGIApp, arg: str) -> ASGIApp:
+        async def _app(scope: Scope, receive: Receive, send: Send) -> None:
+            calls.append(arg)
+            await app(scope, receive, send)
+
+        return _app
+
+    app = Starlette()
+    app.add_middleware(_middleware_factory, arg="foo")
+    app.add_middleware(_middleware_factory, arg="bar")
+
+    with test_client_factory(app):
+        pass
+
+    assert calls == ["bar", "foo"]
 
 
 def test_lifespan_app_subclass() -> None:
