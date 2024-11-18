@@ -15,7 +15,7 @@ import trio.lowlevel
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.requests import Request
-from starlette.responses import JSONResponse, PlainTextResponse, RedirectResponse, Response
+from starlette.responses import JSONResponse, RedirectResponse, Response
 from starlette.routing import Route
 from starlette.testclient import ASGIInstance, TestClient
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -382,28 +382,23 @@ def test_merge_url(test_client_factory: TestClientFactory) -> None:
 
 def test_raw_path_with_querystring(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
-        raw_path = scope.get("raw_path")
-        assert raw_path is not None
-        response = PlainTextResponse(f"raw_path: {raw_path}")
+        response = Response(scope.get("raw_path"))
         await response(scope, receive, send)
 
     client = test_client_factory(app)
-    response = client.get("/hello world", params={"foo": "bar"})
-    assert response.text == "raw_path: b'/hello%20world'"
+    response = client.get("/hello-world", params={"foo": "bar"})
+    assert response.content == b"/hello-world"
 
 
-def test_websocket_raw_path_with_querystring(test_client_factory: TestClientFactory) -> None:
-    def app(scope: Scope) -> ASGIInstance:
-        async def asgi(receive: Receive, send: Send) -> None:
-            websocket = WebSocket(scope, receive=receive, send=send)
-            await websocket.accept()
-            raw_path = scope.get("raw_path")
-            assert raw_path is not None
-            await websocket.send_text(f"raw_path: {raw_path}")
-
-        return asgi
+def test_websocket_raw_path_without_params(test_client_factory: TestClientFactory) -> None:
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
+        websocket = WebSocket(scope, receive=receive, send=send)
+        await websocket.accept()
+        raw_path = scope.get("raw_path")
+        assert raw_path is not None
+        await websocket.send_bytes(raw_path)
 
     client = test_client_factory(app)  # type: ignore
-    with client.websocket_connect("/hello%20world?foo=bar") as websocket:
-        data = websocket.receive_text()
-        assert data == "raw_path: b'/hello%20world'"
+    with client.websocket_connect("/hello-world", params={"foo": "bar"}) as websocket:
+        data = websocket.receive_bytes()
+        assert data == b"/hello-world"
