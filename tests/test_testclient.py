@@ -398,7 +398,7 @@ def test_websocket_raw_path_without_params(test_client_factory: TestClientFactor
         assert raw_path is not None
         await websocket.send_bytes(raw_path)
 
-    client = test_client_factory(app)  # type: ignore
+    client = test_client_factory(app)
     with client.websocket_connect("/hello-world", params={"foo": "bar"}) as websocket:
         data = websocket.receive_bytes()
         assert data == b"/hello-world"
