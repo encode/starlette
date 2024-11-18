@@ -36,7 +36,7 @@ async def run_in_threadpool(func: typing.Callable[P, T], *args: P.args, **kwargs
     if kwargs:  # pragma: no cover
         # run_sync doesn't accept 'kwargs', so bind them in here
         func = functools.partial(func, **kwargs)
-    return await anyio.to_thread.run_sync(func, *args)
+    return await anyio.to_thread.run_sync(func, *args)  # type: ignore[call-arg]
 
 
 class _StopIteration(Exception):
