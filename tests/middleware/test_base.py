@@ -3,12 +3,11 @@ from __future__ import annotations
 import contextvars
 import gc
 from contextlib import AsyncExitStack
-from typing import Any, AsyncGenerator, AsyncIterator, Generator
+from typing import Any, AsyncGenerator, AsyncIterator, Generator, NoReturn
 
 import anyio
 import pytest
 from anyio.abc import TaskStatus
-from typing_extensions import Never
 
 from starlette.applications import Starlette
 from starlette.background import BackgroundTask
@@ -1159,7 +1158,7 @@ async def test_poll_for_disconnect_repeated(send_body: bool) -> None:
 
 
 def test_anyio_streams_cleanup_exc_in_route(test_client_factory: TestClientFactory) -> None:
-    async def error(_: Request) -> Never:
+    async def error(_: Request) -> NoReturn:
         raise RuntimeError("Oops!")
 
     class NoopMiddleware(BaseHTTPMiddleware):
@@ -1184,7 +1183,7 @@ def test_anyio_streams_cleanup_exc_in_middleware(test_client_factory: TestClient
         return PlainTextResponse("OK")
 
     class BreakingMiddleware(BaseHTTPMiddleware):
-        async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Never:
+        async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> NoReturn:
             await call_next(request)
             raise RuntimeError("Oops!")
 

@@ -170,7 +170,7 @@ class BaseHTTPMiddleware:
             assert message["type"] == "http.response.start"
 
             async def body_stream() -> typing.AsyncGenerator[bytes, None]:
-                # NB! `recv_stream` will be left dangling if exception occurs
+                # FIXME: `recv_stream` will be left dangling if exception occurs
                 # before we got a chance to stream response.
                 async with recv_stream:
                     async for message in recv_stream:
