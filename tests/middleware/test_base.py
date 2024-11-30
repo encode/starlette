@@ -1150,14 +1150,15 @@ async def test_poll_for_disconnect_repeated(send_body: bool) -> None:
     ]
 
 
-@pytest.mark.filterwarnings("error::ResourceWarning:anyio")
-def test_anyio_streams_cleanup(test_client_factory: TestClientFactory) -> None:
-    # XXX: Do we even need this test?
-    #  1. Warning is triggered in other tests for unhandled exceptions. This
-    #     test is a bit special because it triggers `gc.collect()` so you'll
-    #     see the failure in the test itself and not when GC runs.
-    #  2. Test will become evergreen if `anyio` decides to stop warning on
-    #     non-closed streams deletion.
+# XXX: Do we even need `test_anyio_streams_cleanup_*`?
+#  1. Warning is triggered in other tests for unhandled exceptions. These tests
+#  are a bit special because they trigger `gc.collect()` so, warnings trigger
+#  within a test and not when GC runs.
+#  2. Tests will become evergreen if `anyio` decides to stop emitting warnings
+#  on non-closed streams deletion: https://github.com/agronholm/anyio/blob/4.6.2.post1/src/anyio/streams/memory.py#L183
+
+
+def test_anyio_streams_cleanup_exc_in_route(test_client_factory: TestClientFactory) -> None:
     async def error(_: Request) -> Never:
         raise RuntimeError("Oops!")
 
@@ -1171,6 +1172,28 @@ def test_anyio_streams_cleanup(test_client_factory: TestClientFactory) -> None:
     )
     client = test_client_factory(app, raise_server_exceptions=False)
     resp = client.get("/error")
+    assert resp.status_code == 500
+    assert resp.text == "Internal Server Error"
+
+    gc.collect()  # to get warning right away instead of waiting for GC
+
+
+@pytest.mark.xfail(reason="BaseHTTPMiddleware does not close stream if err happens after `call_next`")
+def test_anyio_streams_cleanup_exc_in_middleware(test_client_factory: TestClientFactory) -> None:
+    async def ok(_: Request) -> PlainTextResponse:
+        return PlainTextResponse("OK")
+
+    class BreakingMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Never:
+            await call_next(request)
+            raise RuntimeError("Oops!")
+
+    app = Starlette(
+        routes=[Route("/ok", endpoint=ok)],
+        middleware=[Middleware(BreakingMiddleware)],
+    )
+    client = test_client_factory(app, raise_server_exceptions=False)
+    resp = client.get("/ok")
     assert resp.status_code == 500
     assert resp.text == "Internal Server Error"
 
