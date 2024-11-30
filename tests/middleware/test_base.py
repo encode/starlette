@@ -212,7 +212,9 @@ class CustomMiddlewareUsingBaseHTTPMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         ctxvar.set("set by middleware")
         resp = await call_next(request)
-        assert ctxvar.get() == "set by endpoint"
+        # BaseHTTPMiddleware creates a TaskGroup which copies the context
+        # and erases any changes to it made within the TaskGroup
+        assert ctxvar.get() == "set by middleware"
         return resp  # pragma: no cover
 
 
@@ -220,16 +222,7 @@ class CustomMiddlewareUsingBaseHTTPMiddleware(BaseHTTPMiddleware):
     "middleware_cls",
     [
         CustomMiddlewareWithoutBaseHTTPMiddleware,
-        pytest.param(
-            CustomMiddlewareUsingBaseHTTPMiddleware,
-            marks=pytest.mark.xfail(
-                reason=(
-                    "BaseHTTPMiddleware creates a TaskGroup which copies the context"
-                    "and erases any changes to it made within the TaskGroup"
-                ),
-                raises=AssertionError,
-            ),
-        ),
+        CustomMiddlewareUsingBaseHTTPMiddleware,
     ],
 )
 def test_contextvars(
