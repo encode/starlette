@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import contextvars
+import gc
 from contextlib import AsyncExitStack
 from typing import Any, AsyncGenerator, AsyncIterator, Generator
 
 import anyio
 import pytest
 from anyio.abc import TaskStatus
+from typing_extensions import Never
 
 from starlette.applications import Starlette
 from starlette.background import BackgroundTask
@@ -1153,3 +1155,30 @@ async def test_poll_for_disconnect_repeated(send_body: bool) -> None:
         {"type": "http.response.body", "body": b"good!", "more_body": True},
         {"type": "http.response.body", "body": b"", "more_body": False},
     ]
+
+
+@pytest.mark.filterwarnings("error::ResourceWarning:anyio")
+def test_anyio_streams_cleanup(test_client_factory: TestClientFactory) -> None:
+    # XXX: Do we even need this test?
+    #  1. Warning is triggered in other tests for unhandled exceptions. This
+    #     test is a bit special because it triggers `gc.collect()` so you'll
+    #     see the failure in the test itself and not when GC runs.
+    #  2. Test will become evergreen if `anyio` decides to stop warning on
+    #     non-closed streams deletion.
+    async def error(_: Request) -> Never:
+        raise RuntimeError("Oops!")
+
+    class NoopMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+            return await call_next(request)
+
+    app = Starlette(
+        routes=[Route("/error", endpoint=error)],
+        middleware=[Middleware(NoopMiddleware)],
+    )
+    client = test_client_factory(app, raise_server_exceptions=False)
+    resp = client.get("/error")
+    assert resp.status_code == 500
+    assert resp.text == "Internal Server Error"
+
+    gc.collect()  # to get warning right away instead of waiting for GC
