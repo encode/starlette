@@ -10,7 +10,7 @@ from starlette.routing import BaseRoute, Host, Mount, Route
 
 try:
     import yaml
-except ModuleNotFoundError:  # pragma: nocover
+except ModuleNotFoundError:  # pragma: no cover
     yaml = None  # type: ignore[assignment]
 
 
@@ -27,6 +27,9 @@ class EndpointInfo(typing.NamedTuple):
     path: str
     http_method: str
     func: typing.Callable[..., typing.Any]
+
+
+_remove_converter_pattern = re.compile(r":\w+}")
 
 
 class BaseSchemaGenerator:
@@ -89,7 +92,7 @@ class BaseSchemaGenerator:
             Route("/users/{id:int}", endpoint=get_user, methods=["GET"])
         Should be represented as `/users/{id}` in the OpenAPI schema.
         """
-        return re.sub(r":\w+}", "}", path)
+        return _remove_converter_pattern.sub("}", path)
 
     def parse_docstring(self, func_or_method: typing.Callable[..., typing.Any]) -> dict[str, typing.Any]:
         """

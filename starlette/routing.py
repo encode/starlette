@@ -236,7 +236,7 @@ class Route(BaseRoute):
 
         if middleware is not None:
             for cls, args, kwargs in reversed(middleware):
-                self.app = cls(app=self.app, *args, **kwargs)
+                self.app = cls(self.app, *args, **kwargs)
 
         if methods is None:
             self.methods = None
@@ -328,7 +328,7 @@ class WebSocketRoute(BaseRoute):
 
         if middleware is not None:
             for cls, args, kwargs in reversed(middleware):
-                self.app = cls(app=self.app, *args, **kwargs)
+                self.app = cls(self.app, *args, **kwargs)
 
         self.path_regex, self.path_format, self.param_convertors = compile_path(path)
 
@@ -388,7 +388,7 @@ class Mount(BaseRoute):
         self.app = self._base_app
         if middleware is not None:
             for cls, args, kwargs in reversed(middleware):
-                self.app = cls(app=self.app, *args, **kwargs)
+                self.app = cls(self.app, *args, **kwargs)
         self.name = name
         self.path_regex, self.path_format, self.param_convertors = compile_path(self.path + "/{path:path}")
 
@@ -767,7 +767,7 @@ class Router:
     def __eq__(self, other: typing.Any) -> bool:
         return isinstance(other, Router) and self.routes == other.routes
 
-    def mount(self, path: str, app: ASGIApp, name: str | None = None) -> None:  # pragma: nocover
+    def mount(self, path: str, app: ASGIApp, name: str | None = None) -> None:  # pragma: no cover
         route = Mount(path, app=app, name=name)
         self.routes.append(route)
 
@@ -782,7 +782,7 @@ class Router:
         methods: list[str] | None = None,
         name: str | None = None,
         include_in_schema: bool = True,
-    ) -> None:  # pragma: nocover
+    ) -> None:  # pragma: no cover
         route = Route(
             path,
             endpoint=endpoint,

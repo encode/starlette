@@ -365,7 +365,7 @@ def test_protocol_switch(test_client_factory: TestClientFactory) -> None:
 
     with pytest.raises(WebSocketDisconnect):
         with client.websocket_connect("/404"):
-            pass  # pragma: nocover
+            pass  # pragma: no cover
 
 
 ok = PlainTextResponse("OK")
@@ -608,7 +608,7 @@ def test_standalone_ws_route_does_not_match(
     client = test_client_factory(app)
     with pytest.raises(WebSocketDisconnect):
         with client.websocket_connect("/invalid"):
-            pass  # pragma: nocover
+            pass  # pragma: no cover
 
 
 def test_lifespan_async(test_client_factory: TestClientFactory) -> None:
@@ -805,7 +805,7 @@ def test_raise_on_startup(test_client_factory: TestClientFactory) -> None:
 
     with pytest.raises(RuntimeError):
         with test_client_factory(app):
-            pass  # pragma: nocover
+            pass  # pragma: no cover
     assert startup_failed
 
 
@@ -818,7 +818,7 @@ def test_raise_on_shutdown(test_client_factory: TestClientFactory) -> None:
 
     with pytest.raises(RuntimeError):
         with test_client_factory(app):
-            pass  # pragma: nocover
+            pass  # pragma: no cover
 
 
 def test_partial_async_endpoint(test_client_factory: TestClientFactory) -> None:
@@ -1196,7 +1196,7 @@ def test_decorator_deprecations() -> None:
 
     with pytest.deprecated_call():
 
-        async def startup() -> None: ...  # pragma: nocover
+        async def startup() -> None: ...  # pragma: no cover
 
         router.on_event("startup")(startup)
 

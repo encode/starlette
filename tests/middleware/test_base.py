@@ -2,12 +2,7 @@ from __future__ import annotations
 
 import contextvars
 from contextlib import AsyncExitStack
-from typing import (
-    Any,
-    AsyncGenerator,
-    AsyncIterator,
-    Generator,
-)
+from typing import Any, AsyncGenerator, AsyncIterator, Generator
 
 import anyio
 import pytest
@@ -15,7 +10,7 @@ from anyio.abc import TaskStatus
 
 from starlette.applications import Starlette
 from starlette.background import BackgroundTask
-from starlette.middleware import Middleware, _MiddlewareClass
+from starlette.middleware import Middleware, _MiddlewareFactory
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import ClientDisconnect, Request
 from starlette.responses import PlainTextResponse, Response, StreamingResponse
@@ -237,7 +232,7 @@ class CustomMiddlewareUsingBaseHTTPMiddleware(BaseHTTPMiddleware):
 )
 def test_contextvars(
     test_client_factory: TestClientFactory,
-    middleware_cls: type[_MiddlewareClass[Any]],
+    middleware_cls: _MiddlewareFactory[Any],
 ) -> None:
     # this has to be an async endpoint because Starlette calls run_in_threadpool
     # on sync endpoints which has it's own set of peculiarities w.r.t propagating
@@ -289,7 +284,7 @@ async def test_run_background_tasks_even_if_client_disconnects() -> None:
     }
 
     async def receive() -> Message:
-        raise NotImplementedError("Should not be called!")  # pragma: no cover
+        raise NotImplementedError("Should not be called!")
 
     async def send(message: Message) -> None:
         if message["type"] == "http.response.body":
@@ -330,7 +325,7 @@ async def test_do_not_block_on_background_tasks() -> None:
     }
 
     async def receive() -> Message:
-        raise NotImplementedError("Should not be called!")  # pragma: no cover
+        raise NotImplementedError("Should not be called!")
 
     async def send(message: Message) -> None:
         if message["type"] == "http.response.body":
@@ -403,7 +398,7 @@ async def test_run_context_manager_exit_even_if_client_disconnects() -> None:
     }
 
     async def receive() -> Message:
-        raise NotImplementedError("Should not be called!")  # pragma: no cover
+        raise NotImplementedError("Should not be called!")
 
     async def send(message: Message) -> None:
         if message["type"] == "http.response.body":
