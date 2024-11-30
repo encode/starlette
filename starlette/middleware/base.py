@@ -144,10 +144,7 @@ class BaseHTTPMiddleware:
             async def coro() -> None:
                 nonlocal app_exc
 
-                # XXX: Enter `recv_stream` here as well? If sender is closed, we
-                # should close receiver, streams are unbuffered. Listening for
-                # `http.response.start` should be adjusted though.
-                async with send_stream:
+                async with send_stream, recv_stream:
                     try:
                         await self.app(scope, receive_or_disconnect, send_no_error)
                     except Exception as exc:
@@ -161,8 +158,11 @@ class BaseHTTPMiddleware:
                 info = message.get("info", None)
                 if message["type"] == "http.response.debug" and info is not None:
                     message = await recv_stream.receive()
-            except anyio.EndOfStream:
-                recv_stream.close()
+            except (
+                # we have to catch both exceptions, order of closing is not guaranteed
+                anyio.EndOfStream,  # for `send_stream`
+                anyio.ClosedResourceError,  # for `recv_stream`
+            ):
                 if app_exc is not None:
                     raise app_exc
                 raise RuntimeError("No response returned.")
@@ -170,16 +170,13 @@ class BaseHTTPMiddleware:
             assert message["type"] == "http.response.start"
 
             async def body_stream() -> typing.AsyncGenerator[bytes, None]:
-                # FIXME: `recv_stream` will be left dangling if exception occurs
-                # before we got a chance to stream response.
-                async with recv_stream:
-                    async for message in recv_stream:
-                        assert message["type"] == "http.response.body"
-                        body = message.get("body", b"")
-                        if body:
-                            yield body
-                        if not message.get("more_body", False):
-                            break
+                async for message in recv_stream:
+                    assert message["type"] == "http.response.body"
+                    body = message.get("body", b"")
+                    if body:
+                        yield body
+                    if not message.get("more_body", False):
+                        break
 
                 if app_exc is not None:
                     raise app_exc

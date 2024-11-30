@@ -1177,7 +1177,6 @@ def test_anyio_streams_cleanup_exc_in_route(test_client_factory: TestClientFacto
     gc.collect()  # to get warning right away instead of waiting for GC
 
 
-@pytest.mark.xfail(reason="BaseHTTPMiddleware does not close stream if err happens after `call_next`")
 def test_anyio_streams_cleanup_exc_in_middleware(test_client_factory: TestClientFactory) -> None:
     async def ok(_: Request) -> PlainTextResponse:
         return PlainTextResponse("OK")
