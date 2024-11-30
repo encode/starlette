@@ -1,7 +1,45 @@
 ---
-hide: navigation
 toc_depth: 2
 ---
+
+## 0.41.3 (November 18, 2024)
+
+#### Fixed
+
+* Exclude the query parameters from the `scope[raw_path]` on the `TestClient` [#2716](https://github.com/encode/starlette/pull/2716).
+* Replace `dict` by `Mapping` on `HTTPException.headers` [#2749](https://github.com/encode/starlette/pull/2749).
+* Correct middleware argument passing and improve factory pattern [#2752](https://github.com/encode/starlette/pull/2752).
+
+## 0.41.2 (October 27, 2024)
+
+#### Fixed
+
+* Revert bump on `python-multipart` on `starlette[full]` extras [#2737](https://github.com/encode/starlette/pull/2737).
+
+## 0.41.1 (October 24, 2024)
+
+#### Fixed
+
+* Bump minimum `python-multipart` version to `0.0.13` [#2734](https://github.com/encode/starlette/pull/2734).
+* Change `python-multipart` import to `python_multipart` [#2733](https://github.com/encode/starlette/pull/2733).
+
+## 0.41.0 (October 15, 2024)
+
+#### Added
+
+- Allow to raise `HTTPException` before `websocket.accept()` [#2725](https://github.com/encode/starlette/pull/2725).
+
+## 0.40.0 (October 15, 2024)
+
+This release fixes a Denial of service (DoS) via `multipart/form-data` requests.
+
+You can view the full security advisory:
+[GHSA-f96h-pmfr-66vw](https://github.com/encode/starlette/security/advisories/GHSA-f96h-pmfr-66vw)
+
+#### Fixed
+
+- Add `max_part_size` to `MultiPartParser` to limit the size of parts in `multipart/form-data`
+  requests [fd038f3](https://github.com/encode/starlette/commit/fd038f3070c302bff17ef7d173dbb0b007617733).
 
 ## 0.39.2 (September 29, 2024)
 
@@ -118,7 +156,7 @@ toc_depth: 2
 
 #### Fixed
 
-* Upgrade `python-multipart` to `0.0.7` [13e5c26](13e5c26a27f4903924624736abd6131b2da80cc5).
+* Upgrade `python-multipart` to `0.0.7` [13e5c26](http://github.com/encode/starlette/commit/13e5c26a27f4903924624736abd6131b2da80cc5).
 * Avoid duplicate charset on `Content-Type` [#2443](https://github.com/encode/starlette/2443).
 
 ## 0.36.1 (January 23, 2024)
