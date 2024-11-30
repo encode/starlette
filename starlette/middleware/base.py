@@ -144,6 +144,9 @@ class BaseHTTPMiddleware:
             async def coro() -> None:
                 nonlocal app_exc
 
+                # XXX: Enter `recv_stream` here as well? If sender is closed, we
+                # should close receiver, streams are unbuffered. Listening for
+                # `http.response.start` should be adjusted though.
                 async with send_stream:
                     try:
                         await self.app(scope, receive_or_disconnect, send_no_error)
@@ -159,6 +162,7 @@ class BaseHTTPMiddleware:
                 if message["type"] == "http.response.debug" and info is not None:
                     message = await recv_stream.receive()
             except anyio.EndOfStream:
+                recv_stream.close()
                 if app_exc is not None:
                     raise app_exc
                 raise RuntimeError("No response returned.")
