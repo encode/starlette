@@ -35,9 +35,9 @@ dependencies = [
 full = [
     "itsdangerous",
     "jinja2",
-    "python-multipart>=0.0.7",
+    "python-multipart>=0.0.18",
     "pyyaml",
-    "httpx>=0.22.0",
+    "httpx>=0.27.0,<0.29.0",
 ]
 
 [project.urls]
