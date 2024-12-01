@@ -144,9 +144,6 @@ class BaseHTTPMiddleware:
             async def coro() -> None:
                 nonlocal app_exc
 
-                # XXX: Enter `recv_stream` here as well? If sender is closed, we
-                # should close receiver, streams are unbuffered. Listening for
-                # `http.response.start` should be adjusted though.
                 async with send_stream:
                     try:
                         await self.app(scope, receive_or_disconnect, send_no_error)
@@ -170,8 +167,6 @@ class BaseHTTPMiddleware:
             assert message["type"] == "http.response.start"
 
             async def body_stream() -> typing.AsyncGenerator[bytes, None]:
-                # FIXME: `recv_stream` will be left dangling if exception occurs
-                # before we got a chance to stream response.
                 async with recv_stream:
                     async for message in recv_stream:
                         assert message["type"] == "http.response.body"

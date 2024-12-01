@@ -211,9 +211,7 @@ class CustomMiddlewareUsingBaseHTTPMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         ctxvar.set("set by middleware")
         resp = await call_next(request)
-        # BaseHTTPMiddleware creates a TaskGroup which copies the context
-        # and erases any changes to it made within the TaskGroup
-        assert ctxvar.get() == "set by middleware"
+        assert ctxvar.get() == "set by endpoint"
         return resp  # pragma: no cover
 
 
@@ -221,7 +219,16 @@ class CustomMiddlewareUsingBaseHTTPMiddleware(BaseHTTPMiddleware):
     "middleware_cls",
     [
         CustomMiddlewareWithoutBaseHTTPMiddleware,
-        CustomMiddlewareUsingBaseHTTPMiddleware,
+        pytest.param(
+            CustomMiddlewareUsingBaseHTTPMiddleware,
+            marks=pytest.mark.xfail(
+                reason=(
+                    "BaseHTTPMiddleware creates a TaskGroup which copies the context"
+                    "and erases any changes to it made within the TaskGroup"
+                ),
+                raises=AssertionError,
+            ),
+        ),
     ],
 )
 def test_contextvars(
@@ -1147,53 +1154,3 @@ async def test_poll_for_disconnect_repeated(send_body: bool) -> None:
         {"type": "http.response.body", "body": b"good!", "more_body": True},
         {"type": "http.response.body", "body": b"", "more_body": False},
     ]
-
-
-# XXX: Do we even need `test_anyio_streams_cleanup_*`?
-#  1. Warning is triggered in other tests for unhandled exceptions. These tests
-#  are a bit special because they trigger `gc.collect()` so, warnings trigger
-#  within a test and not when GC runs.
-#  2. Tests will become evergreen if `anyio` decides to stop emitting warnings
-#  on non-closed streams deletion: https://github.com/agronholm/anyio/blob/4.6.2.post1/src/anyio/streams/memory.py#L183
-
-
-def test_anyio_streams_cleanup_exc_in_route(test_client_factory: TestClientFactory) -> None:
-    async def error(_: Request) -> NoReturn:
-        raise RuntimeError("Oops!")
-
-    class NoopMiddleware(BaseHTTPMiddleware):
-        async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-            return await call_next(request)
-
-    app = Starlette(
-        routes=[Route("/error", endpoint=error)],
-        middleware=[Middleware(NoopMiddleware)],
-    )
-    client = test_client_factory(app, raise_server_exceptions=False)
-    resp = client.get("/error")
-    assert resp.status_code == 500
-    assert resp.text == "Internal Server Error"
-
-    gc.collect()  # to get warning right away instead of waiting for GC
-
-
-@pytest.mark.xfail(reason="BaseHTTPMiddleware does not close stream if err happens after `call_next`")
-def test_anyio_streams_cleanup_exc_in_middleware(test_client_factory: TestClientFactory) -> None:
-    async def ok(_: Request) -> PlainTextResponse:
-        return PlainTextResponse("OK")
-
-    class BreakingMiddleware(BaseHTTPMiddleware):
-        async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> NoReturn:
-            await call_next(request)
-            raise RuntimeError("Oops!")
-
-    app = Starlette(
-        routes=[Route("/ok", endpoint=ok)],
-        middleware=[Middleware(BreakingMiddleware)],
-    )
-    client = test_client_factory(app, raise_server_exceptions=False)
-    resp = client.get("/ok")
-    assert resp.status_code == 500
-    assert resp.text == "Internal Server Error"
-
-    gc.collect()  # to get warning right away instead of waiting for GC
