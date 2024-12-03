@@ -2,7 +2,7 @@
 -e .[full]
 
 # Testing
-coverage==7.6.8
+coverage==7.6.1
 importlib-metadata==8.5.0
 mypy==1.13.0
 ruff==0.8.1
