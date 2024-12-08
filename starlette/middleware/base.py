@@ -3,7 +3,7 @@ from __future__ import annotations
 import typing
 
 import anyio
-from anyio.abc import ObjectReceiveStream, ObjectSendStream
+from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 
 from starlette._utils import collapse_excgroups
 from starlette.requests import ClientDisconnect, Request
@@ -105,8 +105,8 @@ class BaseHTTPMiddleware:
         wrapped_receive = request.wrapped_receive
         response_sent = anyio.Event()
 
-        send_stream: ObjectSendStream[typing.MutableMapping[str, typing.Any]]
-        recv_stream: ObjectReceiveStream[typing.MutableMapping[str, typing.Any]]
+        send_stream: MemoryObjectSendStream[Message]
+        recv_stream: MemoryObjectReceiveStream[Message]
         send_stream, recv_stream = anyio.create_memory_object_stream()
 
         async def call_next(request: Request) -> Response:
