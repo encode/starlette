@@ -105,10 +105,6 @@ class BaseHTTPMiddleware:
         wrapped_receive = request.wrapped_receive
         response_sent = anyio.Event()
 
-        send_stream: MemoryObjectSendStream[Message]
-        recv_stream: MemoryObjectReceiveStream[Message]
-        send_stream, recv_stream = anyio.create_memory_object_stream()
-
         async def call_next(request: Request) -> Response:
             app_exc: Exception | None = None
 
@@ -183,8 +179,13 @@ class BaseHTTPMiddleware:
             return response
 
         with collapse_excgroups():
-            async with anyio.create_task_group() as task_group:
-                with recv_stream, send_stream:
+            # order is important, we want to close streams after all tasks in
+            # the task group are done
+            send_stream: MemoryObjectSendStream[Message]
+            recv_stream: MemoryObjectReceiveStream[Message]
+            send_stream, recv_stream = anyio.create_memory_object_stream()
+            with recv_stream, send_stream:
+                async with anyio.create_task_group() as task_group:
                     response = await self.dispatch_func(request, call_next)
                     await response(scope, wrapped_receive, send)
                     response_sent.set()
