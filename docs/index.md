@@ -1,5 +1,6 @@
 <p align="center">
-  <img width="420px" src="/img/starlette.png" alt='starlette'>
+  <img width="400px" src="/img/starlette.svg#only-light" alt="starlette"/>
+  <img width="400px" src="/img/starlette_dark.svg#only-dark" alt="starlette"/>
 </p>
 <p align="center">
     <em>✨ The little ASGI framework that shines. ✨</em>
@@ -11,10 +12,18 @@
 <a href="https://pypi.org/project/starlette/">
     <img src="https://badge.fury.io/py/starlette.svg" alt="Package version">
 </a>
+<a href="https://pypi.org/project/starlette" target="_blank">
+    <img src="https://img.shields.io/pypi/pyversions/starlette.svg?color=%2334D058" alt="Supported Python versions">
+</a>
 </p>
 
 ---
 
+**Documentation**: <a href="https://www.starlette.io/" target="_blank">https://www.starlette.io</a>
+
+**Source Code**: <a href="https://github.com/encode/starlette" target="_blank">https://github.com/encode/starlette</a>
+
+---
 
 # Introduction
 
@@ -36,27 +45,21 @@ It is production-ready, and gives you the following:
 * Compatible with `asyncio` and `trio` backends.
 * Great overall performance [against independent benchmarks][techempower].
 
-## Requirements
-
-Python 3.8+
-
 ## Installation
 
 ```shell
-$ pip3 install starlette
+pip install starlette
 ```
 
-You'll also want to install an ASGI server, such as [uvicorn](http://www.uvicorn.org/), [daphne](https://github.com/django/daphne/), or [hypercorn](https://pgjones.gitlab.io/hypercorn/).
+You'll also want to install an ASGI server, such as [uvicorn](https://www.uvicorn.org/), [daphne](https://github.com/django/daphne/), or [hypercorn](https://hypercorn.readthedocs.io/en/latest/).
 
 ```shell
-$ pip3 install uvicorn
+pip install uvicorn
 ```
 
 ## Example
 
-**example.py**:
-
-```python
+```python title="main.py"
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
 from starlette.routing import Route
@@ -74,10 +77,8 @@ app = Starlette(debug=True, routes=[
 Then run the application...
 
 ```shell
-$ uvicorn example:app
+uvicorn main:app
 ```
-
-For a more complete example, [see here](https://github.com/encode/starlette-example).
 
 ## Dependencies
 
@@ -89,14 +90,14 @@ Starlette only requires `anyio`, and the following dependencies are optional:
 * [`itsdangerous`][itsdangerous] - Required for `SessionMiddleware` support.
 * [`pyyaml`][pyyaml] - Required for `SchemaGenerator` support.
 
-You can install all of these with `pip3 install starlette[full]`.
+You can install all of these with `pip install starlette[full]`.
 
 ## Framework or Toolkit
 
 Starlette is designed to be used either as a complete framework, or as
 an ASGI toolkit. You can use any of its components independently.
 
-```python
+```python title="main.py"
 from starlette.responses import PlainTextResponse
 
 
@@ -106,10 +107,10 @@ async def app(scope, receive, send):
     await response(scope, receive, send)
 ```
 
-Run the `app` application in `example.py`:
+Run the `app` application in `main.py`:
 
 ```shell
-$ uvicorn example:app
+$ uvicorn main:app
 INFO: Started server process [11509]
 INFO: Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
 ```
@@ -132,7 +133,7 @@ in isolation.
 [asgi]: https://asgi.readthedocs.io/en/latest/
 [httpx]: https://www.python-httpx.org/
 [jinja2]: https://jinja.palletsprojects.com/
-[python-multipart]: https://andrew-d.github.io/python-multipart/
+[python-multipart]: https://multipart.fastapiexpert.com/
 [itsdangerous]: https://itsdangerous.palletsprojects.com/
 [sqlalchemy]: https://www.sqlalchemy.org
 [pyyaml]: https://pyyaml.org/wiki/PyYAMLDocumentation

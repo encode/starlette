@@ -8,12 +8,20 @@ from urllib.parse import unquote_plus
 
 from starlette.datastructures import FormData, Headers, UploadFile
 
-try:
+if typing.TYPE_CHECKING:
     import multipart
-    from multipart.multipart import parse_options_header
-except ModuleNotFoundError:  # pragma: nocover
-    parse_options_header = None
-    multipart = None
+    from multipart.multipart import MultipartCallbacks, QuerystringCallbacks, parse_options_header
+else:
+    try:
+        try:
+            import python_multipart as multipart
+            from python_multipart.multipart import parse_options_header
+        except ModuleNotFoundError:  # pragma: no cover
+            import multipart
+            from multipart.multipart import parse_options_header
+    except ModuleNotFoundError:  # pragma: no cover
+        multipart = None
+        parse_options_header = None
 
 
 class FormMessage(Enum):
@@ -28,12 +36,12 @@ class FormMessage(Enum):
 class MultipartPart:
     content_disposition: bytes | None = None
     field_name: str = ""
-    data: bytes = b""
+    data: bytearray = field(default_factory=bytearray)
     file: UploadFile | None = None
     item_headers: list[tuple[bytes, bytes]] = field(default_factory=list)
 
 
-def _user_safe_decode(src: bytes, codec: str) -> str:
+def _user_safe_decode(src: bytes | bytearray, codec: str) -> str:
     try:
         return src.decode(codec)
     except (UnicodeDecodeError, LookupError):
@@ -46,12 +54,8 @@ class MultiPartException(Exception):
 
 
 class FormParser:
-    def __init__(
-        self, headers: Headers, stream: typing.AsyncGenerator[bytes, None]
-    ) -> None:
-        assert (
-            multipart is not None
-        ), "The `python-multipart` library must be installed to use form parsing."
+    def __init__(self, headers: Headers, stream: typing.AsyncGenerator[bytes, None]) -> None:
+        assert multipart is not None, "The `python-multipart` library must be installed to use form parsing."
         self.headers = headers
         self.stream = stream
         self.messages: list[tuple[FormMessage, bytes]] = []
@@ -78,7 +82,7 @@ class FormParser:
 
     async def parse(self) -> FormData:
         # Callbacks dictionary.
-        callbacks = {
+        callbacks: QuerystringCallbacks = {
             "on_field_start": self.on_field_start,
             "on_field_name": self.on_field_name,
             "on_field_data": self.on_field_data,
@@ -91,7 +95,7 @@ class FormParser:
         field_name = b""
         field_value = b""
 
-        items: list[tuple[str, typing.Union[str, UploadFile]]] = []
+        items: list[tuple[str, str | UploadFile]] = []
 
         # Feed the parser with data from the request.
         async for chunk in self.stream:
@@ -118,7 +122,8 @@ class FormParser:
 
 
 class MultiPartParser:
-    max_file_size = 1024 * 1024
+    max_file_size = 1024 * 1024  # 1MB
+    max_part_size = 1024 * 1024  # 1MB
 
     def __init__(
         self,
@@ -128,9 +133,7 @@ class MultiPartParser:
         max_files: int | float = 1000,
         max_fields: int | float = 1000,
     ) -> None:
-        assert (
-            multipart is not None
-        ), "The `python-multipart` library must be installed to use form parsing."
+        assert multipart is not None, "The `python-multipart` library must be installed to use form parsing."
         self.headers = headers
         self.stream = stream
         self.max_files = max_files
@@ -152,7 +155,9 @@ class MultiPartParser:
     def on_part_data(self, data: bytes, start: int, end: int) -> None:
         message_bytes = data[start:end]
         if self._current_part.file is None:
-            self._current_part.data += message_bytes
+            if len(self._current_part.data) + len(message_bytes) > self.max_part_size:
+                raise MultiPartException(f"Part exceeded maximum size of {int(self.max_part_size / 1024)}KB.")
+            self._current_part.data.extend(message_bytes)
         else:
             self._file_parts_to_write.append((self._current_part, message_bytes))
 
@@ -181,30 +186,20 @@ class MultiPartParser:
         field = self._current_partial_header_name.lower()
         if field == b"content-disposition":
             self._current_part.content_disposition = self._current_partial_header_value
-        self._current_part.item_headers.append(
-            (field, self._current_partial_header_value)
-        )
+        self._current_part.item_headers.append((field, self._current_partial_header_value))
         self._current_partial_header_name = b""
         self._current_partial_header_value = b""
 
     def on_headers_finished(self) -> None:
-        disposition, options = parse_options_header(
-            self._current_part.content_disposition
-        )
+        disposition, options = parse_options_header(self._current_part.content_disposition)
         try:
-            self._current_part.field_name = _user_safe_decode(
-                options[b"name"], self._charset
-            )
+            self._current_part.field_name = _user_safe_decode(options[b"name"], self._charset)
         except KeyError:
-            raise MultiPartException(
-                'The Content-Disposition header field "name" must be ' "provided."
-            )
+            raise MultiPartException('The Content-Disposition header field "name" must be provided.')
         if b"filename" in options:
             self._current_files += 1
             if self._current_files > self.max_files:
-                raise MultiPartException(
-                    f"Too many files. Maximum number of files is {self.max_files}."
-                )
+                raise MultiPartException(f"Too many files. Maximum number of files is {self.max_files}.")
             filename = _user_safe_decode(options[b"filename"], self._charset)
             tempfile = SpooledTemporaryFile(max_size=self.max_file_size)
             self._files_to_close_on_error.append(tempfile)
@@ -217,9 +212,7 @@ class MultiPartParser:
         else:
             self._current_fields += 1
             if self._current_fields > self.max_fields:
-                raise MultiPartException(
-                    f"Too many fields. Maximum number of fields is {self.max_fields}."
-                )
+                raise MultiPartException(f"Too many fields. Maximum number of fields is {self.max_fields}.")
             self._current_part.file = None
 
     def on_end(self) -> None:
@@ -238,7 +231,7 @@ class MultiPartParser:
             raise MultiPartException("Missing boundary in multipart.")
 
         # Callbacks dictionary.
-        callbacks = {
+        callbacks: MultipartCallbacks = {
             "on_part_begin": self.on_part_begin,
             "on_part_data": self.on_part_data,
             "on_part_end": self.on_part_end,

@@ -12,14 +12,19 @@ from starlette.exceptions import HTTPException
 from starlette.formparsers import FormParser, MultiPartException, MultiPartParser
 from starlette.types import Message, Receive, Scope, Send
 
-try:
-    from multipart.multipart import parse_options_header
-except ModuleNotFoundError:  # pragma: nocover
-    parse_options_header = None
-
-
 if typing.TYPE_CHECKING:
+    from multipart.multipart import parse_options_header
+
+    from starlette.applications import Starlette
     from starlette.routing import Router
+else:
+    try:
+        try:
+            from python_multipart.multipart import parse_options_header
+        except ModuleNotFoundError:  # pragma: no cover
+            from multipart.multipart import parse_options_header
+    except ModuleNotFoundError:  # pragma: no cover
+        parse_options_header = None
 
 
 SERVER_PUSH_HEADERS_TO_COPY = {
@@ -43,7 +48,7 @@ def cookie_parser(cookie_string: str) -> dict[str, str]:
     Note: we are explicitly _NOT_ using `SimpleCookie.load` because it is based
     on an outdated spec and will fail on lots of input we want to support
     """
-    cookie_dict: typing.Dict[str, str] = {}
+    cookie_dict: dict[str, str] = {}
     for chunk in cookie_string.split(";"):
         if "=" in chunk:
             key, val = chunk.split("=", 1)
@@ -93,7 +98,7 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
 
     @property
     def url(self) -> URL:
-        if not hasattr(self, "_url"):
+        if not hasattr(self, "_url"):  # pragma: no branch
             self._url = URL(scope=self.scope)
         return self._url
 
@@ -104,9 +109,7 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
             # This is used by request.url_for, it might be used inside a Mount which
             # would have its own child scope with its own root_path, but the base URL
             # for url_for should still be the top level app root path.
-            app_root_path = base_url_scope.get(
-                "app_root_path", base_url_scope.get("root_path", "")
-            )
+            app_root_path = base_url_scope.get("app_root_path", base_url_scope.get("root_path", ""))
             path = app_root_path
             if not path.endswith("/"):
                 path += "/"
@@ -124,7 +127,7 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
 
     @property
     def query_params(self) -> QueryParams:
-        if not hasattr(self, "_query_params"):
+        if not hasattr(self, "_query_params"):  # pragma: no branch
             self._query_params = QueryParams(self.scope["query_string"])
         return self._query_params
 
@@ -135,7 +138,7 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
     @property
     def cookies(self) -> dict[str, str]:
         if not hasattr(self, "_cookies"):
-            cookies: typing.Dict[str, str] = {}
+            cookies: dict[str, str] = {}
             cookie_header = self.headers.get("cookie")
 
             if cookie_header:
@@ -145,7 +148,7 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
 
     @property
     def client(self) -> Address | None:
-        # client is a 2 item tuple of (host, port), None or missing
+        # client is a 2 item tuple of (host, port), None if missing
         host_port = self.scope.get("client")
         if host_port is not None:
             return Address(*host_port)
@@ -153,23 +156,17 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
 
     @property
     def session(self) -> dict[str, typing.Any]:
-        assert (
-            "session" in self.scope
-        ), "SessionMiddleware must be installed to access request.session"
+        assert "session" in self.scope, "SessionMiddleware must be installed to access request.session"
         return self.scope["session"]  # type: ignore[no-any-return]
 
     @property
     def auth(self) -> typing.Any:
-        assert (
-            "auth" in self.scope
-        ), "AuthenticationMiddleware must be installed to access request.auth"
+        assert "auth" in self.scope, "AuthenticationMiddleware must be installed to access request.auth"
         return self.scope["auth"]
 
     @property
     def user(self) -> typing.Any:
-        assert (
-            "user" in self.scope
-        ), "AuthenticationMiddleware must be installed to access request.user"
+        assert "user" in self.scope, "AuthenticationMiddleware must be installed to access request.user"
         return self.scope["user"]
 
     @property
@@ -183,8 +180,10 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
         return self._state
 
     def url_for(self, name: str, /, **path_params: typing.Any) -> URL:
-        router: Router = self.scope["router"]
-        url_path = router.url_path_for(name, **path_params)
+        url_path_provider: Router | Starlette | None = self.scope.get("router") or self.scope.get("app")
+        if url_path_provider is None:
+            raise RuntimeError("The `url_for` method can only be used inside a Starlette application or with a router.")
+        url_path = url_path_provider.url_path_for(name, **path_params)
         return url_path.make_absolute_url(base_url=self.base_url)
 
 
@@ -197,11 +196,9 @@ async def empty_send(message: Message) -> typing.NoReturn:
 
 
 class Request(HTTPConnection):
-    _form: typing.Optional[FormData]
+    _form: FormData | None
 
-    def __init__(
-        self, scope: Scope, receive: Receive = empty_receive, send: Send = empty_send
-    ):
+    def __init__(self, scope: Scope, receive: Receive = empty_receive, send: Send = empty_send):
         super().__init__(scope)
         assert scope["type"] == "http"
         self._receive = receive
@@ -240,21 +237,19 @@ class Request(HTTPConnection):
 
     async def body(self) -> bytes:
         if not hasattr(self, "_body"):
-            chunks: "typing.List[bytes]" = []
+            chunks: list[bytes] = []
             async for chunk in self.stream():
                 chunks.append(chunk)
             self._body = b"".join(chunks)
         return self._body
 
     async def json(self) -> typing.Any:
-        if not hasattr(self, "_json"):
+        if not hasattr(self, "_json"):  # pragma: no branch
             body = await self.body()
             self._json = json.loads(body)
         return self._json
 
-    async def _get_form(
-        self, *, max_files: int | float = 1000, max_fields: int | float = 1000
-    ) -> FormData:
+    async def _get_form(self, *, max_files: int | float = 1000, max_fields: int | float = 1000) -> FormData:
         if self._form is None:
             assert (
                 parse_options_header is not None
@@ -285,12 +280,10 @@ class Request(HTTPConnection):
     def form(
         self, *, max_files: int | float = 1000, max_fields: int | float = 1000
     ) -> AwaitableOrContextManager[FormData]:
-        return AwaitableOrContextManagerWrapper(
-            self._get_form(max_files=max_files, max_fields=max_fields)
-        )
+        return AwaitableOrContextManagerWrapper(self._get_form(max_files=max_files, max_fields=max_fields))
 
     async def close(self) -> None:
-        if self._form is not None:
+        if self._form is not None:  # pragma: no branch
             await self._form.close()
 
     async def is_disconnected(self) -> bool:
@@ -309,12 +302,8 @@ class Request(HTTPConnection):
 
     async def send_push_promise(self, path: str) -> None:
         if "http.response.push" in self.scope.get("extensions", {}):
-            raw_headers: "typing.List[typing.Tuple[bytes, bytes]]" = []
+            raw_headers: list[tuple[bytes, bytes]] = []
             for name in SERVER_PUSH_HEADERS_TO_COPY:
                 for value in self.headers.getlist(name):
-                    raw_headers.append(
-                        (name.encode("latin-1"), value.encode("latin-1"))
-                    )
-            await self._send(
-                {"type": "http.response.push", "path": path, "headers": raw_headers}
-            )
+                    raw_headers.append((name.encode("latin-1"), value.encode("latin-1")))
+            await self._send({"type": "http.response.push", "path": path, "headers": raw_headers})

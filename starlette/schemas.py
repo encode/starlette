@@ -10,7 +10,7 @@ from starlette.routing import BaseRoute, Host, Mount, Route
 
 try:
     import yaml
-except ModuleNotFoundError:  # pragma: nocover
+except ModuleNotFoundError:  # pragma: no cover
     yaml = None  # type: ignore[assignment]
 
 
@@ -19,9 +19,7 @@ class OpenAPIResponse(Response):
 
     def render(self, content: typing.Any) -> bytes:
         assert yaml is not None, "`pyyaml` must be installed to use OpenAPIResponse."
-        assert isinstance(
-            content, dict
-        ), "The schema passed to OpenAPIResponse should be a dictionary."
+        assert isinstance(content, dict), "The schema passed to OpenAPIResponse should be a dictionary."
         return yaml.dump(content, default_flow_style=False).encode("utf-8")
 
 
@@ -29,6 +27,9 @@ class EndpointInfo(typing.NamedTuple):
     path: str
     http_method: str
     func: typing.Callable[..., typing.Any]
+
+
+_remove_converter_pattern = re.compile(r":\w+}")
 
 
 class BaseSchemaGenerator:
@@ -73,9 +74,7 @@ class BaseSchemaGenerator:
                 for method in route.methods or ["GET"]:
                     if method == "HEAD":
                         continue
-                    endpoints_info.append(
-                        EndpointInfo(path, method.lower(), route.endpoint)
-                    )
+                    endpoints_info.append(EndpointInfo(path, method.lower(), route.endpoint))
             else:
                 path = self._remove_converter(route.path)
                 for method in ["get", "post", "put", "patch", "delete", "options"]:
@@ -93,11 +92,9 @@ class BaseSchemaGenerator:
             Route("/users/{id:int}", endpoint=get_user, methods=["GET"])
         Should be represented as `/users/{id}` in the OpenAPI schema.
         """
-        return re.sub(r":\w+}", "}", path)
+        return _remove_converter_pattern.sub("}", path)
 
-    def parse_docstring(
-        self, func_or_method: typing.Callable[..., typing.Any]
-    ) -> dict[str, typing.Any]:
+    def parse_docstring(self, func_or_method: typing.Callable[..., typing.Any]) -> dict[str, typing.Any]:
         """
         Given a function, parse the docstring as YAML and return a dictionary of info.
         """

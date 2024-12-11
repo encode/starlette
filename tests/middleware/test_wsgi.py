@@ -5,10 +5,9 @@ import pytest
 
 from starlette._utils import collapse_excgroups
 from starlette.middleware.wsgi import WSGIMiddleware, build_environ
-from starlette.testclient import TestClient
+from tests.types import TestClientFactory
 
 WSGIResponse = Iterable[bytes]
-TestClientFactory = Callable[..., TestClient]
 StartResponse = Callable[..., Any]
 Environment = Dict[str, Any]
 
@@ -78,7 +77,7 @@ def test_wsgi_post(test_client_factory: TestClientFactory) -> None:
     client = test_client_factory(app)
     response = client.post("/", json={"example": 123})
     assert response.status_code == 200
-    assert response.text == '{"example": 123}'
+    assert response.text == '{"example":123}'
 
 
 def test_wsgi_exception(test_client_factory: TestClientFactory) -> None:

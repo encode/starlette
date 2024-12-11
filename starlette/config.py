@@ -17,7 +17,7 @@ class EnvironError(Exception):
 class Environ(typing.MutableMapping[str, str]):
     def __init__(self, environ: typing.MutableMapping[str, str] = os.environ):
         self._environ = environ
-        self._has_been_read: typing.Set[str] = set()
+        self._has_been_read: set[str] = set()
 
     def __getitem__(self, key: str) -> str:
         self._has_been_read.add(key)
@@ -25,18 +25,12 @@ class Environ(typing.MutableMapping[str, str]):
 
     def __setitem__(self, key: str, value: str) -> None:
         if key in self._has_been_read:
-            raise EnvironError(
-                f"Attempting to set environ['{key}'], but the value has already been "
-                "read."
-            )
+            raise EnvironError(f"Attempting to set environ['{key}'], but the value has already been read.")
         self._environ.__setitem__(key, value)
 
     def __delitem__(self, key: str) -> None:
         if key in self._has_been_read:
-            raise EnvironError(
-                f"Attempting to delete environ['{key}'], but the value has already "
-                "been read."
-            )
+            raise EnvironError(f"Attempting to delete environ['{key}'], but the value has already been read.")
         self._environ.__delitem__(key)
 
     def __iter__(self) -> typing.Iterator[str]:
@@ -60,7 +54,7 @@ class Config:
     ) -> None:
         self.environ = environ
         self.env_prefix = env_prefix
-        self.file_values: typing.Dict[str, str] = {}
+        self.file_values: dict[str, str] = {}
         if env_file is not None:
             if not os.path.isfile(env_file):
                 warnings.warn(f"Config file '{env_file}' not found.")
@@ -68,16 +62,13 @@ class Config:
                 self.file_values = self._read_file(env_file)
 
     @typing.overload
-    def __call__(self, key: str, *, default: None) -> str | None:
-        ...
+    def __call__(self, key: str, *, default: None) -> str | None: ...
 
     @typing.overload
-    def __call__(self, key: str, cast: type[T], default: T = ...) -> T:
-        ...
+    def __call__(self, key: str, cast: type[T], default: T = ...) -> T: ...
 
     @typing.overload
-    def __call__(self, key: str, cast: type[str] = ..., default: str = ...) -> str:
-        ...
+    def __call__(self, key: str, cast: type[str] = ..., default: str = ...) -> str: ...
 
     @typing.overload
     def __call__(
@@ -85,12 +76,10 @@ class Config:
         key: str,
         cast: typing.Callable[[typing.Any], T] = ...,
         default: typing.Any = ...,
-    ) -> T:
-        ...
+    ) -> T: ...
 
     @typing.overload
-    def __call__(self, key: str, cast: type[str] = ..., default: T = ...) -> T | str:
-        ...
+    def __call__(self, key: str, cast: type[str] = ..., default: T = ...) -> T | str: ...
 
     def __call__(
         self,
@@ -118,7 +107,7 @@ class Config:
         raise KeyError(f"Config '{key}' is missing, and has no default.")
 
     def _read_file(self, file_name: str | Path) -> dict[str, str]:
-        file_values: typing.Dict[str, str] = {}
+        file_values: dict[str, str] = {}
         with open(file_name) as input_file:
             for line in input_file.readlines():
                 line = line.strip()
@@ -141,13 +130,9 @@ class Config:
             mapping = {"true": True, "1": True, "false": False, "0": False}
             value = value.lower()
             if value not in mapping:
-                raise ValueError(
-                    f"Config '{key}' has value '{value}'. Not a valid bool."
-                )
+                raise ValueError(f"Config '{key}' has value '{value}'. Not a valid bool.")
             return mapping[value]
         try:
             return cast(value)
         except (TypeError, ValueError):
-            raise ValueError(
-                f"Config '{key}' has value '{value}'. Not a valid {cast.__name__}."
-            )
+            raise ValueError(f"Config '{key}' has value '{value}'. Not a valid {cast.__name__}.")

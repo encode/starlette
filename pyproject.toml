@@ -9,9 +9,7 @@ description = "The little ASGI library that shines."
 readme = "README.md"
 license = "BSD-3-Clause"
 requires-python = ">=3.8"
-authors = [
-    { name = "Tom Christie", email = "tom@tomchristie.com" },
-]
+authors = [{ name = "Tom Christie", email = "tom@tomchristie.com" }]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Web Environment",
@@ -25,6 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Internet :: WWW/HTTP",
 ]
 dependencies = [
@@ -36,9 +35,9 @@ dependencies = [
 full = [
     "itsdangerous",
     "jinja2",
-    "python-multipart>=0.0.7",
+    "python-multipart>=0.0.18",
     "pyyaml",
-    "httpx>=0.22.0",
+    "httpx>=0.27.0,<0.29.0",
 ]
 
 [project.urls]
@@ -51,8 +50,19 @@ Source = "https://github.com/encode/starlette"
 [tool.hatch.version]
 path = "starlette/__init__.py"
 
+[tool.ruff]
+line-length = 120
+
 [tool.ruff.lint]
-select = ["E", "F", "I"]
+select = [
+    "E",      # https://docs.astral.sh/ruff/rules/#error-e
+    "F",      # https://docs.astral.sh/ruff/rules/#pyflakes-f
+    "I",      # https://docs.astral.sh/ruff/rules/#isort-i
+    "FA",     # https://docs.astral.sh/ruff/rules/#flake8-future-annotations-fa
+    "UP",     # https://docs.astral.sh/ruff/rules/#pyupgrade-up
+    "RUF100", # https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
+]
+ignore = ["UP031"] # https://docs.astral.sh/ruff/rules/printf-string-formatting/
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
@@ -66,16 +76,8 @@ python_version = "3.8"
 module = "starlette.testclient.*"
 implicit_optional = true
 
-# TODO: Uncomment the following configuration when
-# https://github.com/python/mypy/issues/10045 is solved. In the meantime,
-# we are calling `mypy tests` directly. Check `scripts/check` for more info.
-# [[tool.mypy.overrides]]
-# module = "tests.*"
-# disallow_untyped_defs = false
-# check_untyped_defs = true
-
 [tool.pytest.ini_options]
-addopts = "-rxXs --strict-config --strict-markers"
+addopts = "-rXs --strict-config --strict-markers"
 xfail_strict = true
 filterwarnings = [
     # Turn warnings that aren't filtered into exceptions
@@ -88,18 +90,17 @@ filterwarnings = [
     "ignore: The `allow_redirects` argument is deprecated. Use `follow_redirects` instead.:DeprecationWarning",
     "ignore: 'cgi' is deprecated and slated for removal in Python 3.13:DeprecationWarning",
     "ignore: You seem to already have a custom sys.excepthook handler installed. I'll skip installing Trio's custom handler, but this means MultiErrors will not show full tracebacks.:RuntimeWarning",
+    # TODO: This warning appeared when we bumped anyio to 4.4.0.
+    "ignore: Unclosed .MemoryObject(Send|Receive)Stream.:ResourceWarning",
 ]
 
 [tool.coverage.run]
-source_pkgs = [
-    "starlette",
-    "tests",
-]
+source_pkgs = ["starlette", "tests"]
 
 [tool.coverage.report]
 exclude_lines = [
     "pragma: no cover",
-    "pragma: nocover",
     "if typing.TYPE_CHECKING:",
     "@typing.overload",
+    "raise NotImplementedError",
 ]

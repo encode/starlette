@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import re
 import typing
@@ -18,7 +20,7 @@ class CORSMiddleware:
         allow_methods: typing.Sequence[str] = ("GET",),
         allow_headers: typing.Sequence[str] = (),
         allow_credentials: bool = False,
-        allow_origin_regex: typing.Optional[str] = None,
+        allow_origin_regex: str | None = None,
         expose_headers: typing.Sequence[str] = (),
         max_age: int = 600,
     ) -> None:
@@ -94,9 +96,7 @@ class CORSMiddleware:
         if self.allow_all_origins:
             return True
 
-        if self.allow_origin_regex is not None and self.allow_origin_regex.fullmatch(
-            origin
-        ):
+        if self.allow_origin_regex is not None and self.allow_origin_regex.fullmatch(origin):
             return True
 
         return origin in self.allow_origins
@@ -139,15 +139,11 @@ class CORSMiddleware:
 
         return PlainTextResponse("OK", status_code=200, headers=headers)
 
-    async def simple_response(
-        self, scope: Scope, receive: Receive, send: Send, request_headers: Headers
-    ) -> None:
+    async def simple_response(self, scope: Scope, receive: Receive, send: Send, request_headers: Headers) -> None:
         send = functools.partial(self.send, send=send, request_headers=request_headers)
         await self.app(scope, receive, send)
 
-    async def send(
-        self, message: Message, send: Send, request_headers: Headers
-    ) -> None:
+    async def send(self, message: Message, send: Send, request_headers: Headers) -> None:
         if message["type"] != "http.response.start":
             await send(message)
             return

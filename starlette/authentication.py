@@ -31,9 +31,7 @@ def requires(
     scopes: str | typing.Sequence[str],
     status_code: int = 403,
     redirect: str | None = None,
-) -> typing.Callable[
-    [typing.Callable[_P, typing.Any]], typing.Callable[_P, typing.Any]
-]:
+) -> typing.Callable[[typing.Callable[_P, typing.Any]], typing.Callable[_P, typing.Any]]:
     scopes_list = [scopes] if isinstance(scopes, str) else list(scopes)
 
     def decorator(
@@ -45,17 +43,13 @@ def requires(
                 type_ = parameter.name
                 break
         else:
-            raise Exception(
-                f'No "request" or "websocket" argument on function "{func}"'
-            )
+            raise Exception(f'No "request" or "websocket" argument on function "{func}"')
 
         if type_ == "websocket":
             # Handle websocket functions. (Always async)
             @functools.wraps(func)
             async def websocket_wrapper(*args: _P.args, **kwargs: _P.kwargs) -> None:
-                websocket = kwargs.get(
-                    "websocket", args[idx] if idx < len(args) else None
-                )
+                websocket = kwargs.get("websocket", args[idx] if idx < len(args) else None)
                 assert isinstance(websocket, WebSocket)
 
                 if not has_required_scope(websocket, scopes_list):
@@ -75,10 +69,7 @@ def requires(
                 if not has_required_scope(request, scopes_list):
                     if redirect is not None:
                         orig_request_qparam = urlencode({"next": str(request.url)})
-                        next_url = "{redirect_path}?{orig_request}".format(
-                            redirect_path=request.url_for(redirect),
-                            orig_request=orig_request_qparam,
-                        )
+                        next_url = f"{request.url_for(redirect)}?{orig_request_qparam}"
                         return RedirectResponse(url=next_url, status_code=303)
                     raise HTTPException(status_code=status_code)
                 return await func(*args, **kwargs)
@@ -95,10 +86,7 @@ def requires(
                 if not has_required_scope(request, scopes_list):
                     if redirect is not None:
                         orig_request_qparam = urlencode({"next": str(request.url)})
-                        next_url = "{redirect_path}?{orig_request}".format(
-                            redirect_path=request.url_for(redirect),
-                            orig_request=orig_request_qparam,
-                        )
+                        next_url = f"{request.url_for(redirect)}?{orig_request_qparam}"
                         return RedirectResponse(url=next_url, status_code=303)
                     raise HTTPException(status_code=status_code)
                 return func(*args, **kwargs)
@@ -113,9 +101,7 @@ class AuthenticationError(Exception):
 
 
 class AuthenticationBackend:
-    async def authenticate(
-        self, conn: HTTPConnection
-    ) -> tuple[AuthCredentials, BaseUser] | None:
+    async def authenticate(self, conn: HTTPConnection) -> tuple[AuthCredentials, BaseUser] | None:
         raise NotImplementedError()  # pragma: no cover
 
 

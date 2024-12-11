@@ -1,14 +1,10 @@
-from typing import Callable
-
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse
 from starlette.routing import Route
-from starlette.testclient import TestClient
-
-TestClientFactory = Callable[..., TestClient]
+from tests.types import TestClientFactory
 
 
 def test_trusted_host_middleware(test_client_factory: TestClientFactory) -> None:
@@ -17,11 +13,7 @@ def test_trusted_host_middleware(test_client_factory: TestClientFactory) -> None
 
     app = Starlette(
         routes=[Route("/", endpoint=homepage)],
-        middleware=[
-            Middleware(
-                TrustedHostMiddleware, allowed_hosts=["testserver", "*.testserver"]
-            )
-        ],
+        middleware=[Middleware(TrustedHostMiddleware, allowed_hosts=["testserver", "*.testserver"])],
     )
 
     client = test_client_factory(app)
@@ -49,9 +41,7 @@ def test_www_redirect(test_client_factory: TestClientFactory) -> None:
 
     app = Starlette(
         routes=[Route("/", endpoint=homepage)],
-        middleware=[
-            Middleware(TrustedHostMiddleware, allowed_hosts=["www.example.com"])
-        ],
+        middleware=[Middleware(TrustedHostMiddleware, allowed_hosts=["www.example.com"])],
     )
 
     client = test_client_factory(app, base_url="https://example.com")

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import typing
 
 from starlette._exception_handler import (
@@ -16,9 +18,7 @@ class ExceptionMiddleware:
     def __init__(
         self,
         app: ASGIApp,
-        handlers: typing.Optional[
-            typing.Mapping[typing.Any, typing.Callable[[Request, Exception], Response]]
-        ] = None,
+        handlers: typing.Mapping[typing.Any, typing.Callable[[Request, Exception], Response]] | None = None,
         debug: bool = False,
     ) -> None:
         self.app = app
@@ -34,7 +34,7 @@ class ExceptionMiddleware:
 
     def add_exception_handler(
         self,
-        exc_class_or_status_code: typing.Union[int, typing.Type[Exception]],
+        exc_class_or_status_code: int | type[Exception],
         handler: typing.Callable[[Request, Exception], Response],
     ) -> None:
         if isinstance(exc_class_or_status_code, int):
@@ -53,7 +53,7 @@ class ExceptionMiddleware:
             self._status_handlers,
         )
 
-        conn: typing.Union[Request, WebSocket]
+        conn: Request | WebSocket
         if scope["type"] == "http":
             conn = Request(scope, receive, send)
         else:
@@ -65,9 +65,7 @@ class ExceptionMiddleware:
         assert isinstance(exc, HTTPException)
         if exc.status_code in {204, 304}:
             return Response(status_code=exc.status_code, headers=exc.headers)
-        return PlainTextResponse(
-            exc.detail, status_code=exc.status_code, headers=exc.headers
-        )
+        return PlainTextResponse(exc.detail, status_code=exc.status_code, headers=exc.headers)
 
     async def websocket_exception(self, websocket: WebSocket, exc: Exception) -> None:
         assert isinstance(exc, WebSocketException)

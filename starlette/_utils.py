@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import functools
-import re
 import sys
 import typing
 from contextlib import contextmanager
@@ -26,41 +25,31 @@ AwaitableCallable = typing.Callable[..., typing.Awaitable[T]]
 
 
 @typing.overload
-def is_async_callable(obj: AwaitableCallable[T]) -> TypeGuard[AwaitableCallable[T]]:
-    ...
+def is_async_callable(obj: AwaitableCallable[T]) -> TypeGuard[AwaitableCallable[T]]: ...
 
 
 @typing.overload
-def is_async_callable(obj: typing.Any) -> TypeGuard[AwaitableCallable[typing.Any]]:
-    ...
+def is_async_callable(obj: typing.Any) -> TypeGuard[AwaitableCallable[typing.Any]]: ...
 
 
 def is_async_callable(obj: typing.Any) -> typing.Any:
     while isinstance(obj, functools.partial):
         obj = obj.func
 
-    return asyncio.iscoroutinefunction(obj) or (
-        callable(obj) and asyncio.iscoroutinefunction(obj.__call__)
-    )
+    return asyncio.iscoroutinefunction(obj) or (callable(obj) and asyncio.iscoroutinefunction(obj.__call__))
 
 
 T_co = typing.TypeVar("T_co", covariant=True)
 
 
-class AwaitableOrContextManager(
-    typing.Awaitable[T_co], typing.AsyncContextManager[T_co], typing.Protocol[T_co]
-):
-    ...
+class AwaitableOrContextManager(typing.Awaitable[T_co], typing.AsyncContextManager[T_co], typing.Protocol[T_co]): ...
 
 
 class SupportsAsyncClose(typing.Protocol):
-    async def close(self) -> None:
-        ...  # pragma: no cover
+    async def close(self) -> None: ...  # pragma: no cover
 
 
-SupportsAsyncCloseType = typing.TypeVar(
-    "SupportsAsyncCloseType", bound=SupportsAsyncClose, covariant=False
-)
+SupportsAsyncCloseType = typing.TypeVar("SupportsAsyncCloseType", bound=SupportsAsyncClose, covariant=False)
 
 
 class AwaitableOrContextManagerWrapper(typing.Generic[SupportsAsyncCloseType]):
@@ -94,6 +83,18 @@ def collapse_excgroups() -> typing.Generator[None, None, None]:
 
 
 def get_route_path(scope: Scope) -> str:
+    path: str = scope["path"]
     root_path = scope.get("root_path", "")
-    route_path = re.sub(r"^" + root_path, "", scope["path"])
-    return route_path
+    if not root_path:
+        return path
+
+    if not path.startswith(root_path):
+        return path
+
+    if path == root_path:
+        return ""
+
+    if path[len(root_path)] == "/":
+        return path[len(root_path) :]
+
+    return path

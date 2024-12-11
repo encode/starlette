@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://www.starlette.io/"><img width="420px" src="https://raw.githubusercontent.com/encode/starlette/master/docs/img/starlette.png" alt='starlette'></a>
+  <a href="https://www.starlette.io/"><img width="420px" src="https://raw.githubusercontent.com/encode/starlette/master/docs/img/starlette.svg" alt='starlette'></a>
 </p>
 <p align="center">
     <em>✨ The little ASGI framework that shines. ✨</em>
@@ -11,7 +11,11 @@
 [![Package version](https://badge.fury.io/py/starlette.svg)](https://pypi.python.org/pypi/starlette)
 [![Supported Python Version](https://img.shields.io/pypi/pyversions/starlette.svg?color=%2334D058)](https://pypi.org/project/starlette)
 
-**Documentation**: [https://www.starlette.io/](https://www.starlette.io/)
+---
+
+**Documentation**: <a href="https://www.starlette.io/" target="_blank">https://www.starlette.io</a>
+
+**Source Code**: <a href="https://github.com/encode/starlette" target="_blank">https://github.com/encode/starlette</a>
 
 ---
 
@@ -35,27 +39,21 @@ It is production-ready, and gives you the following:
 * Compatible with `asyncio` and `trio` backends.
 * Great overall performance [against independent benchmarks][techempower].
 
-## Requirements
-
-Python 3.8+
-
 ## Installation
 
 ```shell
-$ pip3 install starlette
+$ pip install starlette
 ```
 
-You'll also want to install an ASGI server, such as [uvicorn](http://www.uvicorn.org/), [daphne](https://github.com/django/daphne/), or [hypercorn](https://pgjones.gitlab.io/hypercorn/).
+You'll also want to install an ASGI server, such as [uvicorn](https://www.uvicorn.org/), [daphne](https://github.com/django/daphne/), or [hypercorn](https://hypercorn.readthedocs.io/en/latest/).
 
 ```shell
-$ pip3 install uvicorn
+$ pip install uvicorn
 ```
 
 ## Example
 
-**example.py**:
-
-```python
+```python title="example.py"
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
 from starlette.routing import Route
@@ -89,7 +87,7 @@ Starlette only requires `anyio`, and the following are optional:
 * [`itsdangerous`][itsdangerous] - Required for `SessionMiddleware` support.
 * [`pyyaml`][pyyaml] - Required for `SchemaGenerator` support.
 
-You can install all of these with `pip3 install starlette[full]`.
+You can install all of these with `pip install starlette[full]`.
 
 ## Framework or Toolkit
 
@@ -132,7 +130,7 @@ in isolation.
 [asgi]: https://asgi.readthedocs.io/en/latest/
 [httpx]: https://www.python-httpx.org/
 [jinja2]: https://jinja.palletsprojects.com/
-[python-multipart]: https://andrew-d.github.io/python-multipart/
+[python-multipart]: https://multipart.fastapiexpert.com/
 [itsdangerous]: https://itsdangerous.palletsprojects.com/
 [sqlalchemy]: https://www.sqlalchemy.org
 [pyyaml]: https://pyyaml.org/wiki/PyYAMLDocumentation

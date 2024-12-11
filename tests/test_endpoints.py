@@ -1,4 +1,4 @@
-from typing import Callable, Iterator
+from typing import Iterator
 
 import pytest
 
@@ -8,8 +8,7 @@ from starlette.responses import PlainTextResponse
 from starlette.routing import Route, Router
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocket
-
-TestClientFactory = Callable[..., TestClient]
+from tests.types import TestClientFactory
 
 
 class Homepage(HTTPEndpoint):
@@ -20,9 +19,7 @@ class Homepage(HTTPEndpoint):
         return PlainTextResponse(f"Hello, {username}!")
 
 
-app = Router(
-    routes=[Route("/", endpoint=Homepage), Route("/{username}", endpoint=Homepage)]
-)
+app = Router(routes=[Route("/", endpoint=Homepage), Route("/{username}", endpoint=Homepage)])
 
 
 @pytest.fixture

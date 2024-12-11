@@ -47,8 +47,7 @@ def iscoroutinefunction_or_partial(obj: typing.Any) -> bool:  # pragma: no cover
     including those wrapped in functools.partial objects.
     """
     warnings.warn(
-        "iscoroutinefunction_or_partial is deprecated, "
-        "and will be removed in a future release.",
+        "iscoroutinefunction_or_partial is deprecated, and will be removed in a future release.",
         DeprecationWarning,
     )
     while isinstance(obj, functools.partial):
@@ -57,23 +56,21 @@ def iscoroutinefunction_or_partial(obj: typing.Any) -> bool:  # pragma: no cover
 
 
 def request_response(
-    func: typing.Callable[
-        [Request], typing.Union[typing.Awaitable[Response], Response]
-    ],
+    func: typing.Callable[[Request], typing.Awaitable[Response] | Response],
 ) -> ASGIApp:
     """
     Takes a function or coroutine `func(request) -> response`,
     and returns an ASGI application.
     """
+    f: typing.Callable[[Request], typing.Awaitable[Response]] = (
+        func if is_async_callable(func) else functools.partial(run_in_threadpool, func)  # type:ignore
+    )
 
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive, send)
 
         async def app(scope: Scope, receive: Receive, send: Send) -> None:
-            if is_async_callable(func):
-                response = await func(request)
-            else:
-                response = await run_in_threadpool(func, request)
+            response = await f(request)
             await response(scope, receive, send)
 
         await wrap_app_handling_exceptions(app, request)(scope, receive, send)
@@ -101,9 +98,7 @@ def websocket_session(
 
 
 def get_name(endpoint: typing.Callable[..., typing.Any]) -> str:
-    if inspect.isroutine(endpoint) or inspect.isclass(endpoint):
-        return endpoint.__name__
-    return endpoint.__class__.__name__
+    return getattr(endpoint, "__name__", endpoint.__class__.__name__)
 
 
 def replace_params(
@@ -147,9 +142,7 @@ def compile_path(
     for match in PARAM_REGEX.finditer(path):
         param_name, convertor_type = match.groups("str")
         convertor_type = convertor_type.lstrip(":")
-        assert (
-            convertor_type in CONVERTOR_TYPES
-        ), f"Unknown path convertor '{convertor_type}'"
+        assert convertor_type in CONVERTOR_TYPES, f"Unknown path convertor '{convertor_type}'"
         convertor = CONVERTOR_TYPES[convertor_type]
 
         path_regex += re.escape(path[idx : match.start()])
@@ -243,7 +236,7 @@ class Route(BaseRoute):
 
         if middleware is not None:
             for cls, args, kwargs in reversed(middleware):
-                self.app = cls(app=self.app, *args, **kwargs)
+                self.app = cls(self.app, *args, **kwargs)
 
         if methods is None:
             self.methods = None
@@ -255,7 +248,7 @@ class Route(BaseRoute):
         self.path_regex, self.path_format, self.param_convertors = compile_path(path)
 
     def matches(self, scope: Scope) -> tuple[Match, Scope]:
-        path_params: "typing.Dict[str, typing.Any]"
+        path_params: dict[str, typing.Any]
         if scope["type"] == "http":
             route_path = get_route_path(scope)
             match = self.path_regex.match(route_path)
@@ -279,9 +272,7 @@ class Route(BaseRoute):
         if name != self.name or seen_params != expected_params:
             raise NoMatchFound(name, path_params)
 
-        path, remaining_params = replace_params(
-            self.path_format, self.param_convertors, path_params
-        )
+        path, remaining_params = replace_params(self.path_format, self.param_convertors, path_params)
         assert not remaining_params
         return URLPath(path=path, protocol="http")
 
@@ -291,9 +282,7 @@ class Route(BaseRoute):
             if "app" in scope:
                 raise HTTPException(status_code=405, headers=headers)
             else:
-                response = PlainTextResponse(
-                    "Method Not Allowed", status_code=405, headers=headers
-                )
+                response = PlainTextResponse("Method Not Allowed", status_code=405, headers=headers)
             await response(scope, receive, send)
         else:
             await self.app(scope, receive, send)
@@ -339,12 +328,12 @@ class WebSocketRoute(BaseRoute):
 
         if middleware is not None:
             for cls, args, kwargs in reversed(middleware):
-                self.app = cls(app=self.app, *args, **kwargs)
+                self.app = cls(self.app, *args, **kwargs)
 
         self.path_regex, self.path_format, self.param_convertors = compile_path(path)
 
     def matches(self, scope: Scope) -> tuple[Match, Scope]:
-        path_params: "typing.Dict[str, typing.Any]"
+        path_params: dict[str, typing.Any]
         if scope["type"] == "websocket":
             route_path = get_route_path(scope)
             match = self.path_regex.match(route_path)
@@ -365,9 +354,7 @@ class WebSocketRoute(BaseRoute):
         if name != self.name or seen_params != expected_params:
             raise NoMatchFound(name, path_params)
 
-        path, remaining_params = replace_params(
-            self.path_format, self.param_convertors, path_params
-        )
+        path, remaining_params = replace_params(self.path_format, self.param_convertors, path_params)
         assert not remaining_params
         return URLPath(path=path, protocol="websocket")
 
@@ -375,11 +362,7 @@ class WebSocketRoute(BaseRoute):
         await self.app(scope, receive, send)
 
     def __eq__(self, other: typing.Any) -> bool:
-        return (
-            isinstance(other, WebSocketRoute)
-            and self.path == other.path
-            and self.endpoint == other.endpoint
-        )
+        return isinstance(other, WebSocketRoute) and self.path == other.path and self.endpoint == other.endpoint
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(path={self.path!r}, name={self.name!r})"
@@ -396,9 +379,7 @@ class Mount(BaseRoute):
         middleware: typing.Sequence[Middleware] | None = None,
     ) -> None:
         assert path == "" or path.startswith("/"), "Routed paths must start with '/'"
-        assert (
-            app is not None or routes is not None
-        ), "Either 'app=...', or 'routes=' must be specified"
+        assert app is not None or routes is not None, "Either 'app=...', or 'routes=' must be specified"
         self.path = path.rstrip("/")
         if app is not None:
             self._base_app: ASGIApp = app
@@ -407,18 +388,16 @@ class Mount(BaseRoute):
         self.app = self._base_app
         if middleware is not None:
             for cls, args, kwargs in reversed(middleware):
-                self.app = cls(app=self.app, *args, **kwargs)
+                self.app = cls(self.app, *args, **kwargs)
         self.name = name
-        self.path_regex, self.path_format, self.param_convertors = compile_path(
-            self.path + "/{path:path}"
-        )
+        self.path_regex, self.path_format, self.param_convertors = compile_path(self.path + "/{path:path}")
 
     @property
     def routes(self) -> list[BaseRoute]:
         return getattr(self._base_app, "routes", [])
 
-    def matches(self, scope: Scope) -> typing.Tuple[Match, Scope]:
-        path_params: "typing.Dict[str, typing.Any]"
+    def matches(self, scope: Scope) -> tuple[Match, Scope]:
+        path_params: dict[str, typing.Any]
         if scope["type"] in ("http", "websocket"):
             root_path = scope.get("root_path", "")
             route_path = get_route_path(scope)
@@ -454,9 +433,7 @@ class Mount(BaseRoute):
         if self.name is not None and name == self.name and "path" in path_params:
             # 'name' matches "<mount_name>".
             path_params["path"] = path_params["path"].lstrip("/")
-            path, remaining_params = replace_params(
-                self.path_format, self.param_convertors, path_params
-            )
+            path, remaining_params = replace_params(self.path_format, self.param_convertors, path_params)
             if not remaining_params:
                 return URLPath(path=path)
         elif self.name is None or name.startswith(self.name + ":"):
@@ -468,17 +445,13 @@ class Mount(BaseRoute):
                 remaining_name = name[len(self.name) + 1 :]
             path_kwarg = path_params.get("path")
             path_params["path"] = ""
-            path_prefix, remaining_params = replace_params(
-                self.path_format, self.param_convertors, path_params
-            )
+            path_prefix, remaining_params = replace_params(self.path_format, self.param_convertors, path_params)
             if path_kwarg is not None:
                 remaining_params["path"] = path_kwarg
             for route in self.routes or []:
                 try:
                     url = route.url_path_for(remaining_name, **remaining_params)
-                    return URLPath(
-                        path=path_prefix.rstrip("/") + str(url), protocol=url.protocol
-                    )
+                    return URLPath(path=path_prefix.rstrip("/") + str(url), protocol=url.protocol)
                 except NoMatchFound:
                     pass
         raise NoMatchFound(name, path_params)
@@ -487,11 +460,7 @@ class Mount(BaseRoute):
         await self.app(scope, receive, send)
 
     def __eq__(self, other: typing.Any) -> bool:
-        return (
-            isinstance(other, Mount)
-            and self.path == other.path
-            and self.app == other.app
-        )
+        return isinstance(other, Mount) and self.path == other.path and self.app == other.app
 
     def __repr__(self) -> str:
         class_name = self.__class__.__name__
@@ -530,9 +499,7 @@ class Host(BaseRoute):
         if self.name is not None and name == self.name and "path" in path_params:
             # 'name' matches "<mount_name>".
             path = path_params.pop("path")
-            host, remaining_params = replace_params(
-                self.host_format, self.param_convertors, path_params
-            )
+            host, remaining_params = replace_params(self.host_format, self.param_convertors, path_params)
             if not remaining_params:
                 return URLPath(path=path, host=host)
         elif self.name is None or name.startswith(self.name + ":"):
@@ -542,9 +509,7 @@ class Host(BaseRoute):
             else:
                 # 'name' matches "<mount_name>:<child_name>".
                 remaining_name = name[len(self.name) + 1 :]
-            host, remaining_params = replace_params(
-                self.host_format, self.param_convertors, path_params
-            )
+            host, remaining_params = replace_params(self.host_format, self.param_convertors, path_params)
             for route in self.routes or []:
                 try:
                     url = route.url_path_for(remaining_name, **remaining_params)
@@ -557,11 +522,7 @@ class Host(BaseRoute):
         await self.app(scope, receive, send)
 
     def __eq__(self, other: typing.Any) -> bool:
-        return (
-            isinstance(other, Host)
-            and self.host == other.host
-            and self.app == other.app
-        )
+        return isinstance(other, Host) and self.host == other.host and self.app == other.app
 
     def __repr__(self) -> str:
         class_name = self.__class__.__name__
@@ -589,9 +550,7 @@ class _AsyncLiftContextManager(typing.AsyncContextManager[_T]):
 
 
 def _wrap_gen_lifespan_context(
-    lifespan_context: typing.Callable[
-        [typing.Any], typing.Generator[typing.Any, typing.Any, typing.Any]
-    ],
+    lifespan_context: typing.Callable[[typing.Any], typing.Generator[typing.Any, typing.Any, typing.Any]],
 ) -> typing.Callable[[typing.Any], typing.AsyncContextManager[typing.Any]]:
     cmgr = contextlib.contextmanager(lifespan_context)
 
@@ -734,9 +693,7 @@ class Router:
             async with self.lifespan_context(app) as maybe_state:
                 if maybe_state is not None:
                     if "state" not in scope:
-                        raise RuntimeError(
-                            'The server does not support "state" in the lifespan scope.'
-                        )
+                        raise RuntimeError('The server does not support "state" in the lifespan scope.')
                     scope["state"].update(maybe_state)
                 await send({"type": "lifespan.startup.complete"})
                 started = True
@@ -810,15 +767,11 @@ class Router:
     def __eq__(self, other: typing.Any) -> bool:
         return isinstance(other, Router) and self.routes == other.routes
 
-    def mount(
-        self, path: str, app: ASGIApp, name: str | None = None
-    ) -> None:  # pragma: nocover
+    def mount(self, path: str, app: ASGIApp, name: str | None = None) -> None:  # pragma: no cover
         route = Mount(path, app=app, name=name)
         self.routes.append(route)
 
-    def host(
-        self, host: str, app: ASGIApp, name: str | None = None
-    ) -> None:  # pragma: no cover
+    def host(self, host: str, app: ASGIApp, name: str | None = None) -> None:  # pragma: no cover
         route = Host(host, app=app, name=name)
         self.routes.append(route)
 
@@ -829,7 +782,7 @@ class Router:
         methods: list[str] | None = None,
         name: str | None = None,
         include_in_schema: bool = True,
-    ) -> None:  # pragma: nocover
+    ) -> None:  # pragma: no cover
         route = Route(
             path,
             endpoint=endpoint,
@@ -864,11 +817,11 @@ class Router:
         """
         warnings.warn(
             "The `route` decorator is deprecated, and will be removed in version 1.0.0."
-            "Refer to https://www.starlette.io/routing/#http-routing for the recommended approach.",  # noqa: E501
+            "Refer to https://www.starlette.io/routing/#http-routing for the recommended approach.",
             DeprecationWarning,
         )
 
-        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]  # noqa: E501
+        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]
             self.add_route(
                 path,
                 func,
@@ -889,20 +842,18 @@ class Router:
         >>> app = Starlette(routes=routes)
         """
         warnings.warn(
-            "The `websocket_route` decorator is deprecated, and will be removed in version 1.0.0. Refer to "  # noqa: E501
-            "https://www.starlette.io/routing/#websocket-routing for the recommended approach.",  # noqa: E501
+            "The `websocket_route` decorator is deprecated, and will be removed in version 1.0.0. Refer to "
+            "https://www.starlette.io/routing/#websocket-routing for the recommended approach.",
             DeprecationWarning,
         )
 
-        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]  # noqa: E501
+        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]
             self.add_websocket_route(path, func, name=name)
             return func
 
         return decorator
 
-    def add_event_handler(
-        self, event_type: str, func: typing.Callable[[], typing.Any]
-    ) -> None:  # pragma: no cover
+    def add_event_handler(self, event_type: str, func: typing.Callable[[], typing.Any]) -> None:  # pragma: no cover
         assert event_type in ("startup", "shutdown")
 
         if event_type == "startup":
@@ -912,12 +863,12 @@ class Router:
 
     def on_event(self, event_type: str) -> typing.Callable:  # type: ignore[type-arg]
         warnings.warn(
-            "The `on_event` decorator is deprecated, and will be removed in version 1.0.0. "  # noqa: E501
+            "The `on_event` decorator is deprecated, and will be removed in version 1.0.0. "
             "Refer to https://www.starlette.io/lifespan/ for recommended approach.",
             DeprecationWarning,
         )
 
-        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]  # noqa: E501
+        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]
             self.add_event_handler(event_type, func)
             return func
 

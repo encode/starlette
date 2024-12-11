@@ -58,6 +58,9 @@ def test_url() -> None:
     url = URL("http://u:p@host:80")
     assert url.replace(port=88) == URL("http://u:p@host:88")
 
+    url = URL("http://host:80")
+    assert url.replace(username="u") == URL("http://u@host:80")
+
 
 def test_url_query_params() -> None:
     u = URL("https://example.org/path/?page=3")
@@ -69,6 +72,10 @@ def test_url_query_params() -> None:
     u = u.replace_query_params(order="name")
     assert str(u) == "https://example.org/path/?order=name"
     u = u.remove_query_params("order")
+    assert str(u) == "https://example.org/path/"
+    u = u.include_query_params(page=4, search="testing")
+    assert str(u) == "https://example.org/path/?page=4&search=testing"
+    u = u.remove_query_params(["page", "search"])
     assert str(u) == "https://example.org/path/"
 
 
@@ -108,9 +115,7 @@ def test_csv() -> None:
 
 
 def test_url_from_scope() -> None:
-    u = URL(
-        scope={"path": "/path/to/somewhere", "query_string": b"abc=123", "headers": []}
-    )
+    u = URL(scope={"path": "/path/to/somewhere", "query_string": b"abc=123", "headers": []})
     assert u == "/path/to/somewhere?abc=123"
     assert repr(u) == "URL('/path/to/somewhere?abc=123')"
 
@@ -137,6 +142,21 @@ def test_url_from_scope() -> None:
     )
     assert u == "https://example.org/path/to/somewhere?abc=123"
     assert repr(u) == "URL('https://example.org/path/to/somewhere?abc=123')"
+
+    u = URL(
+        scope={
+            "scheme": "http",
+            "path": "/some/path",
+            "query_string": b"query=string",
+            "headers": [
+                (b"content-type", b"text/html"),
+                (b"host", b"example.com:8000"),
+                (b"accept", b"text/html"),
+            ],
+        }
+    )
+    assert u == "http://example.com:8000/some/path?query=string"
+    assert repr(u) == "URL('http://example.com:8000/some/path?query=string')"
 
 
 def test_headers() -> None:
@@ -274,13 +294,9 @@ def test_queryparams() -> None:
     assert dict(q) == {"a": "456", "b": "789"}
     assert str(q) == "a=123&a=456&b=789"
     assert repr(q) == "QueryParams('a=123&a=456&b=789')"
-    assert QueryParams({"a": "123", "b": "456"}) == QueryParams(
-        [("a", "123"), ("b", "456")]
-    )
+    assert QueryParams({"a": "123", "b": "456"}) == QueryParams([("a", "123"), ("b", "456")])
     assert QueryParams({"a": "123", "b": "456"}) == QueryParams("a=123&b=456")
-    assert QueryParams({"a": "123", "b": "456"}) == QueryParams(
-        {"b": "456", "a": "123"}
-    )
+    assert QueryParams({"a": "123", "b": "456"}) == QueryParams({"b": "456", "a": "123"})
     assert QueryParams() == QueryParams({})
     assert QueryParams([("a", "123"), ("a", "456")]) == QueryParams("a=123&a=456")
     assert QueryParams({"a": "123", "b": "456"}) != "invalid"
@@ -360,10 +376,7 @@ def test_formdata() -> None:
     assert len(form) == 2
     assert list(form) == ["a", "b"]
     assert dict(form) == {"a": "456", "b": upload}
-    assert (
-        repr(form)
-        == "FormData([('a', '123'), ('a', '456'), ('b', " + repr(upload) + ")])"
-    )
+    assert repr(form) == "FormData([('a', '123'), ('a', '456'), ('b', " + repr(upload) + ")])"
     assert FormData(form) == form
     assert FormData({"a": "123", "b": "789"}) == FormData([("a", "123"), ("b", "789")])
     assert FormData({"a": "123", "b": "789"}) != {"a": "123", "b": "789"}
@@ -380,10 +393,7 @@ async def test_upload_file_repr() -> None:
 async def test_upload_file_repr_headers() -> None:
     stream = io.BytesIO(b"data")
     file = UploadFile(filename="file", file=stream, headers=Headers({"foo": "bar"}))
-    assert (
-        repr(file)
-        == "UploadFile(filename='file', size=None, headers=Headers({'foo': 'bar'}))"
-    )
+    assert repr(file) == "UploadFile(filename='file', size=None, headers=Headers({'foo': 'bar'}))"
 
 
 def test_multidict() -> None:
@@ -403,9 +413,7 @@ def test_multidict() -> None:
     assert dict(q) == {"a": "456", "b": "789"}
     assert str(q) == "MultiDict([('a', '123'), ('a', '456'), ('b', '789')])"
     assert repr(q) == "MultiDict([('a', '123'), ('a', '456'), ('b', '789')])"
-    assert MultiDict({"a": "123", "b": "456"}) == MultiDict(
-        [("a", "123"), ("b", "456")]
-    )
+    assert MultiDict({"a": "123", "b": "456"}) == MultiDict([("a", "123"), ("b", "456")])
     assert MultiDict({"a": "123", "b": "456"}) == MultiDict({"b": "456", "a": "123"})
     assert MultiDict() == MultiDict({})
     assert MultiDict({"a": "123", "b": "456"}) != "invalid"
