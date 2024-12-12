@@ -611,3 +611,17 @@ def test_receive_wrong_message_type(test_client_factory: TestClientFactory) -> N
     with pytest.raises(RuntimeError):
         with client.websocket_connect("/") as websocket:
             websocket.send({"type": "websocket.connect"})
+
+
+def test_websocket_accept_with_mocked_connected_state(test_client_factory: TestClientFactory) -> None:
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
+        websocket = WebSocket(scope, receive=receive, send=send)
+        websocket.client_state = WebSocketState.CONNECTED
+        await websocket.accept()
+        await websocket.send_json({"url": str(websocket.url)})
+        await websocket.close()
+
+    client = test_client_factory(app)
+    with client.websocket_connect("/123?a=abc") as websocket:
+        data = websocket.receive_json()
+        assert data == {"url": "ws://testserver/123?a=abc"}
