@@ -99,7 +99,7 @@ class Jinja2Templates:
         if directory is not None:
             self.env = self._create_env(directory, **env_options)
         elif env is not None:
-            self.env = env
+            self.env = env  # pragma: no cover
 
         self._setup_env_defaults(self.env)
 
