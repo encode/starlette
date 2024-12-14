@@ -2,7 +2,7 @@
 toc_depth: 2
 ---
 
-## 0.42.0 (December 5, 2024)
+## 0.42.0 (December 14, 2024)
 
 #### Added
 
