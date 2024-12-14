@@ -797,7 +797,7 @@ def test_raise_on_startup(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         async def _send(message: Message) -> None:
             nonlocal startup_failed
-            if message["type"] == "lifespan.startup.failed":
+            if message["type"] == "lifespan.startup.failed":  # pragma: no branch
                 startup_failed = True
             return await send(message)
 
@@ -871,7 +871,7 @@ class Endpoint:
     def __call__(self, request: Request) -> None: ...  # pragma: no cover
 
 
-@pytest.mark.parametrize(
+@pytest.mark.parametrize(  # pragma: no branch
     "endpoint, expected_name",
     [
         pytest.param(func_homepage, "func_homepage", id="function"),
