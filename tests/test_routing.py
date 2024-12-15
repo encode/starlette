@@ -871,7 +871,7 @@ class Endpoint:
     def __call__(self, request: Request) -> None: ...  # pragma: no cover
 
 
-@pytest.mark.parametrize(  # pragma: no branch
+@pytest.mark.parametrize(
     "endpoint, expected_name",
     [
         pytest.param(func_homepage, "func_homepage", id="function"),
