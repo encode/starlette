@@ -450,9 +450,7 @@ class TestClient(httpx.Client):
     ) -> bool | httpx._client.UseClientDefault:
         redirect: bool | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT
         if allow_redirects is not None and follow_redirects is not None:
-            raise RuntimeError(  # pragma: no cover
-                "Cannot use both `allow_redirects` and `follow_redirects`."
-            )
+            raise RuntimeError("Cannot use both `allow_redirects` and `follow_redirects`.")
         if allow_redirects is not None:
             message = "The `allow_redirects` argument is deprecated. Use `follow_redirects` instead."
             warnings.warn(message, DeprecationWarning)

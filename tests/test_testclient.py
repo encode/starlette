@@ -360,6 +360,69 @@ def test_forward_nofollow_redirects(test_client_factory: TestClientFactory) -> N
     assert response.status_code == 307
 
 
+def test_allow_redirects_warns_and_forward_follow_redirects(
+    test_client_factory: TestClientFactory,
+) -> None:
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
+        if "/ok" in scope["path"]:
+            response = Response("ok")
+        else:
+            response = RedirectResponse("/ok")
+        await response(scope, receive, send)
+
+    client = test_client_factory(app)
+
+    with pytest.warns(
+        DeprecationWarning,
+        match="The `allow_redirects` argument is deprecated. Use `follow_redirects` instead.",
+    ):
+        response = client.get("/", allow_redirects=True)
+
+    assert response.status_code == 200
+
+
+def test_allow_redirects_warns_and_forward_nofollow_redirects(
+    test_client_factory: TestClientFactory,
+) -> None:
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
+        response = RedirectResponse("/ok")
+        await response(scope, receive, send)
+
+    client = test_client_factory(app)
+
+    with pytest.warns(
+        DeprecationWarning,
+        match="The `allow_redirects` argument is deprecated. Use `follow_redirects` instead.",
+    ):
+        response = client.get("/", allow_redirects=False)
+
+    assert response.status_code == 307
+
+
+@pytest.mark.parametrize(
+    "allow_redirects, follow_redirects",
+    [
+        pytest.param(True, True, id="both_true"),
+        pytest.param(True, False, id="allow_true_follow_false"),
+        pytest.param(False, True, id="allow_false_follow_true"),
+        pytest.param(False, False, id="both_false"),
+    ],
+)
+def test_allow_redirects_and_follow_redirects_used_together_raise_runtime_error(
+    test_client_factory: TestClientFactory,
+    allow_redirects: bool,
+    follow_redirects: bool,
+) -> None:
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
+        raise NotImplementedError("Should not be called!")
+
+    client = test_client_factory(app)
+
+    with pytest.raises(RuntimeError) as exc_info:
+        client.get("/", allow_redirects=allow_redirects, follow_redirects=follow_redirects)
+    assert "Cannot use both `allow_redirects` and `follow_redirects`" in str(exc_info.value)
+
+
 def test_with_duplicate_headers(test_client_factory: TestClientFactory) -> None:
     def homepage(request: Request) -> JSONResponse:
         return JSONResponse({"x-token": request.headers.getlist("x-token")})
