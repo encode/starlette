@@ -15,6 +15,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import Route
 from starlette.templating import Jinja2Templates
+from starlette.types import Message, Receive, Scope, Send
 from tests.types import TestClientFactory
 
 
@@ -308,3 +309,36 @@ def test_templates_when_first_argument_is_request(tmpdir: Path, test_client_fact
     assert response.headers["x-key"] == "value"
     assert response.headers["content-type"] == "text/plain; charset=utf-8"
     spy.assert_called()
+
+
+@pytest.mark.anyio
+async def test_branch_coverage_http_response_debug_not_in_message(tmpdir: Path) -> None:
+    path = os.path.join(tmpdir, "index.html")
+    with open(path, "w") as file:
+        file.write("<html>Hello</html>")
+
+    templates = Jinja2Templates(directory=str(tmpdir))
+
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
+        assert scope["type"] == "http"
+        request = Request(scope, receive)
+        response = templates.TemplateResponse(request, "index.html")
+        await response(scope, receive, send)
+
+    async def receive() -> Message:
+        raise NotImplementedError("Should not be called!")
+
+    async def send(message: Message) -> None:
+        if message["type"] == "http.response.start":
+            assert message["status"] == 200
+        if message["type"] == "http.response.body":
+            assert message["body"] == b"<html>Hello</html>"
+        assert "http.response.debug" not in message["type"]
+
+    scope = {
+        "type": "http",
+        "method": "GET",
+        "path": "/",
+    }
+
+    await app(scope, receive, send)
