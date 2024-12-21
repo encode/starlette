@@ -3,7 +3,7 @@ from __future__ import annotations
 import typing
 
 import anyio
-from anyio.abc import ObjectReceiveStream, ObjectSendStream
+from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 
 from starlette._utils import collapse_excgroups
 from starlette.requests import ClientDisconnect, Request
@@ -107,9 +107,6 @@ class BaseHTTPMiddleware:
 
         async def call_next(request: Request) -> Response:
             app_exc: Exception | None = None
-            send_stream: ObjectSendStream[typing.MutableMapping[str, typing.Any]]
-            recv_stream: ObjectReceiveStream[typing.MutableMapping[str, typing.Any]]
-            send_stream, recv_stream = anyio.create_memory_object_stream()
 
             async def receive_or_disconnect() -> Message:
                 if response_sent.is_set():
@@ -144,7 +141,7 @@ class BaseHTTPMiddleware:
             async def coro() -> None:
                 nonlocal app_exc
 
-                async with send_stream:
+                with send_stream:
                     try:
                         await self.app(scope, receive_or_disconnect, send_no_error)
                     except Exception as exc:
@@ -166,14 +163,13 @@ class BaseHTTPMiddleware:
             assert message["type"] == "http.response.start"
 
             async def body_stream() -> typing.AsyncGenerator[bytes, None]:
-                async with recv_stream:
-                    async for message in recv_stream:
-                        assert message["type"] == "http.response.body"
-                        body = message.get("body", b"")
-                        if body:
-                            yield body
-                        if not message.get("more_body", False):
-                            break
+                async for message in recv_stream:
+                    assert message["type"] == "http.response.body"
+                    body = message.get("body", b"")
+                    if body:
+                        yield body
+                    if not message.get("more_body", False):
+                        break
 
                 if app_exc is not None:
                     raise app_exc
@@ -183,10 +179,16 @@ class BaseHTTPMiddleware:
             return response
 
         with collapse_excgroups():
-            async with anyio.create_task_group() as task_group:
-                response = await self.dispatch_func(request, call_next)
-                await response(scope, wrapped_receive, send)
-                response_sent.set()
+            # order is important, we want to close streams after all tasks in
+            # the task group are done
+            send_stream: MemoryObjectSendStream[Message]
+            recv_stream: MemoryObjectReceiveStream[Message]
+            send_stream, recv_stream = anyio.create_memory_object_stream()
+            with recv_stream, send_stream:
+                async with anyio.create_task_group() as task_group:
+                    response = await self.dispatch_func(request, call_next)
+                    await response(scope, wrapped_receive, send)
+                    response_sent.set()
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         raise NotImplementedError()  # pragma: no cover

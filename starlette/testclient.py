@@ -733,6 +733,8 @@ class TestClient(httpx.Client):
             receive2: ObjectReceiveStream[typing.MutableMapping[str, typing.Any]]
             send1, receive1 = anyio.create_memory_object_stream(math.inf)
             send2, receive2 = anyio.create_memory_object_stream(math.inf)
+            for chan in (send1, send2, receive1, receive2):
+                stack.callback(chan.close)
             self.stream_send = StapledObjectStream(send1, receive1)
             self.stream_receive = StapledObjectStream(send2, receive2)
             self.task = portal.start_task_soon(self.lifespan)
@@ -780,12 +782,11 @@ class TestClient(httpx.Client):
                 self.task.result()
             return message
 
-        async with self.stream_send, self.stream_receive:
-            await self.stream_receive.send({"type": "lifespan.shutdown"})
-            message = await receive()
-            assert message["type"] in (
-                "lifespan.shutdown.complete",
-                "lifespan.shutdown.failed",
-            )
-            if message["type"] == "lifespan.shutdown.failed":
-                await receive()
+        await self.stream_receive.send({"type": "lifespan.shutdown"})
+        message = await receive()
+        assert message["type"] in (
+            "lifespan.shutdown.complete",
+            "lifespan.shutdown.failed",
+        )
+        if message["type"] == "lifespan.shutdown.failed":
+            await receive()
