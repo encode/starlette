@@ -249,7 +249,15 @@ class Request(HTTPConnection):
             self._json = json.loads(body)
         return self._json
 
-    async def _get_form(self, *, max_files: int | float = 1000, max_fields: int | float = 1000) -> FormData:
+    async def _get_form(
+        self,
+        *,
+        max_files: int | float = 1000,
+        max_fields: int | float = 1000,
+        max_field_size: int | float | None,
+        max_file_mem_size: int | float | None,
+        max_file_disk_size: int | float | None,
+    ) -> FormData:
         if self._form is None:
             assert (
                 parse_options_header is not None
@@ -264,6 +272,9 @@ class Request(HTTPConnection):
                         self.stream(),
                         max_files=max_files,
                         max_fields=max_fields,
+                        max_field_size=max_field_size,
+                        max_file_mem_size=max_file_mem_size,
+                        max_file_disk_size=max_file_disk_size,
                     )
                     self._form = await multipart_parser.parse()
                 except MultiPartException as exc:
@@ -278,9 +289,33 @@ class Request(HTTPConnection):
         return self._form
 
     def form(
-        self, *, max_files: int | float = 1000, max_fields: int | float = 1000
+        self,
+        *,
+        max_files: int | float = 1000,
+        max_fields: int | float = 1000,
+        max_field_size: int | float | None = None,
+        max_file_mem_size: int | float | None = None,
+        max_file_disk_size: int | float | None = None,
     ) -> AwaitableOrContextManager[FormData]:
-        return AwaitableOrContextManagerWrapper(self._get_form(max_files=max_files, max_fields=max_fields))
+        """
+        Return a FormData instance, representing the form data in the request.
+
+        :param max_files: The maximum number of files that can be parsed.
+        :param max_fields: The maximum number of fields that can be parsed.
+        :param max_field_size: The maximum size of each field part in bytes.
+        :param max_file_mem_size: The maximum memory size for each file part in bytes.
+        :param max_file_disk_size: The maximum disk size for each file part in bytes.
+            https://docs.python.org/3/library/tempfile.html#tempfile.SpooledTemporaryFile
+        """
+        return AwaitableOrContextManagerWrapper(
+            self._get_form(
+                max_files=max_files,
+                max_fields=max_fields,
+                max_field_size=max_field_size,
+                max_file_mem_size=max_file_mem_size,
+                max_file_disk_size=max_file_disk_size,
+            )
+        )
 
     async def close(self) -> None:
         if self._form is not None:  # pragma: no branch
