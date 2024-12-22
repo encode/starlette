@@ -397,7 +397,6 @@ class TestClient(httpx.Client):
     __test__ = False
     task: Future[None]
     portal: anyio.abc.BlockingPortal | None = None
-    redirect: bool | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT
 
     def __init__(
         self,
