@@ -797,7 +797,7 @@ def test_raise_on_startup(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         async def _send(message: Message) -> None:
             nonlocal startup_failed
-            if message["type"] == "lifespan.startup.failed":
+            if message["type"] == "lifespan.startup.failed":  # pragma: no branch
                 startup_failed = True
             return await send(message)
 
@@ -883,7 +883,7 @@ class Endpoint:
             id="staticmethod",
         ),
         pytest.param(Endpoint(), "Endpoint", id="object"),
-        pytest.param(lambda request: ..., "<lambda>", id="lambda"),
+        pytest.param(lambda request: ..., "<lambda>", id="lambda"),  # pragma: no branch
     ],
 )
 def test_route_name(endpoint: typing.Callable[..., Response], expected_name: str) -> None:

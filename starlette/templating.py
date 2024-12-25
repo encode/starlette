@@ -43,7 +43,7 @@ class _TemplateResponse(HTMLResponse):
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         request = self.context.get("request", {})
         extensions = request.get("extensions", {})
-        if "http.response.debug" in extensions:
+        if "http.response.debug" in extensions:  # pragma: no branch
             await send(
                 {
                     "type": "http.response.debug",
@@ -98,7 +98,7 @@ class Jinja2Templates:
         self.context_processors = context_processors or []
         if directory is not None:
             self.env = self._create_env(directory, **env_options)
-        elif env is not None:
+        elif env is not None:  # pragma: no branch
             self.env = env
 
         self._setup_env_defaults(self.env)

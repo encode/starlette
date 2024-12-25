@@ -2,6 +2,29 @@
 toc_depth: 2
 ---
 
+## 0.43.0 (December 25, 2024)
+
+#### Removed
+
+* Remove deprecated `allow_redirects` argument from `TestClient` [#2808](https://github.com/encode/starlette/pull/2808).
+
+#### Added
+
+* Make UUID path parameter conversion more flexible [#2806](https://github.com/encode/starlette/pull/2806).
+
+## 0.42.0 (December 14, 2024)
+
+#### Added
+
+* Raise `ClientDisconnect` on `StreamingResponse` [#2732](https://github.com/encode/starlette/pull/2732).
+
+#### Fixed
+
+* Use ETag from headers when parsing If-Range in FileResponse [#2761](https://github.com/encode/starlette/pull/2761).
+* Follow directory symlinks in `StaticFiles` when `follow_symlinks=True` [#2711](https://github.com/encode/starlette/pull/2711).
+* Bump minimum `python-multipart` version to `0.0.18` [0ba8395](https://github.com/encode/starlette/commit/0ba83959e609bbd460966f092287df1bbd564cc6).
+* Bump minimum `httpx` version to `0.27.0` [#2773](https://github.com/encode/starlette/pull/2773).
+
 ## 0.41.3 (November 18, 2024)
 
 #### Fixed
