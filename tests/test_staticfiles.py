@@ -225,6 +225,7 @@ def test_staticfiles_200_with_etag_mismatch(tmpdir: Path, test_client_factory: T
     client = test_client_factory(app)
     first_resp = client.get("/example.txt")
     assert first_resp.status_code == 200
+    assert first_resp.headers["etag"] != '"123"'
     second_resp = client.get("/example.txt", headers={"if-none-match": '"123"'})
     assert second_resp.status_code == 200
     assert second_resp.content == b"<file content>"
