@@ -131,7 +131,7 @@ class MultiPartParser:
         *,
         max_files: int | float = 1000,
         max_fields: int | float = 1000,
-        max_part_size: int | float = 1024 * 1024,  # 1MB
+        max_part_size: int = 1024 * 1024,  # 1MB
     ) -> None:
         assert multipart is not None, "The `python-multipart` library must be installed to use form parsing."
         self.headers = headers
