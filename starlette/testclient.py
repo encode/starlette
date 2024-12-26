@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import enum
 import inspect
 import io
 import json
@@ -85,6 +86,14 @@ class WebSocketDenialResponse(  # type: ignore[misc]
     """
 
 
+class _Eof(enum.Enum):
+    EOF = enum.auto()
+
+
+EOF: typing.Final = _Eof.EOF
+Eof = typing.Literal[_Eof.EOF]
+
+
 class WebSocketTestSession:
     def __init__(
         self,
@@ -97,7 +106,7 @@ class WebSocketTestSession:
         self.accepted_subprotocol = None
         self.portal_factory = portal_factory
         self._receive_queue: queue.Queue[Message] = queue.Queue()
-        self._send_queue: queue.Queue[Message | BaseException] = queue.Queue()
+        self._send_queue: queue.Queue[Message | Eof | BaseException] = queue.Queue()
         self.extra_headers = None
 
     def __enter__(self) -> WebSocketTestSession:
@@ -129,8 +138,11 @@ class WebSocketTestSession:
         finally:
             self.portal.start_task_soon(self._notify_close)
             self.exit_stack.close()
-        while not self._send_queue.empty():
+
+        while True:
             message = self._send_queue.get()
+            if message is EOF:
+                break
             if isinstance(message, BaseException):
                 raise message
 
@@ -150,10 +162,13 @@ class WebSocketTestSession:
             finally:
                 tg.cancel_scope.cancel()
 
-        async with anyio.create_task_group() as tg:
-            tg.start_soon(run_app, tg)
-            await self.should_close.wait()
-            tg.cancel_scope.cancel()
+        try:
+            async with anyio.create_task_group() as tg:
+                tg.start_soon(run_app, tg)
+                await self.should_close.wait()
+                tg.cancel_scope.cancel()
+        finally:
+            self._send_queue.put(EOF)
 
     async def _asgi_receive(self) -> Message:
         while self._receive_queue.empty():
@@ -202,6 +217,7 @@ class WebSocketTestSession:
 
     def receive(self) -> Message:
         message = self._send_queue.get()
+        assert message is not EOF
         if isinstance(message, BaseException):
             raise message
         return message
