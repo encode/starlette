@@ -709,7 +709,9 @@ class TestClient(httpx.Client):
             def reset_portal() -> None:
                 self.portal = None
 
-            send1, receive1 = anyio.create_memory_object_stream[typing.MutableMapping[str, typing.Any] | None](math.inf)
+            send1, receive1 = anyio.create_memory_object_stream[
+                typing.Optional[typing.MutableMapping[str, typing.Any]]
+            ](math.inf)
             send2, receive2 = anyio.create_memory_object_stream[typing.MutableMapping[str, typing.Any]](math.inf)
             for channel in (send1, send2, receive1, receive2):
                 stack.callback(channel.close)
