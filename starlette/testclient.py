@@ -234,7 +234,7 @@ class _TestClientTransport(httpx.BaseTransport):
         raise_server_exceptions: bool = True,
         root_path: str = "",
         *,
-        client: str,
+        client: tuple[str, int],
         port: int,
         app_state: dict[str, typing.Any],
     ) -> None:
