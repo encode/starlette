@@ -252,8 +252,8 @@ class Request(HTTPConnection):
     async def _get_form(
         self,
         *,
-        max_files: int = 1000,
-        max_fields: int = 1000,
+        max_files: int | float = 1000,
+        max_fields: int | float = 1000,
         max_part_size: int = 1024 * 1024,
     ) -> FormData:
         if self._form is None:
@@ -287,8 +287,8 @@ class Request(HTTPConnection):
     def form(
         self,
         *,
-        max_files: int = 1000,
-        max_fields: int = 1000,
+        max_files: int | float = 1000,
+        max_fields: int | float = 1000,
         max_part_size: int = 1024 * 1024,
     ) -> AwaitableOrContextManager[FormData]:
         return AwaitableOrContextManagerWrapper(
