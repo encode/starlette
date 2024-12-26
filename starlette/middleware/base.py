@@ -3,7 +3,6 @@ from __future__ import annotations
 import typing
 
 import anyio
-from anyio.streams.memory import MemoryObjectReceiveStream, MemoryObjectSendStream
 
 from starlette._utils import collapse_excgroups
 from starlette.requests import ClientDisconnect, Request
