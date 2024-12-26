@@ -296,7 +296,7 @@ async def test_run_background_tasks_even_if_client_disconnects() -> None:
     assert background_task_run.is_set()
 
 
-def test_run_background_tasks_raise_exceptions() -> None:
+def test_run_background_tasks_raise_exceptions(test_client_factory: TestClientFactory) -> None:
     # test for https://github.com/encode/starlette/issues/2625
 
     async def sleep_and_set() -> None:
@@ -314,7 +314,7 @@ def test_run_background_tasks_raise_exceptions() -> None:
         routes=[Route("/", endpoint_with_background_task)],
     )
 
-    client = TestClient(app)
+    client = test_client_factory(app)
     with pytest.raises(ValueError, match="TEST"):
         client.get("/")
 
