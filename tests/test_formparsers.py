@@ -109,9 +109,7 @@ def make_app_max_parts(
 ) -> ASGIApp:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
-        data = await request.form(
-            max_files=max_files, max_fields=max_fields, max_file_size=max_file_size, max_part_size=max_part_size
-        )
+        data = await request.form(max_files=max_files, max_fields=max_fields, max_part_size=max_part_size)
         output: dict[str, typing.Any] = {}
         for key, value in data.items():
             if isinstance(value, UploadFile):
