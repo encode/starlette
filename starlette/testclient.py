@@ -414,7 +414,7 @@ class TestClient(httpx.Client):
         headers: dict[str, str] | None = None,
         follow_redirects: bool = True,
         client: str = "testclient",
-        port: int = 5000
+        port: int = 5000,
     ) -> None:
         self.async_backend = _AsyncBackend(backend=backend, backend_options=backend_options or {})
         if _is_asgi3(app):
@@ -430,8 +430,8 @@ class TestClient(httpx.Client):
             raise_server_exceptions=raise_server_exceptions,
             root_path=root_path,
             app_state=self.app_state,
-            client = client,
-            port = port,
+            client=client,
+            port=port,
         )
         if headers is None:
             headers = {}
