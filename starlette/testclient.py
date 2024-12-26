@@ -168,7 +168,7 @@ class WebSocketTestSession:
                 await self.should_close.wait()
                 tg.cancel_scope.cancel()
         finally:
-            self._send_queue.put(EOF)
+            self._send_queue.put(EOF)  # TODO: use self._send_queue.shutdown() on 3.13+
 
     async def _asgi_receive(self) -> Message:
         while self._receive_queue.empty():
