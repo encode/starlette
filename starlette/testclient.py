@@ -234,6 +234,8 @@ class _TestClientTransport(httpx.BaseTransport):
         raise_server_exceptions: bool = True,
         root_path: str = "",
         *,
+        client: str,
+        port: int,
         app_state: dict[str, typing.Any],
     ) -> None:
         self.app = app
@@ -241,6 +243,8 @@ class _TestClientTransport(httpx.BaseTransport):
         self.root_path = root_path
         self.portal_factory = portal_factory
         self.app_state = app_state
+        self.client = client
+        self.port = port
 
     def handle_request(self, request: httpx.Request) -> httpx.Response:
         scheme = request.url.scheme
@@ -285,7 +289,7 @@ class _TestClientTransport(httpx.BaseTransport):
                 "scheme": scheme,
                 "query_string": query.encode(),
                 "headers": headers,
-                "client": ["testclient", 50000],
+                "client": [self.client, self.port],
                 "server": [host, port],
                 "subprotocols": subprotocols,
                 "state": self.app_state.copy(),
@@ -409,6 +413,8 @@ class TestClient(httpx.Client):
         cookies: httpx._types.CookieTypes | None = None,
         headers: dict[str, str] | None = None,
         follow_redirects: bool = True,
+        client: str = "testclient",
+        port: int = 5000
     ) -> None:
         self.async_backend = _AsyncBackend(backend=backend, backend_options=backend_options or {})
         if _is_asgi3(app):
@@ -424,6 +430,8 @@ class TestClient(httpx.Client):
             raise_server_exceptions=raise_server_exceptions,
             root_path=root_path,
             app_state=self.app_state,
+            client = client,
+            port = port,
         )
         if headers is None:
             headers = {}
