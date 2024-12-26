@@ -710,12 +710,8 @@ class TestClient(httpx.Client):
             def reset_portal() -> None:
                 self.portal = None
 
-            send1: ObjectSendStream[typing.MutableMapping[str, typing.Any] | None]
-            receive1: ObjectReceiveStream[typing.MutableMapping[str, typing.Any] | None]
-            send2: ObjectSendStream[typing.MutableMapping[str, typing.Any]]
-            receive2: ObjectReceiveStream[typing.MutableMapping[str, typing.Any]]
-            send1, receive1 = anyio.create_memory_object_stream(math.inf)
-            send2, receive2 = anyio.create_memory_object_stream(math.inf)
+            send1, receive1 = anyio.create_memory_object_stream[typing.MutableMapping[str, typing.Any] | None](math.inf)
+            send2, receive2 = anyio.create_memory_object_stream[typing.MutableMapping[str, typing.Any]](math.inf)
             for channel in (send1, send2, receive1, receive2):
                 stack.callback(channel.close)
             self.stream_send = StapledObjectStream(send1, receive1)
