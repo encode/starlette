@@ -173,9 +173,7 @@ class BaseHTTPMiddleware:
             response.raw_headers = message["headers"]
             return response
 
-        send_stream: MemoryObjectSendStream[Message]
-        recv_stream: MemoryObjectReceiveStream[Message]
-        send_stream, recv_stream = anyio.create_memory_object_stream()
+        send_stream, recv_stream = anyio.create_memory_object_stream[Message]()
         with recv_stream, send_stream, collapse_excgroups():
             async with anyio.create_task_group() as task_group:
                 response = await self.dispatch_func(request, call_next)
