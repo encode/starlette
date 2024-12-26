@@ -69,11 +69,6 @@ case you should use `client = TestClient(app, raise_server_exceptions=False)`.
     not be triggered when the `TestClient` is instantiated. You can learn more about it
     [here](lifespan.md#running-lifespan-in-tests).
 
-!!! note
-
-    By default the `TestClient` uses `testclient:50000` as the host and port. 
-    To use a different client, you can pass the host and port as a tuple: `TestClient(client=(<host>, <port>)`.
-
 ### Selecting the Async backend
 
 `TestClient` takes arguments `backend` (a string) and `backend_options` (a dictionary).
