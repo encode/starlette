@@ -413,8 +413,7 @@ class TestClient(httpx.Client):
         cookies: httpx._types.CookieTypes | None = None,
         headers: dict[str, str] | None = None,
         follow_redirects: bool = True,
-        client: str = "testclient",
-        port: int = 5000,
+        client: tuple[str, int] = ("testclient", 5000),
     ) -> None:
         self.async_backend = _AsyncBackend(backend=backend, backend_options=backend_options or {})
         if _is_asgi3(app):
