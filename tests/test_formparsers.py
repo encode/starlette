@@ -105,7 +105,7 @@ async def app_read_body(scope: Scope, receive: Receive, send: Send) -> None:
 
 
 def make_app_max_parts(
-    max_files: int = 1000, max_fields: int = 1000, max_file_size: int = 1024 * 1024, max_part_size: int = 1024 * 1024
+    max_files: int = 1000, max_fields: int = 1000, max_part_size: int = 1024 * 1024
 ) -> ASGIApp:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
