@@ -10,7 +10,6 @@ import queue
 import sys
 import typing
 from concurrent.futures import Future
-from functools import cached_property
 from types import GeneratorType
 from urllib.parse import unquote, urljoin
 
@@ -20,7 +19,7 @@ import anyio.from_thread
 from anyio.abc import ObjectReceiveStream, ObjectSendStream
 from anyio.streams.stapled import StapledObjectStream
 
-from starlette._utils import collapse_excgroups, is_async_callable
+from starlette._utils import is_async_callable
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from starlette.websockets import WebSocketDisconnect
 
@@ -108,29 +107,23 @@ class WebSocketTestSession:
         self._receive_queue: queue.Queue[Message] = queue.Queue()
         self._send_queue: queue.Queue[Message | Eof | BaseException] = queue.Queue()
         self.extra_headers = None
+        self.should_close: anyio.Event
 
     def __enter__(self) -> WebSocketTestSession:
         with contextlib.ExitStack() as stack:
             self.portal = portal = stack.enter_context(self.portal_factory())
 
-            fut: Future[None] = self.portal.start_task_soon(self._run)
+            fut, cs = self.portal.start_task(self._run)
             self.send({"type": "websocket.connect"})
             message = self.receive()
             self._raise_on_close(message)
             self.accepted_subprotocol = message.get("subprotocol", None)
             self.extra_headers = message.get("headers", None)
             stack.callback(fut.result)
-            stack.callback(portal.call, self._notify_close)
+            stack.callback(portal.call, cs.cancel)
             stack.callback(self.close, 1000)
             self.exit_stack = stack.pop_all()
             return self
-
-    @cached_property
-    def should_close(self) -> anyio.Event:
-        return anyio.Event()
-
-    async def _notify_close(self) -> None:
-        self.should_close.set()
 
     def __exit__(self, *args: typing.Any) -> None:
         self.exit_stack.close()
@@ -142,28 +135,21 @@ class WebSocketTestSession:
             if isinstance(message, BaseException):
                 raise message  # pragma: no cover (defensive, should be impossible)
 
-    async def _run(self) -> None:
+    async def _run(self, *, task_status: anyio.abc.TaskStatus[anyio.CancelScope]) -> None:
         """
         The sub-thread in which the websocket session runs.
         """
-
-        async def run_app(tg: anyio.abc.TaskGroup) -> None:
+        try:
             try:
-                await self.app(self.scope, self._asgi_receive, self._asgi_send)
-            except anyio.get_cancelled_exc_class():
-                raise
+                self.should_close = anyio.Event()
+                with anyio.CancelScope() as cs:
+                    task_status.started(cs)
+                    await self.app(self.scope, self._asgi_receive, self._asgi_send)
             except BaseException as exc:
                 self._send_queue.put(exc)
                 raise
             finally:
-                tg.cancel_scope.cancel()
-
-        try:
-            with collapse_excgroups():
-                async with anyio.create_task_group() as tg:
-                    tg.start_soon(run_app, tg)
-                    await self.should_close.wait()
-                    tg.cancel_scope.cancel()
+                self.should_close.set()
         finally:
             self._send_queue.put(EOF)  # TODO: use self._send_queue.shutdown() on 3.13+
 
