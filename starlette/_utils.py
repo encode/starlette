@@ -16,7 +16,7 @@ else:  # pragma: no cover
 has_exceptiongroups = True
 if sys.version_info < (3, 11):  # pragma: no cover
     try:
-        from exceptiongroup import BaseExceptionGroup  # type: ignore[import-not-found]
+        from exceptiongroup import BaseExceptionGroup
     except ImportError:
         has_exceptiongroups = False
 
