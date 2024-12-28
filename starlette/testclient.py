@@ -105,6 +105,8 @@ def _handle_task(portal: anyio.abc.BlockingPortal, async_fn: StartableAsyncFn[_T
     try:
         yield result
     finally:
+        # can't raise an exception from stack.callback on Python 3.8
+        # due to https://github.com/python/cpython/issues/69968
         fut.result()
 
 
