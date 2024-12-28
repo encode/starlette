@@ -736,6 +736,6 @@ def test_max_part_size_exceeds_custom_limit(
     }
 
     with expectation:
-        response = client.post("/", data=multipart_data, headers=headers)  # type: ignore
+        response = client.post("/", content=multipart_data, headers=headers)
         assert response.status_code == 400
         assert response.text == "Part exceeded maximum size of 10KB."
