@@ -114,13 +114,14 @@ class WebSocketTestSession:
             self.portal = portal = stack.enter_context(self.portal_factory())
 
             fut, cs = self.portal.start_task(self._run)
+            stack.callback(fut.result)
+            stack.callback(portal.call, cs.cancel)
+
             self.send({"type": "websocket.connect"})
             message = self.receive()
             self._raise_on_close(message)
             self.accepted_subprotocol = message.get("subprotocol", None)
             self.extra_headers = message.get("headers", None)
-            stack.callback(fut.result)
-            stack.callback(portal.call, cs.cancel)
             stack.callback(self.close, 1000)
             self.exit_stack = stack.pop_all()
             return self
