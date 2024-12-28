@@ -93,6 +93,12 @@ EOF: typing.Final = _Eof.EOF
 Eof = typing.Literal[_Eof.EOF]
 
 
+class _HadException(Exception):
+    def __init__(self, wrapped: BaseException, /, *args: object):
+        super().__init__(wrapped, *args)
+        self.wrapped: typing.Final = wrapped
+
+
 class WebSocketTestSession:
     def __init__(
         self,
@@ -110,24 +116,40 @@ class WebSocketTestSession:
         self.should_close: anyio.Event
 
     def __enter__(self) -> WebSocketTestSession:
-        with contextlib.ExitStack() as stack:
-            self.portal = portal = stack.enter_context(self.portal_factory())
+        try:
+            with contextlib.ExitStack() as stack:
+                self.portal = portal = stack.enter_context(self.portal_factory())
 
-            fut, cs = self.portal.start_task(self._run)
-            stack.callback(fut.result)
-            stack.callback(portal.call, cs.cancel)
+                fut, cs = self.portal.start_task(self._run)
 
-            self.send({"type": "websocket.connect"})
-            message = self.receive()
-            self._raise_on_close(message)
-            self.accepted_subprotocol = message.get("subprotocol", None)
-            self.extra_headers = message.get("headers", None)
-            stack.callback(self.close, 1000)
-            self.exit_stack = stack.pop_all()
-            return self
+                @stack.callback
+                def handle_task() -> None:
+                    portal.call(cs.cancel)
+                    e = fut.exception()
+                    if e is None:
+                        return
+                    # work-around for https://github.com/python/cpython/issues/69968
+                    try:
+                        raise _HadException(e)
+                    finally:
+                        del e
+
+                self.send({"type": "websocket.connect"})
+                message = self.receive()
+                self._raise_on_close(message)
+                self.accepted_subprotocol = message.get("subprotocol", None)
+                self.extra_headers = message.get("headers", None)
+                stack.callback(self.close, 1000)
+                self.exit_stack = stack.pop_all()
+                return self
+        except _HadException as e:
+            raise e.wrapped
 
     def __exit__(self, *args: typing.Any) -> None:
-        self.exit_stack.close()
+        try:
+            self.exit_stack.close()
+        except _HadException as e:
+            raise e.wrapped
 
         while True:
             message = self._send_queue.get()
