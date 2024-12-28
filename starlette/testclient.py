@@ -122,7 +122,6 @@ class WebSocketTestSession:
         self._receive_queue: queue.Queue[Message] = queue.Queue()
         self._send_queue: queue.Queue[Message | Eof | BaseException] = queue.Queue()
         self.extra_headers = None
-        self.should_close: anyio.Event
 
     def __enter__(self) -> WebSocketTestSession:
         with contextlib.ExitStack() as stack:
@@ -153,16 +152,12 @@ class WebSocketTestSession:
         The sub-thread in which the websocket session runs.
         """
         try:
-            try:
-                self.should_close = anyio.Event()
-                with anyio.CancelScope() as cs:
-                    task_status.started(cs)
-                    await self.app(self.scope, self._asgi_receive, self._asgi_send)
-            except BaseException as exc:
-                self._send_queue.put(exc)
-                raise
-            finally:
-                self.should_close.set()
+            with anyio.CancelScope() as cs:
+                task_status.started(cs)
+                await self.app(self.scope, self._asgi_receive, self._asgi_send)
+        except BaseException as exc:
+            self._send_queue.put(exc)
+            raise
         finally:
             self._send_queue.put(EOF)  # TODO: use self._send_queue.shutdown() on 3.13+
 
