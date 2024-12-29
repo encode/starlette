@@ -8,6 +8,7 @@ from typing import Any
 import anyio
 import pytest
 from anyio.abc import TaskStatus
+from exceptiongroup import ExceptionGroup
 
 from starlette.applications import Starlette
 from starlette.background import BackgroundTask
@@ -39,6 +40,10 @@ def homepage(request: Request) -> PlainTextResponse:
 
 def exc(request: Request) -> None:
     raise Exception("Exc")
+
+
+def eg(request: Request) -> None:
+    raise ExceptionGroup("my exception group", [ValueError("TEST")])
 
 
 def exc_stream(request: Request) -> StreamingResponse:
@@ -76,6 +81,7 @@ app = Starlette(
     routes=[
         Route("/", endpoint=homepage),
         Route("/exc", endpoint=exc),
+        Route("/eg", endpoint=eg),
         Route("/exc-stream", endpoint=exc_stream),
         Route("/no-response", endpoint=NoResponse),
         WebSocketRoute("/ws", endpoint=websocket_endpoint),
@@ -89,13 +95,16 @@ def test_custom_middleware(test_client_factory: TestClientFactory) -> None:
     response = client.get("/")
     assert response.headers["Custom-Header"] == "Example"
 
-    with pytest.raises(Exception) as ctx:
+    with pytest.raises(Exception) as ctx1:
         response = client.get("/exc")
-    assert str(ctx.value) == "Exc"
+    assert str(ctx1.value) == "Exc"
 
-    with pytest.raises(Exception) as ctx:
+    with pytest.raises(Exception) as ctx2:
         response = client.get("/exc-stream")
-    assert str(ctx.value) == "Faulty Stream"
+    assert str(ctx2.value) == "Faulty Stream"
+
+    with pytest.raises(ExceptionGroup, match=r"my exception group \(1 sub-exception\)"):
+        client.get("/eg")
 
     with pytest.raises(RuntimeError):
         response = client.get("/no-response")

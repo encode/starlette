@@ -13,12 +13,14 @@ if sys.version_info >= (3, 10):  # pragma: no cover
 else:  # pragma: no cover
     from typing_extensions import TypeGuard
 
-has_exceptiongroups = True
 if sys.version_info < (3, 11):  # pragma: no cover
     try:
         from exceptiongroup import BaseExceptionGroup  # type: ignore[unused-ignore,import-not-found]
     except ImportError:
-        has_exceptiongroups = False
+
+        class BaseExceptionGroup(BaseException):  # type: ignore[no-redef]
+            pass
+
 
 T = typing.TypeVar("T")
 AwaitableCallable = typing.Callable[..., typing.Awaitable[T]]
@@ -74,12 +76,23 @@ class AwaitableOrContextManagerWrapper(typing.Generic[SupportsAsyncCloseType]):
 def collapse_excgroups() -> typing.Generator[None, None, None]:
     try:
         yield
-    except BaseException as exc:
-        if has_exceptiongroups:  # pragma: no cover
-            while isinstance(exc, BaseExceptionGroup) and len(exc.exceptions) == 1:
-                exc = exc.exceptions[0]
+    except BaseExceptionGroup as excs:
+        if len(excs.exceptions) != 1:
+            raise
 
-        raise exc
+        exc = excs.exceptions[0]
+        context = exc.__context__
+        tb = exc.__traceback__
+        cause = exc.__cause__
+        sc = exc.__suppress_context__
+        try:
+            raise exc
+        finally:
+            exc.__traceback__ = tb
+            exc.__context__ = context
+            exc.__cause__ = cause
+            exc.__suppress_context__ = sc
+            del exc, cause, tb, context
 
 
 def get_route_path(scope: Scope) -> str:
