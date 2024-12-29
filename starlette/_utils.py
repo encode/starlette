@@ -75,7 +75,7 @@ class AwaitableOrContextManagerWrapper(typing.Generic[SupportsAsyncCloseType]):
 
 
 @contextmanager
-def collapse_excgroups() -> typing.Generator[None, None, None]:
+def _collapse_excgroups() -> typing.Generator[None, None, None]:
     try:
         yield
     except BaseExceptionGroup as excs:
@@ -99,7 +99,7 @@ def collapse_excgroups() -> typing.Generator[None, None, None]:
 
 @asynccontextmanager
 async def create_collapsing_task_group() -> typing.AsyncGenerator[anyio.abc.TaskGroup, None]:
-    with collapse_excgroups():
+    with _collapse_excgroups():
         async with anyio.create_task_group() as tg:
             yield tg
 
