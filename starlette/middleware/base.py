@@ -106,7 +106,6 @@ class BaseHTTPMiddleware:
         app_exc: Exception | None = None
 
         async def call_next(request: Request) -> Response:
-
             async def receive_or_disconnect() -> Message:
                 if response_sent.is_set():
                     return {"type": "http.disconnect"}
