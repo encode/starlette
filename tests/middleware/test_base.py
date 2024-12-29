@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextvars
+import sys
 from collections.abc import AsyncGenerator, AsyncIterator, Generator
 from contextlib import AsyncExitStack
 from typing import Any
@@ -8,7 +9,6 @@ from typing import Any
 import anyio
 import pytest
 from anyio.abc import TaskStatus
-from exceptiongroup import ExceptionGroup
 
 from starlette.applications import Starlette
 from starlette.background import BackgroundTask
@@ -21,6 +21,9 @@ from starlette.testclient import TestClient
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from starlette.websockets import WebSocket
 from tests.types import TestClientFactory
+
+if sys.version_info < (3, 11):
+    from exceptiongroup import ExceptionGroup
 
 
 class CustomMiddleware(BaseHTTPMiddleware):
