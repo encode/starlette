@@ -4,7 +4,7 @@ import asyncio
 import functools
 import sys
 import typing
-from contextlib import asynccontextmanager, contextmanager
+from contextlib import asynccontextmanager
 
 import anyio.abc
 
@@ -74,10 +74,11 @@ class AwaitableOrContextManagerWrapper(typing.Generic[SupportsAsyncCloseType]):
         return None
 
 
-@contextmanager
-def _collapse_excgroups() -> typing.Generator[None, None, None]:
+@asynccontextmanager
+async def create_collapsing_task_group() -> typing.AsyncGenerator[anyio.abc.TaskGroup, None]:
     try:
-        yield
+        async with anyio.create_task_group() as tg:
+            yield tg
     except BaseExceptionGroup as excs:
         if len(excs.exceptions) != 1:
             raise
@@ -95,13 +96,6 @@ def _collapse_excgroups() -> typing.Generator[None, None, None]:
             exc.__cause__ = cause
             exc.__suppress_context__ = sc
             del exc, cause, tb, context
-
-
-@asynccontextmanager
-async def create_collapsing_task_group() -> typing.AsyncGenerator[anyio.abc.TaskGroup, None]:
-    with _collapse_excgroups():
-        async with anyio.create_task_group() as tg:
-            yield tg
 
 
 def get_route_path(scope: Scope) -> str:
