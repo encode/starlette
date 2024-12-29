@@ -8,7 +8,7 @@ from starlette._utils import create_collapsing_task_group, get_route_path, is_as
 from starlette.types import Scope
 
 if sys.version_info < (3, 11):  # pragma: no cover
-    from exceptiongroups import ExceptionGroup
+    from exceptiongroup import ExceptionGroup
 
 
 def test_async_func() -> None:
