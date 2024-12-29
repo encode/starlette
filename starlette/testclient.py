@@ -92,23 +92,6 @@ class _Eof(enum.Enum):
 EOF: typing.Final = _Eof.EOF
 Eof = typing.Literal[_Eof.EOF]
 
-_T_co = typing.TypeVar("_T_co", covariant=True)
-
-
-class StartableAsyncFn(typing.Generic[_T_co], typing.Protocol):
-    async def __call__(self, /, *, task_status: anyio.abc.TaskStatus[_T_co]) -> None: ...
-
-
-@contextlib.contextmanager
-def _handle_task(portal: anyio.abc.BlockingPortal, async_fn: StartableAsyncFn[_T_co]) -> typing.Generator[_T_co]:
-    fut, result = portal.start_task(async_fn)
-    try:
-        yield result
-    finally:
-        # can't raise an exception from stack.callback on Python 3.8
-        # due to https://github.com/python/cpython/issues/69968
-        fut.result()
-
 
 class WebSocketTestSession:
     def __init__(
@@ -128,7 +111,8 @@ class WebSocketTestSession:
     def __enter__(self) -> WebSocketTestSession:
         with contextlib.ExitStack() as stack:
             self.portal = portal = stack.enter_context(self.portal_factory())
-            cs = stack.enter_context(_handle_task(portal, self._run))
+            fut, cs = portal.start_task(self._run)
+            stack.callback(fut.result)
             stack.callback(portal.call, cs.cancel)
             self.send({"type": "websocket.connect"})
             message = self.receive()
