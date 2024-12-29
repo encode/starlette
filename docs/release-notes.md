@@ -2,6 +2,21 @@
 toc_depth: 2
 ---
 
+## 0.45.0 (December 29, 2024)
+
+#### Removed
+
+* Drop Python 3.8 support [#2823](https://github.com/encode/starlette/pull/2823).
+* Remove `ExceptionMiddleware` import proxy from `starlette.exceptions` module [#2826](https://github.com/encode/starlette/pull/2826).
+* Remove deprecated `WS_1004_NO_STATUS_RCVD` and `WS_1005_ABNORMAL_CLOSURE` [#2827](https://github.com/encode/starlette/pull/2827).
+
+## 0.44.0 (December 28, 2024)
+
+#### Added
+
+* Add `client` parameter to `TestClient` [#2810](https://github.com/encode/starlette/pull/2810).
+* Add `max_part_size` parameter to `Request.form()` [#2815](https://github.com/encode/starlette/pull/2815).
+
 ## 0.43.0 (December 25, 2024)
 
 #### Removed
