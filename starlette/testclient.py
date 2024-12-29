@@ -5,18 +5,15 @@ import inspect
 import io
 import json
 import math
-import queue
 import sys
 import typing
 from concurrent.futures import Future
-from functools import cached_property
 from types import GeneratorType
 from urllib.parse import unquote, urljoin
 
 import anyio
 import anyio.abc
 import anyio.from_thread
-from anyio.abc import ObjectReceiveStream, ObjectSendStream
 from anyio.streams.stapled import StapledObjectStream
 
 from starlette._utils import is_async_callable
@@ -96,73 +93,40 @@ class WebSocketTestSession:
         self.scope = scope
         self.accepted_subprotocol = None
         self.portal_factory = portal_factory
-        self._receive_queue: queue.Queue[Message] = queue.Queue()
-        self._send_queue: queue.Queue[Message | BaseException] = queue.Queue()
         self.extra_headers = None
 
     def __enter__(self) -> WebSocketTestSession:
-        self.exit_stack = contextlib.ExitStack()
-        self.portal = self.exit_stack.enter_context(self.portal_factory())
-
-        try:
-            _: Future[None] = self.portal.start_task_soon(self._run)
+        with contextlib.ExitStack() as stack:
+            self.portal = portal = stack.enter_context(self.portal_factory())
+            fut, cs = portal.start_task(self._run)
+            stack.callback(fut.result)
+            stack.callback(portal.call, cs.cancel)
             self.send({"type": "websocket.connect"})
             message = self.receive()
             self._raise_on_close(message)
-        except Exception:
-            self.exit_stack.close()
-            raise
-        self.accepted_subprotocol = message.get("subprotocol", None)
-        self.extra_headers = message.get("headers", None)
-        return self
+            self.accepted_subprotocol = message.get("subprotocol", None)
+            self.extra_headers = message.get("headers", None)
+            stack.callback(self.close, 1000)
+            self.exit_stack = stack.pop_all()
+            return self
 
-    @cached_property
-    def should_close(self) -> anyio.Event:
-        return anyio.Event()
+    def __exit__(self, *args: typing.Any) -> bool | None:
+        return self.exit_stack.__exit__(*args)
 
-    async def _notify_close(self) -> None:
-        self.should_close.set()
-
-    def __exit__(self, *args: typing.Any) -> None:
-        try:
-            self.close(1000)
-        finally:
-            self.portal.start_task_soon(self._notify_close)
-            self.exit_stack.close()
-        while not self._send_queue.empty():
-            message = self._send_queue.get()
-            if isinstance(message, BaseException):
-                raise message
-
-    async def _run(self) -> None:
+    async def _run(self, *, task_status: anyio.abc.TaskStatus[anyio.CancelScope]) -> None:
         """
         The sub-thread in which the websocket session runs.
         """
+        send_tx, send_rx = anyio.create_memory_object_stream[Message](math.inf)
+        receive_tx, receive_rx = anyio.create_memory_object_stream[Message](math.inf)
+        with send_tx, send_rx, receive_tx, receive_rx, anyio.CancelScope() as cs:
+            self._receive_tx = receive_tx
+            self._send_rx = send_rx
+            task_status.started(cs)
+            await self.app(self.scope, receive_rx.receive, send_tx.send)
 
-        async def run_app(tg: anyio.abc.TaskGroup) -> None:
-            try:
-                await self.app(self.scope, self._asgi_receive, self._asgi_send)
-            except anyio.get_cancelled_exc_class():
-                ...
-            except BaseException as exc:
-                self._send_queue.put(exc)
-                raise
-            finally:
-                tg.cancel_scope.cancel()
-
-        async with anyio.create_task_group() as tg:
-            tg.start_soon(run_app, tg)
-            await self.should_close.wait()
-            tg.cancel_scope.cancel()
-
-    async def _asgi_receive(self) -> Message:
-        while self._receive_queue.empty():
-            self._queue_event = anyio.Event()
-            await self._queue_event.wait()
-        return self._receive_queue.get()
-
-    async def _asgi_send(self, message: Message) -> None:
-        self._send_queue.put(message)
+            # wait for cs.cancel to be called before closing streams
+            await anyio.sleep_forever()
 
     def _raise_on_close(self, message: Message) -> None:
         if message["type"] == "websocket.close":
@@ -180,9 +144,7 @@ class WebSocketTestSession:
             raise WebSocketDenialResponse(status_code=status_code, headers=headers, content=b"".join(body))
 
     def send(self, message: Message) -> None:
-        self._receive_queue.put(message)
-        if hasattr(self, "_queue_event"):
-            self.portal.start_task_soon(self._queue_event.set)
+        self.portal.call(self._receive_tx.send, message)
 
     def send_text(self, data: str) -> None:
         self.send({"type": "websocket.receive", "text": data})
@@ -201,10 +163,7 @@ class WebSocketTestSession:
         self.send({"type": "websocket.disconnect", "code": code, "reason": reason})
 
     def receive(self) -> Message:
-        message = self._send_queue.get()
-        if isinstance(message, BaseException):
-            raise message
-        return message
+        return self.portal.call(self._send_rx.receive)
 
     def receive_text(self) -> str:
         message = self.receive()
@@ -234,6 +193,7 @@ class _TestClientTransport(httpx.BaseTransport):
         raise_server_exceptions: bool = True,
         root_path: str = "",
         *,
+        client: tuple[str, int],
         app_state: dict[str, typing.Any],
     ) -> None:
         self.app = app
@@ -241,6 +201,7 @@ class _TestClientTransport(httpx.BaseTransport):
         self.root_path = root_path
         self.portal_factory = portal_factory
         self.app_state = app_state
+        self.client = client
 
     def handle_request(self, request: httpx.Request) -> httpx.Response:
         scheme = request.url.scheme
@@ -285,7 +246,7 @@ class _TestClientTransport(httpx.BaseTransport):
                 "scheme": scheme,
                 "query_string": query.encode(),
                 "headers": headers,
-                "client": ["testclient", 50000],
+                "client": self.client,
                 "server": [host, port],
                 "subprotocols": subprotocols,
                 "state": self.app_state.copy(),
@@ -304,7 +265,7 @@ class _TestClientTransport(httpx.BaseTransport):
             "scheme": scheme,
             "query_string": query.encode(),
             "headers": headers,
-            "client": ["testclient", 50000],
+            "client": self.client,
             "server": [host, port],
             "extensions": {"http.response.debug": {}},
             "state": self.app_state.copy(),
@@ -409,6 +370,7 @@ class TestClient(httpx.Client):
         cookies: httpx._types.CookieTypes | None = None,
         headers: dict[str, str] | None = None,
         follow_redirects: bool = True,
+        client: tuple[str, int] = ("testclient", 50000),
     ) -> None:
         self.async_backend = _AsyncBackend(backend=backend, backend_options=backend_options or {})
         if _is_asgi3(app):
@@ -424,6 +386,7 @@ class TestClient(httpx.Client):
             raise_server_exceptions=raise_server_exceptions,
             root_path=root_path,
             app_state=self.app_state,
+            client=client,
         )
         if headers is None:
             headers = {}
@@ -694,12 +657,12 @@ class TestClient(httpx.Client):
             def reset_portal() -> None:
                 self.portal = None
 
-            send1: ObjectSendStream[typing.MutableMapping[str, typing.Any] | None]
-            receive1: ObjectReceiveStream[typing.MutableMapping[str, typing.Any] | None]
-            send2: ObjectSendStream[typing.MutableMapping[str, typing.Any]]
-            receive2: ObjectReceiveStream[typing.MutableMapping[str, typing.Any]]
-            send1, receive1 = anyio.create_memory_object_stream(math.inf)
-            send2, receive2 = anyio.create_memory_object_stream(math.inf)
+            send1, receive1 = anyio.create_memory_object_stream[
+                typing.Union[typing.MutableMapping[str, typing.Any], None]
+            ](math.inf)
+            send2, receive2 = anyio.create_memory_object_stream[typing.MutableMapping[str, typing.Any]](math.inf)
+            for channel in (send1, send2, receive1, receive2):
+                stack.callback(channel.close)
             self.stream_send = StapledObjectStream(send1, receive1)
             self.stream_receive = StapledObjectStream(send2, receive2)
             self.task = portal.start_task_soon(self.lifespan)
@@ -747,12 +710,11 @@ class TestClient(httpx.Client):
                 self.task.result()
             return message
 
-        async with self.stream_send, self.stream_receive:
-            await self.stream_receive.send({"type": "lifespan.shutdown"})
-            message = await receive()
-            assert message["type"] in (
-                "lifespan.shutdown.complete",
-                "lifespan.shutdown.failed",
-            )
-            if message["type"] == "lifespan.shutdown.failed":
-                await receive()
+        await self.stream_receive.send({"type": "lifespan.shutdown"})
+        message = await receive()
+        assert message["type"] in (
+            "lifespan.shutdown.complete",
+            "lifespan.shutdown.failed",
+        )
+        if message["type"] == "lifespan.shutdown.failed":
+            await receive()
