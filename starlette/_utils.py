@@ -4,7 +4,9 @@ import asyncio
 import functools
 import sys
 import typing
-from contextlib import contextmanager
+from contextlib import asynccontextmanager, contextmanager
+
+import anyio.abc
 
 from starlette.types import Scope
 
@@ -93,6 +95,13 @@ def collapse_excgroups() -> typing.Generator[None, None, None]:
             exc.__cause__ = cause
             exc.__suppress_context__ = sc
             del exc, cause, tb, context
+
+
+@asynccontextmanager
+async def create_collapsing_task_group() -> typing.AsyncGenerator[anyio.abc.TaskGroup, None]:
+    with collapse_excgroups():
+        async with anyio.create_task_group() as tg:
+            yield tg
 
 
 def get_route_path(scope: Scope) -> str:
