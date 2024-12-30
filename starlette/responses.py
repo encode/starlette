@@ -18,6 +18,7 @@ from urllib.parse import quote
 import anyio
 import anyio.to_thread
 
+from starlette._utils import create_collapsing_task_group
 from starlette.background import BackgroundTask
 from starlette.concurrency import iterate_in_threadpool
 from starlette.datastructures import URL, Headers, MutableHeaders
@@ -258,7 +259,7 @@ class StreamingResponse(Response):
             except OSError:
                 raise ClientDisconnect()
         else:
-            async with anyio.create_task_group() as task_group:
+            async with create_collapsing_task_group() as task_group:
 
                 async def wrap(func: typing.Callable[[], typing.Awaitable[None]]) -> None:
                     await func()
