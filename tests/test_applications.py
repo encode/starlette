@@ -23,7 +23,6 @@ from starlette.staticfiles import StaticFiles
 from starlette.testclient import TestClient, WebSocketDenialResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 from starlette.websockets import WebSocket
-from tests.types import TestClientFactory
 
 
 async def error_500(request: Request, exc: HTTPException) -> JSONResponse:
@@ -137,8 +136,8 @@ app = Starlette(
 
 
 @pytest.fixture
-def client(test_client_factory: TestClientFactory) -> Generator[TestClient, None, None]:
-    with test_client_factory(app) as client:
+def client() -> Generator[TestClient, None, None]:
+    with TestClient(app) as client:
         yield client
 
 
@@ -180,8 +179,8 @@ def test_mounted_route_path_params(client: TestClient) -> None:
     assert response.text == "Hello, tomchristie!"
 
 
-def test_subdomain_route(test_client_factory: TestClientFactory) -> None:
-    client = test_client_factory(app, base_url="https://foo.example.org/")
+def test_subdomain_route() -> None:
+    client = TestClient(app, base_url="https://foo.example.org/")
 
     response = client.get("/")
     assert response.status_code == 200
@@ -210,8 +209,8 @@ def test_405(client: TestClient) -> None:
     assert response.json() == {"detail": "Custom message"}
 
 
-def test_500(test_client_factory: TestClientFactory) -> None:
-    client = test_client_factory(app, raise_server_exceptions=False)
+def test_500() -> None:
+    client = TestClient(app, raise_server_exceptions=False)
     response = client.get("/500")
     assert response.status_code == 500
     assert response.json() == {"detail": "Server Error"}
@@ -245,8 +244,8 @@ def test_websocket_raise_custom_exception(client: TestClient) -> None:
         }
 
 
-def test_middleware(test_client_factory: TestClientFactory) -> None:
-    client = test_client_factory(app, base_url="http://incorrecthost")
+def test_middleware() -> None:
+    client = TestClient(app, base_url="http://incorrecthost")
     response = client.get("/func")
     assert response.status_code == 400
     assert response.text == "Invalid host header"
@@ -278,7 +277,7 @@ def test_routes() -> None:
     ]
 
 
-def test_app_mount(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_app_mount(tmpdir: Path) -> None:
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
         file.write("<file content>")
@@ -289,7 +288,7 @@ def test_app_mount(tmpdir: Path, test_client_factory: TestClientFactory) -> None
         ]
     )
 
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     response = client.get("/static/example.txt")
     assert response.status_code == 200
@@ -300,7 +299,7 @@ def test_app_mount(tmpdir: Path, test_client_factory: TestClientFactory) -> None
     assert response.text == "Method Not Allowed"
 
 
-def test_app_debug(test_client_factory: TestClientFactory) -> None:
+def test_app_debug() -> None:
     async def homepage(request: Request) -> None:
         raise RuntimeError()
 
@@ -311,14 +310,14 @@ def test_app_debug(test_client_factory: TestClientFactory) -> None:
     )
     app.debug = True
 
-    client = test_client_factory(app, raise_server_exceptions=False)
+    client = TestClient(app, raise_server_exceptions=False)
     response = client.get("/")
     assert response.status_code == 500
     assert "RuntimeError" in response.text
     assert app.debug
 
 
-def test_app_add_route(test_client_factory: TestClientFactory) -> None:
+def test_app_add_route() -> None:
     async def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("Hello, World!")
 
@@ -328,13 +327,13 @@ def test_app_add_route(test_client_factory: TestClientFactory) -> None:
         ]
     )
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.status_code == 200
     assert response.text == "Hello, World!"
 
 
-def test_app_add_websocket_route(test_client_factory: TestClientFactory) -> None:
+def test_app_add_websocket_route() -> None:
     async def websocket_endpoint(session: WebSocket) -> None:
         await session.accept()
         await session.send_text("Hello, world!")
@@ -345,14 +344,14 @@ def test_app_add_websocket_route(test_client_factory: TestClientFactory) -> None
             WebSocketRoute("/ws", endpoint=websocket_endpoint),
         ]
     )
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     with client.websocket_connect("/ws") as session:
         text = session.receive_text()
         assert text == "Hello, world!"
 
 
-def test_app_add_event_handler(test_client_factory: TestClientFactory) -> None:
+def test_app_add_event_handler() -> None:
     startup_complete = False
     cleanup_complete = False
 
@@ -372,14 +371,14 @@ def test_app_add_event_handler(test_client_factory: TestClientFactory) -> None:
 
     assert not startup_complete
     assert not cleanup_complete
-    with test_client_factory(app):
+    with TestClient(app):
         assert startup_complete
         assert not cleanup_complete
     assert startup_complete
     assert cleanup_complete
 
 
-def test_app_async_cm_lifespan(test_client_factory: TestClientFactory) -> None:
+def test_app_async_cm_lifespan() -> None:
     startup_complete = False
     cleanup_complete = False
 
@@ -394,7 +393,7 @@ def test_app_async_cm_lifespan(test_client_factory: TestClientFactory) -> None:
 
     assert not startup_complete
     assert not cleanup_complete
-    with test_client_factory(app):
+    with TestClient(app):
         assert startup_complete
         assert not cleanup_complete
     assert startup_complete
@@ -411,7 +410,7 @@ deprecated_lifespan = pytest.mark.filterwarnings(
 
 
 @deprecated_lifespan
-def test_app_async_gen_lifespan(test_client_factory: TestClientFactory) -> None:
+def test_app_async_gen_lifespan() -> None:
     startup_complete = False
     cleanup_complete = False
 
@@ -425,7 +424,7 @@ def test_app_async_gen_lifespan(test_client_factory: TestClientFactory) -> None:
 
     assert not startup_complete
     assert not cleanup_complete
-    with test_client_factory(app):
+    with TestClient(app):
         assert startup_complete
         assert not cleanup_complete
     assert startup_complete
@@ -433,7 +432,7 @@ def test_app_async_gen_lifespan(test_client_factory: TestClientFactory) -> None:
 
 
 @deprecated_lifespan
-def test_app_sync_gen_lifespan(test_client_factory: TestClientFactory) -> None:
+def test_app_sync_gen_lifespan() -> None:
     startup_complete = False
     cleanup_complete = False
 
@@ -447,7 +446,7 @@ def test_app_sync_gen_lifespan(test_client_factory: TestClientFactory) -> None:
 
     assert not startup_complete
     assert not cleanup_complete
-    with test_client_factory(app):
+    with TestClient(app):
         assert startup_complete
         assert not cleanup_complete
     assert startup_complete
@@ -494,7 +493,7 @@ def test_decorator_deprecations() -> None:
         assert len(record) == 1
 
 
-def test_middleware_stack_init(test_client_factory: TestClientFactory) -> None:
+def test_middleware_stack_init() -> None:
     class NoOpMiddleware:
         def __init__(self, app: ASGIApp):
             self.app = app
@@ -520,23 +519,23 @@ def test_middleware_stack_init(test_client_factory: TestClientFactory) -> None:
 
     app = get_app()
 
-    with test_client_factory(app):
+    with TestClient(app):
         pass
 
     assert SimpleInitializableMiddleware.counter == 1
 
-    test_client_factory(app).get("/foo")
+    TestClient(app).get("/foo")
 
     assert SimpleInitializableMiddleware.counter == 1
 
     app = get_app()
 
-    test_client_factory(app).get("/foo")
+    TestClient(app).get("/foo")
 
     assert SimpleInitializableMiddleware.counter == 2
 
 
-def test_middleware_args(test_client_factory: TestClientFactory) -> None:
+def test_middleware_args() -> None:
     calls: list[str] = []
 
     class MiddlewareWithArgs:
@@ -552,13 +551,13 @@ def test_middleware_args(test_client_factory: TestClientFactory) -> None:
     app.add_middleware(MiddlewareWithArgs, "foo")
     app.add_middleware(MiddlewareWithArgs, "bar")
 
-    with test_client_factory(app):
+    with TestClient(app):
         pass
 
     assert calls == ["bar", "foo"]
 
 
-def test_middleware_factory(test_client_factory: TestClientFactory) -> None:
+def test_middleware_factory() -> None:
     calls: list[str] = []
 
     def _middleware_factory(app: ASGIApp, arg: str) -> ASGIApp:
@@ -575,7 +574,7 @@ def test_middleware_factory(test_client_factory: TestClientFactory) -> None:
     app.add_middleware(_middleware_factory, arg="foo")
     app.add_middleware(get_middleware_factory(), "bar")
 
-    with test_client_factory(app):
+    with TestClient(app):
         pass
 
     assert calls == ["bar", "foo"]

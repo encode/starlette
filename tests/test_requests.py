@@ -10,18 +10,18 @@ import pytest
 from starlette.datastructures import URL, Address, State
 from starlette.requests import ClientDisconnect, Request
 from starlette.responses import JSONResponse, PlainTextResponse, Response
+from starlette.testclient import TestClient
 from starlette.types import Message, Receive, Scope, Send
-from tests.types import TestClientFactory
 
 
-def test_request_url(test_client_factory: TestClientFactory) -> None:
+def test_request_url() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         data = {"method": request.method, "url": str(request.url)}
         response = JSONResponse(data)
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/123?a=abc")
     assert response.json() == {"method": "GET", "url": "http://testserver/123?a=abc"}
 
@@ -29,14 +29,14 @@ def test_request_url(test_client_factory: TestClientFactory) -> None:
     assert response.json() == {"method": "GET", "url": "https://example.org:123/"}
 
 
-def test_request_query_params(test_client_factory: TestClientFactory) -> None:
+def test_request_query_params() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         params = dict(request.query_params)
         response = JSONResponse({"params": params})
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/?a=123&b=456")
     assert response.json() == {"params": {"a": "123", "b": "456"}}
 
@@ -45,14 +45,14 @@ def test_request_query_params(test_client_factory: TestClientFactory) -> None:
     any(module in sys.modules for module in ("brotli", "brotlicffi")),
     reason='urllib3 includes "br" to the "accept-encoding" headers.',
 )
-def test_request_headers(test_client_factory: TestClientFactory) -> None:
+def test_request_headers() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         headers = dict(request.headers)
         response = JSONResponse({"headers": headers})
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/", headers={"host": "example.org"})
     assert response.json() == {
         "headers": {
@@ -79,14 +79,14 @@ def test_request_client(scope: Scope, expected_client: Address | None) -> None:
     assert client == expected_client
 
 
-def test_request_body(test_client_factory: TestClientFactory) -> None:
+def test_request_body() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         body = await request.body()
         response = JSONResponse({"body": body.decode()})
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     response = client.get("/")
     assert response.json() == {"body": ""}
@@ -98,7 +98,7 @@ def test_request_body(test_client_factory: TestClientFactory) -> None:
     assert response.json() == {"body": "abc"}
 
 
-def test_request_stream(test_client_factory: TestClientFactory) -> None:
+def test_request_stream() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         body = b""
@@ -107,7 +107,7 @@ def test_request_stream(test_client_factory: TestClientFactory) -> None:
         response = JSONResponse({"body": body.decode()})
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     response = client.get("/")
     assert response.json() == {"body": ""}
@@ -119,33 +119,33 @@ def test_request_stream(test_client_factory: TestClientFactory) -> None:
     assert response.json() == {"body": "abc"}
 
 
-def test_request_form_urlencoded(test_client_factory: TestClientFactory) -> None:
+def test_request_form_urlencoded() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         form = await request.form()
         response = JSONResponse({"form": dict(form)})
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     response = client.post("/", data={"abc": "123 @"})
     assert response.json() == {"form": {"abc": "123 @"}}
 
 
-def test_request_form_context_manager(test_client_factory: TestClientFactory) -> None:
+def test_request_form_context_manager() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         async with request.form() as form:
             response = JSONResponse({"form": dict(form)})
             await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     response = client.post("/", data={"abc": "123 @"})
     assert response.json() == {"form": {"abc": "123 @"}}
 
 
-def test_request_body_then_stream(test_client_factory: TestClientFactory) -> None:
+def test_request_body_then_stream() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         body = await request.body()
@@ -155,13 +155,13 @@ def test_request_body_then_stream(test_client_factory: TestClientFactory) -> Non
         response = JSONResponse({"body": body.decode(), "stream": chunks.decode()})
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     response = client.post("/", data="abc")  # type: ignore
     assert response.json() == {"body": "abc", "stream": "abc"}
 
 
-def test_request_stream_then_body(test_client_factory: TestClientFactory) -> None:
+def test_request_stream_then_body() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         chunks = b""
@@ -174,20 +174,20 @@ def test_request_stream_then_body(test_client_factory: TestClientFactory) -> Non
         response = JSONResponse({"body": body.decode(), "stream": chunks.decode()})
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     response = client.post("/", data="abc")  # type: ignore
     assert response.json() == {"body": "<stream consumed>", "stream": "abc"}
 
 
-def test_request_json(test_client_factory: TestClientFactory) -> None:
+def test_request_json() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         data = await request.json()
         response = JSONResponse({"json": data})
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.post("/", json={"a": "123"})
     assert response.json() == {"json": {"a": "123"}}
 
@@ -203,7 +203,7 @@ def test_request_scope_interface() -> None:
     assert len(request) == 3
 
 
-def test_request_raw_path(test_client_factory: TestClientFactory) -> None:
+def test_request_raw_path() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         path = request.scope["path"]
@@ -211,14 +211,12 @@ def test_request_raw_path(test_client_factory: TestClientFactory) -> None:
         response = PlainTextResponse(f"{path}, {raw_path}")
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/he%2Fllo")
     assert response.text == "/he/llo, b'/he%2Fllo'"
 
 
-def test_request_without_setting_receive(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_request_without_setting_receive() -> None:
     """
     If Request is instantiated without the receive channel, then .body()
     is not available.
@@ -233,7 +231,7 @@ def test_request_without_setting_receive(
         response = JSONResponse({"json": data})
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.post("/", json={"a": "123"})
     assert response.json() == {"json": "Receive channel not available"}
 
@@ -266,7 +264,7 @@ def test_request_disconnect(
         )
 
 
-def test_request_is_disconnected(test_client_factory: TestClientFactory) -> None:
+def test_request_is_disconnected() -> None:
     """
     If a client disconnect occurs after reading request body
     then request will be set disconnected properly.
@@ -283,7 +281,7 @@ def test_request_is_disconnected(test_client_factory: TestClientFactory) -> None
         await response(scope, receive, send)
         disconnected_after_response = await request.is_disconnected()
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.post("/", content="foo")
     assert response.json() == {"body": "foo", "disconnected": False}
     assert disconnected_after_response
@@ -303,19 +301,19 @@ def test_request_state_object() -> None:
         s.new
 
 
-def test_request_state(test_client_factory: TestClientFactory) -> None:
+def test_request_state() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         request.state.example = 123
         response = JSONResponse({"state.example": request.state.example})
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/123?a=abc")
     assert response.json() == {"state.example": 123}
 
 
-def test_request_cookies(test_client_factory: TestClientFactory) -> None:
+def test_request_cookies() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         mycookie = request.cookies.get("mycookie")
@@ -327,14 +325,14 @@ def test_request_cookies(test_client_factory: TestClientFactory) -> None:
 
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.text == "Hello, world!"
     response = client.get("/")
     assert response.text == "Hello, cookies!"
 
 
-def test_cookie_lenient_parsing(test_client_factory: TestClientFactory) -> None:
+def test_cookie_lenient_parsing() -> None:
     """
     The following test is based on a cookie set by Okta, a well-known authorization
     service. It turns out that it's common practice to set cookies that would be
@@ -361,7 +359,7 @@ def test_cookie_lenient_parsing(test_client_factory: TestClientFactory) -> None:
         response = JSONResponse({"cookies": request.cookies})
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/", headers={"cookie": tough_cookie})
     result = response.json()
     assert len(result["cookies"]) == 4
@@ -390,17 +388,13 @@ def test_cookie_lenient_parsing(test_client_factory: TestClientFactory) -> None:
         ("a=b; h=i; a=c", {"a": "c", "h": "i"}),
     ],
 )
-def test_cookies_edge_cases(
-    set_cookie: str,
-    expected: dict[str, str],
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_cookies_edge_cases(set_cookie: str, expected: dict[str, str]) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         response = JSONResponse({"cookies": request.cookies})
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/", headers={"cookie": set_cookie})
     result = response.json()
     assert result["cookies"] == expected
@@ -432,7 +426,6 @@ def test_cookies_edge_cases(
 def test_cookies_invalid(
     set_cookie: str,
     expected: dict[str, str],
-    test_client_factory: TestClientFactory,
 ) -> None:
     """
     Cookie strings that are against the RFC6265 spec but which browsers will send if set
@@ -444,20 +437,20 @@ def test_cookies_invalid(
         response = JSONResponse({"cookies": request.cookies})
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/", headers={"cookie": set_cookie})
     result = response.json()
     assert result["cookies"] == expected
 
 
-def test_chunked_encoding(test_client_factory: TestClientFactory) -> None:
+def test_chunked_encoding() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         body = await request.body()
         response = JSONResponse({"body": body.decode()})
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     def post_body() -> Iterator[bytes]:
         yield b"foo"
@@ -467,7 +460,7 @@ def test_chunked_encoding(test_client_factory: TestClientFactory) -> None:
     assert response.json() == {"body": "foobar"}
 
 
-def test_request_send_push_promise(test_client_factory: TestClientFactory) -> None:
+def test_request_send_push_promise() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         # the server is push-enabled
         scope["extensions"]["http.response.push"] = {}
@@ -478,14 +471,12 @@ def test_request_send_push_promise(test_client_factory: TestClientFactory) -> No
         response = JSONResponse({"json": "OK"})
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.json() == {"json": "OK"}
 
 
-def test_request_send_push_promise_without_push_extension(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_request_send_push_promise_without_push_extension() -> None:
     """
     If server does not support the `http.response.push` extension,
     .send_push_promise() does nothing.
@@ -498,14 +489,12 @@ def test_request_send_push_promise_without_push_extension(
         response = JSONResponse({"json": "OK"})
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.json() == {"json": "OK"}
 
 
-def test_request_send_push_promise_without_setting_send(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_request_send_push_promise_without_setting_send() -> None:
     """
     If Request is instantiated without the send channel, then
     .send_push_promise() is not available.
@@ -524,7 +513,7 @@ def test_request_send_push_promise_without_setting_send(
         response = JSONResponse({"json": data})
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.json() == {"json": "Send channel not available"}
 
@@ -595,12 +584,12 @@ async def test_request_stream_called_twice() -> None:
         await s1.__anext__()
 
 
-def test_request_url_outside_starlette_context(test_client_factory: TestClientFactory) -> None:
+def test_request_url_outside_starlette_context() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         request.url_for("index")
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     with pytest.raises(
         RuntimeError,
         match="The `url_for` method can only be used inside a Starlette application or with a router.",
@@ -608,7 +597,7 @@ def test_request_url_outside_starlette_context(test_client_factory: TestClientFa
         client.get("/")
 
 
-def test_request_url_starlette_context(test_client_factory: TestClientFactory) -> None:
+def test_request_url_starlette_context() -> None:
     from starlette.applications import Starlette
     from starlette.middleware import Middleware
     from starlette.routing import Route
@@ -631,6 +620,6 @@ def test_request_url_starlette_context(test_client_factory: TestClientFactory) -
 
     app = Starlette(routes=[Route("/home", homepage)], middleware=[Middleware(CustomMiddleware)])
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     client.get("/home")
     assert url_for == URL("http://testserver/home")

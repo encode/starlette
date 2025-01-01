@@ -11,7 +11,6 @@ types-contextvars==2.4.7.3
 types-PyYAML==6.0.12.20240917
 types-dataclasses==0.6.6
 pytest==8.3.4
-trio==0.27.0
 
 # Documentation
 black==24.10.0

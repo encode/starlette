@@ -2,16 +2,13 @@ from __future__ import annotations
 
 import itertools
 import sys
-from asyncio import Task, current_task as asyncio_current_task
+from asyncio import current_task
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Any
 
 import anyio
 import anyio.lowlevel
 import pytest
-import sniffio
-import trio.lowlevel
 
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
@@ -21,7 +18,6 @@ from starlette.routing import Route
 from starlette.testclient import ASGIInstance, TestClient
 from starlette.types import ASGIApp, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketDisconnect
-from tests.types import TestClientFactory
 
 
 def mock_service_endpoint(request: Request) -> JSONResponse:
@@ -31,26 +27,11 @@ def mock_service_endpoint(request: Request) -> JSONResponse:
 mock_service = Starlette(routes=[Route("/", endpoint=mock_service_endpoint)])
 
 
-def current_task() -> Task[Any] | trio.lowlevel.Task:
-    # anyio's TaskInfo comparisons are invalid after their associated native
-    # task object is GC'd https://github.com/agronholm/anyio/issues/324
-    asynclib_name = sniffio.current_async_library()
-    if asynclib_name == "trio":
-        return trio.lowlevel.current_task()
-
-    if asynclib_name == "asyncio":
-        task = asyncio_current_task()
-        if task is None:
-            raise RuntimeError("must be called from a running task")  # pragma: no cover
-        return task
-    raise RuntimeError(f"unsupported asynclib={asynclib_name}")  # pragma: no cover
-
-
 def startup() -> None:
     raise RuntimeError()
 
 
-def test_use_testclient_in_endpoint(test_client_factory: TestClientFactory) -> None:
+def test_use_testclient_in_endpoint() -> None:
     """
     We should be able to use the test client within applications.
 
@@ -59,13 +40,13 @@ def test_use_testclient_in_endpoint(test_client_factory: TestClientFactory) -> N
     """
 
     def homepage(request: Request) -> JSONResponse:
-        client = test_client_factory(mock_service)
+        client = TestClient(mock_service)
         response = client.get("/")
         return JSONResponse(response.json())
 
     app = Starlette(routes=[Route("/", endpoint=homepage)])
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.json() == {"mock": "example"}
 
@@ -89,7 +70,7 @@ def test_testclient_headers_behavior() -> None:
     assert client.headers.get("Authentication") == "Bearer 123"
 
 
-def test_use_testclient_as_contextmanager(test_client_factory: TestClientFactory, anyio_backend_name: str) -> None:
+def test_use_testclient_as_contextmanager(anyio_backend_name: str) -> None:
     """
     This test asserts a number of properties that are important for an
     app level task_group
@@ -129,7 +110,7 @@ def test_use_testclient_as_contextmanager(test_client_factory: TestClientFactory
         routes=[Route("/loop_id", endpoint=loop_id)],
     )
 
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     with client:
         # within a TestClient context every async request runs in the same thread
@@ -167,16 +148,16 @@ def test_use_testclient_as_contextmanager(test_client_factory: TestClientFactory
     assert first_task is not startup_task
 
 
-def test_error_on_startup(test_client_factory: TestClientFactory) -> None:
+def test_error_on_startup() -> None:
     with pytest.deprecated_call(match="The on_startup and on_shutdown parameters are deprecated"):
         startup_error_app = Starlette(on_startup=[startup])
 
     with pytest.raises(RuntimeError):
-        with test_client_factory(startup_error_app):
+        with TestClient(startup_error_app):
             pass  # pragma: no cover
 
 
-def test_exception_in_middleware(test_client_factory: TestClientFactory) -> None:
+def test_exception_in_middleware() -> None:
     class MiddlewareException(Exception):
         pass
 
@@ -190,11 +171,11 @@ def test_exception_in_middleware(test_client_factory: TestClientFactory) -> None
     broken_middleware = Starlette(middleware=[Middleware(BrokenMiddleware)])
 
     with pytest.raises(MiddlewareException):
-        with test_client_factory(broken_middleware):
+        with TestClient(broken_middleware):
             pass  # pragma: no cover
 
 
-def test_testclient_asgi2(test_client_factory: TestClientFactory) -> None:
+def test_testclient_asgi2() -> None:
     def app(scope: Scope) -> ASGIInstance:
         async def inner(receive: Receive, send: Send) -> None:
             await send(
@@ -208,12 +189,12 @@ def test_testclient_asgi2(test_client_factory: TestClientFactory) -> None:
 
         return inner
 
-    client = test_client_factory(app)  # type: ignore
+    client = TestClient(app)  # type: ignore
     response = client.get("/")
     assert response.text == "Hello, world!"
 
 
-def test_testclient_asgi3(test_client_factory: TestClientFactory) -> None:
+def test_testclient_asgi3() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         await send(
             {
@@ -224,12 +205,12 @@ def test_testclient_asgi3(test_client_factory: TestClientFactory) -> None:
         )
         await send({"type": "http.response.body", "body": b"Hello, world!"})
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.text == "Hello, world!"
 
 
-def test_websocket_blocking_receive(test_client_factory: TestClientFactory) -> None:
+def test_websocket_blocking_receive() -> None:
     def app(scope: Scope) -> ASGIInstance:
         async def respond(websocket: WebSocket) -> None:
             await websocket.send_json({"message": "test"})
@@ -248,13 +229,13 @@ def test_websocket_blocking_receive(test_client_factory: TestClientFactory) -> N
 
         return asgi
 
-    client = test_client_factory(app)  # type: ignore
+    client = TestClient(app)  # type: ignore
     with client.websocket_connect("/") as websocket:
         data = websocket.receive_json()
         assert data == {"message": "test"}
 
 
-def test_websocket_not_block_on_close(test_client_factory: TestClientFactory) -> None:
+def test_websocket_not_block_on_close() -> None:
     cancelled = False
 
     def app(scope: Scope) -> ASGIInstance:
@@ -270,13 +251,13 @@ def test_websocket_not_block_on_close(test_client_factory: TestClientFactory) ->
 
         return asgi
 
-    client = test_client_factory(app)  # type: ignore
+    client = TestClient(app)  # type: ignore
     with client.websocket_connect("/"):
         ...
     assert cancelled
 
 
-def test_client(test_client_factory: TestClientFactory) -> None:
+def test_client() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         client = scope.get("client")
         assert client is not None
@@ -284,12 +265,12 @@ def test_client(test_client_factory: TestClientFactory) -> None:
         response = JSONResponse({"host": host, "port": port})
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.json() == {"host": "testclient", "port": 50000}
 
 
-def test_client_custom_client(test_client_factory: TestClientFactory) -> None:
+def test_client_custom_client() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         client = scope.get("client")
         assert client is not None
@@ -297,18 +278,18 @@ def test_client_custom_client(test_client_factory: TestClientFactory) -> None:
         response = JSONResponse({"host": host, "port": port})
         await response(scope, receive, send)
 
-    client = test_client_factory(app, client=("192.168.0.1", 3000))
+    client = TestClient(app, client=("192.168.0.1", 3000))
     response = client.get("/")
     assert response.json() == {"host": "192.168.0.1", "port": 3000}
 
 
 @pytest.mark.parametrize("param", ("2020-07-14T00:00:00+00:00", "España", "voilà"))
-def test_query_params(test_client_factory: TestClientFactory, param: str) -> None:
+def test_query_params(param: str) -> None:
     def homepage(request: Request) -> Response:
         return Response(request.query_params["param"])
 
     app = Starlette(routes=[Route("/", endpoint=homepage)])
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/", params={"param": param})
     assert response.text == param
 
@@ -331,7 +312,7 @@ def test_query_params(test_client_factory: TestClientFactory, param: str) -> Non
         ("example.com", False),
     ],
 )
-def test_domain_restricted_cookies(test_client_factory: TestClientFactory, domain: str, ok: bool) -> None:
+def test_domain_restricted_cookies(domain: str, ok: bool) -> None:
     """
     Test that test client discards domain restricted cookies which do not match the
     base_url of the testclient (`http://testserver` by default).
@@ -351,13 +332,13 @@ def test_domain_restricted_cookies(test_client_factory: TestClientFactory, domai
         )
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     cookie_set = len(response.cookies) == 1
     assert cookie_set == ok
 
 
-def test_forward_follow_redirects(test_client_factory: TestClientFactory) -> None:
+def test_forward_follow_redirects() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         if "/ok" in scope["path"]:
             response = Response("ok")
@@ -365,52 +346,52 @@ def test_forward_follow_redirects(test_client_factory: TestClientFactory) -> Non
             response = RedirectResponse("/ok")
         await response(scope, receive, send)
 
-    client = test_client_factory(app, follow_redirects=True)
+    client = TestClient(app, follow_redirects=True)
     response = client.get("/")
     assert response.status_code == 200
 
 
-def test_forward_nofollow_redirects(test_client_factory: TestClientFactory) -> None:
+def test_forward_nofollow_redirects() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         response = RedirectResponse("/ok")
         await response(scope, receive, send)
 
-    client = test_client_factory(app, follow_redirects=False)
+    client = TestClient(app, follow_redirects=False)
     response = client.get("/")
     assert response.status_code == 307
 
 
-def test_with_duplicate_headers(test_client_factory: TestClientFactory) -> None:
+def test_with_duplicate_headers() -> None:
     def homepage(request: Request) -> JSONResponse:
         return JSONResponse({"x-token": request.headers.getlist("x-token")})
 
     app = Starlette(routes=[Route("/", endpoint=homepage)])
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/", headers=[("x-token", "foo"), ("x-token", "bar")])
     assert response.json() == {"x-token": ["foo", "bar"]}
 
 
-def test_merge_url(test_client_factory: TestClientFactory) -> None:
+def test_merge_url() -> None:
     def homepage(request: Request) -> Response:
         return Response(request.url.path)
 
     app = Starlette(routes=[Route("/api/v1/bar", endpoint=homepage)])
-    client = test_client_factory(app, base_url="http://testserver/api/v1/")
+    client = TestClient(app, base_url="http://testserver/api/v1/")
     response = client.get("/bar")
     assert response.text == "/api/v1/bar"
 
 
-def test_raw_path_with_querystring(test_client_factory: TestClientFactory) -> None:
+def test_raw_path_with_querystring() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         response = Response(scope.get("raw_path"))
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/hello-world", params={"foo": "bar"})
     assert response.content == b"/hello-world"
 
 
-def test_websocket_raw_path_without_params(test_client_factory: TestClientFactory) -> None:
+def test_websocket_raw_path_without_params() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
         await websocket.accept()
@@ -418,7 +399,7 @@ def test_websocket_raw_path_without_params(test_client_factory: TestClientFactor
         assert raw_path is not None
         await websocket.send_bytes(raw_path)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     with client.websocket_connect("/hello-world", params={"foo": "bar"}) as websocket:
         data = websocket.receive_bytes()
         assert data == b"/hello-world"

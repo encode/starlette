@@ -19,7 +19,6 @@ from starlette.routing import Route, WebSocketRoute
 from starlette.testclient import TestClient
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from starlette.websockets import WebSocket
-from tests.types import TestClientFactory
 
 
 class CustomMiddleware(BaseHTTPMiddleware):
@@ -84,8 +83,8 @@ app = Starlette(
 )
 
 
-def test_custom_middleware(test_client_factory: TestClientFactory) -> None:
-    client = test_client_factory(app)
+def test_custom_middleware() -> None:
+    client = TestClient(app)
     response = client.get("/")
     assert response.headers["Custom-Header"] == "Example"
 
@@ -105,9 +104,7 @@ def test_custom_middleware(test_client_factory: TestClientFactory) -> None:
         assert text == "Hello, world!"
 
 
-def test_state_data_across_multiple_middlewares(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_state_data_across_multiple_middlewares() -> None:
     expected_value1 = "foo"
     expected_value2 = "bar"
 
@@ -154,25 +151,25 @@ def test_state_data_across_multiple_middlewares(
         ],
     )
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.text == "OK"
     assert response.headers["X-State-Foo"] == expected_value1
     assert response.headers["X-State-Bar"] == expected_value2
 
 
-def test_app_middleware_argument(test_client_factory: TestClientFactory) -> None:
+def test_app_middleware_argument() -> None:
     def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("Homepage")
 
     app = Starlette(routes=[Route("/", homepage)], middleware=[Middleware(CustomMiddleware)])
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.headers["Custom-Header"] == "Example"
 
 
-def test_fully_evaluated_response(test_client_factory: TestClientFactory) -> None:
+def test_fully_evaluated_response() -> None:
     # Test for https://github.com/encode/starlette/issues/1022
     class CustomMiddleware(BaseHTTPMiddleware):
         async def dispatch(
@@ -185,7 +182,7 @@ def test_fully_evaluated_response(test_client_factory: TestClientFactory) -> Non
 
     app = Starlette(middleware=[Middleware(CustomMiddleware)])
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/does_not_exist")
     assert response.text == "Custom"
 
@@ -231,10 +228,7 @@ class CustomMiddlewareUsingBaseHTTPMiddleware(BaseHTTPMiddleware):
         ),
     ],
 )
-def test_contextvars(
-    test_client_factory: TestClientFactory,
-    middleware_cls: _MiddlewareFactory[Any],
-) -> None:
+def test_contextvars(middleware_cls: _MiddlewareFactory[Any]) -> None:
     # this has to be an async endpoint because Starlette calls run_in_threadpool
     # on sync endpoints which has it's own set of peculiarities w.r.t propagating
     # contextvars (it propagates them forwards but not backwards)
@@ -245,7 +239,7 @@ def test_contextvars(
 
     app = Starlette(middleware=[Middleware(middleware_cls)], routes=[Route("/", homepage)])
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.status_code == 200, response.content
 
@@ -411,9 +405,7 @@ async def test_run_context_manager_exit_even_if_client_disconnects() -> None:
     assert context_manager_exited.is_set()
 
 
-def test_app_receives_http_disconnect_while_sending_if_discarded(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_app_receives_http_disconnect_while_sending_if_discarded() -> None:
     class DiscardingMiddleware(BaseHTTPMiddleware):
         async def dispatch(
             self,
@@ -482,14 +474,12 @@ def test_app_receives_http_disconnect_while_sending_if_discarded(
 
     app = DiscardingMiddleware(downstream_app)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/does_not_exist")
     assert response.text == "Custom"
 
 
-def test_app_receives_http_disconnect_after_sending_if_discarded(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_app_receives_http_disconnect_after_sending_if_discarded() -> None:
     class DiscardingMiddleware(BaseHTTPMiddleware):
         async def dispatch(
             self,
@@ -532,14 +522,12 @@ def test_app_receives_http_disconnect_after_sending_if_discarded(
 
     app = DiscardingMiddleware(downstream_app)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/does_not_exist")
     assert response.text == "Custom"
 
 
-def test_read_request_stream_in_app_after_middleware_calls_stream(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_read_request_stream_in_app_after_middleware_calls_stream() -> None:
     async def homepage(request: Request) -> PlainTextResponse:
         expected = [b""]
         async for chunk in request.stream():
@@ -564,14 +552,12 @@ def test_read_request_stream_in_app_after_middleware_calls_stream(
         middleware=[Middleware(ConsumingMiddleware)],
     )
 
-    client: TestClient = test_client_factory(app)
+    client: TestClient = TestClient(app)
     response = client.post("/", content=b"a")
     assert response.status_code == 200
 
 
-def test_read_request_stream_in_app_after_middleware_calls_body(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_read_request_stream_in_app_after_middleware_calls_body() -> None:
     async def homepage(request: Request) -> PlainTextResponse:
         expected = [b"a", b""]
         async for chunk in request.stream():
@@ -593,14 +579,12 @@ def test_read_request_stream_in_app_after_middleware_calls_body(
         middleware=[Middleware(ConsumingMiddleware)],
     )
 
-    client: TestClient = test_client_factory(app)
+    client: TestClient = TestClient(app)
     response = client.post("/", content=b"a")
     assert response.status_code == 200
 
 
-def test_read_request_body_in_app_after_middleware_calls_stream(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_read_request_body_in_app_after_middleware_calls_stream() -> None:
     async def homepage(request: Request) -> PlainTextResponse:
         assert await request.body() == b""
         return PlainTextResponse("Homepage")
@@ -622,14 +606,12 @@ def test_read_request_body_in_app_after_middleware_calls_stream(
         middleware=[Middleware(ConsumingMiddleware)],
     )
 
-    client: TestClient = test_client_factory(app)
+    client: TestClient = TestClient(app)
     response = client.post("/", content=b"a")
     assert response.status_code == 200
 
 
-def test_read_request_body_in_app_after_middleware_calls_body(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_read_request_body_in_app_after_middleware_calls_body() -> None:
     async def homepage(request: Request) -> PlainTextResponse:
         assert await request.body() == b"a"
         return PlainTextResponse("Homepage")
@@ -648,14 +630,12 @@ def test_read_request_body_in_app_after_middleware_calls_body(
         middleware=[Middleware(ConsumingMiddleware)],
     )
 
-    client: TestClient = test_client_factory(app)
+    client: TestClient = TestClient(app)
     response = client.post("/", content=b"a")
     assert response.status_code == 200
 
 
-def test_read_request_stream_in_dispatch_after_app_calls_stream(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_read_request_stream_in_dispatch_after_app_calls_stream() -> None:
     async def homepage(request: Request) -> PlainTextResponse:
         expected = [b"a", b""]
         async for chunk in request.stream():
@@ -680,14 +660,12 @@ def test_read_request_stream_in_dispatch_after_app_calls_stream(
         middleware=[Middleware(ConsumingMiddleware)],
     )
 
-    client: TestClient = test_client_factory(app)
+    client: TestClient = TestClient(app)
     response = client.post("/", content=b"a")
     assert response.status_code == 200
 
 
-def test_read_request_stream_in_dispatch_after_app_calls_body(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_read_request_stream_in_dispatch_after_app_calls_body() -> None:
     async def homepage(request: Request) -> PlainTextResponse:
         assert await request.body() == b"a"
         return PlainTextResponse("Homepage")
@@ -709,7 +687,7 @@ def test_read_request_stream_in_dispatch_after_app_calls_body(
         middleware=[Middleware(ConsumingMiddleware)],
     )
 
-    client: TestClient = test_client_factory(app)
+    client: TestClient = TestClient(app)
     response = client.post("/", content=b"a")
     assert response.status_code == 200
 
@@ -773,9 +751,7 @@ async def test_read_request_stream_in_dispatch_wrapping_app_calls_body() -> None
     await rcv_stream.aclose()
 
 
-def test_read_request_stream_in_dispatch_after_app_calls_body_with_middleware_calling_body_before_call_next(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_read_request_stream_in_dispatch_after_app_calls_body_with_middleware_calling_body_before_call_next() -> None:
     async def homepage(request: Request) -> PlainTextResponse:
         assert await request.body() == b"a"
         return PlainTextResponse("Homepage")
@@ -798,14 +774,12 @@ def test_read_request_stream_in_dispatch_after_app_calls_body_with_middleware_ca
         middleware=[Middleware(ConsumingMiddleware)],
     )
 
-    client: TestClient = test_client_factory(app)
+    client: TestClient = TestClient(app)
     response = client.post("/", content=b"a")
     assert response.status_code == 200
 
 
-def test_read_request_body_in_dispatch_after_app_calls_body_with_middleware_calling_body_before_call_next(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_read_request_body_in_dispatch_after_app_calls_body_with_middleware_calling_body_before_call_next() -> None:
     async def homepage(request: Request) -> PlainTextResponse:
         assert await request.body() == b"a"
         return PlainTextResponse("Homepage")
@@ -826,7 +800,7 @@ def test_read_request_body_in_dispatch_after_app_calls_body_with_middleware_call
         middleware=[Middleware(ConsumingMiddleware)],
     )
 
-    client: TestClient = test_client_factory(app)
+    client: TestClient = TestClient(app)
     response = client.post("/", content=b"a")
     assert response.status_code == 200
 
@@ -917,9 +891,7 @@ async def test_read_request_disconnected_after_consuming_steam() -> None:
     await rcv.aclose()
 
 
-def test_downstream_middleware_modifies_receive(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_downstream_middleware_modifies_receive() -> None:
     """If a downstream middleware modifies receive() the final ASGI app
     should see the modified version.
     """
@@ -952,7 +924,7 @@ def test_downstream_middleware_modifies_receive(
 
         return wrapped_app
 
-    client = test_client_factory(ConsumingMiddleware(modifying_middleware(endpoint)))
+    client = TestClient(ConsumingMiddleware(modifying_middleware(endpoint)))
 
     resp = client.post("/", content=b"foo ")
     assert resp.status_code == 200

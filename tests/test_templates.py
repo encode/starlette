@@ -15,10 +15,12 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import Route
 from starlette.templating import Jinja2Templates
-from tests.types import TestClientFactory
+from starlette.testclient import TestClient
 
 
-def test_templates(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_templates(
+    tmpdir: Path,
+) -> None:
     path = os.path.join(tmpdir, "index.html")
     with open(path, "w") as file:
         file.write("<html>Hello, <a href='{{ url_for('homepage') }}'>world</a></html>")
@@ -29,14 +31,16 @@ def test_templates(tmpdir: Path, test_client_factory: TestClientFactory) -> None
     app = Starlette(debug=True, routes=[Route("/", endpoint=homepage)])
     templates = Jinja2Templates(directory=str(tmpdir))
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.text == "<html>Hello, <a href='http://testserver/'>world</a></html>"
     assert response.template.name == "index.html"  # type: ignore
     assert set(response.context.keys()) == {"request"}  # type: ignore
 
 
-def test_calls_context_processors(tmp_path: Path, test_client_factory: TestClientFactory) -> None:
+def test_calls_context_processors(
+    tmp_path: Path,
+) -> None:
     path = tmp_path / "index.html"
     path.write_text("<html>Hello {{ username }}</html>")
 
@@ -57,14 +61,16 @@ def test_calls_context_processors(tmp_path: Path, test_client_factory: TestClien
         ],
     )
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.text == "<html>Hello World</html>"
     assert response.template.name == "index.html"  # type: ignore
     assert set(response.context.keys()) == {"request", "username"}  # type: ignore
 
 
-def test_template_with_middleware(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_template_with_middleware(
+    tmpdir: Path,
+) -> None:
     path = os.path.join(tmpdir, "index.html")
     with open(path, "w") as file:
         file.write("<html>Hello, <a href='{{ url_for('homepage') }}'>world</a></html>")
@@ -83,14 +89,16 @@ def test_template_with_middleware(tmpdir: Path, test_client_factory: TestClientF
     )
     templates = Jinja2Templates(directory=str(tmpdir))
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.text == "<html>Hello, <a href='http://testserver/'>world</a></html>"
     assert response.template.name == "index.html"  # type: ignore
     assert set(response.context.keys()) == {"request"}  # type: ignore
 
 
-def test_templates_with_directories(tmp_path: Path, test_client_factory: TestClientFactory) -> None:
+def test_templates_with_directories(
+    tmp_path: Path,
+) -> None:
     dir_a = tmp_path.resolve() / "a"
     dir_a.mkdir()
     template_a = dir_a / "template_a.html"
@@ -113,7 +121,7 @@ def test_templates_with_directories(tmp_path: Path, test_client_factory: TestCli
     )
     templates = Jinja2Templates(directory=[dir_a, dir_b])
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/a")
     assert response.text == "<html><a href='http://testserver/a'></a> a</html>"
     assert response.template.name == "template_a.html"  # type: ignore
@@ -145,7 +153,9 @@ def test_templates_with_directory(tmpdir: Path) -> None:
     assert template.render({}) == "Hello"
 
 
-def test_templates_with_environment(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_templates_with_environment(
+    tmpdir: Path,
+) -> None:
     path = os.path.join(tmpdir, "index.html")
     with open(path, "w") as file:
         file.write("<html>Hello, <a href='{{ url_for('homepage') }}'>world</a></html>")
@@ -159,7 +169,7 @@ def test_templates_with_environment(tmpdir: Path, test_client_factory: TestClien
         routes=[Route("/", endpoint=homepage)],
     )
     templates = Jinja2Templates(env=env)
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.text == "<html>Hello, <a href='http://testserver/'>world</a></html>"
     assert response.template.name == "index.html"  # type: ignore
@@ -171,7 +181,9 @@ def test_templates_with_environment_options_emit_warning(tmpdir: Path) -> None:
         Jinja2Templates(str(tmpdir), autoescape=True)
 
 
-def test_templates_with_kwargs_only(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_templates_with_kwargs_only(
+    tmpdir: Path,
+) -> None:
     # MAINTAINERS: remove after 1.0
     path = os.path.join(tmpdir, "index.html")
     with open(path, "w") as file:
@@ -192,7 +204,7 @@ def test_templates_with_kwargs_only(tmpdir: Path, test_client_factory: TestClien
         )
 
     app = Starlette(routes=[Route("/", page)])
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
 
     assert response.text == "value: b"  # context was rendered
@@ -215,7 +227,7 @@ def test_templates_with_kwargs_only_requires_request_in_context(tmpdir: Path) ->
 
 
 def test_templates_with_kwargs_only_warns_when_no_request_keyword(
-    tmpdir: Path, test_client_factory: TestClientFactory
+    tmpdir: Path,
 ) -> None:
     # MAINTAINERS: remove after 1.0
 
@@ -229,7 +241,7 @@ def test_templates_with_kwargs_only_warns_when_no_request_keyword(
         return templates.TemplateResponse(name="index.html", context={"request": request})
 
     app = Starlette(routes=[Route("/", page)])
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     with pytest.warns(
         DeprecationWarning,
@@ -247,7 +259,7 @@ def test_templates_with_requires_request_in_context(tmpdir: Path) -> None:
 
 
 def test_templates_warns_when_first_argument_isnot_request(
-    tmpdir: Path, test_client_factory: TestClientFactory
+    tmpdir: Path,
 ) -> None:
     # MAINTAINERS: remove after 1.0
     path = os.path.join(tmpdir, "index.html")
@@ -268,7 +280,7 @@ def test_templates_warns_when_first_argument_isnot_request(
         )
 
     app = Starlette(routes=[Route("/", page)])
-    client = test_client_factory(app)
+    client = TestClient(app)
     with pytest.warns(DeprecationWarning):
         response = client.get("/")
 
@@ -279,7 +291,9 @@ def test_templates_warns_when_first_argument_isnot_request(
     spy.assert_called()
 
 
-def test_templates_when_first_argument_is_request(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_templates_when_first_argument_is_request(
+    tmpdir: Path,
+) -> None:
     # MAINTAINERS: remove after 1.0
     path = os.path.join(tmpdir, "index.html")
     with open(path, "w") as file:
@@ -300,7 +314,7 @@ def test_templates_when_first_argument_is_request(tmpdir: Path, test_client_fact
         )
 
     app = Starlette(routes=[Route("/", page)])
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
 
     assert response.text == "value: b"  # context was rendered

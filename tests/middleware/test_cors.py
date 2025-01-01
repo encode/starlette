@@ -4,12 +4,10 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse
 from starlette.routing import Route
-from tests.types import TestClientFactory
+from starlette.testclient import TestClient
 
 
-def test_cors_allow_all(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_cors_allow_all() -> None:
     def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("Homepage", status_code=200)
 
@@ -27,7 +25,7 @@ def test_cors_allow_all(
         ],
     )
 
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     # Test pre-flight response
     headers = {
@@ -68,9 +66,7 @@ def test_cors_allow_all(
     assert "access-control-allow-origin" not in response.headers
 
 
-def test_cors_allow_all_except_credentials(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_cors_allow_all_except_credentials() -> None:
     def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("Homepage", status_code=200)
 
@@ -87,7 +83,7 @@ def test_cors_allow_all_except_credentials(
         ],
     )
 
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     # Test pre-flight response
     headers = {
@@ -119,9 +115,7 @@ def test_cors_allow_all_except_credentials(
     assert "access-control-allow-origin" not in response.headers
 
 
-def test_cors_allow_specific_origin(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_cors_allow_specific_origin() -> None:
     def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("Homepage", status_code=200)
 
@@ -136,7 +130,7 @@ def test_cors_allow_specific_origin(
         ],
     )
 
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     # Test pre-flight response
     headers = {
@@ -168,9 +162,7 @@ def test_cors_allow_specific_origin(
     assert "access-control-allow-origin" not in response.headers
 
 
-def test_cors_disallowed_preflight(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_cors_disallowed_preflight() -> None:
     def homepage(request: Request) -> None:
         pass  # pragma: no cover
 
@@ -185,7 +177,7 @@ def test_cors_disallowed_preflight(
         ],
     )
 
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     # Test pre-flight response
     headers = {
@@ -209,9 +201,7 @@ def test_cors_disallowed_preflight(
     assert response.text == "Disallowed CORS headers"
 
 
-def test_preflight_allows_request_origin_if_origins_wildcard_and_credentials_allowed(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_preflight_allows_request_origin_if_origins_wildcard_and_credentials_allowed() -> None:
     def homepage(request: Request) -> None:
         return  # pragma: no cover
 
@@ -227,7 +217,7 @@ def test_preflight_allows_request_origin_if_origins_wildcard_and_credentials_all
         ],
     )
 
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     # Test pre-flight response
     headers = {
@@ -244,9 +234,7 @@ def test_preflight_allows_request_origin_if_origins_wildcard_and_credentials_all
     assert response.headers["vary"] == "Origin"
 
 
-def test_cors_preflight_allow_all_methods(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_cors_preflight_allow_all_methods() -> None:
     def homepage(request: Request) -> None:
         pass  # pragma: no cover
 
@@ -255,7 +243,7 @@ def test_cors_preflight_allow_all_methods(
         middleware=[Middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"])],
     )
 
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     headers = {
         "Origin": "https://example.org",
@@ -268,9 +256,7 @@ def test_cors_preflight_allow_all_methods(
         assert method in response.headers["access-control-allow-methods"]
 
 
-def test_cors_allow_all_methods(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_cors_allow_all_methods() -> None:
     def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("Homepage", status_code=200)
 
@@ -285,7 +271,7 @@ def test_cors_allow_all_methods(
         middleware=[Middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"])],
     )
 
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     headers = {"Origin": "https://example.org"}
 
@@ -297,9 +283,7 @@ def test_cors_allow_all_methods(
         assert response.status_code == 200
 
 
-def test_cors_allow_origin_regex(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_cors_allow_origin_regex() -> None:
     def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("Homepage", status_code=200)
 
@@ -315,7 +299,7 @@ def test_cors_allow_origin_regex(
         ],
     )
 
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     # Test standard response
     headers = {"Origin": "https://example.org"}
@@ -369,9 +353,7 @@ def test_cors_allow_origin_regex(
     assert "access-control-allow-origin" not in response.headers
 
 
-def test_cors_allow_origin_regex_fullmatch(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_cors_allow_origin_regex_fullmatch() -> None:
     def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("Homepage", status_code=200)
 
@@ -386,7 +368,7 @@ def test_cors_allow_origin_regex_fullmatch(
         ],
     )
 
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     # Test standard response
     headers = {"Origin": "https://subdomain.example.org"}
@@ -404,9 +386,7 @@ def test_cors_allow_origin_regex_fullmatch(
     assert "access-control-allow-origin" not in response.headers
 
 
-def test_cors_credentialed_requests_return_specific_origin(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_cors_credentialed_requests_return_specific_origin() -> None:
     def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("Homepage", status_code=200)
 
@@ -414,7 +394,7 @@ def test_cors_credentialed_requests_return_specific_origin(
         routes=[Route("/", endpoint=homepage)],
         middleware=[Middleware(CORSMiddleware, allow_origins=["*"])],
     )
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     # Test credentialed request
     headers = {"Origin": "https://example.org", "Cookie": "star_cookie=sugar"}
@@ -425,9 +405,7 @@ def test_cors_credentialed_requests_return_specific_origin(
     assert "access-control-allow-credentials" not in response.headers
 
 
-def test_cors_vary_header_defaults_to_origin(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_cors_vary_header_defaults_to_origin() -> None:
     def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("Homepage", status_code=200)
 
@@ -438,16 +416,14 @@ def test_cors_vary_header_defaults_to_origin(
 
     headers = {"Origin": "https://example.org"}
 
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     response = client.get("/", headers=headers)
     assert response.status_code == 200
     assert response.headers["vary"] == "Origin"
 
 
-def test_cors_vary_header_is_not_set_for_non_credentialed_request(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_cors_vary_header_is_not_set_for_non_credentialed_request() -> None:
     def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("Homepage", status_code=200, headers={"Vary": "Accept-Encoding"})
 
@@ -455,16 +431,14 @@ def test_cors_vary_header_is_not_set_for_non_credentialed_request(
         routes=[Route("/", endpoint=homepage)],
         middleware=[Middleware(CORSMiddleware, allow_origins=["*"])],
     )
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     response = client.get("/", headers={"Origin": "https://someplace.org"})
     assert response.status_code == 200
     assert response.headers["vary"] == "Accept-Encoding"
 
 
-def test_cors_vary_header_is_properly_set_for_credentialed_request(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_cors_vary_header_is_properly_set_for_credentialed_request() -> None:
     def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("Homepage", status_code=200, headers={"Vary": "Accept-Encoding"})
 
@@ -472,16 +446,14 @@ def test_cors_vary_header_is_properly_set_for_credentialed_request(
         routes=[Route("/", endpoint=homepage)],
         middleware=[Middleware(CORSMiddleware, allow_origins=["*"])],
     )
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     response = client.get("/", headers={"Cookie": "foo=bar", "Origin": "https://someplace.org"})
     assert response.status_code == 200
     assert response.headers["vary"] == "Accept-Encoding, Origin"
 
 
-def test_cors_vary_header_is_properly_set_when_allow_origins_is_not_wildcard(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_cors_vary_header_is_properly_set_when_allow_origins_is_not_wildcard() -> None:
     def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("Homepage", status_code=200, headers={"Vary": "Accept-Encoding"})
 
@@ -491,16 +463,14 @@ def test_cors_vary_header_is_properly_set_when_allow_origins_is_not_wildcard(
         ],
         middleware=[Middleware(CORSMiddleware, allow_origins=["https://example.org"])],
     )
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     response = client.get("/", headers={"Origin": "https://example.org"})
     assert response.status_code == 200
     assert response.headers["vary"] == "Accept-Encoding, Origin"
 
 
-def test_cors_allowed_origin_does_not_leak_between_credentialed_requests(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_cors_allowed_origin_does_not_leak_between_credentialed_requests() -> None:
     def homepage(request: Request) -> PlainTextResponse:
         return PlainTextResponse("Homepage", status_code=200)
 
@@ -518,7 +488,7 @@ def test_cors_allowed_origin_does_not_leak_between_credentialed_requests(
         ],
     )
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/", headers={"Origin": "https://someplace.org"})
     assert response.headers["access-control-allow-origin"] == "*"
     assert "access-control-allow-credentials" not in response.headers

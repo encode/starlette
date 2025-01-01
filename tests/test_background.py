@@ -2,11 +2,11 @@ import pytest
 
 from starlette.background import BackgroundTask, BackgroundTasks
 from starlette.responses import Response
+from starlette.testclient import TestClient
 from starlette.types import Receive, Scope, Send
-from tests.types import TestClientFactory
 
 
-def test_async_task(test_client_factory: TestClientFactory) -> None:
+def test_async_task() -> None:
     TASK_COMPLETE = False
 
     async def async_task() -> None:
@@ -19,13 +19,13 @@ def test_async_task(test_client_factory: TestClientFactory) -> None:
         response = Response("task initiated", media_type="text/plain", background=task)
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.text == "task initiated"
     assert TASK_COMPLETE
 
 
-def test_sync_task(test_client_factory: TestClientFactory) -> None:
+def test_sync_task() -> None:
     TASK_COMPLETE = False
 
     def sync_task() -> None:
@@ -38,13 +38,13 @@ def test_sync_task(test_client_factory: TestClientFactory) -> None:
         response = Response("task initiated", media_type="text/plain", background=task)
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.text == "task initiated"
     assert TASK_COMPLETE
 
 
-def test_multiple_tasks(test_client_factory: TestClientFactory) -> None:
+def test_multiple_tasks() -> None:
     TASK_COUNTER = 0
 
     def increment(amount: int) -> None:
@@ -59,15 +59,13 @@ def test_multiple_tasks(test_client_factory: TestClientFactory) -> None:
         response = Response("tasks initiated", media_type="text/plain", background=tasks)
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.text == "tasks initiated"
     assert TASK_COUNTER == 1 + 2 + 3
 
 
-def test_multi_tasks_failure_avoids_next_execution(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_multi_tasks_failure_avoids_next_execution() -> None:
     TASK_COUNTER = 0
 
     def increment() -> None:
@@ -83,7 +81,7 @@ def test_multi_tasks_failure_avoids_next_execution(
         response = Response("tasks initiated", media_type="text/plain", background=tasks)
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     with pytest.raises(Exception):
         client.get("/")
     assert TASK_COUNTER == 1

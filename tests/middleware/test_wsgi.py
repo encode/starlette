@@ -6,7 +6,7 @@ import pytest
 
 from starlette._utils import collapse_excgroups
 from starlette.middleware.wsgi import WSGIMiddleware, build_environ
-from tests.types import TestClientFactory
+from starlette.testclient import TestClient
 
 WSGIResponse = Iterable[bytes]
 StartResponse = Callable[..., Any]
@@ -65,41 +65,41 @@ def return_exc_info(
         return [output]
 
 
-def test_wsgi_get(test_client_factory: TestClientFactory) -> None:
+def test_wsgi_get() -> None:
     app = WSGIMiddleware(hello_world)
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.status_code == 200
     assert response.text == "Hello World!\n"
 
 
-def test_wsgi_post(test_client_factory: TestClientFactory) -> None:
+def test_wsgi_post() -> None:
     app = WSGIMiddleware(echo_body)
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.post("/", json={"example": 123})
     assert response.status_code == 200
     assert response.text == '{"example":123}'
 
 
-def test_wsgi_exception(test_client_factory: TestClientFactory) -> None:
+def test_wsgi_exception() -> None:
     # Note that we're testing the WSGI app directly here.
     # The HTTP protocol implementations would catch this error and return 500.
     app = WSGIMiddleware(raise_exception)
-    client = test_client_factory(app)
+    client = TestClient(app)
     with pytest.raises(RuntimeError), collapse_excgroups():
         client.get("/")
 
 
-def test_wsgi_exc_info(test_client_factory: TestClientFactory) -> None:
+def test_wsgi_exc_info() -> None:
     # Note that we're testing the WSGI app directly here.
     # The HTTP protocol implementations would catch this error and return 500.
     app = WSGIMiddleware(return_exc_info)
-    client = test_client_factory(app)
+    client = TestClient(app)
     with pytest.raises(RuntimeError):
         response = client.get("/")
 
     app = WSGIMiddleware(return_exc_info)
-    client = test_client_factory(app, raise_server_exceptions=False)
+    client = TestClient(app, raise_server_exceptions=False)
     response = client.get("/")
     assert response.status_code == 500
     assert response.text == "Internal Server Error"

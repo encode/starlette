@@ -4,8 +4,8 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import Host, Mount, Route, Router, WebSocketRoute
 from starlette.schemas import SchemaGenerator
+from starlette.testclient import TestClient
 from starlette.websockets import WebSocket
-from tests.types import TestClientFactory
 
 schemas = SchemaGenerator({"openapi": "3.0.0", "info": {"title": "Example API", "version": "1.0"}})
 
@@ -247,8 +247,8 @@ paths:
 """
 
 
-def test_schema_endpoint(test_client_factory: TestClientFactory) -> None:
-    client = test_client_factory(app)
+def test_schema_endpoint() -> None:
+    client = TestClient(app)
     response = client.get("/schema")
     assert response.headers["Content-Type"] == "application/vnd.oai.openapi"
     assert response.text.strip() == EXPECTED_SCHEMA.strip()

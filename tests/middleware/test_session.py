@@ -7,7 +7,6 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Mount, Route
 from starlette.testclient import TestClient
-from tests.types import TestClientFactory
 
 
 def view_session(request: Request) -> JSONResponse:
@@ -25,7 +24,7 @@ async def clear_session(request: Request) -> JSONResponse:
     return JSONResponse({"session": request.session})
 
 
-def test_session(test_client_factory: TestClientFactory) -> None:
+def test_session() -> None:
     app = Starlette(
         routes=[
             Route("/view_session", endpoint=view_session),
@@ -34,7 +33,7 @@ def test_session(test_client_factory: TestClientFactory) -> None:
         ],
         middleware=[Middleware(SessionMiddleware, secret_key="example")],
     )
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     response = client.get("/view_session")
     assert response.json() == {"session": {}}
@@ -58,7 +57,7 @@ def test_session(test_client_factory: TestClientFactory) -> None:
     assert response.json() == {"session": {}}
 
 
-def test_session_expires(test_client_factory: TestClientFactory) -> None:
+def test_session_expires() -> None:
     app = Starlette(
         routes=[
             Route("/view_session", endpoint=view_session),
@@ -66,7 +65,7 @@ def test_session_expires(test_client_factory: TestClientFactory) -> None:
         ],
         middleware=[Middleware(SessionMiddleware, secret_key="example", max_age=-1)],
     )
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     response = client.post("/update_session", json={"some": "data"})
     assert response.json() == {"session": {"some": "data"}}
@@ -77,12 +76,12 @@ def test_session_expires(test_client_factory: TestClientFactory) -> None:
     expired_session_match = re.search(r"session=([^;]*);", expired_cookie_header)
     assert expired_session_match is not None
     expired_session_value = expired_session_match[1]
-    client = test_client_factory(app, cookies={"session": expired_session_value})
+    client = TestClient(app, cookies={"session": expired_session_value})
     response = client.get("/view_session")
     assert response.json() == {"session": {}}
 
 
-def test_secure_session(test_client_factory: TestClientFactory) -> None:
+def test_secure_session() -> None:
     app = Starlette(
         routes=[
             Route("/view_session", endpoint=view_session),
@@ -91,8 +90,8 @@ def test_secure_session(test_client_factory: TestClientFactory) -> None:
         ],
         middleware=[Middleware(SessionMiddleware, secret_key="example", https_only=True)],
     )
-    secure_client = test_client_factory(app, base_url="https://testserver")
-    unsecure_client = test_client_factory(app, base_url="http://testserver")
+    secure_client = TestClient(app, base_url="https://testserver")
+    unsecure_client = TestClient(app, base_url="http://testserver")
 
     response = unsecure_client.get("/view_session")
     assert response.json() == {"session": {}}
@@ -119,7 +118,7 @@ def test_secure_session(test_client_factory: TestClientFactory) -> None:
     assert response.json() == {"session": {}}
 
 
-def test_session_cookie_subpath(test_client_factory: TestClientFactory) -> None:
+def test_session_cookie_subpath() -> None:
     second_app = Starlette(
         routes=[
             Route("/update_session", endpoint=update_session, methods=["POST"]),
@@ -127,7 +126,7 @@ def test_session_cookie_subpath(test_client_factory: TestClientFactory) -> None:
         middleware=[Middleware(SessionMiddleware, secret_key="example", path="/second_app")],
     )
     app = Starlette(routes=[Mount("/second_app", app=second_app)])
-    client = test_client_factory(app, base_url="http://testserver/second_app")
+    client = TestClient(app, base_url="http://testserver/second_app")
     response = client.post("/update_session", json={"some": "data"})
     assert response.status_code == 200
     cookie = response.headers["set-cookie"]
@@ -137,7 +136,7 @@ def test_session_cookie_subpath(test_client_factory: TestClientFactory) -> None:
     assert cookie_path == "/second_app"
 
 
-def test_invalid_session_cookie(test_client_factory: TestClientFactory) -> None:
+def test_invalid_session_cookie() -> None:
     app = Starlette(
         routes=[
             Route("/view_session", endpoint=view_session),
@@ -145,18 +144,18 @@ def test_invalid_session_cookie(test_client_factory: TestClientFactory) -> None:
         ],
         middleware=[Middleware(SessionMiddleware, secret_key="example")],
     )
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     response = client.post("/update_session", json={"some": "data"})
     assert response.json() == {"session": {"some": "data"}}
 
     # we expect it to not raise an exception if we provide a bogus session cookie
-    client = test_client_factory(app, cookies={"session": "invalid"})
+    client = TestClient(app, cookies={"session": "invalid"})
     response = client.get("/view_session")
     assert response.json() == {"session": {}}
 
 
-def test_session_cookie(test_client_factory: TestClientFactory) -> None:
+def test_session_cookie() -> None:
     app = Starlette(
         routes=[
             Route("/view_session", endpoint=view_session),
@@ -164,7 +163,7 @@ def test_session_cookie(test_client_factory: TestClientFactory) -> None:
         ],
         middleware=[Middleware(SessionMiddleware, secret_key="example", max_age=None)],
     )
-    client: TestClient = test_client_factory(app)
+    client: TestClient = TestClient(app)
 
     response = client.post("/update_session", json={"some": "data"})
     assert response.json() == {"session": {"some": "data"}}
@@ -178,7 +177,7 @@ def test_session_cookie(test_client_factory: TestClientFactory) -> None:
     assert response.json() == {"session": {}}
 
 
-def test_domain_cookie(test_client_factory: TestClientFactory) -> None:
+def test_domain_cookie() -> None:
     app = Starlette(
         routes=[
             Route("/view_session", endpoint=view_session),
@@ -186,7 +185,7 @@ def test_domain_cookie(test_client_factory: TestClientFactory) -> None:
         ],
         middleware=[Middleware(SessionMiddleware, secret_key="example", domain=".example.com")],
     )
-    client: TestClient = test_client_factory(app)
+    client: TestClient = TestClient(app)
 
     response = client.post("/update_session", json={"some": "data"})
     assert response.json() == {"session": {"some": "data"}}

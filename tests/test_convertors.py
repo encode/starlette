@@ -9,7 +9,7 @@ from starlette.convertors import Convertor, register_url_convertor
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Route, Router
-from tests.types import TestClientFactory
+from starlette.testclient import TestClient
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -49,8 +49,8 @@ def app() -> Router:
     )
 
 
-def test_datetime_convertor(test_client_factory: TestClientFactory, app: Router) -> None:
-    client = test_client_factory(app)
+def test_datetime_convertor(app: Router) -> None:
+    client = TestClient(app)
     response = client.get("/datetime/2020-01-01T00:00:00")
     assert response.json() == {"datetime": "2020-01-01T00:00:00"}
 
@@ -60,7 +60,7 @@ def test_datetime_convertor(test_client_factory: TestClientFactory, app: Router)
 
 
 @pytest.mark.parametrize("param, status_code", [("1.0", 200), ("1-0", 404)])
-def test_default_float_convertor(test_client_factory: TestClientFactory, param: str, status_code: int) -> None:
+def test_default_float_convertor(param: str, status_code: int) -> None:
     def float_convertor(request: Request) -> JSONResponse:
         param = request.path_params["param"]
         assert isinstance(param, float)
@@ -68,7 +68,7 @@ def test_default_float_convertor(test_client_factory: TestClientFactory, param: 
 
     app = Router(routes=[Route("/{param:float}", endpoint=float_convertor)])
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get(f"/{param}")
     assert response.status_code == status_code
 
@@ -83,7 +83,7 @@ def test_default_float_convertor(test_client_factory: TestClientFactory, param: 
         ("not-a-uuid", 404),
     ],
 )
-def test_default_uuid_convertor(test_client_factory: TestClientFactory, param: str, status_code: int) -> None:
+def test_default_uuid_convertor(param: str, status_code: int) -> None:
     def uuid_convertor(request: Request) -> JSONResponse:
         param = request.path_params["param"]
         assert isinstance(param, UUID)
@@ -91,6 +91,6 @@ def test_default_uuid_convertor(test_client_factory: TestClientFactory, param: s
 
     app = Router(routes=[Route("/{param:uuid}", endpoint=uuid_convertor)])
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get(f"/{param}")
     assert response.status_code == status_code

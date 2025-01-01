@@ -16,34 +16,34 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import Mount
 from starlette.staticfiles import StaticFiles
-from tests.types import TestClientFactory
+from starlette.testclient import TestClient
 
 
-def test_staticfiles(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_staticfiles(tmpdir: Path) -> None:
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
         file.write("<file content>")
 
     app = StaticFiles(directory=tmpdir)
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/example.txt")
     assert response.status_code == 200
     assert response.text == "<file content>"
 
 
-def test_staticfiles_with_pathlib(tmp_path: Path, test_client_factory: TestClientFactory) -> None:
+def test_staticfiles_with_pathlib(tmp_path: Path) -> None:
     path = tmp_path / "example.txt"
     with open(path, "w") as file:
         file.write("<file content>")
 
     app = StaticFiles(directory=tmp_path)
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/example.txt")
     assert response.status_code == 200
     assert response.text == "<file content>"
 
 
-def test_staticfiles_head_with_middleware(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_staticfiles_head_with_middleware(tmpdir: Path) -> None:
     """
     see https://github.com/encode/starlette/pull/935
     """
@@ -59,62 +59,62 @@ def test_staticfiles_head_with_middleware(tmpdir: Path, test_client_factory: Tes
     middleware = [Middleware(BaseHTTPMiddleware, dispatch=does_nothing_middleware)]
     app = Starlette(routes=routes, middleware=middleware)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.head("/static/example.txt")
     assert response.status_code == 200
     assert response.headers.get("content-length") == "100"
 
 
-def test_staticfiles_with_package(test_client_factory: TestClientFactory) -> None:
+def test_staticfiles_with_package() -> None:
     app = StaticFiles(packages=["tests"])
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/example.txt")
     assert response.status_code == 200
     assert response.text == "123\n"
 
     app = StaticFiles(packages=[("tests", "statics")])
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/example.txt")
     assert response.status_code == 200
     assert response.text == "123\n"
 
 
-def test_staticfiles_post(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_staticfiles_post(tmpdir: Path) -> None:
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
         file.write("<file content>")
 
     routes = [Mount("/", app=StaticFiles(directory=tmpdir), name="static")]
     app = Starlette(routes=routes)
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     response = client.post("/example.txt")
     assert response.status_code == 405
     assert response.text == "Method Not Allowed"
 
 
-def test_staticfiles_with_directory_returns_404(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_staticfiles_with_directory_returns_404(tmpdir: Path) -> None:
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
         file.write("<file content>")
 
     routes = [Mount("/", app=StaticFiles(directory=tmpdir), name="static")]
     app = Starlette(routes=routes)
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     response = client.get("/")
     assert response.status_code == 404
     assert response.text == "Not Found"
 
 
-def test_staticfiles_with_missing_file_returns_404(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_staticfiles_with_missing_file_returns_404(tmpdir: Path) -> None:
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
         file.write("<file content>")
 
     routes = [Mount("/", app=StaticFiles(directory=tmpdir), name="static")]
     app = Starlette(routes=routes)
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     response = client.get("/404.txt")
     assert response.status_code == 404
@@ -128,32 +128,30 @@ def test_staticfiles_instantiated_with_missing_directory(tmpdir: Path) -> None:
     assert "does not exist" in str(exc_info.value)
 
 
-def test_staticfiles_configured_with_missing_directory(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_staticfiles_configured_with_missing_directory(tmpdir: Path) -> None:
     path = os.path.join(tmpdir, "no_such_directory")
     app = StaticFiles(directory=path, check_dir=False)
-    client = test_client_factory(app)
+    client = TestClient(app)
     with pytest.raises(RuntimeError) as exc_info:
         client.get("/example.txt")
     assert "does not exist" in str(exc_info.value)
 
 
-def test_staticfiles_configured_with_file_instead_of_directory(
-    tmpdir: Path, test_client_factory: TestClientFactory
-) -> None:
+def test_staticfiles_configured_with_file_instead_of_directory(tmpdir: Path) -> None:
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
         file.write("<file content>")
 
     app = StaticFiles(directory=path, check_dir=False)
-    client = test_client_factory(app)
+    client = TestClient(app)
     with pytest.raises(RuntimeError) as exc_info:
         client.get("/example.txt")
     assert "is not a directory" in str(exc_info.value)
 
 
-def test_staticfiles_config_check_occurs_only_once(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_staticfiles_config_check_occurs_only_once(tmpdir: Path) -> None:
     app = StaticFiles(directory=tmpdir)
-    client = test_client_factory(app)
+    client = TestClient(app)
     assert not app.config_checked
 
     with pytest.raises(HTTPException):
@@ -185,26 +183,26 @@ def test_staticfiles_prevents_breaking_out_of_directory(tmpdir: Path) -> None:
     assert exc_info.value.detail == "Not Found"
 
 
-def test_staticfiles_never_read_file_for_head_method(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_staticfiles_never_read_file_for_head_method(tmpdir: Path) -> None:
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
         file.write("<file content>")
 
     app = StaticFiles(directory=tmpdir)
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.head("/example.txt")
     assert response.status_code == 200
     assert response.content == b""
     assert response.headers["content-length"] == "14"
 
 
-def test_staticfiles_304_with_etag_match(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_staticfiles_304_with_etag_match(tmpdir: Path) -> None:
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
         file.write("<file content>")
 
     app = StaticFiles(directory=tmpdir)
-    client = test_client_factory(app)
+    client = TestClient(app)
     first_resp = client.get("/example.txt")
     assert first_resp.status_code == 200
     last_etag = first_resp.headers["etag"]
@@ -216,13 +214,13 @@ def test_staticfiles_304_with_etag_match(tmpdir: Path, test_client_factory: Test
     assert second_resp.content == b""
 
 
-def test_staticfiles_200_with_etag_mismatch(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_staticfiles_200_with_etag_mismatch(tmpdir: Path) -> None:
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
         file.write("<file content>")
 
     app = StaticFiles(directory=tmpdir)
-    client = test_client_factory(app)
+    client = TestClient(app)
     first_resp = client.get("/example.txt")
     assert first_resp.status_code == 200
     assert first_resp.headers["etag"] != '"123"'
@@ -231,9 +229,7 @@ def test_staticfiles_200_with_etag_mismatch(tmpdir: Path, test_client_factory: T
     assert second_resp.content == b"<file content>"
 
 
-def test_staticfiles_304_with_last_modified_compare_last_req(
-    tmpdir: Path, test_client_factory: TestClientFactory
-) -> None:
+def test_staticfiles_304_with_last_modified_compare_last_req(tmpdir: Path) -> None:
     path = os.path.join(tmpdir, "example.txt")
     file_last_modified_time = time.mktime(time.strptime("2013-10-10 23:40:00", "%Y-%m-%d %H:%M:%S"))
     with open(path, "w") as file:
@@ -241,7 +237,7 @@ def test_staticfiles_304_with_last_modified_compare_last_req(
     os.utime(path, (file_last_modified_time, file_last_modified_time))
 
     app = StaticFiles(directory=tmpdir)
-    client = test_client_factory(app)
+    client = TestClient(app)
     # last modified less than last request, 304
     response = client.get("/example.txt", headers={"If-Modified-Since": "Thu, 11 Oct 2013 15:30:19 GMT"})
     assert response.status_code == 304
@@ -252,7 +248,7 @@ def test_staticfiles_304_with_last_modified_compare_last_req(
     assert response.content == b"<file content>"
 
 
-def test_staticfiles_html_normal(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_staticfiles_html_normal(tmpdir: Path) -> None:
     path = os.path.join(tmpdir, "404.html")
     with open(path, "w") as file:
         file.write("<h1>Custom not found page</h1>")
@@ -263,7 +259,7 @@ def test_staticfiles_html_normal(tmpdir: Path, test_client_factory: TestClientFa
         file.write("<h1>Hello</h1>")
 
     app = StaticFiles(directory=tmpdir, html=True)
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     response = client.get("/dir/")
     assert response.url == "http://testserver/dir/"
@@ -285,7 +281,7 @@ def test_staticfiles_html_normal(tmpdir: Path, test_client_factory: TestClientFa
     assert response.text == "<h1>Custom not found page</h1>"
 
 
-def test_staticfiles_html_without_index(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_staticfiles_html_without_index(tmpdir: Path) -> None:
     path = os.path.join(tmpdir, "404.html")
     with open(path, "w") as file:
         file.write("<h1>Custom not found page</h1>")
@@ -293,7 +289,7 @@ def test_staticfiles_html_without_index(tmpdir: Path, test_client_factory: TestC
     os.mkdir(path)
 
     app = StaticFiles(directory=tmpdir, html=True)
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     response = client.get("/dir/")
     assert response.url == "http://testserver/dir/"
@@ -310,7 +306,7 @@ def test_staticfiles_html_without_index(tmpdir: Path, test_client_factory: TestC
     assert response.text == "<h1>Custom not found page</h1>"
 
 
-def test_staticfiles_html_without_404(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_staticfiles_html_without_404(tmpdir: Path) -> None:
     path = os.path.join(tmpdir, "dir")
     os.mkdir(path)
     path = os.path.join(path, "index.html")
@@ -318,7 +314,7 @@ def test_staticfiles_html_without_404(tmpdir: Path, test_client_factory: TestCli
         file.write("<h1>Hello</h1>")
 
     app = StaticFiles(directory=tmpdir, html=True)
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     response = client.get("/dir/")
     assert response.url == "http://testserver/dir/"
@@ -335,13 +331,13 @@ def test_staticfiles_html_without_404(tmpdir: Path, test_client_factory: TestCli
     assert exc_info.value.status_code == 404
 
 
-def test_staticfiles_html_only_files(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_staticfiles_html_only_files(tmpdir: Path) -> None:
     path = os.path.join(tmpdir, "hello.html")
     with open(path, "w") as file:
         file.write("<h1>Hello</h1>")
 
     app = StaticFiles(directory=tmpdir, html=True)
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     with pytest.raises(HTTPException) as exc_info:
         response = client.get("/")
@@ -352,9 +348,7 @@ def test_staticfiles_html_only_files(tmpdir: Path, test_client_factory: TestClie
     assert response.text == "<h1>Hello</h1>"
 
 
-def test_staticfiles_cache_invalidation_for_deleted_file_html_mode(
-    tmpdir: Path, test_client_factory: TestClientFactory
-) -> None:
+def test_staticfiles_cache_invalidation_for_deleted_file_html_mode(tmpdir: Path) -> None:
     path_404 = os.path.join(tmpdir, "404.html")
     with open(path_404, "w") as file:
         file.write("<p>404 file</p>")
@@ -367,7 +361,7 @@ def test_staticfiles_cache_invalidation_for_deleted_file_html_mode(
     os.utime(path_some, (common_modified_time, common_modified_time))
 
     app = StaticFiles(directory=tmpdir, html=True)
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     resp_exists = client.get("/some.html")
     assert resp_exists.status_code == 200
@@ -389,9 +383,7 @@ def test_staticfiles_cache_invalidation_for_deleted_file_html_mode(
     assert resp_deleted.text == "<p>404 file</p>"
 
 
-def test_staticfiles_with_invalid_dir_permissions_returns_401(
-    tmp_path: Path, test_client_factory: TestClientFactory
-) -> None:
+def test_staticfiles_with_invalid_dir_permissions_returns_401(tmp_path: Path) -> None:
     (tmp_path / "example.txt").write_bytes(b"<file content>")
 
     original_mode = tmp_path.stat().st_mode
@@ -405,7 +397,7 @@ def test_staticfiles_with_invalid_dir_permissions_returns_401(
             )
         ]
         app = Starlette(routes=routes)
-        client = test_client_factory(app)
+        client = TestClient(app)
 
         response = client.get("/example.txt")
         assert response.status_code == 401
@@ -414,38 +406,38 @@ def test_staticfiles_with_invalid_dir_permissions_returns_401(
         tmp_path.chmod(original_mode)
 
 
-def test_staticfiles_with_missing_dir_returns_404(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_staticfiles_with_missing_dir_returns_404(tmpdir: Path) -> None:
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
         file.write("<file content>")
 
     routes = [Mount("/", app=StaticFiles(directory=tmpdir), name="static")]
     app = Starlette(routes=routes)
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     response = client.get("/foo/example.txt")
     assert response.status_code == 404
     assert response.text == "Not Found"
 
 
-def test_staticfiles_access_file_as_dir_returns_404(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_staticfiles_access_file_as_dir_returns_404(tmpdir: Path) -> None:
     path = os.path.join(tmpdir, "example.txt")
     with open(path, "w") as file:
         file.write("<file content>")
 
     routes = [Mount("/", app=StaticFiles(directory=tmpdir), name="static")]
     app = Starlette(routes=routes)
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     response = client.get("/example.txt/foo")
     assert response.status_code == 404
     assert response.text == "Not Found"
 
 
-def test_staticfiles_filename_too_long(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_staticfiles_filename_too_long(tmpdir: Path) -> None:
     routes = [Mount("/", app=StaticFiles(directory=tmpdir), name="static")]
     app = Starlette(routes=routes)
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     path_max_size = os.pathconf("/", "PC_PATH_MAX")
     response = client.get(f"/{'a' * path_max_size}.txt")
@@ -453,11 +445,7 @@ def test_staticfiles_filename_too_long(tmpdir: Path, test_client_factory: TestCl
     assert response.text == "Not Found"
 
 
-def test_staticfiles_unhandled_os_error_returns_500(
-    tmpdir: Path,
-    test_client_factory: TestClientFactory,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_staticfiles_unhandled_os_error_returns_500(tmpdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     def mock_timeout(*args: typing.Any, **kwargs: typing.Any) -> None:
         raise TimeoutError
 
@@ -467,7 +455,7 @@ def test_staticfiles_unhandled_os_error_returns_500(
 
     routes = [Mount("/", app=StaticFiles(directory=tmpdir), name="static")]
     app = Starlette(routes=routes)
-    client = test_client_factory(app, raise_server_exceptions=False)
+    client = TestClient(app, raise_server_exceptions=False)
 
     monkeypatch.setattr("starlette.staticfiles.StaticFiles.lookup_path", mock_timeout)
 
@@ -476,7 +464,7 @@ def test_staticfiles_unhandled_os_error_returns_500(
     assert response.text == "Internal Server Error"
 
 
-def test_staticfiles_follows_symlinks(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_staticfiles_follows_symlinks(tmpdir: Path) -> None:
     statics_path = os.path.join(tmpdir, "statics")
     os.mkdir(statics_path)
 
@@ -489,7 +477,7 @@ def test_staticfiles_follows_symlinks(tmpdir: Path, test_client_factory: TestCli
     os.symlink(source_file_path, statics_file_path)
 
     app = StaticFiles(directory=statics_path, follow_symlink=True)
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     response = client.get("/index.html")
     assert response.url == "http://testserver/index.html"
@@ -497,7 +485,7 @@ def test_staticfiles_follows_symlinks(tmpdir: Path, test_client_factory: TestCli
     assert response.text == "<h1>Hello</h1>"
 
 
-def test_staticfiles_follows_symlink_directories(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_staticfiles_follows_symlink_directories(tmpdir: Path) -> None:
     statics_path = os.path.join(tmpdir, "statics")
     statics_html_path = os.path.join(statics_path, "html")
     os.mkdir(statics_path)
@@ -510,7 +498,7 @@ def test_staticfiles_follows_symlink_directories(tmpdir: Path, test_client_facto
     os.symlink(source_path, statics_html_path)
 
     app = StaticFiles(directory=statics_path, follow_symlink=True)
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     response = client.get("/html/page.html")
     assert response.url == "http://testserver/html/page.html"
@@ -576,7 +564,7 @@ def test_staticfiles_avoids_path_traversal(tmp_path: Path) -> None:
     assert exc_info.value.detail == "Not Found"
 
 
-def test_staticfiles_self_symlinks(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+def test_staticfiles_self_symlinks(tmpdir: Path) -> None:
     statics_path = os.path.join(tmpdir, "statics")
     os.mkdir(statics_path)
 
@@ -588,7 +576,7 @@ def test_staticfiles_self_symlinks(tmpdir: Path, test_client_factory: TestClient
     os.symlink(statics_path, statics_symlink_path)
 
     app = StaticFiles(directory=statics_symlink_path, follow_symlink=True)
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     response = client.get("/index.html")
     assert response.url == "http://testserver/index.html"

@@ -17,41 +17,40 @@ from starlette.requests import ClientDisconnect, Request
 from starlette.responses import FileResponse, JSONResponse, RedirectResponse, Response, StreamingResponse
 from starlette.testclient import TestClient
 from starlette.types import Message, Receive, Scope, Send
-from tests.types import TestClientFactory
 
 
-def test_text_response(test_client_factory: TestClientFactory) -> None:
+def test_text_response() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         response = Response("hello, world", media_type="text/plain")
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.text == "hello, world"
 
 
-def test_bytes_response(test_client_factory: TestClientFactory) -> None:
+def test_bytes_response() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         response = Response(b"xxxxx", media_type="image/png")
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.content == b"xxxxx"
 
 
-def test_json_none_response(test_client_factory: TestClientFactory) -> None:
+def test_json_none_response() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         response = JSONResponse(None)
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.json() is None
     assert response.content == b"null"
 
 
-def test_redirect_response(test_client_factory: TestClientFactory) -> None:
+def test_redirect_response() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         if scope["path"] == "/":
             response = Response("hello, world", media_type="text/plain")
@@ -59,13 +58,13 @@ def test_redirect_response(test_client_factory: TestClientFactory) -> None:
             response = RedirectResponse("/")
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/redirect")
     assert response.text == "hello, world"
     assert response.url == "http://testserver/"
 
 
-def test_quoting_redirect_response(test_client_factory: TestClientFactory) -> None:
+def test_quoting_redirect_response() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         if scope["path"] == "/I ♥ Starlette/":
             response = Response("hello, world", media_type="text/plain")
@@ -73,15 +72,13 @@ def test_quoting_redirect_response(test_client_factory: TestClientFactory) -> No
             response = RedirectResponse("/I ♥ Starlette/")
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/redirect")
     assert response.text == "hello, world"
     assert response.url == "http://testserver/I%20%E2%99%A5%20Starlette/"
 
 
-def test_redirect_response_content_length_header(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_redirect_response_content_length_header() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         if scope["path"] == "/":
             response = Response("hello", media_type="text/plain")  # pragma: no cover
@@ -89,13 +86,13 @@ def test_redirect_response_content_length_header(
             response = RedirectResponse("/")
         await response(scope, receive, send)
 
-    client: TestClient = test_client_factory(app)
+    client: TestClient = TestClient(app)
     response = client.request("GET", "/redirect", follow_redirects=False)
     assert response.url == "http://testserver/redirect"
     assert response.headers["content-length"] == "0"
 
 
-def test_streaming_response(test_client_factory: TestClientFactory) -> None:
+def test_streaming_response() -> None:
     filled_by_bg_task = ""
 
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
@@ -117,15 +114,13 @@ def test_streaming_response(test_client_factory: TestClientFactory) -> None:
         await response(scope, receive, send)
 
     assert filled_by_bg_task == ""
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.text == "1, 2, 3, 4, 5"
     assert filled_by_bg_task == "6, 7, 8, 9"
 
 
-def test_streaming_response_custom_iterator(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_streaming_response_custom_iterator() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         class CustomAsyncIterator:
             def __init__(self) -> None:
@@ -143,14 +138,12 @@ def test_streaming_response_custom_iterator(
         response = StreamingResponse(CustomAsyncIterator(), media_type="text/plain")
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.text == "12345"
 
 
-def test_streaming_response_custom_iterable(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_streaming_response_custom_iterable() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         class CustomAsyncIterable:
             async def __aiter__(self) -> AsyncIterator[str | bytes]:
@@ -160,12 +153,12 @@ def test_streaming_response_custom_iterable(
         response = StreamingResponse(CustomAsyncIterable(), media_type="text/plain")
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.text == "12345"
 
 
-def test_sync_streaming_response(test_client_factory: TestClientFactory) -> None:
+def test_sync_streaming_response() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         def numbers(minimum: int, maximum: int) -> Iterator[str]:
             for i in range(minimum, maximum + 1):
@@ -177,37 +170,39 @@ def test_sync_streaming_response(test_client_factory: TestClientFactory) -> None
         response = StreamingResponse(generator, media_type="text/plain")
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.text == "1, 2, 3, 4, 5"
 
 
-def test_response_headers(test_client_factory: TestClientFactory) -> None:
+def test_response_headers() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         headers = {"x-header-1": "123", "x-header-2": "456"}
         response = Response("hello, world", media_type="text/plain", headers=headers)
         response.headers["x-header-2"] = "789"
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.headers["x-header-1"] == "123"
     assert response.headers["x-header-2"] == "789"
 
 
-def test_response_phrase(test_client_factory: TestClientFactory) -> None:
+def test_response_phrase() -> None:
     app = Response(status_code=204)
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.reason_phrase == "No Content"
 
     app = Response(b"", status_code=123)
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.reason_phrase == ""
 
 
-def test_file_response(tmp_path: Path, test_client_factory: TestClientFactory) -> None:
+def test_file_response(
+    tmp_path: Path,
+) -> None:
     path = tmp_path / "xyz"
     content = b"<file content>" * 1000
     path.write_bytes(content)
@@ -233,7 +228,7 @@ def test_file_response(tmp_path: Path, test_client_factory: TestClientFactory) -
         await response(scope, receive, send)
 
     assert filled_by_bg_task == ""
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     expected_disposition = 'attachment; filename="example.png"'
     assert response.status_code == status.HTTP_200_OK
@@ -275,42 +270,50 @@ async def test_file_response_on_head_method(tmp_path: Path) -> None:
     await app({"type": "http", "method": "head", "headers": [(b"key", b"value")]}, receive, send)
 
 
-def test_file_response_set_media_type(tmp_path: Path, test_client_factory: TestClientFactory) -> None:
+def test_file_response_set_media_type(
+    tmp_path: Path,
+) -> None:
     path = tmp_path / "xyz"
     path.write_bytes(b"<file content>")
 
     # By default, FileResponse will determine the `content-type` based on
     # the filename or path, unless a specific `media_type` is provided.
     app = FileResponse(path=path, filename="example.png", media_type="image/jpeg")
-    client: TestClient = test_client_factory(app)
+    client: TestClient = TestClient(app)
     response = client.get("/")
     assert response.headers["content-type"] == "image/jpeg"
 
 
-def test_file_response_with_directory_raises_error(tmp_path: Path, test_client_factory: TestClientFactory) -> None:
+def test_file_response_with_directory_raises_error(
+    tmp_path: Path,
+) -> None:
     app = FileResponse(path=tmp_path, filename="example.png")
-    client = test_client_factory(app)
+    client = TestClient(app)
     with pytest.raises(RuntimeError) as exc_info:
         client.get("/")
     assert "is not a file" in str(exc_info.value)
 
 
-def test_file_response_with_missing_file_raises_error(tmp_path: Path, test_client_factory: TestClientFactory) -> None:
+def test_file_response_with_missing_file_raises_error(
+    tmp_path: Path,
+) -> None:
     path = tmp_path / "404.txt"
     app = FileResponse(path=path, filename="404.txt")
-    client = test_client_factory(app)
+    client = TestClient(app)
     with pytest.raises(RuntimeError) as exc_info:
         client.get("/")
     assert "does not exist" in str(exc_info.value)
 
 
-def test_file_response_with_chinese_filename(tmp_path: Path, test_client_factory: TestClientFactory) -> None:
+def test_file_response_with_chinese_filename(
+    tmp_path: Path,
+) -> None:
     content = b"file content"
     filename = "你好.txt"  # probably "Hello.txt" in Chinese
     path = tmp_path / filename
     path.write_bytes(content)
     app = FileResponse(path=path, filename=filename)
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     expected_disposition = "attachment; filename*=utf-8''%E4%BD%A0%E5%A5%BD.txt"
     assert response.status_code == status.HTTP_200_OK
@@ -318,13 +321,15 @@ def test_file_response_with_chinese_filename(tmp_path: Path, test_client_factory
     assert response.headers["content-disposition"] == expected_disposition
 
 
-def test_file_response_with_inline_disposition(tmp_path: Path, test_client_factory: TestClientFactory) -> None:
+def test_file_response_with_inline_disposition(
+    tmp_path: Path,
+) -> None:
     content = b"file content"
     filename = "hello.txt"
     path = tmp_path / filename
     path.write_bytes(content)
     app = FileResponse(path=path, filename=filename, content_disposition_type="inline")
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     expected_disposition = 'inline; filename="hello.txt"'
     assert response.status_code == status.HTTP_200_OK
@@ -337,14 +342,16 @@ def test_file_response_with_method_warns(tmp_path: Path) -> None:
         FileResponse(path=tmp_path, filename="example.png", method="GET")
 
 
-def test_file_response_with_range_header(tmp_path: Path, test_client_factory: TestClientFactory) -> None:
+def test_file_response_with_range_header(
+    tmp_path: Path,
+) -> None:
     content = b"file content"
     filename = "hello.txt"
     path = tmp_path / filename
     path.write_bytes(content)
     etag = '"a_non_autogenerated_etag"'
     app = FileResponse(path=path, filename=filename, headers={"etag": etag})
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/", headers={"range": "bytes=0-4", "if-range": etag})
     assert response.status_code == status.HTTP_206_PARTIAL_CONTENT
     assert response.content == content[:5]
@@ -353,7 +360,7 @@ def test_file_response_with_range_header(tmp_path: Path, test_client_factory: Te
     assert response.headers["content-range"] == f"bytes 0-4/{len(content)}"
 
 
-def test_set_cookie(test_client_factory: TestClientFactory, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_set_cookie(monkeypatch: pytest.MonkeyPatch) -> None:
     # Mock time used as a reference for `Expires` by stdlib `SimpleCookie`.
     mocked_now = dt.datetime(2037, 1, 22, 12, 0, 0, tzinfo=dt.timezone.utc)
     monkeypatch.setattr(time, "time", lambda: mocked_now.timestamp())
@@ -373,7 +380,7 @@ def test_set_cookie(test_client_factory: TestClientFactory, monkeypatch: pytest.
         )
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.text == "Hello, world!"
     assert (
@@ -382,25 +389,25 @@ def test_set_cookie(test_client_factory: TestClientFactory, monkeypatch: pytest.
     )
 
 
-def test_set_cookie_path_none(test_client_factory: TestClientFactory) -> None:
+def test_set_cookie_path_none() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         response = Response("Hello, world!", media_type="text/plain")
         response.set_cookie("mycookie", "myvalue", path=None)
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.text == "Hello, world!"
     assert response.headers["set-cookie"] == "mycookie=myvalue; SameSite=lax"
 
 
-def test_set_cookie_samesite_none(test_client_factory: TestClientFactory) -> None:
+def test_set_cookie_samesite_none() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         response = Response("Hello, world!", media_type="text/plain")
         response.set_cookie("mycookie", "myvalue", samesite=None)
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.text == "Hello, world!"
     assert response.headers["set-cookie"] == "mycookie=myvalue; Path=/"
@@ -414,11 +421,7 @@ def test_set_cookie_samesite_none(test_client_factory: TestClientFactory) -> Non
         pytest.param(10, id="int"),
     ],
 )
-def test_expires_on_set_cookie(
-    test_client_factory: TestClientFactory,
-    monkeypatch: pytest.MonkeyPatch,
-    expires: str,
-) -> None:
+def test_expires_on_set_cookie(monkeypatch: pytest.MonkeyPatch, expires: str) -> None:
     # Mock time used as a reference for `Expires` by stdlib `SimpleCookie`.
     mocked_now = dt.datetime(2037, 1, 22, 12, 0, 0, tzinfo=dt.timezone.utc)
     monkeypatch.setattr(time, "time", lambda: mocked_now.timestamp())
@@ -428,13 +431,13 @@ def test_expires_on_set_cookie(
         response.set_cookie("mycookie", "myvalue", expires=expires)
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     cookie = SimpleCookie(response.headers.get("set-cookie"))
     assert cookie["mycookie"]["expires"] == "Thu, 22 Jan 2037 12:00:10 GMT"
 
 
-def test_delete_cookie(test_client_factory: TestClientFactory) -> None:
+def test_delete_cookie() -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
         response = Response("Hello, world!", media_type="text/plain")
@@ -444,98 +447,96 @@ def test_delete_cookie(test_client_factory: TestClientFactory) -> None:
             response.set_cookie("mycookie", "myvalue")
         await response(scope, receive, send)
 
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.cookies["mycookie"]
     response = client.get("/")
     assert not response.cookies.get("mycookie")
 
 
-def test_populate_headers(test_client_factory: TestClientFactory) -> None:
+def test_populate_headers() -> None:
     app = Response(content="hi", headers={}, media_type="text/html")
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.text == "hi"
     assert response.headers["content-length"] == "2"
     assert response.headers["content-type"] == "text/html; charset=utf-8"
 
 
-def test_head_method(test_client_factory: TestClientFactory) -> None:
+def test_head_method() -> None:
     app = Response("hello, world", media_type="text/plain")
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.head("/")
     assert response.text == ""
 
 
-def test_empty_response(test_client_factory: TestClientFactory) -> None:
+def test_empty_response() -> None:
     app = Response()
-    client: TestClient = test_client_factory(app)
+    client: TestClient = TestClient(app)
     response = client.get("/")
     assert response.content == b""
     assert response.headers["content-length"] == "0"
     assert "content-type" not in response.headers
 
 
-def test_empty_204_response(test_client_factory: TestClientFactory) -> None:
+def test_empty_204_response() -> None:
     app = Response(status_code=204)
-    client: TestClient = test_client_factory(app)
+    client: TestClient = TestClient(app)
     response = client.get("/")
     assert "content-length" not in response.headers
 
 
-def test_non_empty_response(test_client_factory: TestClientFactory) -> None:
+def test_non_empty_response() -> None:
     app = Response(content="hi")
-    client: TestClient = test_client_factory(app)
+    client: TestClient = TestClient(app)
     response = client.get("/")
     assert response.headers["content-length"] == "2"
 
 
-def test_response_do_not_add_redundant_charset(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_response_do_not_add_redundant_charset() -> None:
     app = Response(media_type="text/plain; charset=utf-8")
-    client = test_client_factory(app)
+    client = TestClient(app)
     response = client.get("/")
     assert response.headers["content-type"] == "text/plain; charset=utf-8"
 
 
-def test_file_response_known_size(tmp_path: Path, test_client_factory: TestClientFactory) -> None:
+def test_file_response_known_size(
+    tmp_path: Path,
+) -> None:
     path = tmp_path / "xyz"
     content = b"<file content>" * 1000
     path.write_bytes(content)
 
     app = FileResponse(path=path, filename="example.png")
-    client: TestClient = test_client_factory(app)
+    client: TestClient = TestClient(app)
     response = client.get("/")
     assert response.headers["content-length"] == str(len(content))
 
 
-def test_streaming_response_unknown_size(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_streaming_response_unknown_size() -> None:
     app = StreamingResponse(content=iter(["hello", "world"]))
-    client: TestClient = test_client_factory(app)
+    client: TestClient = TestClient(app)
     response = client.get("/")
     assert "content-length" not in response.headers
 
 
-def test_streaming_response_known_size(test_client_factory: TestClientFactory) -> None:
+def test_streaming_response_known_size() -> None:
     app = StreamingResponse(content=iter(["hello", "world"]), headers={"content-length": "10"})
-    client: TestClient = test_client_factory(app)
+    client: TestClient = TestClient(app)
     response = client.get("/")
     assert response.headers["content-length"] == "10"
 
 
-def test_response_memoryview(test_client_factory: TestClientFactory) -> None:
+def test_response_memoryview() -> None:
     app = Response(content=memoryview(b"\xc0"))
-    client: TestClient = test_client_factory(app)
+    client: TestClient = TestClient(app)
     response = client.get("/")
     assert response.content == b"\xc0"
 
 
-def test_streaming_response_memoryview(test_client_factory: TestClientFactory) -> None:
+def test_streaming_response_memoryview() -> None:
     app = StreamingResponse(content=iter([memoryview(b"\xc0"), memoryview(b"\xf5")]))
-    client: TestClient = test_client_factory(app)
+    client: TestClient = TestClient(app)
     response = client.get("/")
     assert response.content == b"\xc0\xf5"
 
@@ -623,8 +624,10 @@ def readme_file(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def file_response_client(readme_file: Path, test_client_factory: TestClientFactory) -> TestClient:
-    return test_client_factory(app=FileResponse(str(readme_file)))
+def file_response_client(
+    readme_file: Path,
+) -> TestClient:
+    return TestClient(app=FileResponse(str(readme_file)))
 
 
 def test_file_response_without_range(file_response_client: TestClient) -> None:

@@ -9,7 +9,7 @@ from starlette.concurrency import iterate_in_threadpool, run_until_first_complet
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import Route
-from tests.types import TestClientFactory
+from starlette.testclient import TestClient
 
 
 @pytest.mark.anyio
@@ -30,9 +30,7 @@ async def test_run_until_first_complete() -> None:
     assert not task2_finished.is_set()
 
 
-def test_accessing_context_from_threaded_sync_endpoint(
-    test_client_factory: TestClientFactory,
-) -> None:
+def test_accessing_context_from_threaded_sync_endpoint() -> None:
     ctxvar: ContextVar[bytes] = ContextVar("ctxvar")
     ctxvar.set(b"data")
 
@@ -40,7 +38,7 @@ def test_accessing_context_from_threaded_sync_endpoint(
         return Response(ctxvar.get())
 
     app = Starlette(routes=[Route("/", endpoint)])
-    client = test_client_factory(app)
+    client = TestClient(app)
 
     resp = client.get("/")
     assert resp.content == b"data"
