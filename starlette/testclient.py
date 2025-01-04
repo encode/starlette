@@ -7,6 +7,7 @@ import json
 import math
 import sys
 import typing
+import warnings
 from concurrent.futures import Future
 from types import GeneratorType
 from urllib.parse import unquote, urljoin
@@ -455,6 +456,8 @@ class TestClient(httpx.Client):
         timeout: httpx._types.TimeoutTypes | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
         extensions: dict[str, typing.Any] | None = None,
     ) -> httpx.Response:
+        if timeout is not httpx.USE_CLIENT_DEFAULT:
+            warnings.warn("The 'timeout' argument is not supported by 'TestClient'.", DeprecationWarning)
         return super().get(
             url,
             params=params,
@@ -478,6 +481,8 @@ class TestClient(httpx.Client):
         timeout: httpx._types.TimeoutTypes | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
         extensions: dict[str, typing.Any] | None = None,
     ) -> httpx.Response:
+        if timeout is not httpx.USE_CLIENT_DEFAULT:
+            warnings.warn("The 'timeout' argument is not supported by 'TestClient'.", DeprecationWarning)
         return super().options(
             url,
             params=params,
@@ -501,6 +506,8 @@ class TestClient(httpx.Client):
         timeout: httpx._types.TimeoutTypes | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
         extensions: dict[str, typing.Any] | None = None,
     ) -> httpx.Response:
+        if timeout is not httpx.USE_CLIENT_DEFAULT:
+            warnings.warn("The 'timeout' argument is not supported by 'TestClient'.", DeprecationWarning)
         return super().head(
             url,
             params=params,
@@ -528,6 +535,8 @@ class TestClient(httpx.Client):
         timeout: httpx._types.TimeoutTypes | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
         extensions: dict[str, typing.Any] | None = None,
     ) -> httpx.Response:
+        if timeout is not httpx.USE_CLIENT_DEFAULT:
+            warnings.warn("The 'timeout' argument is not supported by 'TestClient'.", DeprecationWarning)
         return super().post(
             url,
             content=content,
@@ -559,6 +568,8 @@ class TestClient(httpx.Client):
         timeout: httpx._types.TimeoutTypes | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
         extensions: dict[str, typing.Any] | None = None,
     ) -> httpx.Response:
+        if timeout is not httpx.USE_CLIENT_DEFAULT:
+            warnings.warn("The 'timeout' argument is not supported by 'TestClient'.", DeprecationWarning)
         return super().put(
             url,
             content=content,
@@ -590,6 +601,8 @@ class TestClient(httpx.Client):
         timeout: httpx._types.TimeoutTypes | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
         extensions: dict[str, typing.Any] | None = None,
     ) -> httpx.Response:
+        if timeout is not httpx.USE_CLIENT_DEFAULT:
+            warnings.warn("The 'timeout' argument is not supported by 'TestClient'.", DeprecationWarning)
         return super().patch(
             url,
             content=content,
@@ -617,6 +630,8 @@ class TestClient(httpx.Client):
         timeout: httpx._types.TimeoutTypes | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
         extensions: dict[str, typing.Any] | None = None,
     ) -> httpx.Response:
+        if timeout is not httpx.USE_CLIENT_DEFAULT:
+            warnings.warn("The 'timeout' argument is not supported by 'TestClient'.", DeprecationWarning)
         return super().delete(
             url,
             params=params,
