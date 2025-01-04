@@ -7,6 +7,7 @@ import json
 import math
 import sys
 import typing
+import warnings
 from concurrent.futures import Future
 from types import GeneratorType
 from urllib.parse import unquote, urljoin
@@ -409,6 +410,17 @@ class TestClient(httpx.Client):
             with anyio.from_thread.start_blocking_portal(**self.async_backend) as portal:
                 yield portal
 
+    def _handle_timeout(
+        self,
+        timeout: httpx._types.TimeoutTypes | None,
+    ) -> httpx._types.TimeoutTypes | httpx._client.UseClientDefault:
+        default_timeout: httpx._types.TimeoutTypes | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT
+        if timeout is not None:
+            message = "The `timeout` argument doesn't work, is deprecated, and will be removed in future versions."
+            warnings.warn(message, DeprecationWarning)
+            return timeout
+        return default_timeout
+
     def request(  # type: ignore[override]
         self,
         method: str,
@@ -423,9 +435,10 @@ class TestClient(httpx.Client):
         cookies: httpx._types.CookieTypes | None = None,
         auth: httpx._types.AuthTypes | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
         follow_redirects: bool | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
-        timeout: httpx._types.TimeoutTypes | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: httpx._types.TimeoutTypes | None = None,
         extensions: dict[str, typing.Any] | None = None,
     ) -> httpx.Response:
+        _timeout = self._handle_timeout(timeout)
         url = self._merge_url(url)
         return super().request(
             method,
@@ -439,7 +452,7 @@ class TestClient(httpx.Client):
             cookies=cookies,
             auth=auth,
             follow_redirects=follow_redirects,
-            timeout=timeout,
+            timeout=_timeout,
             extensions=extensions,
         )
 
@@ -452,9 +465,10 @@ class TestClient(httpx.Client):
         cookies: httpx._types.CookieTypes | None = None,
         auth: httpx._types.AuthTypes | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
         follow_redirects: bool | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
-        timeout: httpx._types.TimeoutTypes | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: httpx._types.TimeoutTypes | None = None,
         extensions: dict[str, typing.Any] | None = None,
     ) -> httpx.Response:
+        _timeout = self._handle_timeout(timeout)
         return super().get(
             url,
             params=params,
@@ -462,7 +476,7 @@ class TestClient(httpx.Client):
             cookies=cookies,
             auth=auth,
             follow_redirects=follow_redirects,
-            timeout=timeout,
+            timeout=_timeout,
             extensions=extensions,
         )
 
@@ -475,9 +489,10 @@ class TestClient(httpx.Client):
         cookies: httpx._types.CookieTypes | None = None,
         auth: httpx._types.AuthTypes | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
         follow_redirects: bool | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
-        timeout: httpx._types.TimeoutTypes | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: httpx._types.TimeoutTypes | None = None,
         extensions: dict[str, typing.Any] | None = None,
     ) -> httpx.Response:
+        _timeout = self._handle_timeout(timeout)
         return super().options(
             url,
             params=params,
@@ -485,7 +500,7 @@ class TestClient(httpx.Client):
             cookies=cookies,
             auth=auth,
             follow_redirects=follow_redirects,
-            timeout=timeout,
+            timeout=_timeout,
             extensions=extensions,
         )
 
@@ -498,9 +513,10 @@ class TestClient(httpx.Client):
         cookies: httpx._types.CookieTypes | None = None,
         auth: httpx._types.AuthTypes | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
         follow_redirects: bool | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
-        timeout: httpx._types.TimeoutTypes | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: httpx._types.TimeoutTypes | None = None,
         extensions: dict[str, typing.Any] | None = None,
     ) -> httpx.Response:
+        _timeout = self._handle_timeout(timeout)
         return super().head(
             url,
             params=params,
@@ -508,7 +524,7 @@ class TestClient(httpx.Client):
             cookies=cookies,
             auth=auth,
             follow_redirects=follow_redirects,
-            timeout=timeout,
+            timeout=_timeout,
             extensions=extensions,
         )
 
@@ -525,9 +541,10 @@ class TestClient(httpx.Client):
         cookies: httpx._types.CookieTypes | None = None,
         auth: httpx._types.AuthTypes | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
         follow_redirects: bool | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
-        timeout: httpx._types.TimeoutTypes | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: httpx._types.TimeoutTypes | None = None,
         extensions: dict[str, typing.Any] | None = None,
     ) -> httpx.Response:
+        _timeout = self._handle_timeout(timeout)
         return super().post(
             url,
             content=content,
@@ -539,7 +556,7 @@ class TestClient(httpx.Client):
             cookies=cookies,
             auth=auth,
             follow_redirects=follow_redirects,
-            timeout=timeout,
+            timeout=_timeout,
             extensions=extensions,
         )
 
@@ -556,9 +573,10 @@ class TestClient(httpx.Client):
         cookies: httpx._types.CookieTypes | None = None,
         auth: httpx._types.AuthTypes | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
         follow_redirects: bool | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
-        timeout: httpx._types.TimeoutTypes | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: httpx._types.TimeoutTypes | None = None,
         extensions: dict[str, typing.Any] | None = None,
     ) -> httpx.Response:
+        _timeout = self._handle_timeout(timeout)
         return super().put(
             url,
             content=content,
@@ -570,7 +588,7 @@ class TestClient(httpx.Client):
             cookies=cookies,
             auth=auth,
             follow_redirects=follow_redirects,
-            timeout=timeout,
+            timeout=_timeout,
             extensions=extensions,
         )
 
@@ -587,9 +605,10 @@ class TestClient(httpx.Client):
         cookies: httpx._types.CookieTypes | None = None,
         auth: httpx._types.AuthTypes | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
         follow_redirects: bool | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
-        timeout: httpx._types.TimeoutTypes | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: httpx._types.TimeoutTypes | None = None,
         extensions: dict[str, typing.Any] | None = None,
     ) -> httpx.Response:
+        _timeout = self._handle_timeout(timeout)
         return super().patch(
             url,
             content=content,
@@ -601,7 +620,7 @@ class TestClient(httpx.Client):
             cookies=cookies,
             auth=auth,
             follow_redirects=follow_redirects,
-            timeout=timeout,
+            timeout=_timeout,
             extensions=extensions,
         )
 
@@ -614,9 +633,10 @@ class TestClient(httpx.Client):
         cookies: httpx._types.CookieTypes | None = None,
         auth: httpx._types.AuthTypes | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
         follow_redirects: bool | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
-        timeout: httpx._types.TimeoutTypes | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
+        timeout: httpx._types.TimeoutTypes | None = None,
         extensions: dict[str, typing.Any] | None = None,
     ) -> httpx.Response:
+        _timeout = self._handle_timeout(timeout)
         return super().delete(
             url,
             params=params,
@@ -624,7 +644,7 @@ class TestClient(httpx.Client):
             cookies=cookies,
             auth=auth,
             follow_redirects=follow_redirects,
-            timeout=timeout,
+            timeout=_timeout,
             extensions=extensions,
         )
 

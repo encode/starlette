@@ -81,6 +81,7 @@ filterwarnings = [
     "error",
     "ignore: run_until_first_complete is deprecated and will be removed in a future version.:DeprecationWarning",
     "ignore: starlette.middleware.wsgi is deprecated and will be removed in a future release.*:DeprecationWarning",
+    "ignore: The `timeout` argument doesn't work, is deprecated, and will be removed in future versions.*:DeprecationWarning",
     "ignore: Async generator 'starlette.requests.Request.stream' was garbage collected before it had been exhausted.*:ResourceWarning",
     "ignore: Use 'content=<...>' to upload raw bytes/text content.:DeprecationWarning",
 ]

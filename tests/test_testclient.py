@@ -422,3 +422,22 @@ def test_websocket_raw_path_without_params(test_client_factory: TestClientFactor
     with client.websocket_connect("/hello-world", params={"foo": "bar"}) as websocket:
         data = websocket.receive_bytes()
         assert data == b"/hello-world"
+
+
+@pytest.mark.parametrize("method", [None, "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"])
+def test_warning_timeout_deprecation(test_client_factory: TestClientFactory, method: str | None) -> None:
+    def homepage(request: Request) -> Response:
+        return Response("Hello, world!")
+
+    allowed_method = [method] if method else None
+    app = Starlette(routes=[Route("/", endpoint=homepage, methods=allowed_method)])
+    client = test_client_factory(app)
+    with pytest.warns(
+        DeprecationWarning,
+        match="The `timeout` argument doesn't work, is deprecated, and will be removed in future versions.",
+    ):
+        if method is None:
+            client.request("GET", "/", timeout=0.1)
+        else:
+            client_method = getattr(client, method.lower())
+            client_method("/", timeout=0.1)
