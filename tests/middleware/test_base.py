@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import contextvars
+from collections.abc import AsyncGenerator, AsyncIterator, Generator
 from contextlib import AsyncExitStack
-from typing import Any, AsyncGenerator, AsyncIterator, Generator
+from typing import Any
 
 import anyio
 import pytest
@@ -10,7 +11,7 @@ from anyio.abc import TaskStatus
 
 from starlette.applications import Starlette
 from starlette.background import BackgroundTask
-from starlette.middleware import Middleware, _MiddlewareClass
+from starlette.middleware import Middleware, _MiddlewareFactory
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import ClientDisconnect, Request
 from starlette.responses import PlainTextResponse, Response, StreamingResponse
@@ -232,7 +233,7 @@ class CustomMiddlewareUsingBaseHTTPMiddleware(BaseHTTPMiddleware):
 )
 def test_contextvars(
     test_client_factory: TestClientFactory,
-    middleware_cls: type[_MiddlewareClass[Any]],
+    middleware_cls: _MiddlewareFactory[Any],
 ) -> None:
     # this has to be an async endpoint because Starlette calls run_in_threadpool
     # on sync endpoints which has it's own set of peculiarities w.r.t propagating
@@ -288,7 +289,7 @@ async def test_run_background_tasks_even_if_client_disconnects() -> None:
 
     async def send(message: Message) -> None:
         if message["type"] == "http.response.body":
-            if not message.get("more_body", False):
+            if not message.get("more_body", False):  # pragma: no branch
                 response_complete.set()
 
     await app(scope, receive, send)
@@ -402,7 +403,7 @@ async def test_run_context_manager_exit_even_if_client_disconnects() -> None:
 
     async def send(message: Message) -> None:
         if message["type"] == "http.response.body":
-            if not message.get("more_body", False):
+            if not message.get("more_body", False):  # pragma: no branch
                 response_complete.set()
 
     await app(scope, receive, send)
@@ -456,7 +457,7 @@ def test_app_receives_http_disconnect_while_sending_if_discarded(
                 task_status.started()
                 while True:
                     message = await receive()
-                    if message["type"] == "http.disconnect":
+                    if message["type"] == "http.disconnect":  # pragma: no branch
                         task_group.cancel_scope.cancel()
                         break
 
@@ -717,7 +718,7 @@ def test_read_request_stream_in_dispatch_after_app_calls_body(
 async def test_read_request_stream_in_dispatch_wrapping_app_calls_body() -> None:
     async def endpoint(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
-        async for chunk in request.stream():
+        async for chunk in request.stream():  # pragma: no branch
             assert chunk == b"2"
             break
         await Response()(scope, receive, send)
@@ -730,7 +731,7 @@ async def test_read_request_stream_in_dispatch_wrapping_app_calls_body() -> None
         ) -> Response:
             expected = b"1"
             response: Response | None = None
-            async for chunk in request.stream():
+            async for chunk in request.stream():  # pragma: no branch
                 assert chunk == expected
                 if expected == b"1":
                     response = await call_next(request)
@@ -943,7 +944,7 @@ def test_downstream_middleware_modifies_receive(
         async def wrapped_app(scope: Scope, receive: Receive, send: Send) -> None:
             async def wrapped_receive() -> Message:
                 msg = await receive()
-                if msg["type"] == "http.request":
+                if msg["type"] == "http.request":  # pragma: no branch
                     msg["body"] = msg["body"] * 2
                 return msg
 
