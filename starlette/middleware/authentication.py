@@ -10,6 +10,7 @@ from starlette.authentication import (
 )
 from starlette.requests import HTTPConnection
 from starlette.responses import PlainTextResponse, Response
+from starlette.status import WS_1000_NORMAL_CLOSURE
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 
@@ -37,7 +38,7 @@ class AuthenticationMiddleware:
         except AuthenticationError as exc:
             response = self.on_error(conn, exc)
             if scope["type"] == "websocket":
-                await send({"type": "websocket.close", "code": 1000})
+                await send({"type": "websocket.close", "code": WS_1000_NORMAL_CLOSURE})
             else:
                 await response(scope, receive, send)
             return
