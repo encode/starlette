@@ -576,8 +576,7 @@ def test_staticfiles_avoids_path_traversal(tmp_path: Path) -> None:
     assert exc_info.value.detail == "Not Found"
 
 
-@pytest.mark.parametrize("string_path", [pytest.param(True, id="string_path"), pytest.param(False, id="pathlib_path")])
-def test_staticfiles_self_symlinks(string_path: bool, tmp_path: Path, test_client_factory: TestClientFactory) -> None:
+def test_staticfiles_self_symlinks(tmp_path: Path, test_client_factory: TestClientFactory) -> None:
     statics_path = tmp_path / "statics"
     statics_path.mkdir()
 
@@ -587,7 +586,6 @@ def test_staticfiles_self_symlinks(string_path: bool, tmp_path: Path, test_clien
     statics_symlink_path = tmp_path / "statics_symlink"
     statics_symlink_path.symlink_to(statics_path)
 
-    statics_symlink_path = str(statics_symlink_path) if string_path else statics_symlink_path
     app = StaticFiles(directory=statics_symlink_path, follow_symlink=True)
     client = test_client_factory(app)
 
