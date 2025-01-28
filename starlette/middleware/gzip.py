@@ -102,6 +102,10 @@ class GZipResponder:
             self.gzip_buffer.truncate()
 
             await self.send(message)
+        elif message_type == "http.response.pathsend":
+            # Don't apply GZip to pathsend responses
+            await self.send(self.initial_message)
+            await self.send(message)
 
 
 async def unattached_send(message: Message) -> typing.NoReturn:
