@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 import typing
 from shlex import shlex
 from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit
@@ -438,7 +439,7 @@ class UploadFile:
         if self.size is not None:
             self.size += len(data)
 
-        if self._in_memory:
+        if self._in_memory and self.file.tell() + len(data) <= getattr(self.file, "_max_size", sys.maxsize):
             self.file.write(data)
         else:
             await run_in_threadpool(self.file.write, data)

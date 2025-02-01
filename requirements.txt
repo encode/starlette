@@ -12,6 +12,7 @@ types-PyYAML==6.0.12.20250326
 types-dataclasses==0.6.6
 pytest==8.3.5
 trio==0.29.0
+blockbuster==1.5.13
 
 # Documentation
 black==25.1.0
