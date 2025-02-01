@@ -23,7 +23,7 @@ def test_templates(tmpdir: Path, test_client_factory: TestClientFactory) -> None
     with open(path, "w") as file:
         file.write("<html>Hello, <a href='{{ url_for('homepage') }}'>world</a></html>")
 
-    async def homepage(request: Request) -> Response:
+    def homepage(request: Request) -> Response:
         return templates.TemplateResponse(request, "index.html")
 
     app = Starlette(debug=True, routes=[Route("/", endpoint=homepage)])
@@ -40,7 +40,7 @@ def test_calls_context_processors(tmp_path: Path, test_client_factory: TestClien
     path = tmp_path / "index.html"
     path.write_text("<html>Hello {{ username }}</html>")
 
-    async def homepage(request: Request) -> Response:
+    def homepage(request: Request) -> Response:
         return templates.TemplateResponse(request, "index.html")
 
     def hello_world_processor(request: Request) -> dict[str, str]:
@@ -69,7 +69,7 @@ def test_template_with_middleware(tmpdir: Path, test_client_factory: TestClientF
     with open(path, "w") as file:
         file.write("<html>Hello, <a href='{{ url_for('homepage') }}'>world</a></html>")
 
-    async def homepage(request: Request) -> Response:
+    def homepage(request: Request) -> Response:
         return templates.TemplateResponse(request, "index.html")
 
     class CustomMiddleware(BaseHTTPMiddleware):
@@ -96,7 +96,7 @@ def test_templates_with_directories(tmp_path: Path, test_client_factory: TestCli
     template_a = dir_a / "template_a.html"
     template_a.write_text("<html><a href='{{ url_for('page_a') }}'></a> a</html>")
 
-    async def page_a(request: Request) -> Response:
+    def page_a(request: Request) -> Response:
         return templates.TemplateResponse(request, "template_a.html")
 
     dir_b = tmp_path.resolve() / "b"
@@ -104,7 +104,7 @@ def test_templates_with_directories(tmp_path: Path, test_client_factory: TestCli
     template_b = dir_b / "template_b.html"
     template_b.write_text("<html><a href='{{ url_for('page_b') }}'></a> b</html>")
 
-    async def page_b(request: Request) -> Response:
+    def page_b(request: Request) -> Response:
         return templates.TemplateResponse(request, "template_b.html")
 
     app = Starlette(
@@ -150,7 +150,7 @@ def test_templates_with_environment(tmpdir: Path, test_client_factory: TestClien
     with open(path, "w") as file:
         file.write("<html>Hello, <a href='{{ url_for('homepage') }}'>world</a></html>")
 
-    async def homepage(request: Request) -> Response:
+    def homepage(request: Request) -> Response:
         return templates.TemplateResponse(request, "index.html")
 
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(str(tmpdir)))
