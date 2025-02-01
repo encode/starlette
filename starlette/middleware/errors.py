@@ -6,6 +6,8 @@ import sys
 import traceback
 import typing
 
+import anyio
+
 from starlette._utils import is_async_callable
 from starlette.concurrency import run_in_threadpool
 from starlette.requests import Request
@@ -167,7 +169,7 @@ class ServerErrorMiddleware:
             request = Request(scope)
             if self.debug:
                 # In debug mode, return traceback responses.
-                response = self.debug_response(request, exc)
+                response = await anyio.to_thread.run_sync(self.debug_response, request, exc)
             elif self.handler is None:
                 # Use our default 500 error handler.
                 response = self.error_response(request, exc)

@@ -1,12 +1,21 @@
 from __future__ import annotations
 
 import functools
+from collections.abc import Iterator
 from typing import Any, Literal
 
 import pytest
+from blockbuster import blockbuster_ctx
 
 from starlette.testclient import TestClient
 from tests.types import TestClientFactory
+
+
+@pytest.fixture(autouse=True)
+def blockbuster() -> Iterator[None]:
+    with blockbuster_ctx("starlette") as bb:
+        bb.functions["os.stat"].can_block_in("/mimetypes.py", "init")
+        yield
 
 
 @pytest.fixture
