@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+import pytest
+
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.gzip import GZipMiddleware
@@ -21,6 +25,7 @@ def test_gzip_responses(test_client_factory: TestClientFactory) -> None:
     assert response.status_code == 200
     assert response.text == "x" * 4000
     assert response.headers["Content-Encoding"] == "gzip"
+    assert response.headers["Vary"] == "Accept-Encoding"
     assert int(response.headers["Content-Length"]) < 4000
 
 
@@ -38,6 +43,7 @@ def test_gzip_not_in_accept_encoding(test_client_factory: TestClientFactory) -> 
     assert response.status_code == 200
     assert response.text == "x" * 4000
     assert "Content-Encoding" not in response.headers
+    assert response.headers["Vary"] == "Accept-Encoding"
     assert int(response.headers["Content-Length"]) == 4000
 
 
@@ -57,10 +63,12 @@ def test_gzip_ignored_for_small_responses(
     assert response.status_code == 200
     assert response.text == "OK"
     assert "Content-Encoding" not in response.headers
+    assert "Vary" not in response.headers
     assert int(response.headers["Content-Length"]) == 2
 
 
-def test_gzip_streaming_response(test_client_factory: TestClientFactory) -> None:
+@pytest.mark.parametrize("encoding", ["gzip", None])
+def test_gzip_streaming_response(encoding: str | None, test_client_factory: TestClientFactory) -> None:
     def homepage(request: Request) -> StreamingResponse:
         async def generator(bytes: bytes, count: int) -> ContentStream:
             for index in range(count):
@@ -75,10 +83,11 @@ def test_gzip_streaming_response(test_client_factory: TestClientFactory) -> None
     )
 
     client = test_client_factory(app)
-    response = client.get("/", headers={"accept-encoding": "gzip"})
+    response = client.get("/", headers={"accept-encoding": encoding or "identity"})
     assert response.status_code == 200
     assert response.text == "x" * 4000
-    assert response.headers["Content-Encoding"] == "gzip"
+    assert response.headers.get("Content-Encoding") == encoding
+    assert response.headers["Vary"] == "Accept-Encoding"
     assert "Content-Length" not in response.headers
 
 
@@ -103,6 +112,7 @@ def test_gzip_ignored_for_responses_with_encoding_set(
     assert response.status_code == 200
     assert response.text == "x" * 4000
     assert response.headers["Content-Encoding"] == "text"
+    assert "Vary" not in response.headers
     assert "Content-Length" not in response.headers
 
 
