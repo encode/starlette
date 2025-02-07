@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import typing
+from collections.abc import ItemsView, Iterable, Iterator, KeysView, Mapping, MutableMapping, Sequence, ValuesView
 from shlex import shlex
 from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit
 
@@ -145,7 +146,7 @@ class URL:
         query = urlencode([(str(key), str(value)) for key, value in kwargs.items()])
         return self.replace(query=query)
 
-    def remove_query_params(self, keys: str | typing.Sequence[str]) -> URL:
+    def remove_query_params(self, keys: str | Sequence[str]) -> URL:
         if isinstance(keys, str):
             keys = [keys]
         params = MultiDict(parse_qsl(self.query, keep_blank_values=True))
@@ -217,8 +218,8 @@ class Secret:
         return bool(self._value)
 
 
-class CommaSeparatedStrings(typing.Sequence[str]):
-    def __init__(self, value: str | typing.Sequence[str]):
+class CommaSeparatedStrings(Sequence[str]):
+    def __init__(self, value: str | Sequence[str]):
         if isinstance(value, str):
             splitter = shlex(value, posix=True)
             splitter.whitespace = ","
@@ -233,7 +234,7 @@ class CommaSeparatedStrings(typing.Sequence[str]):
     def __getitem__(self, index: int | slice) -> typing.Any:
         return self._items[index]
 
-    def __iter__(self) -> typing.Iterator[str]:
+    def __iter__(self) -> Iterator[str]:
         return iter(self._items)
 
     def __repr__(self) -> str:
@@ -245,14 +246,14 @@ class CommaSeparatedStrings(typing.Sequence[str]):
         return ", ".join(repr(item) for item in self)
 
 
-class ImmutableMultiDict(typing.Mapping[_KeyType, _CovariantValueType]):
+class ImmutableMultiDict(Mapping[_KeyType, _CovariantValueType]):
     _dict: dict[_KeyType, _CovariantValueType]
 
     def __init__(
         self,
         *args: ImmutableMultiDict[_KeyType, _CovariantValueType]
-        | typing.Mapping[_KeyType, _CovariantValueType]
-        | typing.Iterable[tuple[_KeyType, _CovariantValueType]],
+        | Mapping[_KeyType, _CovariantValueType]
+        | Iterable[tuple[_KeyType, _CovariantValueType]],
         **kwargs: typing.Any,
     ) -> None:
         assert len(args) < 2, "Too many arguments."
@@ -267,7 +268,7 @@ class ImmutableMultiDict(typing.Mapping[_KeyType, _CovariantValueType]):
             value = typing.cast(ImmutableMultiDict[_KeyType, _CovariantValueType], value)
             _items = list(value.multi_items())
         elif hasattr(value, "items"):
-            value = typing.cast(typing.Mapping[_KeyType, _CovariantValueType], value)
+            value = typing.cast(Mapping[_KeyType, _CovariantValueType], value)
             _items = list(value.items())
         else:
             value = typing.cast("list[tuple[typing.Any, typing.Any]]", value)
@@ -279,13 +280,13 @@ class ImmutableMultiDict(typing.Mapping[_KeyType, _CovariantValueType]):
     def getlist(self, key: typing.Any) -> list[_CovariantValueType]:
         return [item_value for item_key, item_value in self._list if item_key == key]
 
-    def keys(self) -> typing.KeysView[_KeyType]:
+    def keys(self) -> KeysView[_KeyType]:
         return self._dict.keys()
 
-    def values(self) -> typing.ValuesView[_CovariantValueType]:
+    def values(self) -> ValuesView[_CovariantValueType]:
         return self._dict.values()
 
-    def items(self) -> typing.ItemsView[_KeyType, _CovariantValueType]:
+    def items(self) -> ItemsView[_KeyType, _CovariantValueType]:
         return self._dict.items()
 
     def multi_items(self) -> list[tuple[_KeyType, _CovariantValueType]]:
@@ -297,7 +298,7 @@ class ImmutableMultiDict(typing.Mapping[_KeyType, _CovariantValueType]):
     def __contains__(self, key: typing.Any) -> bool:
         return key in self._dict
 
-    def __iter__(self) -> typing.Iterator[_KeyType]:
+    def __iter__(self) -> Iterator[_KeyType]:
         return iter(self.keys())
 
     def __len__(self) -> int:
@@ -361,7 +362,7 @@ class MultiDict(ImmutableMultiDict[typing.Any, typing.Any]):
 
     def update(
         self,
-        *args: MultiDict | typing.Mapping[typing.Any, typing.Any] | list[tuple[typing.Any, typing.Any]],
+        *args: MultiDict | Mapping[typing.Any, typing.Any] | list[tuple[typing.Any, typing.Any]],
         **kwargs: typing.Any,
     ) -> None:
         value = MultiDict(*args, **kwargs)
@@ -378,7 +379,7 @@ class QueryParams(ImmutableMultiDict[str, str]):
     def __init__(
         self,
         *args: ImmutableMultiDict[typing.Any, typing.Any]
-        | typing.Mapping[typing.Any, typing.Any]
+        | Mapping[typing.Any, typing.Any]
         | list[tuple[typing.Any, typing.Any]]
         | str
         | bytes,
@@ -471,7 +472,7 @@ class FormData(ImmutableMultiDict[str, typing.Union[UploadFile, str]]):
 
     def __init__(
         self,
-        *args: FormData | typing.Mapping[str, str | UploadFile] | list[tuple[str, str | UploadFile]],
+        *args: FormData | Mapping[str, str | UploadFile] | list[tuple[str, str | UploadFile]],
         **kwargs: str | UploadFile,
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -482,16 +483,16 @@ class FormData(ImmutableMultiDict[str, typing.Union[UploadFile, str]]):
                 await value.close()
 
 
-class Headers(typing.Mapping[str, str]):
+class Headers(Mapping[str, str]):
     """
     An immutable, case-insensitive multidict.
     """
 
     def __init__(
         self,
-        headers: typing.Mapping[str, str] | None = None,
+        headers: Mapping[str, str] | None = None,
         raw: list[tuple[bytes, bytes]] | None = None,
-        scope: typing.MutableMapping[str, typing.Any] | None = None,
+        scope: MutableMapping[str, typing.Any] | None = None,
     ) -> None:
         self._list: list[tuple[bytes, bytes]] = []
         if headers is not None:
@@ -540,7 +541,7 @@ class Headers(typing.Mapping[str, str]):
                 return True
         return False
 
-    def __iter__(self) -> typing.Iterator[typing.Any]:
+    def __iter__(self) -> Iterator[typing.Any]:
         return iter(self.keys())
 
     def __len__(self) -> int:
@@ -596,14 +597,14 @@ class MutableHeaders(Headers):
         for idx in reversed(pop_indexes):
             del self._list[idx]
 
-    def __ior__(self, other: typing.Mapping[str, str]) -> MutableHeaders:
-        if not isinstance(other, typing.Mapping):
+    def __ior__(self, other: Mapping[str, str]) -> MutableHeaders:
+        if not isinstance(other, Mapping):
             raise TypeError(f"Expected a mapping but got {other.__class__.__name__}")
         self.update(other)
         return self
 
-    def __or__(self, other: typing.Mapping[str, str]) -> MutableHeaders:
-        if not isinstance(other, typing.Mapping):
+    def __or__(self, other: Mapping[str, str]) -> MutableHeaders:
+        if not isinstance(other, Mapping):
             raise TypeError(f"Expected a mapping but got {other.__class__.__name__}")
         new = self.mutablecopy()
         new.update(other)
@@ -627,7 +628,7 @@ class MutableHeaders(Headers):
         self._list.append((set_key, set_value))
         return value
 
-    def update(self, other: typing.Mapping[str, str]) -> None:
+    def update(self, other: Mapping[str, str]) -> None:
         for key, val in other.items():
             self[key] = val
 

@@ -4,7 +4,8 @@ import functools
 import inspect
 import sys
 import typing
-from contextlib import contextmanager
+from collections.abc import Awaitable, Callable, Generator
+from contextlib import AbstractAsyncContextManager, contextmanager
 
 from starlette.types import Scope
 
@@ -21,7 +22,7 @@ if sys.version_info < (3, 11):  # pragma: no cover
         has_exceptiongroups = False
 
 T = typing.TypeVar("T")
-AwaitableCallable = typing.Callable[..., typing.Awaitable[T]]
+AwaitableCallable = Callable[..., Awaitable[T]]
 
 
 @typing.overload
@@ -42,7 +43,7 @@ def is_async_callable(obj: typing.Any) -> typing.Any:
 T_co = typing.TypeVar("T_co", covariant=True)
 
 
-class AwaitableOrContextManager(typing.Awaitable[T_co], typing.AsyncContextManager[T_co], typing.Protocol[T_co]): ...
+class AwaitableOrContextManager(Awaitable[T_co], AbstractAsyncContextManager[T_co], typing.Protocol[T_co]): ...
 
 
 class SupportsAsyncClose(typing.Protocol):
@@ -55,10 +56,10 @@ SupportsAsyncCloseType = typing.TypeVar("SupportsAsyncCloseType", bound=Supports
 class AwaitableOrContextManagerWrapper(typing.Generic[SupportsAsyncCloseType]):
     __slots__ = ("aw", "entered")
 
-    def __init__(self, aw: typing.Awaitable[SupportsAsyncCloseType]) -> None:
+    def __init__(self, aw: Awaitable[SupportsAsyncCloseType]) -> None:
         self.aw = aw
 
-    def __await__(self) -> typing.Generator[typing.Any, None, SupportsAsyncCloseType]:
+    def __await__(self) -> Generator[typing.Any, None, SupportsAsyncCloseType]:
         return self.aw.__await__()
 
     async def __aenter__(self) -> SupportsAsyncCloseType:
@@ -71,7 +72,7 @@ class AwaitableOrContextManagerWrapper(typing.Generic[SupportsAsyncCloseType]):
 
 
 @contextmanager
-def collapse_excgroups() -> typing.Generator[None, None, None]:
+def collapse_excgroups() -> Generator[None, None, None]:
     try:
         yield
     except BaseException as exc:

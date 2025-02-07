@@ -7,7 +7,9 @@ import json
 import math
 import sys
 import typing
+from collections.abc import Awaitable, Callable, Generator, Iterable, Mapping, MutableMapping, Sequence
 from concurrent.futures import Future
+from contextlib import AbstractContextManager
 from types import GeneratorType
 from urllib.parse import unquote, urljoin
 
@@ -33,14 +35,14 @@ except ModuleNotFoundError:  # pragma: no cover
         "You can install this with:\n"
         "    $ pip install httpx\n"
     )
-_PortalFactoryType = typing.Callable[[], typing.ContextManager[anyio.abc.BlockingPortal]]
+_PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
 
-ASGIInstance = typing.Callable[[Receive, Send], typing.Awaitable[None]]
-ASGI2App = typing.Callable[[Scope], ASGIInstance]
-ASGI3App = typing.Callable[[Scope, Receive, Send], typing.Awaitable[None]]
+ASGIInstance = Callable[[Receive, Send], Awaitable[None]]
+ASGI2App = Callable[[Scope], ASGIInstance]
+ASGI3App = Callable[[Scope, Receive, Send], Awaitable[None]]
 
 
-_RequestData = typing.Mapping[str, typing.Union[str, typing.Iterable[str], bytes]]
+_RequestData = Mapping[str, typing.Union[str, Iterable[str], bytes]]
 
 
 def _is_asgi3(app: ASGI2App | ASGI3App) -> TypeGuard[ASGI3App]:
@@ -237,7 +239,7 @@ class _TestClientTransport(httpx.BaseTransport):
         if scheme in {"ws", "wss"}:
             subprotocol = request.headers.get("sec-websocket-protocol", None)
             if subprotocol is None:
-                subprotocols: typing.Sequence[str] = []
+                subprotocols: Sequence[str] = []
             else:
                 subprotocols = [value.strip() for value in subprotocol.split(",")]
             scope = {
@@ -402,7 +404,7 @@ class TestClient(httpx.Client):
         )
 
     @contextlib.contextmanager
-    def _portal_factory(self) -> typing.Generator[anyio.abc.BlockingPortal, None, None]:
+    def _portal_factory(self) -> Generator[anyio.abc.BlockingPortal, None, None]:
         if self.portal is not None:
             yield self.portal
         else:
@@ -631,7 +633,7 @@ class TestClient(httpx.Client):
     def websocket_connect(
         self,
         url: str,
-        subprotocols: typing.Sequence[str] | None = None,
+        subprotocols: Sequence[str] | None = None,
         **kwargs: typing.Any,
     ) -> WebSocketTestSession:
         url = urljoin("ws://testserver", url)
@@ -659,10 +661,10 @@ class TestClient(httpx.Client):
             def reset_portal() -> None:
                 self.portal = None
 
-            send: anyio.create_memory_object_stream[typing.MutableMapping[str, typing.Any] | None] = (
+            send: anyio.create_memory_object_stream[MutableMapping[str, typing.Any] | None] = (
                 anyio.create_memory_object_stream(math.inf)
             )
-            receive: anyio.create_memory_object_stream[typing.MutableMapping[str, typing.Any]] = (
+            receive: anyio.create_memory_object_stream[MutableMapping[str, typing.Any]] = (
                 anyio.create_memory_object_stream(math.inf)
             )
             for channel in (*send, *receive):

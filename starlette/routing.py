@@ -8,7 +8,8 @@ import traceback
 import types
 import typing
 import warnings
-from contextlib import asynccontextmanager
+from collections.abc import Awaitable, Callable, Generator, Sequence
+from contextlib import AbstractAsyncContextManager, AbstractContextManager, asynccontextmanager
 from enum import Enum
 
 from starlette._exception_handler import wrap_app_handling_exceptions
@@ -56,13 +57,13 @@ def iscoroutinefunction_or_partial(obj: typing.Any) -> bool:  # pragma: no cover
 
 
 def request_response(
-    func: typing.Callable[[Request], typing.Awaitable[Response] | Response],
+    func: Callable[[Request], Awaitable[Response] | Response],
 ) -> ASGIApp:
     """
     Takes a function or coroutine `func(request) -> response`,
     and returns an ASGI application.
     """
-    f: typing.Callable[[Request], typing.Awaitable[Response]] = (
+    f: Callable[[Request], Awaitable[Response]] = (
         func if is_async_callable(func) else functools.partial(run_in_threadpool, func)  # type:ignore
     )
 
@@ -79,7 +80,7 @@ def request_response(
 
 
 def websocket_session(
-    func: typing.Callable[[WebSocket], typing.Awaitable[None]],
+    func: Callable[[WebSocket], Awaitable[None]],
 ) -> ASGIApp:
     """
     Takes a coroutine `func(session)`, and returns an ASGI application.
@@ -97,7 +98,7 @@ def websocket_session(
     return app
 
 
-def get_name(endpoint: typing.Callable[..., typing.Any]) -> str:
+def get_name(endpoint: Callable[..., typing.Any]) -> str:
     return getattr(endpoint, "__name__", endpoint.__class__.__name__)
 
 
@@ -209,12 +210,12 @@ class Route(BaseRoute):
     def __init__(
         self,
         path: str,
-        endpoint: typing.Callable[..., typing.Any],
+        endpoint: Callable[..., typing.Any],
         *,
         methods: list[str] | None = None,
         name: str | None = None,
         include_in_schema: bool = True,
-        middleware: typing.Sequence[Middleware] | None = None,
+        middleware: Sequence[Middleware] | None = None,
     ) -> None:
         assert path.startswith("/"), "Routed paths must start with '/'"
         self.path = path
@@ -306,10 +307,10 @@ class WebSocketRoute(BaseRoute):
     def __init__(
         self,
         path: str,
-        endpoint: typing.Callable[..., typing.Any],
+        endpoint: Callable[..., typing.Any],
         *,
         name: str | None = None,
-        middleware: typing.Sequence[Middleware] | None = None,
+        middleware: Sequence[Middleware] | None = None,
     ) -> None:
         assert path.startswith("/"), "Routed paths must start with '/'"
         self.path = path
@@ -373,10 +374,10 @@ class Mount(BaseRoute):
         self,
         path: str,
         app: ASGIApp | None = None,
-        routes: typing.Sequence[BaseRoute] | None = None,
+        routes: Sequence[BaseRoute] | None = None,
         name: str | None = None,
         *,
-        middleware: typing.Sequence[Middleware] | None = None,
+        middleware: Sequence[Middleware] | None = None,
     ) -> None:
         assert path == "" or path.startswith("/"), "Routed paths must start with '/'"
         assert app is not None or routes is not None, "Either 'app=...', or 'routes=' must be specified"
@@ -533,8 +534,8 @@ class Host(BaseRoute):
 _T = typing.TypeVar("_T")
 
 
-class _AsyncLiftContextManager(typing.AsyncContextManager[_T]):
-    def __init__(self, cm: typing.ContextManager[_T]):
+class _AsyncLiftContextManager(AbstractAsyncContextManager[_T]):
+    def __init__(self, cm: AbstractContextManager[_T]):
         self._cm = cm
 
     async def __aenter__(self) -> _T:
@@ -550,8 +551,8 @@ class _AsyncLiftContextManager(typing.AsyncContextManager[_T]):
 
 
 def _wrap_gen_lifespan_context(
-    lifespan_context: typing.Callable[[typing.Any], typing.Generator[typing.Any, typing.Any, typing.Any]],
-) -> typing.Callable[[typing.Any], typing.AsyncContextManager[typing.Any]]:
+    lifespan_context: Callable[[typing.Any], Generator[typing.Any, typing.Any, typing.Any]],
+) -> Callable[[typing.Any], AbstractAsyncContextManager[typing.Any]]:
     cmgr = contextlib.contextmanager(lifespan_context)
 
     @functools.wraps(cmgr)
@@ -578,16 +579,16 @@ class _DefaultLifespan:
 class Router:
     def __init__(
         self,
-        routes: typing.Sequence[BaseRoute] | None = None,
+        routes: Sequence[BaseRoute] | None = None,
         redirect_slashes: bool = True,
         default: ASGIApp | None = None,
-        on_startup: typing.Sequence[typing.Callable[[], typing.Any]] | None = None,
-        on_shutdown: typing.Sequence[typing.Callable[[], typing.Any]] | None = None,
+        on_startup: Sequence[Callable[[], typing.Any]] | None = None,
+        on_shutdown: Sequence[Callable[[], typing.Any]] | None = None,
         # the generic to Lifespan[AppType] is the type of the top level application
         # which the router cannot know statically, so we use typing.Any
         lifespan: Lifespan[typing.Any] | None = None,
         *,
-        middleware: typing.Sequence[Middleware] | None = None,
+        middleware: Sequence[Middleware] | None = None,
     ) -> None:
         self.routes = [] if routes is None else list(routes)
         self.redirect_slashes = redirect_slashes
@@ -777,7 +778,7 @@ class Router:
     def add_route(
         self,
         path: str,
-        endpoint: typing.Callable[[Request], typing.Awaitable[Response] | Response],
+        endpoint: Callable[[Request], Awaitable[Response] | Response],
         methods: list[str] | None = None,
         name: str | None = None,
         include_in_schema: bool = True,
@@ -794,7 +795,7 @@ class Router:
     def add_websocket_route(
         self,
         path: str,
-        endpoint: typing.Callable[[WebSocket], typing.Awaitable[None]],
+        endpoint: Callable[[WebSocket], Awaitable[None]],
         name: str | None = None,
     ) -> None:  # pragma: no cover
         route = WebSocketRoute(path, endpoint=endpoint, name=name)
@@ -806,7 +807,7 @@ class Router:
         methods: list[str] | None = None,
         name: str | None = None,
         include_in_schema: bool = True,
-    ) -> typing.Callable:  # type: ignore[type-arg]
+    ) -> Callable:  # type: ignore[type-arg]
         """
         We no longer document this decorator style API, and its usage is discouraged.
         Instead you should use the following approach:
@@ -820,7 +821,7 @@ class Router:
             DeprecationWarning,
         )
 
-        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]
+        def decorator(func: Callable) -> Callable:  # type: ignore[type-arg]
             self.add_route(
                 path,
                 func,
@@ -832,7 +833,7 @@ class Router:
 
         return decorator
 
-    def websocket_route(self, path: str, name: str | None = None) -> typing.Callable:  # type: ignore[type-arg]
+    def websocket_route(self, path: str, name: str | None = None) -> Callable:  # type: ignore[type-arg]
         """
         We no longer document this decorator style API, and its usage is discouraged.
         Instead you should use the following approach:
@@ -846,13 +847,13 @@ class Router:
             DeprecationWarning,
         )
 
-        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]
+        def decorator(func: Callable) -> Callable:  # type: ignore[type-arg]
             self.add_websocket_route(path, func, name=name)
             return func
 
         return decorator
 
-    def add_event_handler(self, event_type: str, func: typing.Callable[[], typing.Any]) -> None:  # pragma: no cover
+    def add_event_handler(self, event_type: str, func: Callable[[], typing.Any]) -> None:  # pragma: no cover
         assert event_type in ("startup", "shutdown")
 
         if event_type == "startup":
@@ -860,14 +861,14 @@ class Router:
         else:
             self.on_shutdown.append(func)
 
-    def on_event(self, event_type: str) -> typing.Callable:  # type: ignore[type-arg]
+    def on_event(self, event_type: str) -> Callable:  # type: ignore[type-arg]
         warnings.warn(
             "The `on_event` decorator is deprecated, and will be removed in version 1.0.0. "
             "Refer to https://www.starlette.io/lifespan/ for recommended approach.",
             DeprecationWarning,
         )
 
-        def decorator(func: typing.Callable) -> typing.Callable:  # type: ignore[type-arg]
+        def decorator(func: Callable) -> Callable:  # type: ignore[type-arg]
             self.add_event_handler(event_type, func)
             return func
 

@@ -8,6 +8,7 @@ import re
 import stat
 import typing
 import warnings
+from collections.abc import AsyncIterable, Awaitable, Callable, Iterable, Mapping, Sequence
 from datetime import datetime
 from email.utils import format_datetime, formatdate
 from functools import partial
@@ -33,7 +34,7 @@ class Response:
         self,
         content: typing.Any = None,
         status_code: int = 200,
-        headers: typing.Mapping[str, str] | None = None,
+        headers: Mapping[str, str] | None = None,
         media_type: str | None = None,
         background: BackgroundTask | None = None,
     ) -> None:
@@ -51,7 +52,7 @@ class Response:
             return content
         return content.encode(self.charset)  # type: ignore
 
-    def init_headers(self, headers: typing.Mapping[str, str] | None = None) -> None:
+    def init_headers(self, headers: Mapping[str, str] | None = None) -> None:
         if headers is None:
             raw_headers: list[tuple[bytes, bytes]] = []
             populate_content_length = True
@@ -174,7 +175,7 @@ class JSONResponse(Response):
         self,
         content: typing.Any,
         status_code: int = 200,
-        headers: typing.Mapping[str, str] | None = None,
+        headers: Mapping[str, str] | None = None,
         media_type: str | None = None,
         background: BackgroundTask | None = None,
     ) -> None:
@@ -195,7 +196,7 @@ class RedirectResponse(Response):
         self,
         url: str | URL,
         status_code: int = 307,
-        headers: typing.Mapping[str, str] | None = None,
+        headers: Mapping[str, str] | None = None,
         background: BackgroundTask | None = None,
     ) -> None:
         super().__init__(content=b"", status_code=status_code, headers=headers, background=background)
@@ -203,8 +204,8 @@ class RedirectResponse(Response):
 
 
 Content = typing.Union[str, bytes, memoryview]
-SyncContentStream = typing.Iterable[Content]
-AsyncContentStream = typing.AsyncIterable[Content]
+SyncContentStream = Iterable[Content]
+AsyncContentStream = AsyncIterable[Content]
 ContentStream = typing.Union[AsyncContentStream, SyncContentStream]
 
 
@@ -215,11 +216,11 @@ class StreamingResponse(Response):
         self,
         content: ContentStream,
         status_code: int = 200,
-        headers: typing.Mapping[str, str] | None = None,
+        headers: Mapping[str, str] | None = None,
         media_type: str | None = None,
         background: BackgroundTask | None = None,
     ) -> None:
-        if isinstance(content, typing.AsyncIterable):
+        if isinstance(content, AsyncIterable):
             self.body_iterator = content
         else:
             self.body_iterator = iterate_in_threadpool(content)
@@ -260,7 +261,7 @@ class StreamingResponse(Response):
         else:
             async with anyio.create_task_group() as task_group:
 
-                async def wrap(func: typing.Callable[[], typing.Awaitable[None]]) -> None:
+                async def wrap(func: Callable[[], Awaitable[None]]) -> None:
                     await func()
                     task_group.cancel_scope.cancel()
 
@@ -291,7 +292,7 @@ class FileResponse(Response):
         self,
         path: str | os.PathLike[str],
         status_code: int = 200,
-        headers: typing.Mapping[str, str] | None = None,
+        headers: Mapping[str, str] | None = None,
         media_type: str | None = None,
         background: BackgroundTask | None = None,
         filename: str | None = None,
@@ -495,11 +496,11 @@ class FileResponse(Response):
 
     def generate_multipart(
         self,
-        ranges: typing.Sequence[tuple[int, int]],
+        ranges: Sequence[tuple[int, int]],
         boundary: str,
         max_size: int,
         content_type: str,
-    ) -> tuple[int, typing.Callable[[int, int], bytes]]:
+    ) -> tuple[int, Callable[[int, int], bytes]]:
         r"""
         Multipart response headers generator.
 

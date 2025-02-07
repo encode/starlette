@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import typing
+from collections.abc import AsyncGenerator, Iterator, Mapping
 from http import cookies as http_cookies
 
 import anyio
@@ -67,7 +68,7 @@ class ClientDisconnect(Exception):
     pass
 
 
-class HTTPConnection(typing.Mapping[str, typing.Any]):
+class HTTPConnection(Mapping[str, typing.Any]):
     """
     A base class for incoming HTTP connections, that is used to provide
     any functionality that is common to both `Request` and `WebSocket`.
@@ -80,7 +81,7 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
     def __getitem__(self, key: str) -> typing.Any:
         return self.scope[key]
 
-    def __iter__(self) -> typing.Iterator[str]:
+    def __iter__(self) -> Iterator[str]:
         return iter(self.scope)
 
     def __len__(self) -> int:
@@ -215,7 +216,7 @@ class Request(HTTPConnection):
     def receive(self) -> Receive:
         return self._receive
 
-    async def stream(self) -> typing.AsyncGenerator[bytes, None]:
+    async def stream(self) -> AsyncGenerator[bytes, None]:
         if hasattr(self, "_body"):
             yield self._body
             yield b""

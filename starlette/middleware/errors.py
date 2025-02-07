@@ -4,7 +4,8 @@ import html
 import inspect
 import sys
 import traceback
-import typing
+from collections.abc import Callable
+from typing import Any
 
 from starlette._utils import is_async_callable
 from starlette.concurrency import run_in_threadpool
@@ -140,7 +141,7 @@ class ServerErrorMiddleware:
     def __init__(
         self,
         app: ASGIApp,
-        handler: typing.Callable[[Request, Exception], typing.Any] | None = None,
+        handler: Callable[[Request, Exception], Any] | None = None,
         debug: bool = False,
     ) -> None:
         self.app = app

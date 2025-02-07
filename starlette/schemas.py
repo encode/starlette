@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 import re
 import typing
+from collections.abc import Callable
 
 from starlette.requests import Request
 from starlette.responses import Response
@@ -26,7 +27,7 @@ class OpenAPIResponse(Response):
 class EndpointInfo(typing.NamedTuple):
     path: str
     http_method: str
-    func: typing.Callable[..., typing.Any]
+    func: Callable[..., typing.Any]
 
 
 _remove_converter_pattern = re.compile(r":\w+}")
@@ -94,7 +95,7 @@ class BaseSchemaGenerator:
         """
         return _remove_converter_pattern.sub("}", path)
 
-    def parse_docstring(self, func_or_method: typing.Callable[..., typing.Any]) -> dict[str, typing.Any]:
+    def parse_docstring(self, func_or_method: Callable[..., typing.Any]) -> dict[str, typing.Any]:
         """
         Given a function, parse the docstring as YAML and return a dictionary of info.
         """

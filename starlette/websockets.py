@@ -3,6 +3,7 @@ from __future__ import annotations
 import enum
 import json
 import typing
+from collections.abc import AsyncIterator, Iterable
 
 from starlette.requests import HTTPConnection
 from starlette.responses import Response
@@ -99,7 +100,7 @@ class WebSocket(HTTPConnection):
     async def accept(
         self,
         subprotocol: str | None = None,
-        headers: typing.Iterable[tuple[bytes, bytes]] | None = None,
+        headers: Iterable[tuple[bytes, bytes]] | None = None,
     ) -> None:
         headers = headers or []
 
@@ -140,21 +141,21 @@ class WebSocket(HTTPConnection):
             text = message["bytes"].decode("utf-8")
         return json.loads(text)
 
-    async def iter_text(self) -> typing.AsyncIterator[str]:
+    async def iter_text(self) -> AsyncIterator[str]:
         try:
             while True:
                 yield await self.receive_text()
         except WebSocketDisconnect:
             pass
 
-    async def iter_bytes(self) -> typing.AsyncIterator[bytes]:
+    async def iter_bytes(self) -> AsyncIterator[bytes]:
         try:
             while True:
                 yield await self.receive_bytes()
         except WebSocketDisconnect:
             pass
 
-    async def iter_json(self) -> typing.AsyncIterator[typing.Any]:
+    async def iter_json(self) -> AsyncIterator[typing.Any]:
         try:
             while True:
                 yield await self.receive_json()

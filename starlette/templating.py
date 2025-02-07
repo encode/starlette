@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import typing
 import warnings
+from collections.abc import Callable, Mapping, Sequence
 from os import PathLike
 
 from starlette.background import BackgroundTask
@@ -31,7 +32,7 @@ class _TemplateResponse(HTMLResponse):
         template: typing.Any,
         context: dict[str, typing.Any],
         status_code: int = 200,
-        headers: typing.Mapping[str, str] | None = None,
+        headers: Mapping[str, str] | None = None,
         media_type: str | None = None,
         background: BackgroundTask | None = None,
     ):
@@ -66,9 +67,9 @@ class Jinja2Templates:
     @typing.overload
     def __init__(
         self,
-        directory: str | PathLike[str] | typing.Sequence[str | PathLike[str]],
+        directory: str | PathLike[str] | Sequence[str | PathLike[str]],
         *,
-        context_processors: list[typing.Callable[[Request], dict[str, typing.Any]]] | None = None,
+        context_processors: list[Callable[[Request], dict[str, typing.Any]]] | None = None,
         **env_options: typing.Any,
     ) -> None: ...
 
@@ -77,14 +78,14 @@ class Jinja2Templates:
         self,
         *,
         env: jinja2.Environment,
-        context_processors: list[typing.Callable[[Request], dict[str, typing.Any]]] | None = None,
+        context_processors: list[Callable[[Request], dict[str, typing.Any]]] | None = None,
     ) -> None: ...
 
     def __init__(
         self,
-        directory: str | PathLike[str] | typing.Sequence[str | PathLike[str]] | None = None,
+        directory: str | PathLike[str] | Sequence[str | PathLike[str]] | None = None,
         *,
-        context_processors: list[typing.Callable[[Request], dict[str, typing.Any]]] | None = None,
+        context_processors: list[Callable[[Request], dict[str, typing.Any]]] | None = None,
         env: jinja2.Environment | None = None,
         **env_options: typing.Any,
     ) -> None:
@@ -105,7 +106,7 @@ class Jinja2Templates:
 
     def _create_env(
         self,
-        directory: str | PathLike[str] | typing.Sequence[str | PathLike[str]],
+        directory: str | PathLike[str] | Sequence[str | PathLike[str]],
         **env_options: typing.Any,
     ) -> jinja2.Environment:
         loader = jinja2.FileSystemLoader(directory)
@@ -137,7 +138,7 @@ class Jinja2Templates:
         name: str,
         context: dict[str, typing.Any] | None = None,
         status_code: int = 200,
-        headers: typing.Mapping[str, str] | None = None,
+        headers: Mapping[str, str] | None = None,
         media_type: str | None = None,
         background: BackgroundTask | None = None,
     ) -> _TemplateResponse: ...
@@ -148,7 +149,7 @@ class Jinja2Templates:
         name: str,
         context: dict[str, typing.Any] | None = None,
         status_code: int = 200,
-        headers: typing.Mapping[str, str] | None = None,
+        headers: Mapping[str, str] | None = None,
         media_type: str | None = None,
         background: BackgroundTask | None = None,
     ) -> _TemplateResponse:
