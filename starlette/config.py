@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import os
-import typing
 import warnings
-from collections.abc import Callable, Iterator, Mapping, MutableMapping
+from collections.abc import Iterator, Mapping, MutableMapping
 from pathlib import Path
+from typing import Any, Callable, TypeVar, overload
 
 
 class undefined:
@@ -43,7 +43,7 @@ class Environ(MutableMapping[str, str]):
 
 environ = Environ()
 
-T = typing.TypeVar("T")
+T = TypeVar("T")
 
 
 class Config:
@@ -62,40 +62,40 @@ class Config:
             else:
                 self.file_values = self._read_file(env_file)
 
-    @typing.overload
+    @overload
     def __call__(self, key: str, *, default: None) -> str | None: ...
 
-    @typing.overload
+    @overload
     def __call__(self, key: str, cast: type[T], default: T = ...) -> T: ...
 
-    @typing.overload
+    @overload
     def __call__(self, key: str, cast: type[str] = ..., default: str = ...) -> str: ...
 
-    @typing.overload
+    @overload
     def __call__(
         self,
         key: str,
-        cast: Callable[[typing.Any], T] = ...,
-        default: typing.Any = ...,
+        cast: Callable[[Any], T] = ...,
+        default: Any = ...,
     ) -> T: ...
 
-    @typing.overload
+    @overload
     def __call__(self, key: str, cast: type[str] = ..., default: T = ...) -> T | str: ...
 
     def __call__(
         self,
         key: str,
-        cast: Callable[[typing.Any], typing.Any] | None = None,
-        default: typing.Any = undefined,
-    ) -> typing.Any:
+        cast: Callable[[Any], Any] | None = None,
+        default: Any = undefined,
+    ) -> Any:
         return self.get(key, cast, default)
 
     def get(
         self,
         key: str,
-        cast: Callable[[typing.Any], typing.Any] | None = None,
-        default: typing.Any = undefined,
-    ) -> typing.Any:
+        cast: Callable[[Any], Any] | None = None,
+        default: Any = undefined,
+    ) -> Any:
         key = self.env_prefix + key
         if key in self.environ:
             value = self.environ[key]
@@ -122,9 +122,9 @@ class Config:
     def _perform_cast(
         self,
         key: str,
-        value: typing.Any,
-        cast: Callable[[typing.Any], typing.Any] | None = None,
-    ) -> typing.Any:
+        value: Any,
+        cast: Callable[[Any], Any] | None = None,
+    ) -> Any:
         if cast is None or value is None:
             return value
         elif cast is bool and isinstance(value, str):

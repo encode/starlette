@@ -4,8 +4,8 @@ import io
 import math
 import sys
 import warnings
-from collections.abc import Callable, MutableMapping
-from typing import Any
+from collections.abc import MutableMapping
+from typing import Any, Callable
 
 import anyio
 from anyio.abc import ObjectReceiveStream, ObjectSendStream

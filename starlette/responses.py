@@ -6,14 +6,14 @@ import json
 import os
 import re
 import stat
-import typing
 import warnings
-from collections.abc import AsyncIterable, Awaitable, Callable, Iterable, Mapping, Sequence
+from collections.abc import AsyncIterable, Awaitable, Iterable, Mapping, Sequence
 from datetime import datetime
 from email.utils import format_datetime, formatdate
 from functools import partial
 from mimetypes import guess_type
 from secrets import token_hex
+from typing import Any, Callable, Literal, Union
 from urllib.parse import quote
 
 import anyio
@@ -32,7 +32,7 @@ class Response:
 
     def __init__(
         self,
-        content: typing.Any = None,
+        content: Any = None,
         status_code: int = 200,
         headers: Mapping[str, str] | None = None,
         media_type: str | None = None,
@@ -45,7 +45,7 @@ class Response:
         self.body = self.render(content)
         self.init_headers(headers)
 
-    def render(self, content: typing.Any) -> bytes | memoryview:
+    def render(self, content: Any) -> bytes | memoryview:
         if content is None:
             return b""
         if isinstance(content, (bytes, memoryview)):
@@ -96,7 +96,7 @@ class Response:
         domain: str | None = None,
         secure: bool = False,
         httponly: bool = False,
-        samesite: typing.Literal["lax", "strict", "none"] | None = "lax",
+        samesite: Literal["lax", "strict", "none"] | None = "lax",
     ) -> None:
         cookie: http.cookies.BaseCookie[str] = http.cookies.SimpleCookie()
         cookie[key] = value
@@ -132,7 +132,7 @@ class Response:
         domain: str | None = None,
         secure: bool = False,
         httponly: bool = False,
-        samesite: typing.Literal["lax", "strict", "none"] | None = "lax",
+        samesite: Literal["lax", "strict", "none"] | None = "lax",
     ) -> None:
         self.set_cookie(
             key,
@@ -173,7 +173,7 @@ class JSONResponse(Response):
 
     def __init__(
         self,
-        content: typing.Any,
+        content: Any,
         status_code: int = 200,
         headers: Mapping[str, str] | None = None,
         media_type: str | None = None,
@@ -181,7 +181,7 @@ class JSONResponse(Response):
     ) -> None:
         super().__init__(content, status_code, headers, media_type, background)
 
-    def render(self, content: typing.Any) -> bytes:
+    def render(self, content: Any) -> bytes:
         return json.dumps(
             content,
             ensure_ascii=False,
@@ -203,10 +203,10 @@ class RedirectResponse(Response):
         self.headers["location"] = quote(str(url), safe=":/%#?=@[]!$&'()*+,;")
 
 
-Content = typing.Union[str, bytes, memoryview]
+Content = Union[str, bytes, memoryview]
 SyncContentStream = Iterable[Content]
 AsyncContentStream = AsyncIterable[Content]
-ContentStream = typing.Union[AsyncContentStream, SyncContentStream]
+ContentStream = Union[AsyncContentStream, SyncContentStream]
 
 
 class StreamingResponse(Response):

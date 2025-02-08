@@ -3,8 +3,8 @@ from __future__ import annotations
 import functools
 import inspect
 import sys
-import typing
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
+from typing import Any, Callable
 from urllib.parse import urlencode
 
 if sys.version_info >= (3, 10):  # pragma: no cover
@@ -32,12 +32,12 @@ def requires(
     scopes: str | Sequence[str],
     status_code: int = 403,
     redirect: str | None = None,
-) -> Callable[[Callable[_P, typing.Any]], Callable[_P, typing.Any]]:
+) -> Callable[[Callable[_P, Any]], Callable[_P, Any]]:
     scopes_list = [scopes] if isinstance(scopes, str) else list(scopes)
 
     def decorator(
-        func: Callable[_P, typing.Any],
-    ) -> Callable[_P, typing.Any]:
+        func: Callable[_P, Any],
+    ) -> Callable[_P, Any]:
         sig = inspect.signature(func)
         for idx, parameter in enumerate(sig.parameters.values()):
             if parameter.name == "request" or parameter.name == "websocket":
@@ -63,7 +63,7 @@ def requires(
         elif is_async_callable(func):
             # Handle async request/response functions.
             @functools.wraps(func)
-            async def async_wrapper(*args: _P.args, **kwargs: _P.kwargs) -> typing.Any:
+            async def async_wrapper(*args: _P.args, **kwargs: _P.kwargs) -> Any:
                 request = kwargs.get("request", args[idx] if idx < len(args) else None)
                 assert isinstance(request, Request)
 
@@ -80,7 +80,7 @@ def requires(
         else:
             # Handle sync request/response functions.
             @functools.wraps(func)
-            def sync_wrapper(*args: _P.args, **kwargs: _P.kwargs) -> typing.Any:
+            def sync_wrapper(*args: _P.args, **kwargs: _P.kwargs) -> Any:
                 request = kwargs.get("request", args[idx] if idx < len(args) else None)
                 assert isinstance(request, Request)
 

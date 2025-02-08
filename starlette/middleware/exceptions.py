@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, Callable
 
 from starlette._exception_handler import (
     ExceptionHandlers,

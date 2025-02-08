@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import sys
-import typing
 import warnings
-from collections.abc import Awaitable, Callable, Mapping, Sequence
+from collections.abc import Awaitable, Mapping, Sequence
+from typing import Any, Callable, TypeVar
 
 if sys.version_info >= (3, 10):  # pragma: no cover
     from typing import ParamSpec
@@ -21,7 +21,7 @@ from starlette.routing import BaseRoute, Router
 from starlette.types import ASGIApp, ExceptionHandler, Lifespan, Receive, Scope, Send
 from starlette.websockets import WebSocket
 
-AppType = typing.TypeVar("AppType", bound="Starlette")
+AppType = TypeVar("AppType", bound="Starlette")
 P = ParamSpec("P")
 
 
@@ -33,9 +33,9 @@ class Starlette:
         debug: bool = False,
         routes: Sequence[BaseRoute] | None = None,
         middleware: Sequence[Middleware] | None = None,
-        exception_handlers: Mapping[typing.Any, ExceptionHandler] | None = None,
-        on_startup: Sequence[Callable[[], typing.Any]] | None = None,
-        on_shutdown: Sequence[Callable[[], typing.Any]] | None = None,
+        exception_handlers: Mapping[Any, ExceptionHandler] | None = None,
+        on_startup: Sequence[Callable[[], Any]] | None = None,
+        on_shutdown: Sequence[Callable[[], Any]] | None = None,
         lifespan: Lifespan[AppType] | None = None,
     ) -> None:
         """Initializes the application.
@@ -80,7 +80,7 @@ class Starlette:
     def build_middleware_stack(self) -> ASGIApp:
         debug = self.debug
         error_handler = None
-        exception_handlers: dict[typing.Any, Callable[[Request, Exception], Response]] = {}
+        exception_handlers: dict[Any, Callable[[Request, Exception], Response]] = {}
 
         for key, value in self.exception_handlers.items():
             if key in (500, Exception):
@@ -103,7 +103,7 @@ class Starlette:
     def routes(self) -> list[BaseRoute]:
         return self.router.routes
 
-    def url_path_for(self, name: str, /, **path_params: typing.Any) -> URLPath:
+    def url_path_for(self, name: str, /, **path_params: Any) -> URLPath:
         return self.router.url_path_for(name, **path_params)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:

@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-import typing
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
 from enum import Enum
 from tempfile import SpooledTemporaryFile
+from typing import TYPE_CHECKING
 from urllib.parse import unquote_plus
 
 from starlette.datastructures import FormData, Headers, UploadFile
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     import python_multipart as multipart
     from python_multipart.multipart import MultipartCallbacks, QuerystringCallbacks, parse_options_header
 else:

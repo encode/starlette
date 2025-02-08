@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import functools
 import sys
-import typing
 import warnings
-from collections.abc import AsyncIterator, Callable, Coroutine, Iterable, Iterator
+from collections.abc import AsyncIterator, Coroutine, Iterable, Iterator
+from typing import Callable, TypeVar
 
 import anyio.to_thread
 
@@ -14,7 +14,7 @@ else:  # pragma: no cover
     from typing_extensions import ParamSpec
 
 P = ParamSpec("P")
-T = typing.TypeVar("T")
+T = TypeVar("T")
 
 
 async def run_until_first_complete(*args: tuple[Callable, dict]) -> None:  # type: ignore[type-arg]
