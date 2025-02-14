@@ -1,3 +1,4 @@
+import functools
 import gzip
 import io
 import typing
@@ -30,15 +31,23 @@ class GZipResponder:
         self.initial_message: Message = {}
         self.started = False
         self.content_encoding_set = False
-        self.gzip_buffer = io.BytesIO()
-        self.gzip_file = gzip.GzipFile(mode="wb", fileobj=self.gzip_buffer, compresslevel=compresslevel)
+        self.compresslevel = compresslevel
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         self.send = send
-        with self.gzip_buffer, self.gzip_file:
-            await self.app(scope, receive, self.send_with_gzip)
+        with io.BytesIO() as gzip_buffer:
+            with gzip.GzipFile(fileobj=gzip_buffer, mode="wb", compresslevel=self.compresslevel) as gzip_file:
+                await self.app(
+                    scope,
+                    receive,
+                    functools.partial(
+                        self.send_with_gzip,
+                        gzip_file=gzip_file,
+                        gzip_buffer=gzip_buffer,
+                    ),
+                )
 
-    async def send_with_gzip(self, message: Message) -> None:
+    async def send_with_gzip(self, message: Message, gzip_file: gzip.GzipFile, gzip_buffer: io.BytesIO) -> None:
         message_type = message["type"]
         if message_type == "http.response.start":
             # Don't send the initial message until we've determined how to
@@ -61,9 +70,9 @@ class GZipResponder:
                 await self.send(message)
             elif not more_body:
                 # Standard GZip response.
-                self.gzip_file.write(body)
-                self.gzip_file.close()
-                body = self.gzip_buffer.getvalue()
+                gzip_file.write(body)
+                gzip_file.close()
+                body = gzip_buffer.getvalue()
 
                 headers = MutableHeaders(raw=self.initial_message["headers"])
                 headers["Content-Encoding"] = "gzip"
@@ -80,10 +89,10 @@ class GZipResponder:
                 headers.add_vary_header("Accept-Encoding")
                 del headers["Content-Length"]
 
-                self.gzip_file.write(body)
-                message["body"] = self.gzip_buffer.getvalue()
-                self.gzip_buffer.seek(0)
-                self.gzip_buffer.truncate()
+                gzip_file.write(body)
+                message["body"] = gzip_buffer.getvalue()
+                gzip_buffer.seek(0)
+                gzip_buffer.truncate()
 
                 await self.send(self.initial_message)
                 await self.send(message)
@@ -93,13 +102,13 @@ class GZipResponder:
             body = message.get("body", b"")
             more_body = message.get("more_body", False)
 
-            self.gzip_file.write(body)
+            gzip_file.write(body)
             if not more_body:
-                self.gzip_file.close()
+                gzip_file.close()
 
-            message["body"] = self.gzip_buffer.getvalue()
-            self.gzip_buffer.seek(0)
-            self.gzip_buffer.truncate()
+            message["body"] = gzip_buffer.getvalue()
+            gzip_buffer.seek(0)
+            gzip_buffer.truncate()
 
             await self.send(message)
 
