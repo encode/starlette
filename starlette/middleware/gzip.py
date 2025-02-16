@@ -1,6 +1,6 @@
 import gzip
 import io
-import typing
+from typing import NoReturn
 
 from starlette.datastructures import Headers, MutableHeaders
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
@@ -104,5 +104,5 @@ class GZipResponder:
             await self.send(message)
 
 
-async def unattached_send(message: Message) -> typing.NoReturn:
+async def unattached_send(message: Message) -> NoReturn:
     raise RuntimeError("send awaitable not set")  # pragma: no cover
