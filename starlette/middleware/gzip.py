@@ -30,6 +30,7 @@ class GZipResponder:
         self.initial_message: Message = {}
         self.started = False
         self.content_encoding_set = False
+        self.is_server_sent_event = False
         self.gzip_buffer = io.BytesIO()
         self.gzip_file = gzip.GzipFile(mode="wb", fileobj=self.gzip_buffer, compresslevel=compresslevel)
 
@@ -46,7 +47,8 @@ class GZipResponder:
             self.initial_message = message
             headers = Headers(raw=self.initial_message["headers"])
             self.content_encoding_set = "content-encoding" in headers
-        elif message_type == "http.response.body" and self.content_encoding_set:
+            self.is_server_sent_event = headers.get("content-type", "").startswith("text/event-stream")
+        elif message_type == "http.response.body" and (self.content_encoding_set or self.is_server_sent_event):
             if not self.started:
                 self.started = True
                 await self.send(self.initial_message)
