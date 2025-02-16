@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import pytest
-
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.gzip import GZipMiddleware
@@ -67,8 +65,7 @@ def test_gzip_ignored_for_small_responses(
     assert int(response.headers["Content-Length"]) == 2
 
 
-@pytest.mark.parametrize("encoding", ["gzip", None])
-def test_gzip_streaming_response(encoding: str | None, test_client_factory: TestClientFactory) -> None:
+def test_gzip_streaming_response(test_client_factory: TestClientFactory) -> None:
     def homepage(request: Request) -> StreamingResponse:
         async def generator(bytes: bytes, count: int) -> ContentStream:
             for index in range(count):
@@ -83,10 +80,33 @@ def test_gzip_streaming_response(encoding: str | None, test_client_factory: Test
     )
 
     client = test_client_factory(app)
-    response = client.get("/", headers={"accept-encoding": encoding or "identity"})
+    response = client.get("/", headers={"accept-encoding": "gzip"})
     assert response.status_code == 200
     assert response.text == "x" * 4000
-    assert response.headers.get("Content-Encoding") == encoding
+    assert response.headers["Content-Encoding"] == "gzip"
+    assert response.headers["Vary"] == "Accept-Encoding"
+    assert "Content-Length" not in response.headers
+
+
+def test_gzip_streaming_response_identity(test_client_factory: TestClientFactory) -> None:
+    def homepage(request: Request) -> StreamingResponse:
+        async def generator(bytes: bytes, count: int) -> ContentStream:
+            for index in range(count):
+                yield bytes
+
+        streaming = generator(bytes=b"x" * 400, count=10)
+        return StreamingResponse(streaming, status_code=200)
+
+    app = Starlette(
+        routes=[Route("/", endpoint=homepage)],
+        middleware=[Middleware(GZipMiddleware)],
+    )
+
+    client = test_client_factory(app)
+    response = client.get("/", headers={"accept-encoding": "identity"})
+    assert response.status_code == 200
+    assert response.text == "x" * 4000
+    assert "Content-Encoding" not in response.headers
     assert response.headers["Vary"] == "Accept-Encoding"
     assert "Content-Length" not in response.headers
 
