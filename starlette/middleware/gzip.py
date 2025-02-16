@@ -64,7 +64,7 @@ class IdentityResponder:
             body = message.get("body", b"")
             more_body = message.get("more_body", False)
             if len(body) < self.minimum_size and not more_body:
-                # Don't apply GZip to small outgoing responses.
+                # Don't apply compression to small outgoing responses.
                 await self.send(self.initial_message)
                 await self.send(message)
             elif not more_body:
@@ -127,12 +127,10 @@ class GZipResponder(IdentityResponder):
 
     def apply_compression(self, body: bytes, *, more_body: bool) -> bytes:
         self.gzip_file.write(body)
-        self.gzip_file.flush()
-        body = self.gzip_buffer.getvalue()
-
         if not more_body:
             self.gzip_file.close()
 
+        body = self.gzip_buffer.getvalue()
         self.gzip_buffer.seek(0)
         self.gzip_buffer.truncate()
 
