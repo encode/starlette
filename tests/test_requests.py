@@ -644,7 +644,7 @@ def test_request_url_path_outside_starlette_context(test_client_factory: TestCli
     client = test_client_factory(app)
     with pytest.raises(
         RuntimeError,
-        match="The `url_path_for` method can only be used inside a Starlette application or with a router.",
+        match="The `url_for` method can only be used inside a Starlette application or with a router.",
     ):
         client.get("/")
 
