@@ -22,6 +22,7 @@ def test_templates(tmpdir: Path, test_client_factory: TestClientFactory) -> None
     path = os.path.join(tmpdir, "index.html")
     with open(path, "w") as file:
         file.write("<html>Hello, <a href='{{ url_for('homepage') }}'>world</a></html>")
+        file.write("<html>Hello, <a href='{{ url_path_for('homepage') }}'>world</a></html>")
 
     async def homepage(request: Request) -> Response:
         return templates.TemplateResponse(request, "index.html")
@@ -31,7 +32,10 @@ def test_templates(tmpdir: Path, test_client_factory: TestClientFactory) -> None
 
     client = test_client_factory(app)
     response = client.get("/")
-    assert response.text == "<html>Hello, <a href='http://testserver/'>world</a></html>"
+    assert (
+        response.text
+        == "<html>Hello, <a href='http://testserver/'>world</a></html><html>Hello, <a href='/'>world</a></html>"
+    )
     assert response.template.name == "index.html"  # type: ignore
     assert set(response.context.keys()) == {"request"}  # type: ignore
 
