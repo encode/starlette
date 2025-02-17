@@ -189,7 +189,9 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
     def url_path_for(self, name: str, /, **path_params: typing.Any) -> URLPath:
         url_path_provider: Router | Starlette | None = self.scope.get("router") or self.scope.get("app")
         if url_path_provider is None:
-            raise RuntimeError("The `url_for` method can only be used inside a Starlette application or with a router.")
+            raise RuntimeError(
+                "The `url_path_for` method can only be used inside a Starlette application or with a router.",
+            )
         return url_path_provider.url_path_for(name, **path_params)
 
 
