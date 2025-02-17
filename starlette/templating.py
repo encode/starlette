@@ -5,7 +5,7 @@ import warnings
 from os import PathLike
 
 from starlette.background import BackgroundTask
-from starlette.datastructures import URL
+from starlette.datastructures import URL, URLPath
 from starlette.requests import Request
 from starlette.responses import HTMLResponse
 from starlette.types import Receive, Scope, Send
@@ -125,7 +125,18 @@ class Jinja2Templates:
             request: Request = context["request"]
             return request.url_for(name, **path_params)
 
+        @pass_context
+        def url_path_for(
+            context: dict[str, typing.Any],
+            name: str,
+            /,
+            **path_params: typing.Any,
+        ) -> URLPath:
+            request: Request = context["request"]
+            return request.url_path_for(name, **path_params)
+
         env.globals.setdefault("url_for", url_for)
+        env.globals.setdefault("url_path_for", url_path_for)
 
     def get_template(self, name: str) -> jinja2.Template:
         return self.env.get_template(name)
