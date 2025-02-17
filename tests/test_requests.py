@@ -7,7 +7,7 @@ from typing import Any
 import anyio
 import pytest
 
-from starlette.datastructures import URL, URLPath, Address, State
+from starlette.datastructures import URL, Address, State, URLPath
 from starlette.requests import ClientDisconnect, Request
 from starlette.responses import JSONResponse, PlainTextResponse, Response
 from starlette.types import Message, Receive, Scope, Send

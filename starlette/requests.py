@@ -7,7 +7,7 @@ from http import cookies as http_cookies
 import anyio
 
 from starlette._utils import AwaitableOrContextManager, AwaitableOrContextManagerWrapper
-from starlette.datastructures import URL, URLPath, Address, FormData, Headers, QueryParams, State
+from starlette.datastructures import URL, Address, FormData, Headers, QueryParams, State, URLPath
 from starlette.exceptions import HTTPException
 from starlette.formparsers import FormParser, MultiPartException, MultiPartParser
 from starlette.types import Message, Receive, Scope, Send
