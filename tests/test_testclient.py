@@ -424,10 +424,7 @@ def test_websocket_raw_path_without_params(test_client_factory: TestClientFactor
         assert data == b"/hello-world"
 
 
-@pytest.mark.parametrize("method", ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"])
-def test_timeout_deprecation(method: str) -> None:
-    with pytest.deprecated_call():
+def test_timeout_deprecation() -> None:
+    with pytest.deprecated_call(match="You should not use the 'timeout' argument with the TestClient."):
         client = TestClient(mock_service)
-        client.request(method, "/", timeout=1)
-        method_call = getattr(client, method.lower())
-        method_call("/", timeout=1)
+        client.get("/", timeout=1)

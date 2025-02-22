@@ -428,7 +428,11 @@ class TestClient(httpx.Client):
         extensions: dict[str, typing.Any] | None = None,
     ) -> httpx.Response:
         if timeout is not httpx.USE_CLIENT_DEFAULT:
-            warnings.warn("The 'timeout' argument is not supported by 'TestClient'.", DeprecationWarning)
+            warnings.warn(
+                "You should not use the 'timeout' argument with the TestClient. "
+                "See https://github.com/encode/starlette/issues/1108 for more information.",
+                DeprecationWarning,
+            )
         url = self._merge_url(url)
         return super().request(
             method,
