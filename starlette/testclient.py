@@ -7,6 +7,7 @@ import json
 import math
 import sys
 import typing
+import warnings
 from concurrent.futures import Future
 from types import GeneratorType
 from urllib.parse import unquote, urljoin
@@ -117,8 +118,10 @@ class WebSocketTestSession:
         """
         The sub-thread in which the websocket session runs.
         """
-        send_tx, send_rx = anyio.create_memory_object_stream[Message](math.inf)
-        receive_tx, receive_rx = anyio.create_memory_object_stream[Message](math.inf)
+        send: anyio.create_memory_object_stream[Message] = anyio.create_memory_object_stream(math.inf)
+        send_tx, send_rx = send
+        receive: anyio.create_memory_object_stream[Message] = anyio.create_memory_object_stream(math.inf)
+        receive_tx, receive_rx = receive
         with send_tx, send_rx, receive_tx, receive_rx, anyio.CancelScope() as cs:
             self._receive_tx = receive_tx
             self._send_rx = send_rx
@@ -424,6 +427,12 @@ class TestClient(httpx.Client):
         timeout: httpx._types.TimeoutTypes | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
         extensions: dict[str, typing.Any] | None = None,
     ) -> httpx.Response:
+        if timeout is not httpx.USE_CLIENT_DEFAULT:
+            warnings.warn(
+                "You should not use the 'timeout' argument with the TestClient. "
+                "See https://github.com/encode/starlette/issues/1108 for more information.",
+                DeprecationWarning,
+            )
         url = self._merge_url(url)
         return super().request(
             method,
@@ -657,14 +666,16 @@ class TestClient(httpx.Client):
             def reset_portal() -> None:
                 self.portal = None
 
-            send1, receive1 = anyio.create_memory_object_stream[
-                typing.Union[typing.MutableMapping[str, typing.Any], None]
-            ](math.inf)
-            send2, receive2 = anyio.create_memory_object_stream[typing.MutableMapping[str, typing.Any]](math.inf)
-            for channel in (send1, send2, receive1, receive2):
+            send: anyio.create_memory_object_stream[typing.MutableMapping[str, typing.Any] | None] = (
+                anyio.create_memory_object_stream(math.inf)
+            )
+            receive: anyio.create_memory_object_stream[typing.MutableMapping[str, typing.Any]] = (
+                anyio.create_memory_object_stream(math.inf)
+            )
+            for channel in (*send, *receive):
                 stack.callback(channel.close)
-            self.stream_send = StapledObjectStream(send1, receive1)
-            self.stream_receive = StapledObjectStream(send2, receive2)
+            self.stream_send = StapledObjectStream(*send)
+            self.stream_receive = StapledObjectStream(*receive)
             self.task = portal.start_task_soon(self.lifespan)
             portal.call(self.wait_startup)
 

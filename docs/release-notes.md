@@ -2,6 +2,29 @@
 toc_depth: 2
 ---
 
+## 0.45.3 (January 24, 2025)
+
+#### Fixed
+
+* Turn directory into string on `lookup_path` on commonpath comparison [#2851](https://github.com/encode/starlette/pull/2851).
+
+## 0.45.2 (January 4, 2025)
+
+#### Fixed
+
+* Make `create_memory_object_stream` compatible with old anyio versions once again, and bump anyio minimum version to 3.6.2 [#2833](https://github.com/encode/starlette/pull/2833).
+
+## 0.45.1 (December 30, 2024)
+
+#### Fixed
+
+* Close `MemoryObjectReceiveStream` left unclosed upon exception in `BaseHTTPMiddleware` children [#2813](https://github.com/encode/starlette/pull/2813).
+* Collect errors more reliably from the WebSocket logic on the `TestClient` [#2814](https://github.com/encode/starlette/pull/2814).
+
+#### Refactor
+
+* Use a pair of memory object streams instead of two queues on the `TestClient` [#2829](https://github.com/encode/starlette/pull/2829).
+
 ## 0.45.0 (December 29, 2024)
 
 #### Removed
