@@ -9,8 +9,8 @@ from urllib.parse import unquote_plus
 from starlette.datastructures import FormData, Headers, UploadFile
 
 if typing.TYPE_CHECKING:
-    import multipart
-    from multipart.multipart import MultipartCallbacks, QuerystringCallbacks, parse_options_header
+    import python_multipart as multipart
+    from python_multipart.multipart import MultipartCallbacks, QuerystringCallbacks, parse_options_header
 else:
     try:
         try:
@@ -122,9 +122,10 @@ class FormParser:
 
 
 class MultiPartParser:
-    default_max_field_size = 1024 * 1024  # 1MB
-    default_max_file_mem_size = 1024 * 1024  # 1MB
-    default_max_file_disk_size = 1024 * 1024 * 1024  # 1GB
+    spool_max_size = 1024 * 1024  # 1MB
+    """The maximum size of the spooled temporary file used to store file data."""
+    max_part_size = 1024 * 1024  # 1MB
+    """The maximum size of a part in the multipart request."""
 
     def __init__(
         self,
@@ -133,18 +134,13 @@ class MultiPartParser:
         *,
         max_files: int | float = 1000,
         max_fields: int | float = 1000,
-        max_field_size: int | float | None = None,
-        max_file_mem_size: int | float | None = None,
-        max_file_disk_size: int | float | None = None,
+        max_part_size: int = 1024 * 1024,  # 1MB
     ) -> None:
         assert multipart is not None, "The `python-multipart` library must be installed to use form parsing."
         self.headers = headers
         self.stream = stream
         self.max_files = max_files
         self.max_fields = max_fields
-        self.max_field_size: int | float = max_field_size or self.default_max_field_size
-        self.max_file_mem_size: int | float = max_file_mem_size or self.default_max_file_mem_size
-        self.max_file_disk_size: int | float = max_file_disk_size or self.default_max_file_disk_size
         self.items: list[tuple[str, str | UploadFile]] = []
         self._current_files = 0
         self._current_fields = 0
@@ -155,6 +151,7 @@ class MultiPartParser:
         self._file_parts_to_write: list[tuple[MultipartPart, bytes]] = []
         self._file_parts_to_finish: list[MultipartPart] = []
         self._files_to_close_on_error: list[SpooledTemporaryFile[bytes]] = []
+        self.max_part_size = max_part_size
 
     def on_part_begin(self) -> None:
         self._current_part = MultipartPart()
@@ -162,8 +159,8 @@ class MultiPartParser:
     def on_part_data(self, data: bytes, start: int, end: int) -> None:
         message_bytes = data[start:end]
         if self._current_part.file is None:
-            if len(self._current_part.data) + len(message_bytes) > self.max_field_size:
-                raise MultiPartException(f"Part exceeded maximum size of {int(self.max_field_size / 1024)}KB.")
+            if len(self._current_part.data) + len(message_bytes) > self.max_part_size:
+                raise MultiPartException(f"Part exceeded maximum size of {int(self.max_part_size / 1024)}KB.")
             self._current_part.data.extend(message_bytes)
         else:
             self._file_parts_to_write.append((self._current_part, message_bytes))
@@ -208,7 +205,7 @@ class MultiPartParser:
             if self._current_files > self.max_files:
                 raise MultiPartException(f"Too many files. Maximum number of files is {self.max_files}.")
             filename = _user_safe_decode(options[b"filename"], self._charset)
-            tempfile = SpooledTemporaryFile(max_size=self.max_file_mem_size)
+            tempfile = SpooledTemporaryFile(max_size=self.spool_max_size)
             self._files_to_close_on_error.append(tempfile)
             self._current_part.file = UploadFile(
                 file=tempfile,  # type: ignore[arg-type]
@@ -262,8 +259,6 @@ class MultiPartParser:
                 # the main thread.
                 for part, data in self._file_parts_to_write:
                     assert part.file  # for type checkers
-                    if part.file.size is not None and part.file.size + len(data) > self.max_file_disk_size:
-                        raise MultiPartException(f"File exceeds maximum size of {self.max_file_disk_size} bytes.")
                     await part.file.write(data)
                 for part in self._file_parts_to_finish:
                     assert part.file  # for type checkers

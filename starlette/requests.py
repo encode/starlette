@@ -13,7 +13,7 @@ from starlette.formparsers import FormParser, MultiPartException, MultiPartParse
 from starlette.types import Message, Receive, Scope, Send
 
 if typing.TYPE_CHECKING:
-    from multipart.multipart import parse_options_header
+    from python_multipart.multipart import parse_options_header
 
     from starlette.applications import Starlette
     from starlette.routing import Router
@@ -230,7 +230,7 @@ class Request(HTTPConnection):
                     self._stream_consumed = True
                 if body:
                     yield body
-            elif message["type"] == "http.disconnect":
+            elif message["type"] == "http.disconnect":  # pragma: no branch
                 self._is_disconnected = True
                 raise ClientDisconnect()
         yield b""
@@ -254,14 +254,12 @@ class Request(HTTPConnection):
         *,
         max_files: int | float = 1000,
         max_fields: int | float = 1000,
-        max_field_size: int | float | None,
-        max_file_mem_size: int | float | None,
-        max_file_disk_size: int | float | None,
+        max_part_size: int = 1024 * 1024,
     ) -> FormData:
-        if self._form is None:
-            assert (
-                parse_options_header is not None
-            ), "The `python-multipart` library must be installed to use form parsing."
+        if self._form is None:  # pragma: no branch
+            assert parse_options_header is not None, (
+                "The `python-multipart` library must be installed to use form parsing."
+            )
             content_type_header = self.headers.get("Content-Type")
             content_type: bytes
             content_type, _ = parse_options_header(content_type_header)
@@ -272,9 +270,7 @@ class Request(HTTPConnection):
                         self.stream(),
                         max_files=max_files,
                         max_fields=max_fields,
-                        max_field_size=max_field_size,
-                        max_file_mem_size=max_file_mem_size,
-                        max_file_disk_size=max_file_disk_size,
+                        max_part_size=max_part_size,
                     )
                     self._form = await multipart_parser.parse()
                 except MultiPartException as exc:
@@ -293,28 +289,10 @@ class Request(HTTPConnection):
         *,
         max_files: int | float = 1000,
         max_fields: int | float = 1000,
-        max_field_size: int | float | None = None,
-        max_file_mem_size: int | float | None = None,
-        max_file_disk_size: int | float | None = None,
+        max_part_size: int = 1024 * 1024,
     ) -> AwaitableOrContextManager[FormData]:
-        """
-        Return a FormData instance, representing the form data in the request.
-
-        :param max_files: The maximum number of files that can be parsed.
-        :param max_fields: The maximum number of fields that can be parsed.
-        :param max_field_size: The maximum size of each field part in bytes.
-        :param max_file_mem_size: The maximum memory size for each file part in bytes.
-        :param max_file_disk_size: The maximum disk size for each file part in bytes.
-            https://docs.python.org/3/library/tempfile.html#tempfile.SpooledTemporaryFile
-        """
         return AwaitableOrContextManagerWrapper(
-            self._get_form(
-                max_files=max_files,
-                max_fields=max_fields,
-                max_field_size=max_field_size,
-                max_file_mem_size=max_file_mem_size,
-                max_file_disk_size=max_file_disk_size,
-            )
+            self._get_form(max_files=max_files, max_fields=max_fields, max_part_size=max_part_size)
         )
 
     async def close(self) -> None:

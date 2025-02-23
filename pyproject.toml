@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = "The little ASGI library that shines."
 readme = "README.md"
 license = "BSD-3-Clause"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 authors = [{ name = "Tom Christie", email = "tom@tomchristie.com" }]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -18,7 +18,6 @@ classifiers = [
     "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -27,7 +26,7 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP",
 ]
 dependencies = [
-    "anyio>=3.4.0,<5",
+    "anyio>=3.6.2,<5",
     "typing_extensions>=3.10.0; python_version < '3.10'",
 ]
 
@@ -69,8 +68,6 @@ combine-as-imports = true
 
 [tool.mypy]
 strict = true
-ignore_missing_imports = true
-python_version = "3.8"
 
 [[tool.mypy.overrides]]
 module = "starlette.testclient.*"
@@ -85,13 +82,7 @@ filterwarnings = [
     "ignore: run_until_first_complete is deprecated and will be removed in a future version.:DeprecationWarning",
     "ignore: starlette.middleware.wsgi is deprecated and will be removed in a future release.*:DeprecationWarning",
     "ignore: Async generator 'starlette.requests.Request.stream' was garbage collected before it had been exhausted.*:ResourceWarning",
-    "ignore: path is deprecated.*:DeprecationWarning:certifi",
     "ignore: Use 'content=<...>' to upload raw bytes/text content.:DeprecationWarning",
-    "ignore: The `allow_redirects` argument is deprecated. Use `follow_redirects` instead.:DeprecationWarning",
-    "ignore: 'cgi' is deprecated and slated for removal in Python 3.13:DeprecationWarning",
-    "ignore: You seem to already have a custom sys.excepthook handler installed. I'll skip installing Trio's custom handler, but this means MultiErrors will not show full tracebacks.:RuntimeWarning",
-    # TODO: This warning appeared when we bumped anyio to 4.4.0.
-    "ignore: Unclosed .MemoryObject(Send|Receive)Stream.:ResourceWarning",
 ]
 
 [tool.coverage.run]

@@ -1,6 +1,11 @@
 <p align="center">
-  <a href="https://www.starlette.io/"><img width="420px" src="https://raw.githubusercontent.com/encode/starlette/master/docs/img/starlette.svg" alt='starlette'></a>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/encode/starlette/master/docs/img/starlette_dark.svg" width="420px">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/encode/starlette/master/docs/img/starlette.svg" width="420px">
+    <img alt="starlette-logo" src="https://raw.githubusercontent.com/encode/starlette/master/docs/img/starlette_dark.svg">
+  </picture>
 </p>
+
 <p align="center">
     <em>✨ The little ASGI framework that shines. ✨</em>
 </p>
@@ -53,7 +58,7 @@ $ pip install uvicorn
 
 ## Example
 
-```python title="example.py"
+```python title="main.py"
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
 from starlette.routing import Route
@@ -72,10 +77,8 @@ app = Starlette(debug=True, routes=routes)
 Then run the application using Uvicorn:
 
 ```shell
-$ uvicorn example:app
+$ uvicorn main:app
 ```
-
-For a more complete example, see [encode/starlette-example](https://github.com/encode/starlette-example).
 
 ## Dependencies
 

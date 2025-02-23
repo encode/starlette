@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import datetime as dt
 import time
+from collections.abc import AsyncGenerator, AsyncIterator, Iterator
 from http.cookies import SimpleCookie
 from pathlib import Path
-from typing import Any, AsyncGenerator, AsyncIterator, Iterator
+from typing import Any
 
 import anyio
 import pytest
@@ -89,7 +90,7 @@ def test_redirect_response_content_length_header(
         await response(scope, receive, send)
 
     client: TestClient = test_client_factory(app)
-    response = client.request("GET", "/redirect", allow_redirects=False)
+    response = client.request("GET", "/redirect", follow_redirects=False)
     assert response.url == "http://testserver/redirect"
     assert response.headers["content-length"] == "0"
 
@@ -265,7 +266,7 @@ async def test_file_response_on_head_method(tmp_path: Path) -> None:
             assert "content-disposition" in headers
             assert "last-modified" in headers
             assert "etag" in headers
-        elif message["type"] == "http.response.body":
+        elif message["type"] == "http.response.body":  # pragma: no branch
             assert message["body"] == b""
             assert message["more_body"] is False
 
@@ -391,6 +392,18 @@ def test_set_cookie_path_none(test_client_factory: TestClientFactory) -> None:
     response = client.get("/")
     assert response.text == "Hello, world!"
     assert response.headers["set-cookie"] == "mycookie=myvalue; SameSite=lax"
+
+
+def test_set_cookie_samesite_none(test_client_factory: TestClientFactory) -> None:
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
+        response = Response("Hello, world!", media_type="text/plain")
+        response.set_cookie("mycookie", "myvalue", samesite=None)
+        await response(scope, receive, send)
+
+    client = test_client_factory(app)
+    response = client.get("/")
+    assert response.text == "Hello, world!"
+    assert response.headers["set-cookie"] == "mycookie=myvalue; Path=/"
 
 
 @pytest.mark.parametrize(
@@ -674,12 +687,12 @@ def test_file_response_range_invalid(file_response_client: TestClient) -> None:
 
 
 def test_file_response_range_head_max(file_response_client: TestClient) -> None:
-    response = file_response_client.head("/", headers={"Range": f"bytes=0-{len(README.encode('utf8'))+1}"})
+    response = file_response_client.head("/", headers={"Range": f"bytes=0-{len(README.encode('utf8')) + 1}"})
     assert response.status_code == 206
 
 
 def test_file_response_range_416(file_response_client: TestClient) -> None:
-    response = file_response_client.head("/", headers={"Range": f"bytes={len(README.encode('utf8'))+1}-"})
+    response = file_response_client.head("/", headers={"Range": f"bytes={len(README.encode('utf8')) + 1}-"})
     assert response.status_code == 416
     assert response.headers["Content-Range"] == f"*/{len(README.encode('utf8'))}"
 
@@ -749,7 +762,7 @@ async def test_file_response_multi_small_chunk_size(readme_file: Path) -> None:
     async def send(message: Message) -> None:
         if message["type"] == "http.response.start":
             start_message.update(message)
-        elif message["type"] == "http.response.body":
+        elif message["type"] == "http.response.body":  # pragma: no branch
             received_chunks.append(message["body"])
 
     await app({"type": "http", "method": "get", "headers": [(b"range", b"bytes=0-15,20-35,35-50")]}, receive, send)

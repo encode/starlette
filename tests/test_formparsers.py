@@ -18,7 +18,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 from tests.types import TestClientFactory
 
 
-class ForceMultipartDict(typing.Dict[typing.Any, typing.Any]):
+class ForceMultipartDict(dict[typing.Any, typing.Any]):
     def __bool__(self) -> bool:
         return True
 
@@ -105,10 +105,10 @@ async def app_read_body(scope: Scope, receive: Receive, send: Send) -> None:
     await response(scope, receive, send)
 
 
-def make_app_max_parts(max_files: int = 1000, max_fields: int = 1000) -> ASGIApp:
+def make_app_max_parts(max_files: int = 1000, max_fields: int = 1000, max_part_size: int = 1024 * 1024) -> ASGIApp:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
-        data = await request.form(max_files=max_files, max_fields=max_fields)
+        data = await request.form(max_files=max_files, max_fields=max_fields, max_part_size=max_part_size)
         output: dict[str, typing.Any] = {}
         for key, value in data.items():
             if isinstance(value, UploadFile):
@@ -493,7 +493,7 @@ def test_too_many_fields_raise(
     client = test_client_factory(app)
     fields = []
     for i in range(1001):
-        fields.append("--B\r\n" f'Content-Disposition: form-data; name="N{i}";\r\n\r\n' "\r\n")
+        fields.append(f'--B\r\nContent-Disposition: form-data; name="N{i}";\r\n\r\n\r\n')
     data = "".join(fields).encode("utf-8")
     with expectation:
         res = client.post(
@@ -520,7 +520,7 @@ def test_too_many_files_raise(
     client = test_client_factory(app)
     fields = []
     for i in range(1001):
-        fields.append("--B\r\n" f'Content-Disposition: form-data; name="N{i}"; filename="F{i}";\r\n\r\n' "\r\n")
+        fields.append(f'--B\r\nContent-Disposition: form-data; name="N{i}"; filename="F{i}";\r\n\r\n\r\n')
     data = "".join(fields).encode("utf-8")
     with expectation:
         res = client.post(
@@ -549,7 +549,7 @@ def test_too_many_files_single_field_raise(
     for i in range(1001):
         # This uses the same field name "N" for all files, equivalent to a
         # multifile upload form field
-        fields.append("--B\r\n" f'Content-Disposition: form-data; name="N"; filename="F{i}";\r\n\r\n' "\r\n")
+        fields.append(f'--B\r\nContent-Disposition: form-data; name="N"; filename="F{i}";\r\n\r\n\r\n')
     data = "".join(fields).encode("utf-8")
     with expectation:
         res = client.post(
@@ -576,8 +576,8 @@ def test_too_many_files_and_fields_raise(
     client = test_client_factory(app)
     fields = []
     for i in range(1001):
-        fields.append("--B\r\n" f'Content-Disposition: form-data; name="F{i}"; filename="F{i}";\r\n\r\n' "\r\n")
-        fields.append("--B\r\n" f'Content-Disposition: form-data; name="N{i}";\r\n\r\n' "\r\n")
+        fields.append(f'--B\r\nContent-Disposition: form-data; name="F{i}"; filename="F{i}";\r\n\r\n\r\n')
+        fields.append(f'--B\r\nContent-Disposition: form-data; name="N{i}";\r\n\r\n\r\n')
     data = "".join(fields).encode("utf-8")
     with expectation:
         res = client.post(
@@ -631,7 +631,7 @@ def test_max_fields_is_customizable_low_raises(
     client = test_client_factory(app)
     fields = []
     for i in range(2):
-        fields.append("--B\r\n" f'Content-Disposition: form-data; name="N{i}";\r\n\r\n' "\r\n")
+        fields.append(f'--B\r\nContent-Disposition: form-data; name="N{i}";\r\n\r\n\r\n')
     data = "".join(fields).encode("utf-8")
     with expectation:
         res = client.post(
@@ -661,7 +661,7 @@ def test_max_files_is_customizable_low_raises(
     client = test_client_factory(app)
     fields = []
     for i in range(2):
-        fields.append("--B\r\n" f'Content-Disposition: form-data; name="F{i}"; filename="F{i}";\r\n\r\n' "\r\n")
+        fields.append(f'--B\r\nContent-Disposition: form-data; name="F{i}"; filename="F{i}";\r\n\r\n\r\n')
     data = "".join(fields).encode("utf-8")
     with expectation:
         res = client.post(
@@ -677,8 +677,8 @@ def test_max_fields_is_customizable_high(test_client_factory: TestClientFactory)
     client = test_client_factory(make_app_max_parts(max_fields=2000, max_files=2000))
     fields = []
     for i in range(2000):
-        fields.append("--B\r\n" f'Content-Disposition: form-data; name="N{i}";\r\n\r\n' "\r\n")
-        fields.append("--B\r\n" f'Content-Disposition: form-data; name="F{i}"; filename="F{i}";\r\n\r\n' "\r\n")
+        fields.append(f'--B\r\nContent-Disposition: form-data; name="N{i}";\r\n\r\n\r\n')
+        fields.append(f'--B\r\nContent-Disposition: form-data; name="F{i}"; filename="F{i}";\r\n\r\n\r\n')
     data = "".join(fields).encode("utf-8")
     data += b"--B--\r\n"
     res = client.post(
@@ -732,3 +732,43 @@ def test_max_part_size_exceeds_limit(
         response = client.post("/", data=multipart_data, headers=headers)  # type: ignore
         assert response.status_code == 400
         assert response.text == "Part exceeded maximum size of 1024KB."
+
+
+@pytest.mark.parametrize(
+    "app,expectation",
+    [
+        (make_app_max_parts(max_part_size=1024 * 10), pytest.raises(MultiPartException)),
+        (
+            Starlette(routes=[Mount("/", app=make_app_max_parts(max_part_size=1024 * 10))]),
+            does_not_raise(),
+        ),
+    ],
+)
+def test_max_part_size_exceeds_custom_limit(
+    app: ASGIApp,
+    expectation: typing.ContextManager[Exception],
+    test_client_factory: TestClientFactory,
+) -> None:
+    client = test_client_factory(app)
+    boundary = "------------------------4K1ON9fZkj9uCUmqLHRbbR"
+
+    multipart_data = (
+        f"--{boundary}\r\n"
+        f'Content-Disposition: form-data; name="small"\r\n\r\n'
+        "small content\r\n"
+        f"--{boundary}\r\n"
+        f'Content-Disposition: form-data; name="large"\r\n\r\n'
+        + ("x" * 1024 * 10 + "x")  # 1MB + 1 byte of data
+        + "\r\n"
+        f"--{boundary}--\r\n"
+    ).encode("utf-8")
+
+    headers = {
+        "Content-Type": f"multipart/form-data; boundary={boundary}",
+        "Transfer-Encoding": "chunked",
+    }
+
+    with expectation:
+        response = client.post("/", content=multipart_data, headers=headers)
+        assert response.status_code == 400
+        assert response.text == "Part exceeded maximum size of 10KB."
