@@ -128,10 +128,10 @@ def make_app_max_parts(max_files: int = 1000, max_fields: int = 1000, max_part_s
     return app
 
 
-def make_app_max_file_size(max_file_size: int) -> ASGIApp:
+def make_app_max_spool_file_size(max_file_size: int) -> ASGIApp:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         request = Request(scope, receive)
-        await request.form(max_file_size=max_file_size)
+        await request.form(max_file_spool_size=max_file_size)
 
     return app
 
@@ -592,8 +592,8 @@ def test_too_many_files_and_fields_raise(
 @pytest.mark.parametrize(
     "app,expectation",
     [
-        (make_app_max_file_size(1024), pytest.raises(MultiPartException)),
-        (Starlette(routes=[Mount("/", app=make_app_max_file_size(1024))]), does_not_raise()),
+        (make_app_max_spool_file_size(1024), pytest.raises(MultiPartException)),
+        (Starlette(routes=[Mount("/", app=make_app_max_spool_file_size(1024))]), does_not_raise()),
     ],
 )
 def test_max_part_file_size_raise(
