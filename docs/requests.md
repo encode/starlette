@@ -122,6 +122,20 @@ async with request.form(max_files=1000, max_fields=1000, max_part_size=1024*1024
     ...
 ```
 
+You can configure maximum [spooled file](https://docs.python.org/3/library/tempfile.html#tempfile.SpooledTemporaryFile) size per file uploaded with the parameter `max_file_size`:
+
+```python
+async with request.form(max_spool_size=100*1024*1024):  # 100 MB limit per file
+    ...
+```
+
+You can configure maximum size (on disk) of all files uploaded with the parameter `max_files_size`:
+
+```python
+async with request.form(max_file_size=1024*1024*1024):  # 1 GB limit per file
+    ...
+```
+
 !!! info
     These limits are for security reasons, allowing an unlimited number of fields or files could lead to a denial of service attack by consuming a lot of CPU and memory parsing too many empty fields.
 
