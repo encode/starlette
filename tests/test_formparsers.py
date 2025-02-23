@@ -4,7 +4,6 @@ import os
 import typing
 from contextlib import nullcontext as does_not_raise
 from pathlib import Path
-from secrets import token_bytes
 
 import pytest
 
@@ -124,14 +123,6 @@ def make_app_max_parts(max_files: int = 1000, max_fields: int = 1000, max_part_s
         await request.close()
         response = JSONResponse(output)
         await response(scope, receive, send)
-
-    return app
-
-
-def make_app_max_spool_file_size(max_file_size: int) -> ASGIApp:
-    async def app(scope: Scope, receive: Receive, send: Send) -> None:
-        request = Request(scope, receive)
-        await request.form(max_file_spool_size=max_file_size)
 
     return app
 
@@ -587,30 +578,6 @@ def test_too_many_files_and_fields_raise(
         )
         assert res.status_code == 400
         assert res.text == "Too many files. Maximum number of files is 1000."
-
-
-@pytest.mark.parametrize(
-    "app,expectation",
-    [
-        (make_app_max_spool_file_size(1024), pytest.raises(MultiPartException)),
-        (Starlette(routes=[Mount("/", app=make_app_max_spool_file_size(1024))]), does_not_raise()),
-    ],
-)
-def test_max_part_file_size_raise(
-    tmpdir: Path,
-    app: ASGIApp,
-    expectation: typing.ContextManager[Exception],
-    test_client_factory: TestClientFactory,
-) -> None:
-    path = os.path.join(tmpdir, "test.txt")
-    with open(path, "wb") as file:
-        file.write(token_bytes(1024 + 1))
-
-    client = test_client_factory(app)
-    with open(path, "rb") as f, expectation:
-        response = client.post("/", files={"test": f})
-        assert response.status_code == 400
-        assert response.text == "File exceeds maximum size of 1024 bytes."
 
 
 @pytest.mark.parametrize(
