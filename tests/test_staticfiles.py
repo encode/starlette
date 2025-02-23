@@ -216,6 +216,21 @@ def test_staticfiles_304_with_etag_match(tmpdir: Path, test_client_factory: Test
     assert second_resp.content == b""
 
 
+def test_staticfiles_200_with_etag_mismatch(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+    path = os.path.join(tmpdir, "example.txt")
+    with open(path, "w") as file:
+        file.write("<file content>")
+
+    app = StaticFiles(directory=tmpdir)
+    client = test_client_factory(app)
+    first_resp = client.get("/example.txt")
+    assert first_resp.status_code == 200
+    assert first_resp.headers["etag"] != '"123"'
+    second_resp = client.get("/example.txt", headers={"if-none-match": '"123"'})
+    assert second_resp.status_code == 200
+    assert second_resp.content == b"<file content>"
+
+
 def test_staticfiles_304_with_last_modified_compare_last_req(
     tmpdir: Path, test_client_factory: TestClientFactory
 ) -> None:
@@ -561,16 +576,15 @@ def test_staticfiles_avoids_path_traversal(tmp_path: Path) -> None:
     assert exc_info.value.detail == "Not Found"
 
 
-def test_staticfiles_self_symlinks(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
-    statics_path = os.path.join(tmpdir, "statics")
-    os.mkdir(statics_path)
+def test_staticfiles_self_symlinks(tmp_path: Path, test_client_factory: TestClientFactory) -> None:
+    statics_path = tmp_path / "statics"
+    statics_path.mkdir()
 
-    source_file_path = os.path.join(statics_path, "index.html")
-    with open(source_file_path, "w") as file:
-        file.write("<h1>Hello</h1>")
+    source_file_path = statics_path / "index.html"
+    source_file_path.write_text("<h1>Hello</h1>", encoding="utf-8")
 
-    statics_symlink_path = os.path.join(tmpdir, "statics_symlink")
-    os.symlink(statics_path, statics_symlink_path)
+    statics_symlink_path = tmp_path / "statics_symlink"
+    statics_symlink_path.symlink_to(statics_path)
 
     app = StaticFiles(directory=statics_symlink_path, follow_symlink=True)
     client = test_client_factory(app)

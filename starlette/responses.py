@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import http.cookies
 import json
 import os
@@ -17,7 +18,7 @@ from urllib.parse import quote
 import anyio
 import anyio.to_thread
 
-from starlette._compat import md5_hexdigest
+from starlette._utils import collapse_excgroups
 from starlette.background import BackgroundTask
 from starlette.concurrency import iterate_in_threadpool
 from starlette.datastructures import URL, Headers, MutableHeaders
@@ -258,14 +259,15 @@ class StreamingResponse(Response):
             except OSError:
                 raise ClientDisconnect()
         else:
-            async with anyio.create_task_group() as task_group:
+            with collapse_excgroups():
+                async with anyio.create_task_group() as task_group:
 
-                async def wrap(func: typing.Callable[[], typing.Awaitable[None]]) -> None:
-                    await func()
-                    task_group.cancel_scope.cancel()
+                    async def wrap(func: typing.Callable[[], typing.Awaitable[None]]) -> None:
+                        await func()
+                        task_group.cancel_scope.cancel()
 
-                task_group.start_soon(wrap, partial(self.stream_response, send))
-                await wrap(partial(self.listen_for_disconnect, receive))
+                    task_group.start_soon(wrap, partial(self.stream_response, send))
+                    await wrap(partial(self.listen_for_disconnect, receive))
 
         if self.background is not None:
             await self.background()
@@ -328,7 +330,7 @@ class FileResponse(Response):
         content_length = str(stat_result.st_size)
         last_modified = formatdate(stat_result.st_mtime, usegmt=True)
         etag_base = str(stat_result.st_mtime) + "-" + str(stat_result.st_size)
-        etag = f'"{md5_hexdigest(etag_base.encode(), usedforsecurity=False)}"'
+        etag = f'"{hashlib.md5(etag_base.encode(), usedforsecurity=False).hexdigest()}"'
 
         self.headers.setdefault("content-length", content_length)
         self.headers.setdefault("last-modified", last_modified)
@@ -529,9 +531,6 @@ class FileResponse(Response):
         return (
             content_length,
             lambda start, end: (
-                f"--{boundary}\n"
-                f"Content-Type: {content_type}\n"
-                f"Content-Range: bytes {start}-{end-1}/{max_size}\n"
-                "\n"
+                f"--{boundary}\nContent-Type: {content_type}\nContent-Range: bytes {start}-{end - 1}/{max_size}\n\n"
             ).encode("latin-1"),
         )
