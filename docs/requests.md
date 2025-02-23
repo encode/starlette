@@ -125,7 +125,7 @@ async with request.form(max_files=1000, max_fields=1000, max_part_size=1024*1024
 You can configure maximum [spooled file](https://docs.python.org/3/library/tempfile.html#tempfile.SpooledTemporaryFile) size per file uploaded with the parameter `max_file_size`:
 
 ```python
-async with request.form(max_file_spool_size=100*1024*1024):  # 100 MB limit per file
+async with request.form(max_spool_size=100*1024*1024):  # 100 MB limit per file
     ...
 ```
 
