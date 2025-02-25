@@ -107,7 +107,7 @@ class URL:
     def is_secure(self) -> bool:
         return self.scheme in ("https", "wss")
 
-    def relative_url(self):
+    def relative_url(self) -> URL:
         """
         Get a URL that only includes url path, query string and fragment.
         """
