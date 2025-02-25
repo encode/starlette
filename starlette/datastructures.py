@@ -107,6 +107,20 @@ class URL:
     def is_secure(self) -> bool:
         return self.scheme in ("https", "wss")
 
+    def relative_url(self) -> str:
+        """
+        Get the relative URL string, including only url path, query string and fragment.
+        """
+        url_str = self.path
+
+        if self.query:
+            url_str += "?" + self.query
+
+        if self.fragment:
+            url_str += "#" + self.fragment
+
+        return url_str
+
     def replace(self, **kwargs: typing.Any) -> URL:
         if "username" in kwargs or "password" in kwargs or "hostname" in kwargs or "port" in kwargs:
             hostname = kwargs.pop("hostname", None)
