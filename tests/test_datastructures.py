@@ -90,6 +90,17 @@ def test_hidden_password() -> None:
     assert repr(u) == "URL('https://username:********@example.org/path/to/somewhere')"
 
 
+def test_relative_url() -> None:
+    u = URL("https://example.org/path/to/somewhere")
+    assert u.relative_url() == URL("/path/to/somewhere")
+
+    u = URL("https://username:password@example.org/path/to/somewhere?abc=123")
+    assert u.relative_url() == URL("/path/to/somewhere?abc=123")
+
+    u = URL("https://[fe::2]:12345/path/to/somewhere?abc=123#anchor")
+    assert u.relative_url() == URL("/path/to/somewhere?abc=123#anchor")
+
+
 def test_csv() -> None:
     csv = CommaSeparatedStrings('"localhost", "127.0.0.1", 0.0.0.0')
     assert list(csv) == ["localhost", "127.0.0.1", "0.0.0.0"]
