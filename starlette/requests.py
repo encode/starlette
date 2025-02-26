@@ -200,7 +200,6 @@ class Request(HTTPConnection):
 
     def __init__(self, scope: Scope, receive: Receive = empty_receive, send: Send = empty_send):
         super().__init__(scope)
-        assert scope["type"] == "http"
         self._receive = receive
         self._send = send
         self._stream_consumed = False
