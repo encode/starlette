@@ -104,7 +104,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 import uvicorn
 
-app = Starlette(debug=True)
+app = Starlette()
 
 # ... your routes and middleware configuration ...
 
