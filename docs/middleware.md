@@ -105,12 +105,13 @@ from starlette.middleware.cors import CORSMiddleware
 import uvicorn
 
 app = Starlette()
+app = CORSMiddleware(app=app, allow_origins=["*"])
 
 # ... your routes and middleware configuration ...
 
 if __name__ == '__main__':
     uvicorn.run(
-        CORSMiddleware(app=app, allow_origins=["*"]),
+        app,
         host='0.0.0.0',
         port=8000
     )
