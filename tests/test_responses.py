@@ -374,7 +374,7 @@ async def test_file_response_with_pathsend(tmpdir: Path) -> None:
             assert "content-disposition" in headers
             assert "last-modified" in headers
             assert "etag" in headers
-        elif message["type"] == "http.response.pathsend":
+        elif message["type"] == "http.response.pathsend":  # pragma: no branch
             assert message["path"] == str(path)
 
     # Since the TestClient doesn't support `pathsend`, we need to test this directly.
