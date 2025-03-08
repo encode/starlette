@@ -174,6 +174,7 @@ Special thanks to some of our most impactful contributors:
 - **Alex Grönholm** ([@AlexGrönholm](https://github.com/agronholm)) - Creator of AnyIO.
 - **Florimond Manca** ([@florimondmanca](https://github.com/florimondmanca)) - Important contributions to Starlette and Uvicorn.
 
+If you want your name removed from the list above, or if I forgot a significant contributor, please let me know.
 You can view all contributors on GitHub:
 [Starlette Contributors](https://github.com/encode/starlette/graphs/contributors) / [Uvicorn Contributors](https://github.com/encode/uvicorn/graphs/contributors).
 
