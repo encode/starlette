@@ -7,7 +7,7 @@ from http import cookies as http_cookies
 import anyio
 
 from starlette._utils import AwaitableOrContextManager, AwaitableOrContextManagerWrapper
-from starlette.datastructures import URL, Address, FormData, Headers, QueryParams, State
+from starlette.datastructures import URL, Address, FormData, Headers, QueryParams, State, URLPath
 from starlette.exceptions import HTTPException
 from starlette.formparsers import FormParser, MultiPartException, MultiPartParser
 from starlette.types import Message, Receive, Scope, Send
@@ -185,6 +185,9 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
             raise RuntimeError("The `url_for` method can only be used inside a Starlette application or with a router.")
         url_path = url_path_provider.url_path_for(name, **path_params)
         return url_path.make_absolute_url(base_url=self.base_url)
+
+    def url_path_for(self, name: str, /, **path_params: typing.Any) -> URLPath:
+        return URLPath(self.url_for(name, **path_params).path)
 
 
 async def empty_receive() -> typing.NoReturn:
