@@ -1,10 +1,11 @@
 # Thread Pool
 
-When you:
-- Create an endpoint using`def` instead of `async def`
-- Use `FileResponse`
-- Use `UploadFile`
-- A sync `BackgroundTask`
+Starlette uses a thread pool in several scenarios to avoid blocking the event loop:
+
+- When you create a synchronous endpoint using `def` instead of `async def`
+- When serving files with [`FileResponse`](responses.md#fileresponse)
+- When handling file uploads with [`UploadFile`](requests.md#request-files)
+- When running synchronous background tasks with [`BackgroundTask`](background.md)
 - And some other scenarios that may not be documented...
 
 Starlette will run your code in a thread pool to avoid blocking the event loop.
