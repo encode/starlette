@@ -211,7 +211,7 @@ class Route(BaseRoute):
         path: str,
         endpoint: typing.Callable[..., typing.Any],
         *,
-        methods: list[str] | None = None,
+        methods: typing.Collection[str] | None = None,
         name: str | None = None,
         include_in_schema: bool = True,
         middleware: typing.Sequence[Middleware] | None = None,
@@ -778,7 +778,7 @@ class Router:
         self,
         path: str,
         endpoint: typing.Callable[[Request], typing.Awaitable[Response] | Response],
-        methods: list[str] | None = None,
+        methods: typing.Collection[str] | None = None,
         name: str | None = None,
         include_in_schema: bool = True,
     ) -> None:  # pragma: no cover
@@ -803,7 +803,7 @@ class Router:
     def route(
         self,
         path: str,
-        methods: list[str] | None = None,
+        methods: typing.Collection[str] | None = None,
         name: str | None = None,
         include_in_schema: bool = True,
     ) -> typing.Callable:  # type: ignore[type-arg]
