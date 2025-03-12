@@ -576,7 +576,6 @@ class _DefaultLifespan:
 
 
 class Router:
-
     # The default route and websocket route classes. if you want to use customized route classes
     # you have to override this class variables in your subclass.
     route_class = Route
