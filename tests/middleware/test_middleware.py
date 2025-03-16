@@ -18,7 +18,7 @@ class TestMiddleware:
     def test_created_instance(self) -> None:
         custom_middleware = self.custom_middleware
         assert isinstance(custom_middleware, Middleware)
-        assert custom_middleware.cls == CustomMiddleware
+        assert custom_middleware.cls == CustomMiddleware  # type: ignore
 
     def test_repr(self) -> None:
         custom_middleware = self.custom_middleware
