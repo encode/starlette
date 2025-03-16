@@ -1,4 +1,4 @@
-from starlette.middleware import Middleware
+from starlette.middleware import Middleware, _MiddlewareFactory
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 
@@ -10,6 +10,10 @@ class CustomMiddleware:  # pragma: no cover
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         await self.app(scope, receive, send)
+
+
+def test_class_matches_middleware_protocol() -> None:
+    assert isinstance(CustomMiddleware, _MiddlewareFactory)
 
 
 class TestMiddleware:

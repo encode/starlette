@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sys
 from collections.abc import Iterator
-from typing import Any, Protocol
+from typing import Any, Protocol, runtime_checkable
 
 if sys.version_info >= (3, 10):  # pragma: no cover
     from typing import ParamSpec
@@ -14,6 +14,7 @@ from starlette.types import ASGIApp
 P = ParamSpec("P")
 
 
+@runtime_checkable
 class _MiddlewareFactory(Protocol[P]):
     def __call__(self, app: ASGIApp, /, *args: P.args, **kwargs: P.kwargs) -> ASGIApp: ...  # pragma: no cover
 
