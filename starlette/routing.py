@@ -576,6 +576,11 @@ class _DefaultLifespan:
 
 
 class Router:
+    # The default route and websocket route classes. if you want to use customized route classes
+    # you have to override this class variables in your subclass.
+    route_class = Route
+    websocket_route_class = WebSocketRoute
+
     def __init__(
         self,
         routes: typing.Sequence[BaseRoute] | None = None,
@@ -782,7 +787,7 @@ class Router:
         name: str | None = None,
         include_in_schema: bool = True,
     ) -> None:  # pragma: no cover
-        route = Route(
+        route = self.route_class(
             path,
             endpoint=endpoint,
             methods=methods,
@@ -797,7 +802,7 @@ class Router:
         endpoint: typing.Callable[[WebSocket], typing.Awaitable[None]],
         name: str | None = None,
     ) -> None:  # pragma: no cover
-        route = WebSocketRoute(path, endpoint=endpoint, name=name)
+        route = self.websocket_route_class(path, endpoint=endpoint, name=name)
         self.routes.append(route)
 
     def route(
