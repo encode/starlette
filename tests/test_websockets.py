@@ -646,9 +646,9 @@ def test_receive_after_close(test_client_factory: TestClientFactory) -> None:
         await websocket.receive()
 
     client = test_client_factory(app)
-    with pytest.raises(RuntimeError):
-        with client.websocket_connect("/") as websocket:
-            websocket.send({"type": "websocket.send"})
+    with pytest.raises(WebSocketDisconnected):
+        with client.websocket_connect("/"):
+            pass  # pragma: no cover
 
 
 def test_receive_wrong_message_type(test_client_factory: TestClientFactory) -> None:
