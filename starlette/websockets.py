@@ -122,14 +122,14 @@ class WebSocket(HTTPConnection):
 
     async def receive_text(self) -> str:
         if self.application_state != WebSocketState.CONNECTED:
-            raise RuntimeError('WebSocket is not connected. Need to call "accept" first.')
+            raise WebSocketDisconnected('WebSocket is not connected. Need to call "accept" first.')
         message = await self.receive()
         self._raise_on_disconnect(message)
         return typing.cast(str, message["text"])
 
     async def receive_bytes(self) -> bytes:
         if self.application_state != WebSocketState.CONNECTED:
-            raise RuntimeError('WebSocket is not connected. Need to call "accept" first.')
+            raise WebSocketDisconnected('WebSocket is not connected. Need to call "accept" first.')
         message = await self.receive()
         self._raise_on_disconnect(message)
         return typing.cast(bytes, message["bytes"])
@@ -138,7 +138,7 @@ class WebSocket(HTTPConnection):
         if mode not in {"text", "binary"}:
             raise RuntimeError('The "mode" argument should be "text" or "binary".')
         if self.application_state != WebSocketState.CONNECTED:
-            raise RuntimeError('WebSocket is not connected. Need to call "accept" first.')
+            raise WebSocketDisconnected('WebSocket is not connected. Need to call "accept" first.')
         message = await self.receive()
         self._raise_on_disconnect(message)
 
