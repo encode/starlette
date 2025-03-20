@@ -3,8 +3,9 @@ from __future__ import annotations
 import itertools
 import sys
 from asyncio import Task, current_task as asyncio_current_task
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Any, AsyncGenerator
+from typing import Any
 
 import anyio
 import anyio.lowlevel
@@ -254,19 +255,25 @@ def test_websocket_blocking_receive(test_client_factory: TestClientFactory) -> N
 
 
 def test_websocket_not_block_on_close(test_client_factory: TestClientFactory) -> None:
+    cancelled = False
+
     def app(scope: Scope) -> ASGIInstance:
         async def asgi(receive: Receive, send: Send) -> None:
-            websocket = WebSocket(scope, receive=receive, send=send)
-            await websocket.accept()
-            while True:
-                await anyio.sleep(0.1)
+            nonlocal cancelled
+            try:
+                websocket = WebSocket(scope, receive=receive, send=send)
+                await websocket.accept()
+                await anyio.sleep_forever()
+            except anyio.get_cancelled_exc_class():
+                cancelled = True
+                raise
 
         return asgi
 
     client = test_client_factory(app)  # type: ignore
-    with client.websocket_connect("/") as websocket:
+    with client.websocket_connect("/"):
         ...
-    assert websocket.should_close.is_set()
+    assert cancelled
 
 
 def test_client(test_client_factory: TestClientFactory) -> None:
@@ -280,6 +287,19 @@ def test_client(test_client_factory: TestClientFactory) -> None:
     client = test_client_factory(app)
     response = client.get("/")
     assert response.json() == {"host": "testclient", "port": 50000}
+
+
+def test_client_custom_client(test_client_factory: TestClientFactory) -> None:
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
+        client = scope.get("client")
+        assert client is not None
+        host, port = client
+        response = JSONResponse({"host": host, "port": port})
+        await response(scope, receive, send)
+
+    client = test_client_factory(app, client=("192.168.0.1", 3000))
+    response = client.get("/")
+    assert response.json() == {"host": "192.168.0.1", "port": 3000}
 
 
 @pytest.mark.parametrize("param", ("2020-07-14T00:00:00+00:00", "España", "voilà"))
@@ -402,3 +422,9 @@ def test_websocket_raw_path_without_params(test_client_factory: TestClientFactor
     with client.websocket_connect("/hello-world", params={"foo": "bar"}) as websocket:
         data = websocket.receive_bytes()
         assert data == b"/hello-world"
+
+
+def test_timeout_deprecation() -> None:
+    with pytest.deprecated_call(match="You should not use the 'timeout' argument with the TestClient."):
+        client = TestClient(mock_service)
+        client.get("/", timeout=1)

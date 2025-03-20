@@ -1,5 +1,6 @@
 import sys
-from typing import Any, Callable, Dict, Iterable
+from collections.abc import Iterable
+from typing import Any, Callable
 
 import pytest
 
@@ -9,7 +10,7 @@ from tests.types import TestClientFactory
 
 WSGIResponse = Iterable[bytes]
 StartResponse = Callable[..., Any]
-Environment = Dict[str, Any]
+Environment = dict[str, Any]
 
 
 def hello_world(
@@ -77,7 +78,7 @@ def test_wsgi_post(test_client_factory: TestClientFactory) -> None:
     client = test_client_factory(app)
     response = client.post("/", json={"example": 123})
     assert response.status_code == 200
-    assert response.text == '{"example": 123}'
+    assert response.text == '{"example":123}'
 
 
 def test_wsgi_exception(test_client_factory: TestClientFactory) -> None:

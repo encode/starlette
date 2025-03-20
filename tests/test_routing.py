@@ -390,6 +390,14 @@ def test_reverse_mount_urls() -> None:
     assert mounted.url_path_for("users:user", subpath="test", username="tom") == "/test/users/tom"
     assert mounted.url_path_for("users", subpath="test", path="/tom") == "/test/users/tom"
 
+    mounted = Router([Mount("/users", ok, name="users")])
+    with pytest.raises(NoMatchFound):
+        mounted.url_path_for("users", path="/a", foo="bar")
+
+    mounted = Router([Mount("/users", ok, name="users")])
+    with pytest.raises(NoMatchFound):
+        mounted.url_path_for("users")
+
 
 def test_mount_at_root(test_client_factory: TestClientFactory) -> None:
     mounted = Router([Mount("/", ok, name="users")])
@@ -479,6 +487,8 @@ def test_host_reverse_urls() -> None:
         mixed_hosts_app.url_path_for("port:homepage").make_absolute_url("https://whatever")
         == "https://port.example.org:3600/"
     )
+    with pytest.raises(NoMatchFound):
+        mixed_hosts_app.url_path_for("api", path="whatever", foo="bar")
 
 
 async def subdomain_app(scope: Scope, receive: Receive, send: Send) -> None:
@@ -553,6 +563,16 @@ def test_url_for_with_double_mount() -> None:
     app = Starlette(routes=double_mount_routes)
     url = app.url_path_for("mount:static", path="123")
     assert url == "/mount/static/123"
+
+
+def test_url_for_with_root_path_ending_with_slash(test_client_factory: TestClientFactory) -> None:
+    def homepage(request: Request) -> JSONResponse:
+        return JSONResponse({"index": str(request.url_for("homepage"))})
+
+    app = Starlette(routes=[Route("/", homepage, name="homepage")])
+    client = test_client_factory(app, base_url="https://www.example.org/", root_path="/sub_path/")
+    response = client.get("/sub_path/")
+    assert response.json() == {"index": "https://www.example.org/sub_path/"}
 
 
 def test_standalone_route_matches(
@@ -787,7 +807,7 @@ def test_raise_on_startup(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         async def _send(message: Message) -> None:
             nonlocal startup_failed
-            if message["type"] == "lifespan.startup.failed":
+            if message["type"] == "lifespan.startup.failed":  # pragma: no branch
                 startup_failed = True
             return await send(message)
 
@@ -873,7 +893,7 @@ class Endpoint:
             id="staticmethod",
         ),
         pytest.param(Endpoint(), "Endpoint", id="object"),
-        pytest.param(lambda request: ..., "<lambda>", id="lambda"),
+        pytest.param(lambda request: ..., "<lambda>", id="lambda"),  # pragma: no branch
     ],
 )
 def test_route_name(endpoint: typing.Callable[..., Response], expected_name: str) -> None:

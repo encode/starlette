@@ -2,6 +2,92 @@
 toc_depth: 2
 ---
 
+## 0.46.1 (March 8, 2025)
+
+#### Fixed
+
+* Allow relative directory path when `follow_symlinks=True` [#2896](https://github.com/encode/starlette/pull/2896).
+
+## 0.46.0 (February 22, 2025)
+
+#### Added
+
+* `GZipMiddleware`: Make sure `Vary` header is always added if a response can be compressed [#2865](https://github.com/encode/starlette/pull/2865).
+
+#### Fixed
+
+* Raise exception from background task on BaseHTTPMiddleware [#2812](https://github.com/encode/starlette/pull/2812).
+* `GZipMiddleware`: Don't compress on server sent events [#2871](https://github.com/encode/starlette/pull/2871).
+
+#### Changed
+
+* `MultiPartParser`: Rename `max_file_size` to `spool_max_size` [#2780](https://github.com/encode/starlette/pull/2780).
+
+#### Deprecated
+
+* Add deprecated warning to `TestClient(timeout=...)` [#2840](https://github.com/encode/starlette/pull/2840).
+
+## 0.45.3 (January 24, 2025)
+
+#### Fixed
+
+* Turn directory into string on `lookup_path` on commonpath comparison [#2851](https://github.com/encode/starlette/pull/2851).
+
+## 0.45.2 (January 4, 2025)
+
+#### Fixed
+
+* Make `create_memory_object_stream` compatible with old anyio versions once again, and bump anyio minimum version to 3.6.2 [#2833](https://github.com/encode/starlette/pull/2833).
+
+## 0.45.1 (December 30, 2024)
+
+#### Fixed
+
+* Close `MemoryObjectReceiveStream` left unclosed upon exception in `BaseHTTPMiddleware` children [#2813](https://github.com/encode/starlette/pull/2813).
+* Collect errors more reliably from the WebSocket logic on the `TestClient` [#2814](https://github.com/encode/starlette/pull/2814).
+
+#### Refactor
+
+* Use a pair of memory object streams instead of two queues on the `TestClient` [#2829](https://github.com/encode/starlette/pull/2829).
+
+## 0.45.0 (December 29, 2024)
+
+#### Removed
+
+* Drop Python 3.8 support [#2823](https://github.com/encode/starlette/pull/2823).
+* Remove `ExceptionMiddleware` import proxy from `starlette.exceptions` module [#2826](https://github.com/encode/starlette/pull/2826).
+* Remove deprecated `WS_1004_NO_STATUS_RCVD` and `WS_1005_ABNORMAL_CLOSURE` [#2827](https://github.com/encode/starlette/pull/2827).
+
+## 0.44.0 (December 28, 2024)
+
+#### Added
+
+* Add `client` parameter to `TestClient` [#2810](https://github.com/encode/starlette/pull/2810).
+* Add `max_part_size` parameter to `Request.form()` [#2815](https://github.com/encode/starlette/pull/2815).
+
+## 0.43.0 (December 25, 2024)
+
+#### Removed
+
+* Remove deprecated `allow_redirects` argument from `TestClient` [#2808](https://github.com/encode/starlette/pull/2808).
+
+#### Added
+
+* Make UUID path parameter conversion more flexible [#2806](https://github.com/encode/starlette/pull/2806).
+
+## 0.42.0 (December 14, 2024)
+
+#### Added
+
+* Raise `ClientDisconnect` on `StreamingResponse` [#2732](https://github.com/encode/starlette/pull/2732).
+
+#### Fixed
+
+* Use ETag from headers when parsing If-Range in FileResponse [#2761](https://github.com/encode/starlette/pull/2761).
+* Follow directory symlinks in `StaticFiles` when `follow_symlinks=True` [#2711](https://github.com/encode/starlette/pull/2711).
+* Bump minimum `python-multipart` version to `0.0.18` [0ba8395](https://github.com/encode/starlette/commit/0ba83959e609bbd460966f092287df1bbd564cc6).
+* Bump minimum `httpx` version to `0.27.0` [#2773](https://github.com/encode/starlette/pull/2773).
+
 ## 0.41.3 (November 18, 2024)
 
 #### Fixed

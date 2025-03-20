@@ -2,19 +2,14 @@ from __future__ import annotations
 
 import base64
 import binascii
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable
+from typing import Any, Callable
 from urllib.parse import urlencode
 
 import pytest
 
 from starlette.applications import Starlette
-from starlette.authentication import (
-    AuthCredentials,
-    AuthenticationBackend,
-    AuthenticationError,
-    SimpleUser,
-    requires,
-)
+from starlette.authentication import AuthCredentials, AuthenticationBackend, AuthenticationError, SimpleUser, requires
 from starlette.endpoints import HTTPEndpoint
 from starlette.middleware import Middleware
 from starlette.middleware.authentication import AuthenticationMiddleware
@@ -210,8 +205,8 @@ def test_invalid_decorator_usage() -> None:
     with pytest.raises(Exception):
 
         @requires("authenticated")
-        def foo() -> None:
-            pass  # pragma: no cover
+        def foo() -> None:  # pragma: no cover
+            pass
 
 
 def test_user_interface(test_client_factory: TestClientFactory) -> None:

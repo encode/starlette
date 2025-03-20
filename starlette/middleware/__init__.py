@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import sys
-from typing import Any, Iterator, Protocol
+from collections.abc import Iterator
+from typing import Any, Protocol
 
 if sys.version_info >= (3, 10):  # pragma: no cover
     from typing import ParamSpec
@@ -14,7 +15,7 @@ P = ParamSpec("P")
 
 
 class _MiddlewareFactory(Protocol[P]):
-    def __call__(self, app: ASGIApp, *args: P.args, **kwargs: P.kwargs) -> ASGIApp: ...  # pragma: no cover
+    def __call__(self, app: ASGIApp, /, *args: P.args, **kwargs: P.kwargs) -> ASGIApp: ...  # pragma: no cover
 
 
 class Middleware:

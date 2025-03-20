@@ -1,4 +1,14 @@
 
+??? abstract "API Reference"
+    ::: starlette.testclient.TestClient
+        options:
+            parameter_headings: false
+            show_bases: false
+            show_root_heading: true
+            heading_level: 3
+            filters:
+                - "__init__"
+
 The test client allows you to make requests against your ASGI application,
 using the `httpx` library.
 
@@ -69,10 +79,21 @@ case you should use `client = TestClient(app, raise_server_exceptions=False)`.
     not be triggered when the `TestClient` is instantiated. You can learn more about it
     [here](lifespan.md#running-lifespan-in-tests).
 
+### Change client address
+
+By default, the TestClient will set the client host to `"testserver"` and the port to `50000`.
+
+You can change the client address by setting the `client` attribute of the `TestClient` instance:
+
+```python
+client = TestClient(app, client=('localhost', 8000))
+```
+
 ### Selecting the Async backend
 
 `TestClient` takes arguments `backend` (a string) and `backend_options` (a dictionary).
-These options are passed to `anyio.start_blocking_portal()`. See the [anyio documentation](https://anyio.readthedocs.io/en/stable/basics.html#backend-options)
+These options are passed to `anyio.start_blocking_portal()`.
+See the [anyio documentation](https://anyio.readthedocs.io/en/stable/basics.html#backend-options)
 for more information about the accepted backend options.
 By default, `asyncio` is used with default options.
 
@@ -165,15 +186,17 @@ May raise `starlette.websockets.WebSocketDisconnect`.
 ### Asynchronous tests
 
 Sometimes you will want to do async things outside of your application.
-For example, you might want to check the state of your database after calling your app using your existing async database client / infrastructure.
+For example, you might want to check the state of your database after calling your app
+using your existing async database client/infrastructure.
 
-For these situations, using `TestClient` is difficult because it creates it's own event loop and async resources (like a database connection) often cannot be shared across event loops.
+For these situations, using `TestClient` is difficult because it creates it's own event loop and async
+resources (like a database connection) often cannot be shared across event loops.
 The simplest way to work around this is to just make your entire test async and use an async client, like [httpx.AsyncClient].
 
 Here is an example of such a test:
 
 ```python
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 from starlette.applications import Starlette
 from starlette.routing import Route
 from starlette.requests import Request
@@ -192,7 +215,8 @@ app = Starlette(routes=[Route("/", hello)])
 # or install and configure pytest-asyncio (https://github.com/pytest-dev/pytest-asyncio)
 async def test_app() -> None:
     # note: you _must_ set `base_url` for relative urls like "/" to work
-    async with AsyncClient(app=app, base_url="http://testserver") as client:
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as client:
         r = await client.get("/")
         assert r.status_code == 200
         assert r.text == "Hello World!"

@@ -1,5 +1,4 @@
-import warnings
-from typing import Generator
+from collections.abc import Generator
 
 import pytest
 
@@ -179,19 +178,6 @@ def test_websocket_repr() -> None:
         repr(CustomWebSocketException(1013, reason="Something custom"))
         == "CustomWebSocketException(code=1013, reason='Something custom')"
     )
-
-
-def test_exception_middleware_deprecation() -> None:
-    # this test should be removed once the deprecation shim is removed
-    with pytest.warns(DeprecationWarning):
-        from starlette.exceptions import ExceptionMiddleware  # noqa: F401
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
-        import starlette.exceptions
-
-    with pytest.warns(DeprecationWarning):
-        starlette.exceptions.ExceptionMiddleware
 
 
 def test_request_in_app_and_handler_is_the_same_object(client: TestClient) -> None:

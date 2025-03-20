@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import os
+from collections.abc import AsyncGenerator, AsyncIterator, Generator
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import AsyncGenerator, AsyncIterator, Generator
+from typing import Callable
 
 import anyio.from_thread
 import pytest
@@ -567,9 +568,12 @@ def test_middleware_factory(test_client_factory: TestClientFactory) -> None:
 
         return _app
 
+    def get_middleware_factory() -> Callable[[ASGIApp, str], ASGIApp]:
+        return _middleware_factory
+
     app = Starlette()
     app.add_middleware(_middleware_factory, arg="foo")
-    app.add_middleware(_middleware_factory, arg="bar")
+    app.add_middleware(get_middleware_factory(), "bar")
 
     with test_client_factory(app):
         pass

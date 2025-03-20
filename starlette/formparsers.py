@@ -9,8 +9,8 @@ from urllib.parse import unquote_plus
 from starlette.datastructures import FormData, Headers, UploadFile
 
 if typing.TYPE_CHECKING:
-    import multipart
-    from multipart.multipart import MultipartCallbacks, QuerystringCallbacks, parse_options_header
+    import python_multipart as multipart
+    from python_multipart.multipart import MultipartCallbacks, QuerystringCallbacks, parse_options_header
 else:
     try:
         try:
@@ -122,8 +122,10 @@ class FormParser:
 
 
 class MultiPartParser:
-    max_file_size = 1024 * 1024  # 1MB
+    spool_max_size = 1024 * 1024  # 1MB
+    """The maximum size of the spooled temporary file used to store file data."""
     max_part_size = 1024 * 1024  # 1MB
+    """The maximum size of a part in the multipart request."""
 
     def __init__(
         self,
@@ -132,6 +134,7 @@ class MultiPartParser:
         *,
         max_files: int | float = 1000,
         max_fields: int | float = 1000,
+        max_part_size: int = 1024 * 1024,  # 1MB
     ) -> None:
         assert multipart is not None, "The `python-multipart` library must be installed to use form parsing."
         self.headers = headers
@@ -148,6 +151,7 @@ class MultiPartParser:
         self._file_parts_to_write: list[tuple[MultipartPart, bytes]] = []
         self._file_parts_to_finish: list[MultipartPart] = []
         self._files_to_close_on_error: list[SpooledTemporaryFile[bytes]] = []
+        self.max_part_size = max_part_size
 
     def on_part_begin(self) -> None:
         self._current_part = MultipartPart()
@@ -201,7 +205,7 @@ class MultiPartParser:
             if self._current_files > self.max_files:
                 raise MultiPartException(f"Too many files. Maximum number of files is {self.max_files}.")
             filename = _user_safe_decode(options[b"filename"], self._charset)
-            tempfile = SpooledTemporaryFile(max_size=self.max_file_size)
+            tempfile = SpooledTemporaryFile(max_size=self.spool_max_size)
             self._files_to_close_on_error.append(tempfile)
             self._current_part.file = UploadFile(
                 file=tempfile,  # type: ignore[arg-type]
