@@ -254,7 +254,7 @@ class Request(HTTPConnection):
         *,
         max_files: int | float = 1000,
         max_fields: int | float = 1000,
-        max_part_size: int = 1024 * 1024,
+        max_part_size: int | None = None,
     ) -> FormData:
         if self._form is None:  # pragma: no branch
             assert parse_options_header is not None, (
@@ -289,7 +289,7 @@ class Request(HTTPConnection):
         *,
         max_files: int | float = 1000,
         max_fields: int | float = 1000,
-        max_part_size: int = 1024 * 1024,
+        max_part_size: int | None = None,
     ) -> AwaitableOrContextManager[FormData]:
         return AwaitableOrContextManagerWrapper(
             self._get_form(max_files=max_files, max_fields=max_fields, max_part_size=max_part_size)
