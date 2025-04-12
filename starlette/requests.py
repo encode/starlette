@@ -131,6 +131,7 @@ class HTTPConnection(typing.Mapping[str, typing.Any]):
             self._query_params = QueryParams(self.scope["query_string"])
         return self._query_params
 
+
     @property
     def path_params(self) -> dict[str, typing.Any]:
         return self.scope.get("path_params", {})
