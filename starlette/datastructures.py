@@ -4,7 +4,8 @@ import typing
 from shlex import shlex
 from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit
 
-from starlette.concurrency import run_in_threadpool
+import anyio
+
 from starlette.types import Scope
 
 
@@ -413,7 +414,7 @@ class UploadFile:
 
     def __init__(
         self,
-        file: typing.BinaryIO,
+        file: anyio.SpooledTemporaryFile[bytes],
         *,
         size: int | None = None,
         filename: str | None = None,
@@ -428,37 +429,19 @@ class UploadFile:
     def content_type(self) -> str | None:
         return self.headers.get("content-type", None)
 
-    @property
-    def _in_memory(self) -> bool:
-        # check for SpooledTemporaryFile._rolled
-        rolled_to_disk = getattr(self.file, "_rolled", True)
-        return not rolled_to_disk
-
     async def write(self, data: bytes) -> None:
         if self.size is not None:
             self.size += len(data)
-
-        if self._in_memory:
-            self.file.write(data)
-        else:
-            await run_in_threadpool(self.file.write, data)
+        await self.file.write(data)
 
     async def read(self, size: int = -1) -> bytes:
-        if self._in_memory:
-            return self.file.read(size)
-        return await run_in_threadpool(self.file.read, size)
+        return await self.file.read(size)
 
     async def seek(self, offset: int) -> None:
-        if self._in_memory:
-            self.file.seek(offset)
-        else:
-            await run_in_threadpool(self.file.seek, offset)
+        await self.file.seek(offset)
 
     async def close(self) -> None:
-        if self._in_memory:
-            self.file.close()
-        else:
-            await run_in_threadpool(self.file.close)
+        await self.file.aclose()
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(filename={self.filename!r}, size={self.size!r}, headers={self.headers!r})"

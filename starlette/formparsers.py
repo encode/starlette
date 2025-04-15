@@ -3,8 +3,9 @@ from __future__ import annotations
 import typing
 from dataclasses import dataclass, field
 from enum import Enum
-from tempfile import SpooledTemporaryFile
 from urllib.parse import unquote_plus
+
+from anyio import SpooledTemporaryFile
 
 from starlette.datastructures import FormData, Headers, UploadFile
 
@@ -208,7 +209,7 @@ class MultiPartParser:
             tempfile = SpooledTemporaryFile(max_size=self.spool_max_size)
             self._files_to_close_on_error.append(tempfile)
             self._current_part.file = UploadFile(
-                file=tempfile,  # type: ignore[arg-type]
+                file=tempfile,
                 size=0,
                 filename=filename,
                 headers=Headers(raw=self._current_part.item_headers),
@@ -268,7 +269,7 @@ class MultiPartParser:
         except MultiPartException as exc:
             # Close all the files if there was an error.
             for file in self._files_to_close_on_error:
-                file.close()
+                await file.aclose()
             raise exc
 
         parser.finalize()
