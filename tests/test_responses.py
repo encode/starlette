@@ -380,7 +380,7 @@ def test_set_cookie(test_client_factory: TestClientFactory, monkeypatch: pytest.
     assert (
         response.headers["set-cookie"]
         == "mycookie=myvalue; Domain=localhost; expires=Thu, 22 Jan 2037 12:00:10 GMT; "
-        "HttpOnly; Max-Age=10; Path=/; SameSite=none; Secure; Partitioned"
+        "HttpOnly; Max-Age=10; Partitioned; Path=/; SameSite=none; Secure"
     )
 
 
