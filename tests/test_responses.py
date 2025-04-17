@@ -10,6 +10,7 @@ from typing import Any
 import anyio
 import pytest
 
+import sys
 from starlette import status
 from starlette.background import BackgroundTask
 from starlette.datastructures import Headers
@@ -374,13 +375,14 @@ def test_set_cookie(test_client_factory: TestClientFactory, monkeypatch: pytest.
         )
         await response(scope, receive, send)
 
+    partitioned_text = "Partitioned; " if sys.version_info >= (3, 14) else ""
+
     client = test_client_factory(app)
     response = client.get("/")
     assert response.text == "Hello, world!"
     assert (
-        response.headers["set-cookie"]
-        == "mycookie=myvalue; Domain=localhost; expires=Thu, 22 Jan 2037 12:00:10 GMT; "
-        "HttpOnly; Max-Age=10; Partitioned; Path=/; SameSite=none; Secure"
+        response.headers["set-cookie"] == "mycookie=myvalue; Domain=localhost; expires=Thu, 22 Jan 2037 12:00:10 GMT; "
+        f"HttpOnly; Max-Age=10; {partitioned_text}Path=/; SameSite=none; Secure"
     )
 
 

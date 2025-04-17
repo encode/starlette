@@ -6,6 +6,7 @@ import json
 import os
 import re
 import stat
+import sys
 import typing
 import warnings
 from datetime import datetime
@@ -123,7 +124,7 @@ class Response:
                 "none",
             ], "samesite must be either 'strict', 'lax' or 'none'"
             cookie[key]["samesite"] = samesite
-        if partitioned:
+        if sys.version_info >= (3, 14) and partitioned:
             cookie[key]["partitioned"] = True
 
         cookie_val = cookie.output(header="").strip()
