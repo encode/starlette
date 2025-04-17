@@ -6,6 +6,9 @@ from enum import Enum
 from tempfile import SpooledTemporaryFile
 from urllib.parse import unquote_plus
 
+import anyio.from_thread
+
+from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import FormData, Headers, UploadFile
 
 if typing.TYPE_CHECKING:
@@ -148,8 +151,6 @@ class MultiPartParser:
         self._current_partial_header_value: bytes = b""
         self._current_part = MultipartPart()
         self._charset = ""
-        self._file_parts_to_write: list[tuple[MultipartPart, bytes]] = []
-        self._file_parts_to_finish: list[MultipartPart] = []
         self._files_to_close_on_error: list[SpooledTemporaryFile[bytes]] = []
         self.max_part_size = max_part_size
 
@@ -163,7 +164,8 @@ class MultiPartParser:
                 raise MultiPartException(f"Part exceeded maximum size of {int(self.max_part_size / 1024)}KB.")
             self._current_part.data.extend(message_bytes)
         else:
-            self._file_parts_to_write.append((self._current_part, message_bytes))
+            if self._current_part.file:
+                self._current_part.file.file.write(message_bytes)
 
     def on_part_end(self) -> None:
         if self._current_part.file is None:
@@ -174,7 +176,9 @@ class MultiPartParser:
                 )
             )
         else:
-            self._file_parts_to_finish.append(self._current_part)
+            if self._current_part.file:
+                self._current_part.file.file.seek(0)
+
             # The file can be added to the items right now even though it's not
             # finished yet, because it will be finished in the `parse()` method, before
             # self.items is used in the return value.
@@ -249,22 +253,7 @@ class MultiPartParser:
         # Create the parser.
         parser = multipart.MultipartParser(boundary, callbacks)
         try:
-            # Feed the parser with data from the request.
-            async for chunk in self.stream:
-                parser.write(chunk)
-                # Write file data, it needs to use await with the UploadFile methods
-                # that call the corresponding file methods *in a threadpool*,
-                # otherwise, if they were called directly in the callback methods above
-                # (regular, non-async functions), that would block the event loop in
-                # the main thread.
-                for part, data in self._file_parts_to_write:
-                    assert part.file  # for type checkers
-                    await part.file.write(data)
-                for part in self._file_parts_to_finish:
-                    assert part.file  # for type checkers
-                    await part.file.seek(0)
-                self._file_parts_to_write.clear()
-                self._file_parts_to_finish.clear()
+            await run_in_threadpool(self._internal_parse, parser)
         except MultiPartException as exc:
             # Close all the files if there was an error.
             for file in self._files_to_close_on_error:
@@ -273,3 +262,12 @@ class MultiPartParser:
 
         parser.finalize()
         return FormData(self.items)
+
+    def _internal_parse(self, parser: multipart.MultipartParser):
+        while True:
+            try:
+                chunk = anyio.from_thread.run(self.stream.__anext__)
+            except StopAsyncIteration:
+                break
+
+            parser.write(chunk)
