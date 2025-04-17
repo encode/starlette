@@ -371,7 +371,7 @@ def test_set_cookie(test_client_factory: TestClientFactory, monkeypatch: pytest.
             secure=True,
             httponly=True,
             samesite="none",
-            partitioned=True if sys.version_info >= (3, 14) else False,
+            partitioned=True if sys.version_info >= (3, 14) else False,  # pragma: no cover
         )
         await response(scope, receive, send)
 
