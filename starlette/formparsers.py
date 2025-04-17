@@ -253,6 +253,7 @@ class MultiPartParser:
         # Create the parser.
         parser = multipart.MultipartParser(boundary, callbacks)
         try:
+            # Run actual parse in threadpool
             await run_in_threadpool(self._internal_parse, parser)
         except MultiPartException as exc:
             # Close all the files if there was an error.
@@ -263,11 +264,13 @@ class MultiPartParser:
         parser.finalize()
         return FormData(self.items)
 
-    def _internal_parse(self, parser: multipart.MultipartParser):
+    def _internal_parse(self, parser: multipart.MultipartParser) -> None:
         while True:
+            # Get the next chunk from the event loop
             try:
                 chunk = anyio.from_thread.run(self.stream.__anext__)
             except StopAsyncIteration:
                 break
 
+            # Write it to the parser
             parser.write(chunk)
