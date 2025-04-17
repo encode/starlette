@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import sys
 import time
 from collections.abc import AsyncGenerator, AsyncIterator, Iterator
 from http.cookies import SimpleCookie
@@ -10,7 +11,6 @@ from typing import Any
 import anyio
 import pytest
 
-import sys
 from starlette import status
 from starlette.background import BackgroundTask
 from starlette.datastructures import Headers
