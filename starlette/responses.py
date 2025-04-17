@@ -125,7 +125,7 @@ class Response:
             ], "samesite must be either 'strict', 'lax' or 'none'"
             cookie[key]["samesite"] = samesite
         if sys.version_info >= (3, 14) and partitioned:
-            cookie[key]["partitioned"] = True
+            cookie[key]["partitioned"] = True  # pragma: no cover
 
         cookie_val = cookie.output(header="").strip()
         self.raw_headers.append((b"set-cookie", cookie_val.encode("latin-1")))
