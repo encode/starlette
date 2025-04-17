@@ -124,7 +124,9 @@ class Response:
                 "none",
             ], "samesite must be either 'strict', 'lax' or 'none'"
             cookie[key]["samesite"] = samesite
-        if sys.version_info >= (3, 14) and partitioned:
+        if partitioned:
+            if sys.version_info < (3, 14):
+                raise ValueError("Partitioned cookies are only supported in Python 3.14 and above.")
             cookie[key]["partitioned"] = True  # pragma: no cover
 
         cookie_val = cookie.output(header="").strip()

@@ -386,6 +386,22 @@ def test_set_cookie(test_client_factory: TestClientFactory, monkeypatch: pytest.
     )
 
 
+def test_set_cookie_raises_for_invalid_python_version(test_client_factory: TestClientFactory) -> None:
+    if sys.version_info >= (3, 14):
+        return
+
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
+        response = Response("Hello, world!", media_type="text/plain")
+        with pytest.raises(ValueError):
+            response.set_cookie("mycookie", "myvalue", partitioned=True)
+        await response(scope, receive, send)
+
+    client = test_client_factory(app)
+    response = client.get("/")
+    assert response.text == "Hello, world!"
+    assert response.headers.get("set-cookie") is None
+
+
 def test_set_cookie_path_none(test_client_factory: TestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         response = Response("Hello, world!", media_type="text/plain")
