@@ -126,7 +126,7 @@ class Response:
             cookie[key]["samesite"] = samesite
         if partitioned:
             if sys.version_info < (3, 14):
-                raise ValueError("Partitioned cookies are only supported in Python 3.14 and above.")
+                raise ValueError("Partitioned cookies are only supported in Python 3.14 and above.")  # pragma: no cover
             cookie[key]["partitioned"] = True  # pragma: no cover
 
         cookie_val = cookie.output(header="").strip()

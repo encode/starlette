@@ -387,7 +387,9 @@ def test_set_cookie(test_client_factory: TestClientFactory, monkeypatch: pytest.
 
 
 @pytest.mark.skipif(sys.version_info >= (3, 14), reason="Only relevant for <3.14")
-def test_set_cookie_raises_for_invalid_python_version(test_client_factory: TestClientFactory) -> None:
+def test_set_cookie_raises_for_invalid_python_version(
+    test_client_factory: TestClientFactory,
+) -> None:  # pragma: no cover
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         response = Response("Hello, world!", media_type="text/plain")
         with pytest.raises(ValueError):
