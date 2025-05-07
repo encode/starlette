@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import typing
+from contextlib import AsyncExitStack
 from dataclasses import dataclass, field
 from enum import Enum
 from urllib.parse import unquote_plus
@@ -249,28 +250,30 @@ class MultiPartParser:
 
         # Create the parser.
         parser = multipart.MultipartParser(boundary, callbacks)
-        try:
-            # Feed the parser with data from the request.
-            async for chunk in self.stream:
-                parser.write(chunk)
-                # Write file data, it needs to use await with the UploadFile methods
-                # that call the corresponding file methods *in a threadpool*,
-                # otherwise, if they were called directly in the callback methods above
-                # (regular, non-async functions), that would block the event loop in
-                # the main thread.
-                for part, data in self._file_parts_to_write:
-                    assert part.file  # for type checkers
-                    await part.file.write(data)
-                for part in self._file_parts_to_finish:
-                    assert part.file  # for type checkers
-                    await part.file.seek(0)
-                self._file_parts_to_write.clear()
-                self._file_parts_to_finish.clear()
-        except MultiPartException as exc:
-            # Close all the files if there was an error.
+
+        async with AsyncExitStack() as stack:
             for file in self._files_to_close_on_error:
-                await file.aclose()
-            raise exc
+                stack.push_async_callback(file.aclose)
+
+            try:
+                # Feed the parser with data from the request.
+                async for chunk in self.stream:
+                    parser.write(chunk)
+                    # Write file data, it needs to use await with the UploadFile methods
+                    # that call the corresponding file methods *in a threadpool*,
+                    # otherwise, if they were called directly in the callback methods above
+                    # (regular, non-async functions), that would block the event loop in
+                    # the main thread.
+                    for part, data in self._file_parts_to_write:
+                        assert part.file  # for type checkers
+                        await part.file.write(data)
+                    for part in self._file_parts_to_finish:
+                        assert part.file  # for type checkers
+                        await part.file.seek(0)
+                    self._file_parts_to_write.clear()
+                    self._file_parts_to_finish.clear()
+            except MultiPartException as exc:
+                raise exc
 
         parser.finalize()
         return FormData(self.items)
