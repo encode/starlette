@@ -152,7 +152,7 @@ class MultiPartParser:
         self._charset = ""
         self._file_parts_to_write: list[tuple[MultipartPart, bytes]] = []
         self._file_parts_to_finish: list[MultipartPart] = []
-        self._files_to_close_on_error: list[SpooledTemporaryFile[bytes]] = []
+        self._files_to_close_on_error: AsyncExitStack = AsyncExitStack()
         self.max_part_size = max_part_size
 
     def on_part_begin(self) -> None:
@@ -208,7 +208,7 @@ class MultiPartParser:
                 raise MultiPartException(f"Too many files. Maximum number of files is {self.max_files}.")
             filename = _user_safe_decode(options[b"filename"], self._charset)
             tempfile = SpooledTemporaryFile(max_size=self.spool_max_size)
-            self._files_to_close_on_error.append(tempfile)
+            self._files_to_close_on_error.push_async_callback(tempfile.aclose)
             self._current_part.file = UploadFile(
                 file=tempfile,
                 size=0,
@@ -267,11 +267,9 @@ class MultiPartParser:
                     await part.file.seek(0)
                 self._file_parts_to_write.clear()
                 self._file_parts_to_finish.clear()
-        except MultiPartException as exc:
+        except BaseException as exc:
             # Close all the files if there was an error.
-            async with AsyncExitStack() as stack:
-                for f in self._files_to_close_on_error:
-                    stack.push_async_callback(f.aclose)
+            await self._files_to_close_on_error.aclose()
             raise exc
 
         parser.finalize()
