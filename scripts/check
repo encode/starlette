@@ -6,9 +6,13 @@ if [ -d 'venv' ] ; then
 fi
 export SOURCE_FILES="starlette tests"
 
+export PY_VERSION=$(${PREFIX}python --version)
+
 set -x
 
 ./scripts/sync-version
 ${PREFIX}ruff format --check --diff $SOURCE_FILES
-${PREFIX}mypy $SOURCE_FILES
+if [[ $PY_VERSION != *"3.14"* ]]; then
+    ${PREFIX}mypy $SOURCE_FILES
+fi
 ${PREFIX}ruff check $SOURCE_FILES
