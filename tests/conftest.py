@@ -22,6 +22,7 @@ def async_test_client_factory(
         backend_options=anyio_backend_options,
     )
 
+
 @pytest.fixture
 def test_client_factory(
     anyio_backend_name: Literal["asyncio", "trio"],

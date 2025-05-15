@@ -766,7 +766,7 @@ class AsyncWebSocketTestSession:
             self.extra_headers = message.get("headers", None)
             stack.push_async_callback(self.aclose, 1000)
             self.exit_stack = stack.pop_all()
-            return self
+        return self
 
     async def __aexit__(self, *args: typing.Any) -> bool | None:
         return await self.exit_stack.__aexit__(*args)
@@ -1113,7 +1113,7 @@ class AsyncTestClient(httpx.AsyncClient):
             extensions=extensions,
         )
 
-    def options(  # type: ignore[override]
+    async def options(  # type: ignore[override]
         self,
         url: httpx._types.URLTypes,
         *,
@@ -1125,7 +1125,7 @@ class AsyncTestClient(httpx.AsyncClient):
         timeout: httpx._types.TimeoutTypes | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
         extensions: dict[str, typing.Any] | None = None,
     ) -> httpx.Response:
-        return super().options(
+        return await super().options(
             url,
             params=params,
             headers=headers,
@@ -1313,7 +1313,7 @@ class AsyncTestClient(httpx.AsyncClient):
             self.stream_receive = StapledObjectStream(*receive)
             self.task_done = anyio.Event()
 
-            async def lifespan():
+            async def lifespan() -> None:
                 await self.lifespan()
                 self.task_done.set()
 

@@ -89,7 +89,9 @@ def test_testclient_headers_behavior() -> None:
     assert client.headers.get("Authentication") == "Bearer 123"
 
 
-async def test_use_testclient_as_contextmanager(async_test_client_factory: AsyncTestClientFactory, anyio_backend_name: str) -> None:
+async def test_use_testclient_as_contextmanager(
+    async_test_client_factory: AsyncTestClientFactory, anyio_backend_name: str
+) -> None:
     """
     This test asserts a number of properties that are important for an
     app level task_group
@@ -335,7 +337,9 @@ async def test_query_params(async_test_client_factory: AsyncTestClientFactory, p
         ("example.com", False),
     ],
 )
-async def test_domain_restricted_cookies(async_test_client_factory: AsyncTestClientFactory, domain: str, ok: bool) -> None:
+async def test_domain_restricted_cookies(
+    async_test_client_factory: AsyncTestClientFactory, domain: str, ok: bool
+) -> None:
     """
     Test that test client discards domain restricted cookies which do not match the
     base_url of the testclient (`http://testserver` by default).
