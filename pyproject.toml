@@ -51,7 +51,6 @@ path = "starlette/__init__.py"
 
 [tool.ruff]
 line-length = 120
-target-version = "py311"
 
 [tool.ruff.lint]
 select = [
