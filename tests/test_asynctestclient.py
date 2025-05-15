@@ -23,6 +23,9 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 from starlette.websockets import WebSocket, WebSocketDisconnect
 from tests.types import AsyncTestClientFactory
 
+if sys.version_info < (3, 11):
+    from exceptiongroup import ExceptionGroup
+
 
 def mock_service_endpoint(request: Request) -> JSONResponse:
     return JSONResponse({"mock": "example"})
