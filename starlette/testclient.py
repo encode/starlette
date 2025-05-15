@@ -1017,14 +1017,11 @@ class AsyncTestClient(httpx.AsyncClient):
         base_url: str = "http://testserver",
         raise_server_exceptions: bool = True,
         root_path: str = "",
-        backend: typing.Literal["asyncio", "trio"] = "asyncio",
-        backend_options: dict[str, typing.Any] | None = None,
         cookies: httpx._types.CookieTypes | None = None,
         headers: dict[str, str] | None = None,
         follow_redirects: bool = True,
         client: tuple[str, int] = ("testclient", 50000),
     ) -> None:
-        self.async_backend = _AsyncBackend(backend=backend, backend_options=backend_options or {})
         if _is_asgi3(app):
             asgi_app = app
         else:
