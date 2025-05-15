@@ -53,6 +53,7 @@ def startup() -> None:
     raise RuntimeError()
 
 
+@pytest.mark.anyio
 async def test_use_testclient_in_endpoint(async_test_client_factory: AsyncTestClientFactory) -> None:
     """
     We should be able to use the test client within applications.
@@ -172,6 +173,7 @@ async def test_use_testclient_as_contextmanager(
     assert first_task is not startup_task
 
 
+@pytest.mark.anyio
 async def test_error_on_startup(async_test_client_factory: AsyncTestClientFactory) -> None:
     with pytest.deprecated_call(match="The on_startup and on_shutdown parameters are deprecated"):
         startup_error_app = Starlette(on_startup=[startup])
@@ -183,6 +185,7 @@ async def test_error_on_startup(async_test_client_factory: AsyncTestClientFactor
     assert excinfo.group_contains(RuntimeError)
 
 
+@pytest.mark.anyio
 async def test_exception_in_middleware(async_test_client_factory: AsyncTestClientFactory) -> None:
     class MiddlewareException(Exception):
         pass
@@ -203,6 +206,7 @@ async def test_exception_in_middleware(async_test_client_factory: AsyncTestClien
     assert excinfo.group_contains(MiddlewareException)
 
 
+@pytest.mark.anyio
 async def test_testclient_asgi2(async_test_client_factory: AsyncTestClientFactory) -> None:
     def app(scope: Scope) -> ASGIInstance:
         async def inner(receive: Receive, send: Send) -> None:
@@ -222,6 +226,7 @@ async def test_testclient_asgi2(async_test_client_factory: AsyncTestClientFactor
     assert response.text == "Hello, world!"
 
 
+@pytest.mark.anyio
 async def test_testclient_asgi3(async_test_client_factory: AsyncTestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         await send(
@@ -238,6 +243,7 @@ async def test_testclient_asgi3(async_test_client_factory: AsyncTestClientFactor
     assert response.text == "Hello, world!"
 
 
+@pytest.mark.anyio
 async def test_websocket_blocking_receive(async_test_client_factory: AsyncTestClientFactory) -> None:
     def app(scope: Scope) -> ASGIInstance:
         async def respond(websocket: WebSocket) -> None:
@@ -263,6 +269,7 @@ async def test_websocket_blocking_receive(async_test_client_factory: AsyncTestCl
         assert data == {"message": "test"}
 
 
+@pytest.mark.anyio
 async def test_websocket_not_block_on_close(async_test_client_factory: AsyncTestClientFactory) -> None:
     cancelled = False
 
@@ -285,6 +292,7 @@ async def test_websocket_not_block_on_close(async_test_client_factory: AsyncTest
     assert cancelled
 
 
+@pytest.mark.anyio
 async def test_client(async_test_client_factory: AsyncTestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         client = scope.get("client")
@@ -298,6 +306,7 @@ async def test_client(async_test_client_factory: AsyncTestClientFactory) -> None
     assert response.json() == {"host": "testclient", "port": 50000}
 
 
+@pytest.mark.anyio
 async def test_client_custom_client(async_test_client_factory: AsyncTestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         client = scope.get("client")
@@ -311,6 +320,7 @@ async def test_client_custom_client(async_test_client_factory: AsyncTestClientFa
     assert response.json() == {"host": "192.168.0.1", "port": 3000}
 
 
+@pytest.mark.anyio
 @pytest.mark.parametrize("param", ("2020-07-14T00:00:00+00:00", "España", "voilà"))
 async def test_query_params(async_test_client_factory: AsyncTestClientFactory, param: str) -> None:
     def homepage(request: Request) -> Response:
@@ -322,6 +332,7 @@ async def test_query_params(async_test_client_factory: AsyncTestClientFactory, p
     assert response.text == param
 
 
+@pytest.mark.anyio
 @pytest.mark.parametrize(
     "domain, ok",
     [
@@ -368,6 +379,7 @@ async def test_domain_restricted_cookies(
     assert cookie_set == ok
 
 
+@pytest.mark.anyio
 async def test_forward_follow_redirects(async_test_client_factory: AsyncTestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         if "/ok" in scope["path"]:
@@ -381,6 +393,7 @@ async def test_forward_follow_redirects(async_test_client_factory: AsyncTestClie
     assert response.status_code == 200
 
 
+@pytest.mark.anyio
 async def test_forward_nofollow_redirects(async_test_client_factory: AsyncTestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         response = RedirectResponse("/ok")
@@ -391,6 +404,7 @@ async def test_forward_nofollow_redirects(async_test_client_factory: AsyncTestCl
     assert response.status_code == 307
 
 
+@pytest.mark.anyio
 async def test_with_duplicate_headers(async_test_client_factory: AsyncTestClientFactory) -> None:
     def homepage(request: Request) -> JSONResponse:
         return JSONResponse({"x-token": request.headers.getlist("x-token")})
@@ -401,6 +415,7 @@ async def test_with_duplicate_headers(async_test_client_factory: AsyncTestClient
     assert response.json() == {"x-token": ["foo", "bar"]}
 
 
+@pytest.mark.anyio
 async def test_merge_url(async_test_client_factory: AsyncTestClientFactory) -> None:
     def homepage(request: Request) -> Response:
         return Response(request.url.path)
@@ -411,6 +426,7 @@ async def test_merge_url(async_test_client_factory: AsyncTestClientFactory) -> N
     assert response.text == "/api/v1/bar"
 
 
+@pytest.mark.anyio
 async def test_raw_path_with_querystring(async_test_client_factory: AsyncTestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         response = Response(scope.get("raw_path"))
@@ -421,6 +437,7 @@ async def test_raw_path_with_querystring(async_test_client_factory: AsyncTestCli
     assert response.content == b"/hello-world"
 
 
+@pytest.mark.anyio
 async def test_websocket_raw_path_without_params(async_test_client_factory: AsyncTestClientFactory) -> None:
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
         websocket = WebSocket(scope, receive=receive, send=send)
