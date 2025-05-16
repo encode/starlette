@@ -7,6 +7,7 @@ import json
 import math
 import sys
 from collections.abc import Awaitable, Generator, Iterable, Mapping, MutableMapping, Sequence
+import warnings
 from concurrent.futures import Future
 from contextlib import AbstractContextManager
 from types import GeneratorType
@@ -428,6 +429,12 @@ class TestClient(httpx.Client):
         timeout: httpx._types.TimeoutTypes | httpx._client.UseClientDefault = httpx._client.USE_CLIENT_DEFAULT,
         extensions: dict[str, Any] | None = None,
     ) -> httpx.Response:
+        if timeout is not httpx.USE_CLIENT_DEFAULT:
+            warnings.warn(
+                "You should not use the 'timeout' argument with the TestClient. "
+                "See https://github.com/encode/starlette/issues/1108 for more information.",
+                DeprecationWarning,
+            )
         url = self._merge_url(url)
         return super().request(
             method,

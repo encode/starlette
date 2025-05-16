@@ -2,6 +2,38 @@
 toc_depth: 2
 ---
 
+## 0.46.2 (April 13, 2025)
+
+#### Fixed
+
+* Prevents reraising of exception from BaseHttpMiddleware [#2911](https://github.com/encode/starlette/pull/2911)
+* Use correct index on backwards compatible logic in `TemplateResponse` [#2909](https://github.com/encode/starlette/pull/2909).
+
+## 0.46.1 (March 8, 2025)
+
+#### Fixed
+
+* Allow relative directory path when `follow_symlinks=True` [#2896](https://github.com/encode/starlette/pull/2896).
+
+## 0.46.0 (February 22, 2025)
+
+#### Added
+
+* `GZipMiddleware`: Make sure `Vary` header is always added if a response can be compressed [#2865](https://github.com/encode/starlette/pull/2865).
+
+#### Fixed
+
+* Raise exception from background task on BaseHTTPMiddleware [#2812](https://github.com/encode/starlette/pull/2812).
+* `GZipMiddleware`: Don't compress on server sent events [#2871](https://github.com/encode/starlette/pull/2871).
+
+#### Changed
+
+* `MultiPartParser`: Rename `max_file_size` to `spool_max_size` [#2780](https://github.com/encode/starlette/pull/2780).
+
+#### Deprecated
+
+* Add deprecated warning to `TestClient(timeout=...)` [#2840](https://github.com/encode/starlette/pull/2840).
+
 ## 0.45.3 (January 24, 2025)
 
 #### Fixed

@@ -6,6 +6,7 @@ import json
 import os
 import re
 import stat
+import sys
 import warnings
 from collections.abc import AsyncIterable, Awaitable, Iterable, Mapping, Sequence
 from datetime import datetime
@@ -19,6 +20,7 @@ from urllib.parse import quote
 import anyio
 import anyio.to_thread
 
+from starlette._utils import collapse_excgroups
 from starlette.background import BackgroundTask
 from starlette.concurrency import iterate_in_threadpool
 from starlette.datastructures import URL, Headers, MutableHeaders
@@ -97,6 +99,7 @@ class Response:
         secure: bool = False,
         httponly: bool = False,
         samesite: Literal["lax", "strict", "none"] | None = "lax",
+        partitioned: bool = False,
     ) -> None:
         cookie: http.cookies.BaseCookie[str] = http.cookies.SimpleCookie()
         cookie[key] = value
@@ -122,6 +125,11 @@ class Response:
                 "none",
             ], "samesite must be either 'strict', 'lax' or 'none'"
             cookie[key]["samesite"] = samesite
+        if partitioned:
+            if sys.version_info < (3, 14):
+                raise ValueError("Partitioned cookies are only supported in Python 3.14 and above.")  # pragma: no cover
+            cookie[key]["partitioned"] = True  # pragma: no cover
+
         cookie_val = cookie.output(header="").strip()
         self.raw_headers.append((b"set-cookie", cookie_val.encode("latin-1")))
 
@@ -259,14 +267,15 @@ class StreamingResponse(Response):
             except OSError:
                 raise ClientDisconnect()
         else:
-            async with anyio.create_task_group() as task_group:
+            with collapse_excgroups():
+                async with anyio.create_task_group() as task_group:
 
-                async def wrap(func: Callable[[], Awaitable[None]]) -> None:
-                    await func()
-                    task_group.cancel_scope.cancel()
+                    async def wrap(func: Callable[[], Awaitable[None]]) -> None:
+                        await func()
+                        task_group.cancel_scope.cancel()
 
-                task_group.start_soon(wrap, partial(self.stream_response, send))
-                await wrap(partial(self.listen_for_disconnect, receive))
+                    task_group.start_soon(wrap, partial(self.stream_response, send))
+                    await wrap(partial(self.listen_for_disconnect, receive))
 
         if self.background is not None:
             await self.background()
