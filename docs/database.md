@@ -105,6 +105,16 @@ Install dependencies for testing:
 $ pip install aiosqlite greenlet httpx pytest pytest_asyncio sqlalchemy_utils
 ```
 
+!!! note
+
+    `pytest-asyncio` requires setting the option `asyncio_default_fixture_loop_scope` but does not provide a default. To suppress this deprecation warning add the following to the project config:
+
+    ```
+    # pyproject.toml
+    [tool.pytest.ini_options]
+    asyncio_default_fixture_loop_scope = "function"
+    ```
+
 Here's how we need to structure our application and tests in order to
 meet those requirements:
 
