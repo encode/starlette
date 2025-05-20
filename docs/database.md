@@ -102,7 +102,7 @@ a service that uses a database. Our requirements should be:
 Install dependencies for testing:
 
 ```sh
-$ pip install aiosqlite httpx pytest pytest_asyncio sqlalchemy_utils
+$ pip install aiosqlite greenlet httpx pytest pytest_asyncio sqlalchemy_utils
 ```
 
 Here's how we need to structure our application and tests in order to
