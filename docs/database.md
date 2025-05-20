@@ -25,16 +25,14 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Route
 
-config = Config(".env")
 
+# Configuration from environment variables or '.env' file.
+config = Config(".env")
 DATABASE_URL = config(
     "DATABASE_URL", cast=make_url, default="sqlite+aiosqlite:///test.db"
 )
 
-engine = create_async_engine(DATABASE_URL, echo=True)
-async_session = async_sessionmaker(engine, expire_on_commit=False)
-
-
+# Database table definitions.
 metadata = MetaData()
 
 
@@ -48,6 +46,10 @@ class Note(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     text: Mapped[str]
     completed: Mapped[bool]
+
+
+engine = create_async_engine(DATABASE_URL, echo=True)
+async_session = async_sessionmaker(engine, expire_on_commit=False)
 
 
 # Main application code
