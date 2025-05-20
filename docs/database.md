@@ -211,7 +211,7 @@ incremental changes to the database. For this we'd strongly recommend
 
 ```shell
 $ pip install alembic
-$ alembic init migrations
+$ alembic init -t async migrations
 ```
 
 Now, you'll want to set things up so that Alembic references the configured
@@ -231,9 +231,9 @@ and the `target_metadata` variable. You'll want something like this:
 config = context.config
 
 # Configure Alembic to use our DATABASE_URL and our table definitions...
-import app
-config.set_main_option('sqlalchemy.url', str(app.DATABASE_URL))
-target_metadata = app.metadata
+from app import DATABASE_URL, metadata
+config.set_main_option('sqlalchemy.url', str(DATABASE_URL))
+target_metadata = metadata
 
 ...
 ```
@@ -251,9 +251,9 @@ And populate the new file (within `migrations/versions`) with the necessary dire
 def upgrade():
     op.create_table(
       'notes',
-      sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
-      sqlalchemy.Column("text", sqlalchemy.String),
-      sqlalchemy.Column("completed", sqlalchemy.Boolean),
+      sa.Column("id", sa.Integer, primary_key=True),
+      sa.Column("text", sa.String),
+      sa.Column("completed", sa.Boolean),
     )
 
 def downgrade():
@@ -273,25 +273,64 @@ every time it creates the test database. This will help catch any issues in your
 migration scripts, and will help ensure that the tests are running against
 a database that's in a consistent state with your live database.
 
-We can adjust the `create_test_database` fixture slightly:
+Adjust `migrations/env.py`:
 
 ```python
-from alembic import command
-from alembic.config import Config
-import app
+def run_migrations_online() -> None:
+    """Run migrations in 'online' mode."""
+
+    connectable = config.attributes.get("connection", None)
+
+    if connectable is None:
+        asyncio.run(run_async_migrations())
+    else:
+        do_run_migrations(connectable)
+```
+
+See [Programmatic API use (connection sharing) With Asyncio](https://alembic.sqlalchemy.org/en/latest/cookbook.html#programmatic-api-use-connection-sharing-with-asyncio) from the Alembic docs for more details.
+
+We can adjust the `create_test_database` fixture slightly:
+
+```diff
++ from alembic import command
++ from alembic.config import Config
+- from app import Base, DATABASE_URL, app
++ from app import DATABASE_URL, app
 
 ...
 
-@pytest.fixture(scope="session", autouse=True)
-def create_test_database():
-    url = str(app.DATABASE_URL)
-    engine = create_engine(url)
-    assert not database_exists(url), 'Test database already exists. Aborting tests.'
-    create_database(url)             # Create the test database.
-    config = Config("alembic.ini")   # Run the migrations.
-    command.upgrade(config, "head")
-    yield                            # Run the tests.
-    drop_database(url)               # Drop the test database.
++ def run_upgrade(connection, cfg):
++   cfg.attributes["connection"] = connection
++   command.upgrade(cfg, "head")
+
+
++ async def run_async_upgrade():
++     async_engine = create_async_engine(DATABASE_URL, echo=True)
++     async with async_engine.begin() as conn:
++         await conn.run_sync(run_upgrade, Config("alembic.ini"))
+
+@pytest_asyncio.fixture(scope="function", autouse=True)
+async def create_test_database():
+    """
+    Create a clean database on every test case.
+    For safety, we should abort if a database already exists.
+
+    We use the `sqlalchemy_utils` package here for a few helpers in consistently
+    creating and dropping the database.
+    """
+    assert not database_exists(
+        DATABASE_URL
+    ), "Test database already exists. Aborting tests."
+
+    await greenlet_spawn(create_database, DATABASE_URL)  # Create the test database.
+
+-    engine = create_async_engine(DATABASE_URL, echo=True)
+-    async with engine.begin() as conn:
+-        await conn.run_sync(Base.metadata.create_all)  # Create the tables.
++   await run_async_upgrade()
+
+    yield  # Run the tests.
+    drop_database(DATABASE_URL)  # Drop the test database.
 ```
 
 [sqlalchemy-core]: https://docs.sqlalchemy.org/en/latest/core/
