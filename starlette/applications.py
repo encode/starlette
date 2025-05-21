@@ -17,7 +17,15 @@ from starlette.middleware.exceptions import ExceptionMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.routing import BaseRoute, Router
-from starlette.types import ASGIApp, ExceptionHandler, Lifespan, Receive, Scope, Send
+from starlette.types import (
+    ASGIApp,
+    ExceptionHandler,
+    ExceptionType,
+    Lifespan,
+    Receive,
+    Scope,
+    Send,
+)
 from starlette.websockets import WebSocket
 
 AppType = typing.TypeVar("AppType", bound="Starlette")
@@ -32,7 +40,8 @@ class Starlette:
         debug: bool = False,
         routes: typing.Sequence[BaseRoute] | None = None,
         middleware: typing.Sequence[Middleware] | None = None,
-        exception_handlers: typing.Mapping[typing.Any, ExceptionHandler] | None = None,
+        exception_handlers: typing.Mapping[typing.Any, typing.Callable[[typing.Any, typing.Any], typing.Any]]
+        | None = None,
         on_startup: typing.Sequence[typing.Callable[[], typing.Any]] | None = None,
         on_shutdown: typing.Sequence[typing.Callable[[], typing.Any]] | None = None,
         lifespan: Lifespan[AppType] | None = None,
@@ -132,8 +141,8 @@ class Starlette:
 
     def add_exception_handler(
         self,
-        exc_class_or_status_code: int | type[Exception],
-        handler: ExceptionHandler,
+        exc_class_or_status_code: int | type[ExceptionType],
+        handler: ExceptionHandler[ExceptionType],
     ) -> None:  # pragma: no cover
         self.exception_handlers[exc_class_or_status_code] = handler
 
