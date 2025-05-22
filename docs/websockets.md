@@ -2,6 +2,11 @@
 Starlette includes a `WebSocket` class that fulfils a similar role
 to the HTTP request, but that allows sending and receiving data on a websocket.
 
+**Note:** For websocket support to function correct, the ASGI web server that
+calls Starlette will also need support for websockets. For example, uvicorn will
+need either the wsproto or websockets PyPI package installed. Without this in
+place, Starlette will respond with 404 errors on the websocket endpoints.
+
 ### WebSocket
 
 Signature: `WebSocket(scope, receive=None, send=None)`
