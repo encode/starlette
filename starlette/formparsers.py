@@ -135,6 +135,8 @@ class MultiPartParser:
         max_files: int | float = 1000,
         max_fields: int | float = 1000,
         max_part_size: int = 1024 * 1024,  # 1MB
+        max_spool_size: int = 1024 * 1024,  # 1MB
+        max_file_size: int = 1024 * 1024 * 1024,  # 1GB
     ) -> None:
         assert multipart is not None, "The `python-multipart` library must be installed to use form parsing."
         self.headers = headers
@@ -152,6 +154,8 @@ class MultiPartParser:
         self._file_parts_to_finish: list[MultipartPart] = []
         self._files_to_close_on_error: list[SpooledTemporaryFile[bytes]] = []
         self.max_part_size = max_part_size
+        self.spool_max_size = max_spool_size
+        self.max_file_size = max_file_size
 
     def on_part_begin(self) -> None:
         self._current_part = MultipartPart()
@@ -259,6 +263,8 @@ class MultiPartParser:
                 # the main thread.
                 for part, data in self._file_parts_to_write:
                     assert part.file  # for type checkers
+                    if part.file.size is not None and part.file.size + len(data) > self.max_file_size:
+                        raise MultiPartException(f"File exceeded maximum size of {int(self.max_file_size / 1024)}KB.")
                     await part.file.write(data)
                 for part in self._file_parts_to_finish:
                     assert part.file  # for type checkers
