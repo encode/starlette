@@ -757,14 +757,14 @@ def test_lifespan_state_async_cm(test_client_factory: TestClientFactory) -> None
         count: int
         items: list[int]
 
-    async def hello_world(request: Request) -> Response:
-        # modifications to the state should not leak across requests
-        assert request.state.count == 0
+    async def hello_world(request: Request[State]) -> Response:
+        # from version 0.46.3, the state object is only immutable if defined by the user
+        assert request.state["count"] in (0, 1)
         # modify the state, this should not leak to the lifespan or other requests
-        request.state.count += 1
+        request.state["count"] += 1
         # since state.items is a mutable object this modification _will_ leak across
         # requests and to the lifespan
-        request.state.items.append(1)
+        request.state["items"].append(1)
         return PlainTextResponse("hello, world")
 
     @contextlib.asynccontextmanager
@@ -774,8 +774,8 @@ def test_lifespan_state_async_cm(test_client_factory: TestClientFactory) -> None
         state = State(count=0, items=[])
         yield state
         shutdown_complete = True
-        # modifications made to the state from a request do not leak to the lifespan
-        assert state["count"] == 0
+        # from version 0.46.3, objects from the state are mutable if the state itself is mutable
+        assert state["count"] == 2
         # unless of course the request mutates a mutable object that is referenced
         # via state
         assert state["items"] == [1, 1]

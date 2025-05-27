@@ -11,14 +11,7 @@ from collections.abc import Awaitable, Generator, Iterable, Mapping, MutableMapp
 from concurrent.futures import Future
 from contextlib import AbstractContextManager
 from types import GeneratorType
-from typing import (
-    Any,
-    Callable,
-    Literal,
-    TypedDict,
-    Union,
-    cast,
-)
+from typing import Any, Callable, Literal, TypedDict, Union, cast
 from urllib.parse import unquote, urljoin
 
 import anyio
