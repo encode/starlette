@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-import typing
+from collections.abc import AsyncGenerator, Awaitable, AsyncIterable, Mapping
+from typing import Any, Callable, MutableMapping, TypeVar, Union
+
 
 import anyio
 
@@ -9,11 +11,11 @@ from starlette.requests import ClientDisconnect, Request
 from starlette.responses import Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-RequestResponseEndpoint = typing.Callable[[Request], typing.Awaitable[Response]]
-DispatchFunction = typing.Callable[[Request, RequestResponseEndpoint], typing.Awaitable[Response]]
-BodyStreamGenerator = typing.AsyncGenerator[typing.Union[bytes, typing.MutableMapping[str, typing.Any]], None]
-AsyncContentStream = typing.AsyncIterable[typing.Union[str, bytes, memoryview, typing.MutableMapping[str, typing.Any]]]
-T = typing.TypeVar("T")
+RequestResponseEndpoint = Callable[[Request], Awaitable[Response]]
+DispatchFunction = Callable[[Request, RequestResponseEndpoint], Awaitable[Response]]
+BodyStreamGenerator = AsyncGenerator[Union[bytes, MutableMapping[str, Any]], None]
+AsyncContentStream = AsyncIterable[Union[str, bytes, memoryview, MutableMapping[str, Any]]]
+T = TypeVar("T")
 
 
 class _CachedRequest(Request):
@@ -106,6 +108,7 @@ class BaseHTTPMiddleware:
         wrapped_receive = request.wrapped_receive
         response_sent = anyio.Event()
         app_exc: Exception | None = None
+        exception_already_raised = False
 
         async def call_next(request: Request) -> Response:
             async def receive_or_disconnect() -> Message:
@@ -114,7 +117,7 @@ class BaseHTTPMiddleware:
 
                 async with anyio.create_task_group() as task_group:
 
-                    async def wrap(func: typing.Callable[[], typing.Awaitable[T]]) -> T:
+                    async def wrap(func: Callable[[], Awaitable[T]]) -> T:
                         result = await func()
                         task_group.cancel_scope.cancel()
                         return result
@@ -152,6 +155,8 @@ class BaseHTTPMiddleware:
                     message = await recv_stream.receive()
             except anyio.EndOfStream:
                 if app_exc is not None:
+                    nonlocal exception_already_raised
+                    exception_already_raised = True
                     raise app_exc
                 raise RuntimeError("No response returned.")
 
@@ -181,8 +186,7 @@ class BaseHTTPMiddleware:
                 await response(scope, wrapped_receive, send)
                 response_sent.set()
                 recv_stream.close()
-
-        if app_exc is not None:
+        if app_exc is not None and not exception_already_raised:
             raise app_exc
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
@@ -194,9 +198,9 @@ class _StreamingResponse(Response):
         self,
         content: AsyncContentStream,
         status_code: int = 200,
-        headers: typing.Mapping[str, str] | None = None,
+        headers: Mapping[str, str] | None = None,
         media_type: str | None = None,
-        info: typing.Mapping[str, typing.Any] | None = None,
+        info: Mapping[str, Any] | None = None,
     ) -> None:
         self.info = info
         self.body_iterator = content

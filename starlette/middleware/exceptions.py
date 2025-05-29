@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-import typing
+from collections.abc import Mapping
+from typing import Any, Callable
 
 from starlette._exception_handler import (
     ExceptionHandlers,
@@ -18,7 +19,7 @@ class ExceptionMiddleware:
     def __init__(
         self,
         app: ASGIApp,
-        handlers: typing.Mapping[typing.Any, typing.Callable[[Request, Exception], Response]] | None = None,
+        handlers: Mapping[Any, Callable[[Request, Exception], Response]] | None = None,
         debug: bool = False,
     ) -> None:
         self.app = app
@@ -35,7 +36,7 @@ class ExceptionMiddleware:
     def add_exception_handler(
         self,
         exc_class_or_status_code: int | type[Exception],
-        handler: typing.Callable[[Request, Exception], Response],
+        handler: Callable[[Request, Exception], Response],
     ) -> None:
         if isinstance(exc_class_or_status_code, int):
             self._status_handlers[exc_class_or_status_code] = handler
@@ -61,7 +62,7 @@ class ExceptionMiddleware:
 
         await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
 
-    def http_exception(self, request: Request, exc: Exception) -> Response:
+    async def http_exception(self, request: Request, exc: Exception) -> Response:
         assert isinstance(exc, HTTPException)
         if exc.status_code in {204, 304}:
             return Response(status_code=exc.status_code, headers=exc.headers)
