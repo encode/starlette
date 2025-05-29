@@ -8,12 +8,7 @@ from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.gzip import GZipMiddleware
 from starlette.requests import Request
-from starlette.responses import (
-    ContentStream,
-    FileResponse,
-    PlainTextResponse,
-    StreamingResponse,
-)
+from starlette.responses import ContentStream, FileResponse, PlainTextResponse, StreamingResponse
 from starlette.routing import Route
 from starlette.types import Message
 from tests.types import TestClientFactory

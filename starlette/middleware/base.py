@@ -162,7 +162,7 @@ class BaseHTTPMiddleware:
                     if message["type"] == "http.response.pathsend":
                         yield message
                         break
-                    assert message["type"] == "http.response.body"
+                    assert message["type"] == "http.response.body", f"Unexpected message: {message}"
                     body = message.get("body", b"")
                     if body:
                         yield body
