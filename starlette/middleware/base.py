@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator, Awaitable, AsyncIterable, Mapping
-from typing import Any, Callable, MutableMapping, TypeVar, Union
-
+from collections.abc import AsyncGenerator, AsyncIterable, Awaitable, Mapping, MutableMapping
+from typing import Any, Callable, TypeVar, Union
 
 import anyio
 
