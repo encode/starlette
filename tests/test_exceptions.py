@@ -48,6 +48,14 @@ async def handler_that_reads_body(request: Request, exc: BadBodyException) -> JS
     return JSONResponse(status_code=422, content={"body": body.decode()})
 
 
+async def async_catch_all_handler(request: Request, exc: Exception) -> JSONResponse:
+    raise NotImplementedError
+
+
+def sync_catch_all_handler(request: Request, exc: Exception) -> JSONResponse:
+    raise NotImplementedError
+
+
 class HandledExcAfterResponse:
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         response = PlainTextResponse("OK", status_code=200)
@@ -73,6 +81,9 @@ app = ExceptionMiddleware(
     router,
     handlers={BadBodyException: handler_that_reads_body},  # type: ignore[dict-item]
 )
+
+sync_catch_all = ExceptionMiddleware(router, handlers={Exception: sync_catch_all_handler})
+async_catch_all = ExceptionMiddleware(router, handlers={Exception: async_catch_all_handler})
 
 
 @pytest.fixture
