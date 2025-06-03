@@ -48,14 +48,6 @@ async def handler_that_reads_body(request: Request, exc: BadBodyException) -> JS
     return JSONResponse(status_code=422, content={"body": body.decode()})
 
 
-async def async_catch_all_handler(request: Request, exc: Exception) -> JSONResponse:
-    raise NotImplementedError
-
-
-def sync_catch_all_handler(request: Request, exc: Exception) -> JSONResponse:
-    raise NotImplementedError
-
-
 class HandledExcAfterResponse:
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         response = PlainTextResponse("OK", status_code=200)
@@ -81,9 +73,6 @@ app = ExceptionMiddleware(
     router,
     handlers={BadBodyException: handler_that_reads_body},  # type: ignore[dict-item]
 )
-
-sync_catch_all = ExceptionMiddleware(router, handlers={Exception: sync_catch_all_handler})
-async_catch_all = ExceptionMiddleware(router, handlers={Exception: async_catch_all_handler})
 
 
 @pytest.fixture
@@ -216,3 +205,20 @@ def test_http_exception_does_not_use_threadpool(client: TestClient, monkeypatch:
     # This should succeed because http_exception is async and won't use run_in_threadpool
     response = client.get("/not_acceptable")
     assert response.status_code == 406
+
+
+def test_handlers_annotations() -> None:
+    """Check that async exception handlers are accepted by type checkers.
+
+    We annotate the handlers' exceptions with plain `Exception` to avoid variance issues
+    when using other exception types.
+    """
+
+    async def async_catch_all_handler(request: Request, exc: Exception) -> JSONResponse:
+        raise NotImplementedError
+
+    def sync_catch_all_handler(request: Request, exc: Exception) -> JSONResponse:
+        raise NotImplementedError
+
+    ExceptionMiddleware(router, handlers={Exception: sync_catch_all_handler})
+    ExceptionMiddleware(router, handlers={Exception: async_catch_all_handler})
