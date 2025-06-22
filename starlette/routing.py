@@ -620,17 +620,13 @@ class Router:
                 "use an @contextlib.asynccontextmanager function instead",
                 DeprecationWarning,
             )
-            self.lifespan_context = asynccontextmanager(
-                lifespan,
-            )
+            self.lifespan_context = asynccontextmanager(lifespan)
         elif inspect.isgeneratorfunction(lifespan):
             warnings.warn(
                 "generator function lifespans are deprecated, use an @contextlib.asynccontextmanager function instead",
                 DeprecationWarning,
             )
-            self.lifespan_context = _wrap_gen_lifespan_context(
-                lifespan,
-            )
+            self.lifespan_context = _wrap_gen_lifespan_context(lifespan)
         else:
             self.lifespan_context = lifespan
 
@@ -695,7 +691,7 @@ class Router:
                 if maybe_state is not None:
                     if "state" not in scope:
                         raise RuntimeError('The server does not support "state" in the lifespan scope.')
-                    scope["state"].update(maybe_state)
+                    scope["state"].update({"starlette.lifespan_state": maybe_state})
                 await send({"type": "lifespan.startup.complete"})
                 started = True
                 await receive()
