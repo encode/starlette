@@ -163,6 +163,10 @@ class BaseHTTPMiddleware:
 
             async def body_stream() -> BodyStreamGenerator:
                 async for message in recv_stream:
+                    if message["type"] == "http.response.start":
+                        yield message
+                        continue
+                        
                     if message["type"] == "http.response.pathsend":
                         yield message
                         break
