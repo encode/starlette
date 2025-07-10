@@ -428,6 +428,11 @@ class UploadFile:
         self.size = size
         self.headers = headers or Headers()
 
+        # Capture max size from SpooledTemporaryFile if one is provided. This
+        # slightly speeds up future checks. Note 0 means unlimited mirroring
+        # SpooledTemporaryFile's __init__
+        self._max_mem_size = getattr(self.file, "_max_size", 0)
+
     @property
     def content_type(self) -> str | None:
         return self.headers.get("content-type", None)
@@ -444,9 +449,8 @@ class UploadFile:
             return True
 
         # Check for SpooledTemporaryFile._max_size
-        max_size = getattr(self.file, "_max_size", None)
         future_size = self.file.tell() + size_to_add
-        return bool(future_size > max_size) if max_size is not None else False
+        return bool(future_size > self._max_mem_size) if self._max_mem_size else False
 
     async def write(self, data: bytes) -> None:
         new_data_len = len(data)
