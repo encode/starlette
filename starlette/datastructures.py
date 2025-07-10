@@ -445,10 +445,8 @@ class UploadFile:
 
         # Check for SpooledTemporaryFile._max_size
         max_size = getattr(self.file, "_max_size", None)
-        if max_size is None:
-            return False
-
-        return bool((self.file.tell() + size_to_add) > max_size)
+        future_size = self.file.tell() + size_to_add
+        return bool(future_size > max_size) if max_size is not None else False
 
     async def write(self, data: bytes) -> None:
         new_data_len = len(data)
