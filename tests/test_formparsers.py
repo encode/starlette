@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from contextlib import AbstractContextManager, nullcontext as does_not_raise
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 
@@ -9,7 +10,7 @@ import pytest
 
 from starlette.applications import Starlette
 from starlette.datastructures import UploadFile
-from starlette.formparsers import MultiPartException, _user_safe_decode
+from starlette.formparsers import MultiPartException, MultiPartParser, _user_safe_decode
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Mount
@@ -301,6 +302,16 @@ def test_multipart_request_mixed_files_and_data(tmpdir: Path, test_client_factor
         "field0": "value0",
         "field1": "value1",
     }
+
+
+def test_multipart_request_large_file(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+    data = BytesIO(b" " * MultiPartParser.spool_max_size * 2)
+    client = test_client_factory(app)
+    response = client.post(
+        "/",
+        files=[("test_large", data)],
+    )
+    assert response.status_code == 200
 
 
 def test_multipart_request_with_charset_for_filename(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
