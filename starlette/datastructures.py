@@ -437,15 +437,28 @@ class UploadFile:
         # check for SpooledTemporaryFile._rolled
         rolled_to_disk = getattr(self.file, "_rolled", True)
         return not rolled_to_disk
+    
+    def _will_roll(self, size_to_add: int)->bool:
+        # If we're not in_memory then we will always roll
+        if not self._in_memory:
+            return True
+
+        # Check for SpooledTemporaryFile._max_size
+        max_size = getattr(self.file, "_max_size", None)
+        if max_size is None:
+            return False
+        
+        return ((self.file.tell()+size_to_add)>self.file._max_size)
 
     async def write(self, data: bytes) -> None:
+        new_data_len = len(data)
         if self.size is not None:
-            self.size += len(data)
+            self.size += new_data_len
 
-        if self._in_memory:
-            self.file.write(data)
-        else:
+        if self._will_roll(new_data_len):
             await run_in_threadpool(self.file.write, data)
+        else:
+            self.file.write(data)            
 
     async def read(self, size: int = -1) -> bytes:
         if self._in_memory:
