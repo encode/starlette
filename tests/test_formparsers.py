@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import os
+import threading
 from contextlib import AbstractContextManager, nullcontext as does_not_raise
 from io import BytesIO
 from pathlib import Path
 from tempfile import SpooledTemporaryFile
-import threading
 from typing import Any
 from unittest import mock
 
@@ -321,21 +321,23 @@ def test_multipart_request_mixed_files_and_data(tmpdir: Path, test_client_factor
     }
 
 
-class ThreadTrackingSpooledTemporaryFile(SpooledTemporaryFile):
+class ThreadTrackingSpooledTemporaryFile(SpooledTemporaryFile[bytes]):
     """Helper class to track which threads performed the rollover operation. This is
     not threadsafe/multi-test safe"""
 
-    rollover_threads: set[int] = set()
+    rollover_threads: set[int | None] = set()
 
-    def rollover(self):
+    def rollover(self) -> None:
         ThreadTrackingSpooledTemporaryFile.rollover_threads.add(threading.current_thread().ident)
-        return super().rollover()
+        super().rollover()
 
 
 def test_multipart_request_large_file(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
+    """Test that Spooled file rollovers happen in background threads"""
     data = BytesIO(b" " * MultiPartParser.spool_max_size * 2)
 
     # Mock the formparser to use our monitoring class
+    ThreadTrackingSpooledTemporaryFile.rollover_threads.clear()
     with mock.patch("starlette.formparsers.SpooledTemporaryFile", ThreadTrackingSpooledTemporaryFile):
         client = test_client_factory(app_monitor_thread)
         response = client.post(
