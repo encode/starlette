@@ -4,7 +4,10 @@ import os
 from contextlib import AbstractContextManager, nullcontext as does_not_raise
 from io import BytesIO
 from pathlib import Path
+from tempfile import SpooledTemporaryFile
+import threading
 from typing import Any
+from unittest import mock
 
 import pytest
 
@@ -102,6 +105,20 @@ async def app_read_body(scope: Scope, receive: Receive, send: Send) -> None:
         output[key] = value
     await request.close()
     response = JSONResponse(output)
+    await response(scope, receive, send)
+
+
+async def app_monitor_thread(scope: Scope, receive: Receive, send: Send) -> None:
+    """Helper app to monitor what thread the app was called on. This can later
+    be used to validate thread/event loop operations"""
+    request = Request(scope, receive)
+
+    # Make sure we parse the form
+    await request.form()
+    await request.close()
+
+    # Send back the current thread id
+    response = JSONResponse({"thread_ident": threading.current_thread().ident})
     await response(scope, receive, send)
 
 
@@ -304,14 +321,37 @@ def test_multipart_request_mixed_files_and_data(tmpdir: Path, test_client_factor
     }
 
 
+class ThreadTrackingSpooledTemporaryFile(SpooledTemporaryFile):
+    """Helper class to track which threads performed the rollover operation. This is
+    not threadsafe/multi-test safe"""
+
+    rollover_threads: set[int] = set()
+
+    def rollover(self):
+        ThreadTrackingSpooledTemporaryFile.rollover_threads.add(threading.current_thread().ident)
+        return super().rollover()
+
+
 def test_multipart_request_large_file(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
     data = BytesIO(b" " * MultiPartParser.spool_max_size * 2)
-    client = test_client_factory(app)
-    response = client.post(
-        "/",
-        files=[("test_large", data)],
-    )
-    assert response.status_code == 200
+
+    # Mock the formparser to use our monitoring class
+    with mock.patch("starlette.formparsers.SpooledTemporaryFile", ThreadTrackingSpooledTemporaryFile):
+        client = test_client_factory(app_monitor_thread)
+        response = client.post(
+            "/",
+            files=[("test_large", data)],
+        )
+        assert response.status_code == 200
+
+        # Parse the event thread id from the API response and ensure we have one
+        app_thread_ident = response.json().get("thread_ident")
+        assert app_thread_ident
+
+        # Ensure the app thread was not the same as the rollover one and that a rollover thread
+        # exists
+        assert app_thread_ident not in ThreadTrackingSpooledTemporaryFile.rollover_threads
+        assert len(ThreadTrackingSpooledTemporaryFile.rollover_threads) > 0
 
 
 def test_multipart_request_with_charset_for_filename(tmpdir: Path, test_client_factory: TestClientFactory) -> None:
