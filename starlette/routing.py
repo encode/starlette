@@ -7,7 +7,7 @@ import re
 import traceback
 import types
 import warnings
-from collections.abc import Awaitable, Generator, Sequence
+from collections.abc import Awaitable, Collection, Generator, Sequence
 from contextlib import AbstractAsyncContextManager, AbstractContextManager, asynccontextmanager
 from enum import Enum
 from re import Pattern
@@ -65,7 +65,7 @@ def request_response(
     and returns an ASGI application.
     """
     f: Callable[[Request], Awaitable[Response]] = (
-        func if is_async_callable(func) else functools.partial(run_in_threadpool, func)  # type:ignore
+        func if is_async_callable(func) else functools.partial(run_in_threadpool, func)
     )
 
     async def app(scope: Scope, receive: Receive, send: Send) -> None:
@@ -213,7 +213,7 @@ class Route(BaseRoute):
         path: str,
         endpoint: Callable[..., Any],
         *,
-        methods: list[str] | None = None,
+        methods: Collection[str] | None = None,
         name: str | None = None,
         include_in_schema: bool = True,
         middleware: Sequence[Middleware] | None = None,
@@ -776,7 +776,7 @@ class Router:
         self,
         path: str,
         endpoint: Callable[[Request], Awaitable[Response] | Response],
-        methods: list[str] | None = None,
+        methods: Collection[str] | None = None,
         name: str | None = None,
         include_in_schema: bool = True,
     ) -> None:  # pragma: no cover
@@ -801,7 +801,7 @@ class Router:
     def route(
         self,
         path: str,
-        methods: list[str] | None = None,
+        methods: Collection[str] | None = None,
         name: str | None = None,
         include_in_schema: bool = True,
     ) -> Callable:  # type: ignore[type-arg]
