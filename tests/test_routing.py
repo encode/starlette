@@ -5,11 +5,12 @@ import functools
 import json
 import uuid
 from collections.abc import AsyncGenerator, AsyncIterator, Generator
-from typing import Callable, TypedDict
+from typing import Callable
 
 import pytest
 
 from starlette.applications import Starlette
+from starlette.datastructures import State
 from starlette.exceptions import HTTPException
 from starlette.middleware import Middleware
 from starlette.requests import Request
@@ -753,13 +754,13 @@ def test_lifespan_state_async_cm(test_client_factory: TestClientFactory) -> None
     startup_complete = False
     shutdown_complete = False
 
-    class State(TypedDict):
+    class LifespanState(State):
         count: int
         items: list[int]
 
-    async def hello_world(request: Request) -> Response:
-        # modifications to the state should not leak across requests
-        assert request.state.count == 0
+    async def hello_world(request: Request[LifespanState]) -> Response:
+        # from version 0.46.3, the state object is only immutable if defined by the user
+        assert request.state.count in (0, 1)
         # modify the state, this should not leak to the lifespan or other requests
         request.state.count += 1
         # since state.items is a mutable object this modification _will_ leak across
@@ -768,17 +769,17 @@ def test_lifespan_state_async_cm(test_client_factory: TestClientFactory) -> None
         return PlainTextResponse("hello, world")
 
     @contextlib.asynccontextmanager
-    async def lifespan(app: Starlette) -> AsyncIterator[State]:
+    async def lifespan(app: Starlette) -> AsyncIterator[LifespanState]:
         nonlocal startup_complete, shutdown_complete
         startup_complete = True
-        state = State(count=0, items=[])
+        state = LifespanState({"count": 0, "items": []})
         yield state
         shutdown_complete = True
-        # modifications made to the state from a request do not leak to the lifespan
-        assert state["count"] == 0
+        # from version 0.46.3, objects from the state are mutable if the state itself is mutable
+        assert state.count == 2
         # unless of course the request mutates a mutable object that is referenced
         # via state
-        assert state["items"] == [1, 1]
+        assert state.items == [1, 1]
 
     app = Router(
         lifespan=lifespan,
