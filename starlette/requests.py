@@ -69,7 +69,7 @@ class ClientDisconnect(Exception):
     pass
 
 
-_LifespanStateT = TypeVar("_LifespanStateT", default=State)
+_LifespanStateT = TypeVar("_LifespanStateT", bound=State, default=State)
 
 
 class HTTPConnection(Mapping[str, Any], Generic[_LifespanStateT]):

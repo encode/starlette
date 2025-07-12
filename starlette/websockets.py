@@ -26,7 +26,7 @@ class WebSocketDisconnect(Exception):
         self.reason = reason or ""
 
 
-_LifespanStateT = TypeVar("_LifespanStateT", default=State)
+_LifespanStateT = TypeVar("_LifespanStateT", bound=State, default=State)
 
 
 class WebSocket(HTTPConnection[_LifespanStateT]):
