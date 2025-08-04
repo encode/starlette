@@ -6,7 +6,10 @@ import warnings
 from collections.abc import AsyncIterator, Coroutine, Iterable, Iterator
 from typing import Callable, TypeVar
 
+import anyio
 import anyio.to_thread
+
+from starlette._utils import is_async_callable
 
 if sys.version_info >= (3, 10):  # pragma: no cover
     from typing import ParamSpec
@@ -35,6 +38,9 @@ async def run_until_first_complete(*args: tuple[Callable, dict]) -> None:  # typ
 
 async def run_in_threadpool(func: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> T:
     func = functools.partial(func, *args, **kwargs)
+    if is_async_callable(func):
+        return await anyio.to_thread.run_sync(anyio.run, func)
+
     return await anyio.to_thread.run_sync(func)
 
 
