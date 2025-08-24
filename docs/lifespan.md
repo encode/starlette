@@ -39,39 +39,45 @@ can be used to share the objects between the lifespan, and the requests.
 
 ```python
 import contextlib
-from typing import AsyncIterator, TypedDict
+from collections.abc import AsyncIterator
+from dataclasses import dataclass
 
 import httpx
+
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse
 from starlette.routing import Route
 
 
-class State(TypedDict):
-    http_client: httpx.AsyncClient
+@dataclass(frozen=True)
+class LifespanState:
+    client: httpx.AsyncClient
 
 
 @contextlib.asynccontextmanager
-async def lifespan(app: Starlette) -> AsyncIterator[State]:
+async def lifespan(app: Starlette) -> AsyncIterator[LifespanState]:
     async with httpx.AsyncClient() as client:
-        yield {"http_client": client}
+        yield LifespanState(client=client)
 
 
-async def homepage(request: Request) -> PlainTextResponse:
-    client = request.state.http_client
-    response = await client.get("https://www.example.com")
+async def homepage(request: Request[LifespanState]) -> PlainTextResponse:
+    client = request.state.client
+    response = await client.get("http://localhost:8001")
     return PlainTextResponse(response.text)
 
 
-app = Starlette(
-    lifespan=lifespan,
-    routes=[Route("/", homepage)]
-)
+app = Starlette(lifespan=lifespan, routes=[Route("/", homepage)])
 ```
 
 The `state` received on the requests is a **shallow** copy of the state received on the
 lifespan handler.
+
+!!! warning
+    From version 0.46.3, the state object is not immutable by default.
+
+    As a user you should make sure the lifespan object is immutable if you don't want changes to
+    the lifespan state to be spread through requests.
 
 ## Running lifespan in tests
 

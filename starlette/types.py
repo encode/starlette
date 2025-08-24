@@ -1,4 +1,4 @@
-from collections.abc import Awaitable, Mapping, MutableMapping
+from collections.abc import Awaitable, MutableMapping
 from contextlib import AbstractAsyncContextManager
 from typing import TYPE_CHECKING, Any, Callable, TypeVar, Union
 
@@ -18,7 +18,7 @@ Send = Callable[[Message], Awaitable[None]]
 ASGIApp = Callable[[Scope, Receive, Send], Awaitable[None]]
 
 StatelessLifespan = Callable[[AppType], AbstractAsyncContextManager[None]]
-StatefulLifespan = Callable[[AppType], AbstractAsyncContextManager[Mapping[str, Any]]]
+StatefulLifespan = Callable[[AppType], AbstractAsyncContextManager[Any]]
 Lifespan = Union[StatelessLifespan[AppType], StatefulLifespan[AppType]]
 
 HTTPExceptionHandler = Callable[["Request", Exception], "Response | Awaitable[Response]"]

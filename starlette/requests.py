@@ -3,9 +3,10 @@ from __future__ import annotations
 import json
 from collections.abc import AsyncGenerator, Iterator, Mapping
 from http import cookies as http_cookies
-from typing import TYPE_CHECKING, Any, NoReturn, cast
+from typing import TYPE_CHECKING, Any, Generic, NoReturn, cast
 
 import anyio
+from typing_extensions import TypeVar
 
 from starlette._utils import AwaitableOrContextManager, AwaitableOrContextManagerWrapper
 from starlette.datastructures import URL, Address, FormData, Headers, QueryParams, State
@@ -68,11 +69,16 @@ class ClientDisconnect(Exception):
     pass
 
 
-class HTTPConnection(Mapping[str, Any]):
+_LifespanStateT = TypeVar("_LifespanStateT", bound=State, default=State)
+
+
+class HTTPConnection(Mapping[str, Any], Generic[_LifespanStateT]):
     """
     A base class for incoming HTTP connections, that is used to provide
     any functionality that is common to both `Request` and `WebSocket`.
     """
+
+    _state: _LifespanStateT
 
     def __init__(self, scope: Scope, receive: Receive | None = None) -> None:
         assert scope["type"] in ("http", "websocket")
@@ -171,13 +177,14 @@ class HTTPConnection(Mapping[str, Any]):
         return self.scope["user"]
 
     @property
-    def state(self) -> State:
+    def state(self) -> _LifespanStateT:
         if not hasattr(self, "_state"):
             # Ensure 'state' has an empty dict if it's not already populated.
             self.scope.setdefault("state", {})
-            # Create a state instance with a reference to the dict in which it should
-            # store info
-            self._state = State(self.scope["state"])
+            # for backwards compatibility, if the user didn't define a state, then it should create a default State().
+            self.scope["state"].setdefault("starlette.lifespan_state", State())
+            # Create a state instance with a reference to the dict in which it should store info
+            self._state = self.scope["state"]["starlette.lifespan_state"]
         return self._state
 
     def url_for(self, name: str, /, **path_params: Any) -> URL:
@@ -196,7 +203,7 @@ async def empty_send(message: Message) -> NoReturn:
     raise RuntimeError("Send channel has not been made available")
 
 
-class Request(HTTPConnection):
+class Request(HTTPConnection[_LifespanStateT]):
     _form: FormData | None
 
     def __init__(self, scope: Scope, receive: Receive = empty_receive, send: Send = empty_send):

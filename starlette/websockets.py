@@ -5,6 +5,9 @@ import json
 from collections.abc import AsyncIterator, Iterable
 from typing import Any, cast
 
+from typing_extensions import TypeVar
+
+from starlette.datastructures import State
 from starlette.requests import HTTPConnection
 from starlette.responses import Response
 from starlette.types import Message, Receive, Scope, Send
@@ -23,7 +26,10 @@ class WebSocketDisconnect(Exception):
         self.reason = reason or ""
 
 
-class WebSocket(HTTPConnection):
+_LifespanStateT = TypeVar("_LifespanStateT", bound=State, default=State)
+
+
+class WebSocket(HTTPConnection[_LifespanStateT]):
     def __init__(self, scope: Scope, receive: Receive, send: Send) -> None:
         super().__init__(scope)
         assert scope["type"] == "websocket"
