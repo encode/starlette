@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import json
 import sys
 import time
 from collections.abc import AsyncGenerator, AsyncIterator, Iterator
@@ -50,6 +51,24 @@ def test_json_none_response(test_client_factory: TestClientFactory) -> None:
     response = client.get("/")
     assert response.json() is None
     assert response.content == b"null"
+
+
+def test_json_encoder_response(test_client_factory: TestClientFactory) -> None:
+    async def app(scope: Scope, receive: Receive, send: Send) -> None:
+        class CustomJSONEncoder(json.JSONEncoder):
+            def default(self, obj: object) -> Any:
+                if isinstance(obj, Exception):
+                    return obj.__class__.__name__
+                return super().default(obj)
+
+        content = {"error": ValueError("this is an error")}
+        response = JSONResponse(content=content, json_encoder=CustomJSONEncoder)
+        await response(scope, receive, send)
+
+    client = test_client_factory(app)
+    response = client.get("/")
+    assert response.json() == {"error": "ValueError"}
+    assert response.content == b'{"error":"ValueError"}'
 
 
 def test_redirect_response(test_client_factory: TestClientFactory) -> None:
