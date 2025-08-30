@@ -95,8 +95,26 @@ async def app(scope, receive, send):
 
 #### Custom JSON serialization
 
-If you need fine-grained control over JSON serialization, you can subclass
-`JSONResponse` and override the `render` method.
+If you need fine-grained control over JSON serialization, you can pass a custom `json.JSONEncoder` to the `json_encoder` argument.
+
+```python
+import json
+
+from starlette.responses import JSONResponse
+
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj: object) -> Any:
+        if isinstance(obj, Exception):
+            return obj.__class__.__name__
+        return super().default(obj)
+
+async def app(scope, receive, send):
+    assert scope['type'] == 'http'
+    response = JSONResponse({'hello': 'world'}, json_encoder=CustomJSONEncoder)
+    await response(scope, receive, send)
+```
+
+Moreover, if your need of fine-grained control over JSON serialization uses a third-party JSON library, you can subclass `JSONResponse` and override the `render` method.
 
 For example, if you wanted to use a third-party JSON library such as
 [orjson](https://pypi.org/project/orjson/):
