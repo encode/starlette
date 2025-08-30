@@ -121,7 +121,6 @@ class Config:
                             key = key.strip()
                             value = value.strip().strip("\"'")
                             file_values[key] = value
-                return file_values
         return file_values
 
     def _perform_cast(
