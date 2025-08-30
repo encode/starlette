@@ -110,7 +110,7 @@ class Config:
 
     def _read_file(self, file_name: str | Path) -> dict[str, str]:
         file_values: dict[str, str] = {}
-        encodings: list[str] = ['utf-8', 'euc-kr', 'gbk', 'cp949', 'latin1']
+        encodings: list[str] = ["utf-8", "euc-kr", "gbk", "cp949", "latin1"]
         for encoding in encodings:
             with contextlib.suppress(UnicodeDecodeError):
                 with open(file_name, encoding=encoding) as input_file:
